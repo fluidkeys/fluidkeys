@@ -1,0 +1,10 @@
+Package: fluidkeys
+Version: 0.0.1
+Architecture: amd64
+Essential: no
+Section: devel
+Priority: optional
+Depends:
+Maintainer: Paul Furley, Ian Drysdale
+Installed-Size: 96
+Description: Fluidkeys makes PGP simple.
