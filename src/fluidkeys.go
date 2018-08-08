@@ -15,7 +15,7 @@ func main() {
 	}
 	outString := string(out)
 
-	re := regexp.MustCompile(`gpg \(GnuPG\) ([0-9.]+)`)
+	re := regexp.MustCompile(`gpg \(GnuPG.*\) (\d+\.\d+\.\d+)`)
 
 	match := re.FindStringSubmatch(outString)
 	if match != nil {
