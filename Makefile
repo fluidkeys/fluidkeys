@@ -12,6 +12,15 @@ run: src/fluidkeys.go
 deb: $(DEB)/DEBIAN/md5sums
 	@mkdir -p pkg/out
 	dpkg -b $(DEB) pkg/out/fluidkeys_0.0.1_amd64.deb
+	@rm -rf pkg/apt-repo/db
+	@rm -rf pkg/apt-repo/dists
+	@rm -rf pkg/apt-repo/pool
+	reprepro -b pkg/apt-repo includedeb any pkg/out/fluidkeys*
+	rsync \
+		-razv \
+		-e "ssh -i .secret/download-fluidkeys-com.id_rsa" \
+		pkg/apt-repo/ download-fluidkeys-com@download.fluidkeys.com:~/html
+
 
 $(DEB)/DEBIAN/md5sums: $(DEB)/usr/bin/fk
 	cd $(DEB) ; \
