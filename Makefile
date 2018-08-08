@@ -1,7 +1,7 @@
-build/bin/fk: fluidkeys.go
+build/bin/fk: src/fluidkeys.go
 	@mkdir -p build/bin
 	go build -o $@ $<
 
 .PHONY: run
-run: fluidkeys.go
+run: src/fluidkeys.go
 	go run $<
