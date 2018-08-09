@@ -1,0 +1,63 @@
+#!/bin/sh -eux
+
+get_tag_to_release() {
+    if [ -z "${TAG_TO_PUBLISH+x}" ]; then
+	TAG=$(git tag --list | grep '^v*' | sort | tail -n 1)
+    else
+	TAG="${TAG_TO_PUBLISH}"
+    fi
+
+    echo "Publishing tag ${TAG}"
+}
+
+checkout_copy_of_repo_at_tag() {
+    TEMP_DIR=$(mktemp -d)
+    git clone $(git remote get-url origin) "${TEMP_DIR}"
+    cd "${TEMP_DIR}"
+    git checkout tags/"${TAG}"
+}
+
+verify_tag_signature() {
+    # To trust a new signing key, add the public key to Jenkins' gpg keyring
+    # (the tag can't be verified without the public key, so this acts as a list
+    # of trusted keys)
+
+    if ! git tag --verify "${TAG}" ; then
+	    echo "Bad tag signature!"
+	    exit 1
+    fi
+}
+
+get_version_number() {
+    VERSION=$(cat src/VERSION)
+}
+
+
+make_deb_package() {
+    mkdir -p pkg/out
+    dpkg -b pkg/debian pkg/out/fluidkeys_${VERSION}_amd64.deb
+}
+
+make_apt_repo() {
+    rm -rf pkg/apt-repo/db
+    rm -rf pkg/apt-repo/dists
+    rm -rf pkg/apt-repo/pool
+    reprepro -b pkg/apt-repo includedeb any pkg/out/fluidkeys*
+}
+
+sync_apt_repo() {
+    rsync \
+    	-razv \
+    	-e "ssh -i .secret/download-fluidkeys-com.id_rsa" \
+    	pkg/apt-repo/ download-fluidkeys-com@download.fluidkeys.com:~/html
+}
+
+
+get_tag_to_release
+checkout_copy_of_repo_at_tag
+verify_tag_signature
+get_version_number
+
+make_deb_package
+make_apt_repo
+# sync_apt_repo
