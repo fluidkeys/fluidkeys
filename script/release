@@ -56,6 +56,7 @@ make_upversion_commit() {
 make_signed_tag() {
     set -x  # enable command echo
     git tag --sign "v${NEW_VERSION}" -m "v${NEW_VERSION}"
+    git tag -f --sign release -m release
     git tag --list
     set +x  # disable command echo
 }
