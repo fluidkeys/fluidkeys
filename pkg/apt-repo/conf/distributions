@@ -4,4 +4,4 @@ Codename: any
 Architectures: amd64
 Components: main
 Description: Fluidkeys binary packages
-SignWith: A999B7498D1A8DC473E53C92309F635DAD1B5517
+SignWith: 36D46F41F57A1DF676730BE4EA53212450A89809
