@@ -1,11 +1,11 @@
 # Fluidkeys command line
 
-## Debian / Ubuntu
+## Install on Debian / Ubuntu
 
 ### Get our public key
 
 ```
-sudo apt-key adv --keyserver pool.sks-keyservers.net --recv-key 0xA999B7498D1A8DC473E53C92309F635DAD1B5517
+sudo apt-key adv --keyserver pool.sks-keyservers.net --recv-key 0x36D46F41F57A1DF676730BE4EA53212450A89809
 ```
 
 ### Add our apt repository
