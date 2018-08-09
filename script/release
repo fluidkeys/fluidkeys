@@ -65,11 +65,11 @@ instruct_git_push() {
     echo
     echo "In a new shell, verify with:"
     echo "  git log --show-signature"
-    echo "  git tag --verify ${NEW_VERSION}"
+    echo "  git tag --verify v${NEW_VERSION}"
     echo
     echo "Then press RETURN to push to origin, eg:"
     echo "  git push origin master:master"
-    echo "  git push origin --tags"
+    echo "  git push origin --tags -f"
     echo
     echo "(or press ctrl-c to quit now)"
 
@@ -79,7 +79,7 @@ instruct_git_push() {
 push_to_origin() {
     set -x  # enable command echo
     git push origin master:master
-    git push origin --tags
+    git push origin --tags -f
     set +x  # disable command echo
 }
 
