@@ -1,6 +1,8 @@
 DEB=pkg/debian
 SECRETS_ID_RSA=.secret/download-fluidkeys-com.id_rsa
 
+.PHONY: compile
+compile: build/bin/fk
 
 build/bin/fk: src/fluidkeys.go
 	@mkdir -p build/bin
@@ -38,3 +40,8 @@ $(DEB)/DEBIAN/md5sums: $(DEB)/usr/bin/fk
 $(DEB)/usr/bin/fk: build/bin/fk
 	@mkdir -p $(DEB)/usr/bin
 	ln -f $< $@
+
+.PHONY: homebrew_install
+homebrew_install: compile
+	@mkdir -p ${HOMEBREW_FORMULA_PREFIX}/bin
+	cp build/bin/fk ${HOMEBREW_FORMULA_PREFIX}/bin/fk
