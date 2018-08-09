@@ -22,6 +22,9 @@ deb: $(DEB)/DEBIAN/md5sums $(SECRETS_ID_RSA)
 		-razv \
 		-e "ssh -i .secret/download-fluidkeys-com.id_rsa" \
 		pkg/apt-repo/ download-fluidkeys-com@download.fluidkeys.com:~/html
+.PHONY: release
+release:
+	./script/release
 
 ifeq (${FLUIDKEYS_APT_ID_RSA},)
 $(SECRETS_ID_RSA):
