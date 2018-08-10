@@ -13,8 +13,7 @@ run: src/fluidkeys.go
 	go run $<
 
 .PHONY: publish_tag
-publish_tag: $(DEB)/DEBIAN/md5sums $(SECRETS_ID_RSA)
-	@mkdir -p pkg/out
+publish_tag: $(SECRETS_ID_RSA)
 	./script/publish_tag
 
 .PHONY: release
@@ -33,10 +32,6 @@ endif
 .secret:
 	mkdir -p .secret
 
-$(DEB)/DEBIAN/md5sums: $(DEB)/usr/bin/fk
-	cd $(DEB) ; \
-	find . -type f ! -regex '.*.hg.*' ! -regex '.*?debian-binary.*' ! -regex '.*?DEBIAN.*' -printf '%P ' | xargs md5sum > DEBIAN/md5sums
-	
 $(DEB)/usr/bin/fk: build/bin/fk
 	@mkdir -p $(DEB)/usr/bin
 	ln -f $< $@

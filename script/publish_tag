@@ -32,29 +32,41 @@ get_version_number() {
     VERSION=$(cat src/VERSION)
 }
 
+build_binary() {
+    cd ${REPO_DIR}
+    make compile
+    cd -
 
+}
+
+make_checksums_file() {
+    cd ${REPO_DIR}/pkg/debian
+    find . -type f ! -regex '.*.hg.*' ! -regex '.*?debian-binary.*' ! -regex '.*?DEBIAN.*' -printf '%P ' | xargs md5sum > ${REPO_DIR}/pkg/debian/DEBIAN/md5sums
+    cd -
+
+    cat ${REPO_DIR}/pkg/debian/DEBIAN/md5sums
+}
+	
 make_deb_package() {
-    tree pkg/debian
+    mkdir -p ${WORKSPACE}/artifacts
+    tree ${REPO_DIR}/pkg/debian
 
-    DEB_FILE="pkg/out/fluidkeys_${VERSION}_amd64.deb"
+    DEB_FILE="${WORKSPACE}/artifacts/fluidkeys_${VERSION}_amd64.deb"
 
-    mkdir -p pkg/out
-    dpkg -b pkg/debian "${DEB_FILE}"
+    dpkg -b ${REPO_DIR}/pkg/debian "${DEB_FILE}"
     dpkg --contents "${DEB_FILE}"
 }
 
 make_apt_repo() {
-    rm -rf pkg/apt-repo/db
-    rm -rf pkg/apt-repo/dists
-    rm -rf pkg/apt-repo/pool
-    reprepro -b pkg/apt-repo includedeb any pkg/out/fluidkeys*
+    reprepro -b ${REPO_DIR}/pkg/apt-repo includedeb any ${WORKSPACE}/artifacts/fluidkeys*
 }
 
 sync_apt_repo() {
     rsync \
         -razv \
+        --delete \
         -e "ssh -i ${WORKSPACE}/.secret/download-fluidkeys-com.id_rsa" \
-        pkg/apt-repo/ download-fluidkeys-com@download.fluidkeys.com:~/html
+        ${REPO_DIR}/pkg/apt-repo/ download-fluidkeys-com@download.fluidkeys.com:~/html
 }
 
 make_homebrew_formula() {
@@ -69,7 +81,8 @@ get_tag_to_release
 checkout_copy_of_repo_at_tag
 verify_tag_signature
 get_version_number
-
+build_binary
+make_checksums_file
 make_deb_package
 make_apt_repo
 sync_apt_repo
