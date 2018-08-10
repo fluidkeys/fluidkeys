@@ -52,6 +52,13 @@ sync_apt_repo() {
     	pkg/apt-repo/ download-fluidkeys-com@download.fluidkeys.com:~/html
 }
 
+make_homebrew_formula() {
+    TEMP_TAP_DIR=$(mktemp -d)
+    git clone git@github.com:fluidkeys/homebrew-tap.git ${TEMP_TAP_DIR}
+    cd ${TEMP_TAP_DIR}
+    TAG=${TAG} VERSION=${VERSION} make
+    cd -
+}
 
 get_tag_to_release
 checkout_copy_of_repo_at_tag
@@ -60,4 +67,5 @@ get_version_number
 
 make_deb_package
 make_apt_repo
+make_homebrew_formula
 # sync_apt_repo
