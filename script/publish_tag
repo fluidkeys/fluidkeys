@@ -34,8 +34,13 @@ get_version_number() {
 
 
 make_deb_package() {
+    tree pkg/debian
+
+    DEB_FILE="pkg/out/fluidkeys_${VERSION}_amd64.deb"
+
     mkdir -p pkg/out
-    dpkg -b pkg/debian pkg/out/fluidkeys_${VERSION}_amd64.deb
+    dpkg -b pkg/debian "${DEB_FILE}"
+    dpkg --listfiles "${DEB_FILE}"
 }
 
 make_apt_repo() {
