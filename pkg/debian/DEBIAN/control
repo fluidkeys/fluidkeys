@@ -1,5 +1,5 @@
 Package: fluidkeys
-Version: 0.0.2
+Version: 0.0.3
 Architecture: amd64
 Essential: no
 Section: devel
