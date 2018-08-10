@@ -20,3 +20,13 @@ echo 'deb [arch=amd64] https://download.fluidkeys.com any main' | sudo tee /etc/
 sudo apt update
 sudo apt install fluidkeys
 ```
+
+## Install on macOS
+
+### Using homebrew
+
+```
+brew tap fluidkeys/tap
+brew update
+brew install fluidkeys
+```
