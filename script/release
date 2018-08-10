@@ -39,7 +39,7 @@ prompt_for_new_version() {
 modify_source_files() {
   sed -i "s/^\/\/ version: .*/\/\/ version: ${NEW_VERSION}/g" src/fluidkeys.go
   sed -i "s/^Version: .*/Version: ${NEW_VERSION}/g" pkg/debian/DEBIAN/control
-  echo -n "${NEW_VERSION}" > "${VERSION_FILE}"
+  echo "${NEW_VERSION}" > "${VERSION_FILE}"
 }
 
 
