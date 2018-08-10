@@ -11,9 +11,9 @@ get_tag_to_release() {
 }
 
 checkout_copy_of_repo_at_tag() {
-    TEMP_DIR=$(mktemp -d)
-    git clone $(git remote get-url origin) "${TEMP_DIR}"
-    cd "${TEMP_DIR}"
+    REPO_DIR=$(mktemp -d)
+    git clone $(git remote get-url origin) "${REPO_DIR}"
+    cd "${REPO_DIR}"
     git checkout tags/"${TAG}"
 }
 
@@ -47,9 +47,9 @@ make_apt_repo() {
 
 sync_apt_repo() {
     rsync \
-    	-razv \
-    	-e "ssh -i .secret/download-fluidkeys-com.id_rsa" \
-    	pkg/apt-repo/ download-fluidkeys-com@download.fluidkeys.com:~/html
+        -razv \
+        -e "ssh -i ${WORKSPACE}/.secret/download-fluidkeys-com.id_rsa" \
+        pkg/apt-repo/ download-fluidkeys-com@download.fluidkeys.com:~/html
 }
 
 make_homebrew_formula() {
