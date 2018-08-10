@@ -40,7 +40,7 @@ make_deb_package() {
 
     mkdir -p pkg/out
     dpkg -b pkg/debian "${DEB_FILE}"
-    dpkg --listfiles "${DEB_FILE}"
+    dpkg --contents "${DEB_FILE}"
 }
 
 make_apt_repo() {
