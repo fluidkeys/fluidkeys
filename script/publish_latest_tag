@@ -1,0 +1,161 @@
+#!/bin/sh -eux
+
+WORKSPACE=${WORKSPACE:-$PWD}
+REPO_DIR=$(mktemp -d)
+DEB_PACKAGE_ARCHIVE_REPO=$(mktemp -d)
+ARTIFACTS_DIR="${WORKSPACE}/artifacts"
+mkdir -p "${ARTIFACTS_DIR}"
+
+GITHUB_USERNAME="fluidkeys-bot"
+GIT_COMMITTER_NAME="Fluidkeys Jenkins Bot"
+GIT_COMMITTER_EMAIL="hello@fluidkeys.com"
+
+set_latest_tag() {
+    git fetch
+    LATEST_TAG=$(git tag --list | grep '^v*' | sort | tail -n 1)
+
+    echo "LATEST_TAG is ${LATEST_TAG}"
+}
+
+checkout_copy_of_repo_at_tag() {
+    TAG=$1
+
+    if [ ! -d "${REPO_DIR}/.git" ]; then
+        git clone $(git remote get-url origin) "${REPO_DIR}"
+    fi
+
+    cd "${REPO_DIR}"
+    git checkout tags/"${TAG}"
+}
+
+verify_tag_signature() {
+    # To trust a new signing key, add the public key to Jenkins' gpg keyring
+    # (the tag can't be verified without the public key, so this acts as a list
+    # of trusted keys)
+    TAG=$1
+
+    if ! git tag --verify "${TAG}" ; then
+            echo "Bad tag signature!"
+            exit 1
+    fi
+}
+
+get_version_number() {
+    VERSION=$(cat src/VERSION)
+}
+
+copy_down_existing_deb_files() {
+    git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/fluidkeys/deb-package-archive ${DEB_PACKAGE_ARCHIVE_REPO}
+}
+
+make_install_into_deb_pkg_location() {
+    cd ${REPO_DIR}
+    PREFIX=${WORKSPACE}/pkg/debian make install
+    cd -
+}
+
+make_checksums_file() {
+    cd ${REPO_DIR}/pkg/debian
+    find . -type f ! -regex '.*.hg.*' ! -regex '.*?debian-binary.*' ! -regex '.*?DEBIAN.*' -printf '%P ' | xargs md5sum > ${REPO_DIR}/pkg/debian/DEBIAN/md5sums
+    cd -
+
+    cat ${REPO_DIR}/pkg/debian/DEBIAN/md5sums
+}
+	
+make_deb_package() {
+    tree ${REPO_DIR}/pkg/debian
+
+
+    dpkg -b ${REPO_DIR}/pkg/debian "${DEB_FILE}"
+    dpkg --contents "${DEB_FILE}"
+}
+
+make_apt_repo() {
+    reprepro -b ${REPO_DIR}/pkg/apt-repo includedeb any ${DEB_PACKAGE_ARCHIVE_REPO}/fluidkeys*.deb
+}
+
+
+upload_apt_repo() {
+    rsync \
+        -razv \
+        -e "ssh -i ${WORKSPACE}/.secret/download-fluidkeys-com.id_rsa" \
+        ${WORKSPACE}/pkg/apt-repo/ download-fluidkeys-com@download.fluidkeys.com:~/html
+}
+
+publish_tag_as_homebrew_formula() {
+    TAG=$1
+    TEMP_TAP_DIR=$(mktemp -d)
+    git clone https://github.com/fluidkeys/homebrew-tap.git ${TEMP_TAP_DIR}
+    cd ${TEMP_TAP_DIR}
+    TAG=${TAG} VERSION=${VERSION} make
+    cd -
+}
+
+copy_to_artifacts_dir() {
+    cp "${DEB_FILE}" "${ARTIFACTS_DIR}"
+}
+
+make_detached_signature_for_new_deb_file() {
+    gpg --output ${DEB_FILE}.sig --sign ${DEB_FILE}
+}
+
+commit_new_deb_to_deb_package_archive() {
+    cd ${DEB_PACKAGE_ARCHIVE_REPO}
+
+    SUMMARY_FILE=$(mktemp)
+
+    git add ${DEB_FILE}
+    git add ${DEB_FILE}.sig
+
+    echo "Add $(basename ${DEB_FILE})" > $SUMMARY_FILE
+
+    HOME="" git commit \
+        --file ${SUMMARY_FILE} \
+        --author "${GIT_COMMITTER_NAME} <${GIT_COMMITTER_EMAIL}>"
+
+    rm $SUMMARY_FILE
+
+    git push origin master:master
+}
+
+build_deb_file_for_tag() {
+    TAG=$1
+    ARG=$ARCH
+
+    DEB_FILE="${DEB_PACKAGE_ARCHIVE_REPO}/fluidkeys_${VERSION}_${ARCH}.deb"
+
+    if [ -f "${DEB_FILE}" ]; then
+        echo "Already exists, skipping: ${DEB_FILE}"
+        return 0
+    fi
+
+    make_install_into_deb_pkg_location
+    make_checksums_file
+    make_deb_package
+    make_detached_signature_for_new_deb_file
+    copy_to_artifacts_dir
+    commit_new_deb_to_deb_package_archive
+}
+
+clean_up() {
+    rm -rf "${DEB_PACKAGE_ARCHIVE_REPO}"
+}
+
+
+set_latest_tag
+
+checkout_copy_of_repo_at_tag ${LATEST_TAG}
+verify_tag_signature ${LATEST_TAG}
+get_version_number
+publish_tag_as_homebrew_formula ${LATEST_TAG}
+
+
+copy_down_existing_deb_files
+
+for ARCH in "amd64"; do
+    build_deb_file_for_tag ${LATEST_TAG} ${ARCH}
+done
+
+make_apt_repo
+upload_apt_repo
+clean_up
