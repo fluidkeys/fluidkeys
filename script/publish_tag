@@ -2,9 +2,9 @@
 
 get_tag_to_release() {
     if [ -z "${TAG_TO_PUBLISH+x}" ]; then
-	TAG=$(git tag --list | grep '^v*' | sort | tail -n 1)
+        TAG=$(git tag --list | grep '^v*' | sort | tail -n 1)
     else
-	TAG="${TAG_TO_PUBLISH}"
+        TAG="${TAG_TO_PUBLISH}"
     fi
 
     echo "Publishing tag ${TAG}"
@@ -23,8 +23,8 @@ verify_tag_signature() {
     # of trusted keys)
 
     if ! git tag --verify "${TAG}" ; then
-	    echo "Bad tag signature!"
-	    exit 1
+            echo "Bad tag signature!"
+            exit 1
     fi
 }
 
