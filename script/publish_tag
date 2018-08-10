@@ -35,8 +35,11 @@ get_version_number() {
 build_binary() {
     cd ${REPO_DIR}
     make compile
-    cd -
+    # TODO: here, run `make install` and copy all the created files into pkg/debian
 
+    mkdir -p ${REPO_DIR}/pkg/debian/usr/bin
+    cp build/bin/fk ${REPO_DIR}/pkg/debian/usr/bin/fk
+    cd -
 }
 
 make_checksums_file() {
