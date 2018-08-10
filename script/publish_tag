@@ -67,5 +67,5 @@ get_version_number
 
 make_deb_package
 make_apt_repo
+sync_apt_repo
 make_homebrew_formula
-# sync_apt_repo
