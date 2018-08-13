@@ -1,16 +1,16 @@
 package main
 
 import (
+	"./pgp_key"
 	"log"
 	"os"
 	"os/exec"
 	"regexp"
-	"./pgp_key"
 )
 
 func main() {
 	k := pgp_key.Generate("ian@fluidkeys.com", "foo")
-  k.EmailAddress()
+	k.EmailAddress()
 }
 
 func gpg_version() {
