@@ -5,9 +5,15 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"./pgp_key"
 )
 
 func main() {
+	k := pgp_key.Generate("ian@fluidkeys.com", "foo")
+  k.EmailAddress()
+}
+
+func gpg_version() {
 	out, err := exec.Command("gpg", "--version").Output()
 	if err != nil {
 		log.Printf("Command finished with error: %v", err)
