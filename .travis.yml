@@ -4,5 +4,6 @@ go:
   - "1.10.x"
   - master
 
+before_install: make install_dependencies
 script: make test
 

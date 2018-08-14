@@ -36,7 +36,7 @@ brew install fluidkeys
 Get dependencies:
 
 ```
-go get golang.org/x/crypto/openpgp
+make install_dependencies
 ```
 
 Run:
