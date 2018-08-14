@@ -12,7 +12,7 @@ SECRETS_ID_RSA=.secret/download-fluidkeys-com.id_rsa
 # ultimately be installed to PREFIX (/usr/local), for example
 # ./build/bin/fk, ./build/share etc
 .PHONY: compile
-compile: clean build/bin/fk
+compile: clean install_dependencies build/bin/fk
 
 .PHONY: install_dependencies
 install_dependencies:
