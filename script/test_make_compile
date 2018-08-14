@@ -1,0 +1,14 @@
+#!/bin/sh -eu
+
+run_make_compile() {
+    make compile || exit 1
+}
+
+print_success() {
+    echo 'OK: `make compile` ran successfully'
+}
+
+
+
+run_make_compile
+print_success

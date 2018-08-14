@@ -1,0 +1,12 @@
+language: go
+
+go:
+  - "1.10.x"
+  - master
+
+before_install:
+  - sudo apt install tree
+  - make install_dependencies
+
+script: make test
+

@@ -1,5 +1,7 @@
 # Fluidkeys command line
 
+[![Build Status](https://travis-ci.org/fluidkeys/fluidkeys.svg?branch=master)](https://travis-ci.org/fluidkeys/fluidkeys)
+
 ## Install on Debian / Ubuntu
 
 ### Get our public key
@@ -36,7 +38,7 @@ brew install fluidkeys
 Get dependencies:
 
 ```
-go get golang.org/x/crypto/openpgp
+make install_dependencies
 ```
 
 Run:

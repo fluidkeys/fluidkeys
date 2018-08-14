@@ -1,0 +1,25 @@
+#!/bin/sh -eu
+
+
+PREFIX=$(mktemp -d)
+
+run_make_install() {
+    PREFIX=${PREFIX} make install 
+}
+
+check_expected_files_are_present() {
+
+    if [ ! -s "${PREFIX}/bin/fk" ]; then
+        echo "ERROR: missing expected file PREFIX/bin/fk in ${PREFIX}"
+	exit 1
+    fi
+}
+
+print_success() {
+    echo 'OK: `make install` run successfully'
+}
+
+
+run_make_install
+check_expected_files_are_present
+print_success

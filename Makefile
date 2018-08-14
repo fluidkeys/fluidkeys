@@ -14,12 +14,22 @@ SECRETS_ID_RSA=.secret/download-fluidkeys-com.id_rsa
 .PHONY: compile
 compile: clean build/bin/fk
 
-build/bin/fk: src/fluidkeys/main.go
+.PHONY: install_dependencies
+install_dependencies:
+	go get golang.org/x/crypto/openpgp
+
+build/bin/fk: fluidkeys/main.go
 	@mkdir -p build/bin
 	go build -o $@ $<
 
+.PHONY: test
+test:
+	go test ./...
+	./script/test_make_compile
+	./script/test_make_install
+
 .PHONY: run
-run: src/fluidkeys/main.go
+run: fluidkeys/main.go
 	go run $<
 
 .PHONY: publish_tag

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"./pgp_key"
 	"bufio"
 	"fmt"
+	"github.com/fluidkeys/fluidkeys/pgp_key"
 	"log"
 	"os"
 	"os/exec"
