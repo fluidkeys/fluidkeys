@@ -17,6 +17,7 @@ compile: clean build/bin/fk
 .PHONY: install_dependencies
 install_dependencies:
 	go get golang.org/x/crypto/openpgp
+	go get github.com/fluidkeys/go-diceware/diceware
 
 build/bin/fk: fluidkeys/main.go
 	@mkdir -p build/bin
