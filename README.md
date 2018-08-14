@@ -30,3 +30,17 @@ brew tap fluidkeys/tap
 brew update
 brew install fluidkeys
 ```
+
+## Develop
+
+Get dependencies:
+
+```
+go get golang.org/x/crypto/openpgp
+```
+
+Run:
+
+```
+make run
+```

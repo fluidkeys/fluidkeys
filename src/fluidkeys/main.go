@@ -1,6 +1,9 @@
 package main
 
 import (
+	"./pgp_key"
+	"bufio"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -8,6 +11,17 @@ import (
 )
 
 func main() {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Println("To start using Fluidkeys, first you'll need to create a key.\nYour email address (this will help other people find your key):")
+	email, _ := reader.ReadString('\n')
+
+	fmt.Println("Generating key for", email)
+
+	pgp_key.Generate(email)
+	fmt.Println()
+}
+
+func gpg_version() {
 	out, err := exec.Command("gpg", "--version").Output()
 	if err != nil {
 		log.Printf("Command finished with error: %v", err)

@@ -14,12 +14,12 @@ SECRETS_ID_RSA=.secret/download-fluidkeys-com.id_rsa
 .PHONY: compile
 compile: clean build/bin/fk
 
-build/bin/fk: src/fluidkeys.go
+build/bin/fk: src/fluidkeys/main.go
 	@mkdir -p build/bin
 	go build -o $@ $<
 
 .PHONY: run
-run: src/fluidkeys.go
+run: src/fluidkeys/main.go
 	go run $<
 
 .PHONY: publish_tag
