@@ -32,9 +32,9 @@ test:
 run: fluidkeys/main.go
 	go run $<
 
-.PHONY: publish_tag
-publish_tag: $(SECRETS_ID_RSA)
-	./script/publish_tag
+.PHONY: publish_latest_tag
+publish_latest_tag: $(SECRETS_ID_RSA)
+	./script/publish_latest_tag
 
 .PHONY: release
 release:
