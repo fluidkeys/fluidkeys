@@ -1,6 +1,8 @@
 #!/bin/sh -eu
 
 VERSION_FILE="src/VERSION"
+FLUIDKEYS_GO="fluidkeys/main.go"
+DEBIAN_CONTROL="pkg/debian/DEBIAN/control"
 
 check_git_has_no_unstaged_changes() {
   if ! git diff-files --quiet ; then
@@ -37,14 +39,14 @@ prompt_for_new_version() {
 }
 
 modify_source_files() {
-  sed -i "s/^\/\/ version: .*/\/\/ version: ${NEW_VERSION}/g" src/fluidkeys.go
-  sed -i "s/^Version: .*/Version: ${NEW_VERSION}/g" pkg/debian/DEBIAN/control
+  sed -i "s/^\/\/ version: .*/\/\/ version: ${NEW_VERSION}/g" "${FLUIDKEYS_GO}"
+  sed -i "s/^Version: .*/Version: ${NEW_VERSION}/g" "${DEBIAN_CONTROL}"
   echo "${NEW_VERSION}" > "${VERSION_FILE}"
 }
 
 
 git_add_modified_source_files() {
-  git add src/fluidkeys.go pkg/debian/DEBIAN/control "${VERSION_FILE}"
+  git add "${FLUIDKEYS_GO}" "${DEBIAN_CONTROL}" "${VERSION_FILE}"
 }
 
 make_upversion_commit() {
