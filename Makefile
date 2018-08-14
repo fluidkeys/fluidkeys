@@ -18,7 +18,7 @@ compile: clean build/bin/fk
 install_dependencies:
 	go get golang.org/x/crypto/openpgp
 
-build/bin/fk: src/fluidkeys/main.go
+build/bin/fk: fluidkeys/main.go
 	@mkdir -p build/bin
 	go build -o $@ $<
 
@@ -29,7 +29,7 @@ test:
 	./script/test_make_install
 
 .PHONY: run
-run: src/fluidkeys/main.go
+run: fluidkeys/main.go
 	go run $<
 
 .PHONY: publish_tag
