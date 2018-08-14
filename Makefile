@@ -18,6 +18,12 @@ build/bin/fk: src/fluidkeys/main.go
 	@mkdir -p build/bin
 	go build -o $@ $<
 
+.PHONY: test
+test:
+	go test ./...
+	./script/test_make_compile
+	./script/test_make_install
+
 .PHONY: run
 run: src/fluidkeys/main.go
 	go run $<
