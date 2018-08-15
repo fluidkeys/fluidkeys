@@ -15,7 +15,9 @@ type PgpKey struct {
 func Generate(email string) PgpKey {
 	config := &packet.Config{RSABits: 4096}
 
-	entity, err := openpgp.NewEntity("", email, "", config)
+	name, comment := "", ""
+	entity, err := openpgp.NewEntity(name, comment, email, config)
+
 	if err != nil {
 		fmt.Println("shit")
 	}
