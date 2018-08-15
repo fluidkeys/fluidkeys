@@ -9,7 +9,7 @@ import (
 )
 
 type PgpKey struct {
-	email string
+	PublicKey string
 }
 
 func Generate(email string) PgpKey {
