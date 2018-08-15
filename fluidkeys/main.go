@@ -17,6 +17,10 @@ import (
 const DicewareNumberOfWords int = 6
 const DicewareSeparator string = "."
 
+const FirstPasswordPrompt string = "This is your password.\n\n* If you use a password manager, save it there now\n* Otherwise write it on a piece of paper and keep it with you\n"
+const LastPasswordPrompt string = "That didn't match 🤷🏽 This is your last chance!\n"
+const FailedToConfirmPassword string = "That didn't match. Quitting...\n"
+
 type DicewarePassword struct {
 	words     []string
 	separator string
@@ -33,8 +37,14 @@ func main() {
 
 	password := generatePassword(DicewareNumberOfWords, DicewareSeparator)
 
-	displayPassword(password)
-	confirmRandomWord(password)
+	displayPassword(FirstPasswordPrompt, password)
+	if !userConfirmedRandomWord(password) {
+		displayPassword(LastPasswordPrompt, password)
+		if !userConfirmedRandomWord(password) {
+			fmt.Printf(FailedToConfirmPassword)
+			os.Exit(1)
+		}
+	}
 
 	fmt.Println("Generating key for", email)
 	fmt.Println()
@@ -72,27 +82,25 @@ func generatePassword(numberOfWords int, separator string) DicewarePassword {
 	}
 }
 
-func displayPassword(password DicewarePassword) {
-	fmt.Printf("Here's a password, you should now write this down on a piece of paper and keep it with you on your person:\n")
-
+func displayPassword(message string, password DicewarePassword) {
+	fmt.Printf(message)
 	fmt.Printf("\n  %v\n", colour.LightBlue(password.AsString()))
 
 	promptForInput("Press enter when you've written it down. ")
 }
 
-func confirmRandomWord(password DicewarePassword) {
+func userConfirmedRandomWord(password DicewarePassword) bool {
+	clearScreen()
 	rand.Seed(time.Now().UnixNano())
 	randomIndex := rand.Intn(len(password.words))
 	correctWord := password.words[randomIndex]
 	wordOrdinal := humanize.Ordinal(randomIndex + 1)
-	givenWord := ""
 
-	for {
-		fmt.Printf("Enter the %s word\n", wordOrdinal)
-		givenWord = promptForInput("[" + wordOrdinal + " word] : ")
-		if givenWord == correctWord {
-			fmt.Printf("Correct!\n")
-			break
-		}
-	}
+	fmt.Printf("Enter the %s word from your password\n", wordOrdinal)
+	givenWord := promptForInput("[" + wordOrdinal + " word] : ")
+	return givenWord == correctWord
+}
+
+func clearScreen() {
+	fmt.Print("\033[H\033[2J")
 }
