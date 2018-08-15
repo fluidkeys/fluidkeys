@@ -18,8 +18,8 @@ const DicewareNumberOfWords int = 6
 const DicewareSeparator string = "."
 
 const PromptEmail string = "To start using Fluidkeys, first you'll need to create a key.\n\nEnter your email address, this will help other people find your key.\n"
-const FirstPasswordPrompt string = "This is your password.\n\n* If you use a password manager, save it there now\n* Otherwise write it on a piece of paper and keep it with you\n"
-const LastPasswordPrompt string = "That didn't match 🤷🏽 This is your last chance!\n"
+const PromptFirstPassword string = "This is your password.\n\n* If you use a password manager, save it there now\n* Otherwise write it on a piece of paper and keep it with you\n"
+const PromptLastPassword string = "That didn't match 🤷🏽 This is your last chance!\n"
 const FailedToConfirmPassword string = "That didn't match. Quitting...\n"
 
 type DicewarePassword struct {
@@ -38,9 +38,9 @@ func main() {
 
 	password := generatePassword(DicewareNumberOfWords, DicewareSeparator)
 
-	displayPassword(FirstPasswordPrompt, password)
+	displayPassword(PromptFirstPassword, password)
 	if !userConfirmedRandomWord(password) {
-		displayPassword(LastPasswordPrompt, password)
+		displayPassword(PromptLastPassword, password)
 		if !userConfirmedRandomWord(password) {
 			fmt.Printf(FailedToConfirmPassword)
 			os.Exit(1)
