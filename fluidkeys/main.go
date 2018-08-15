@@ -17,6 +17,7 @@ import (
 const DicewareNumberOfWords int = 6
 const DicewareSeparator string = "."
 
+const PromptEmail string = "To start using Fluidkeys, first you'll need to create a key.\n\nEnter your email address, this will help other people find your key.\n"
 const FirstPasswordPrompt string = "This is your password.\n\n* If you use a password manager, save it there now\n* Otherwise write it on a piece of paper and keep it with you\n"
 const LastPasswordPrompt string = "That didn't match 🤷🏽 This is your last chance!\n"
 const FailedToConfirmPassword string = "That didn't match. Quitting...\n"
@@ -71,7 +72,7 @@ func promptForInput(prompt string) string {
 }
 
 func promptForEmail() string {
-	fmt.Print("To start using Fluidkeys, first you'll need to create a key.\nYour email address (this will help other people find your key)\n")
+	fmt.Print(PromptEmail)
 	return promptForInput("[email] : ")
 }
 
