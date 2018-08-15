@@ -10,7 +10,7 @@ import (
 
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/humanize"
-	"github.com/fluidkeys/fluidkeys/pgp_key"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/go-diceware/diceware"
 )
 
@@ -28,14 +28,23 @@ func (d DicewarePassword) AsString() string {
 
 func main() {
 	email := promptForEmail()
+	channel := make(chan pgpkey.PgpKey)
+	go generatePgpKey(email, channel)
+
 	password := generatePassword(DicewareNumberOfWords, DicewareSeparator)
+
 	displayPassword(password)
 	confirmRandomWord(password)
 
 	fmt.Println("Generating key for", email)
-
-	pgp_key.Generate(email)
 	fmt.Println()
+
+	generatedPgpKey := <-channel
+	fmt.Println(generatedPgpKey.PublicKey)
+}
+
+func generatePgpKey(email string, channel chan pgpkey.PgpKey) {
+	channel <- pgpkey.Generate(email)
 }
 
 func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
