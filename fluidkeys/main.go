@@ -10,7 +10,7 @@ import (
 
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/humanize"
-	"github.com/fluidkeys/fluidkeys/pgp_key"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/go-diceware/diceware"
 )
 
@@ -33,8 +33,7 @@ func main() {
 	confirmRandomWord(password)
 
 	fmt.Println("Generating key for", email)
-
-	pgp_key.Generate(email)
+	PgpKey.Generate(email)
 	fmt.Println()
 }
 

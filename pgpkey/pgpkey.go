@@ -1,4 +1,4 @@
-package pgp_key
+package pgpkey
 
 import (
 	"fmt"
@@ -8,11 +8,11 @@ import (
 	"os"
 )
 
-type pgp_key struct {
+type PgpKey struct {
 	email string
 }
 
-func Generate(email string) pgp_key {
+func Generate(email string) PgpKey {
 	config := &packet.Config{RSABits: 4096}
 
 	entity, err := openpgp.NewEntity("", email, "", config)
@@ -26,6 +26,6 @@ func Generate(email string) pgp_key {
 	entity.Serialize(write_closer)
 	fmt.Println()
 
-	k := pgp_key{email}
+	k := PgpKey{email}
 	return k
 }
