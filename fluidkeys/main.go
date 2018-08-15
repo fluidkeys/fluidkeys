@@ -3,10 +3,13 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/fluidkeys/fluidkeys/colour"
+	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/pgp_key"
 	"github.com/fluidkeys/go-diceware/diceware"
 )
@@ -27,6 +30,7 @@ func main() {
 	email := promptForEmail()
 	password := generatePassword(DicewareNumberOfWords, DicewareSeparator)
 	displayPassword(password)
+	confirmRandomWord(password)
 
 	fmt.Println("Generating key for", email)
 
@@ -65,4 +69,21 @@ func displayPassword(password DicewarePassword) {
 	fmt.Printf("\n  %v\n", colour.LightBlue(password.AsString()))
 
 	promptForInput("Press enter when you've written it down. ")
+}
+
+func confirmRandomWord(password DicewarePassword) {
+	rand.Seed(time.Now().UnixNano())
+	randomIndex := rand.Intn(len(password.words))
+	correctWord := password.words[randomIndex]
+	wordOrdinal := humanize.Ordinal(randomIndex + 1)
+	givenWord := ""
+
+	for {
+		fmt.Printf("Enter the %s word\n", wordOrdinal)
+		givenWord = promptForInput("[" + wordOrdinal + " word] : ")
+		if givenWord == correctWord {
+			fmt.Printf("Correct!\n")
+			break
+		}
+	}
 }
