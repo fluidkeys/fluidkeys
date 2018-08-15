@@ -28,13 +28,23 @@ func (d DicewarePassword) AsString() string {
 
 func main() {
 	email := promptForEmail()
+	channel := make(chan pgpkey.PgpKey)
+	go generatePgpKey(email, channel)
+
 	password := generatePassword(DicewareNumberOfWords, DicewareSeparator)
+
 	displayPassword(password)
 	confirmRandomWord(password)
 
 	fmt.Println("Generating key for", email)
-	PgpKey.Generate(email)
 	fmt.Println()
+
+	generatedPgpKey := <-channel
+	fmt.Println(generatedPgpKey.PublicKey)
+}
+
+func generatePgpKey(email string, channel chan pgpkey.PgpKey) {
+	channel <- pgpkey.Generate(email)
 }
 
 func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
