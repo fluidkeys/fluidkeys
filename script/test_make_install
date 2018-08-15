@@ -19,7 +19,12 @@ print_success() {
     echo 'OK: `make install` run successfully'
 }
 
+clean_up() {
+    rm -rf "${PREFIX}"
+}
+
 
 run_make_install
 check_expected_files_are_present
 print_success
+clean_up
