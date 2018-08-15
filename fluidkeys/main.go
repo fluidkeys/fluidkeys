@@ -34,15 +34,22 @@ func main() {
 	fmt.Println()
 }
 
-func promptForEmail() string {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf("To start using Fluidkeys, first you'll need to create a key.\nYour email address (this will help other people find your key):")
-	email, err := reader.ReadString('\n')
-
+func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
+	fmt.Printf("\n" + prompt)
+	response, err := reader.ReadString('\n')
 	if err != nil {
-		panic("Failed to read terminal input")
+		panic(err)
 	}
-	return email
+	return strings.TrimRight(response, "\n")
+}
+
+func promptForInput(prompt string) string {
+	return promptForInputWithPipes(prompt, bufio.NewReader(os.Stdin))
+}
+
+func promptForEmail() string {
+	fmt.Print("To start using Fluidkeys, first you'll need to create a key.\nYour email address (this will help other people find your key)\n")
+	return promptForInput("[email] : ")
 }
 
 func generatePassword(numberOfWords int, separator string) DicewarePassword {
@@ -55,5 +62,7 @@ func generatePassword(numberOfWords int, separator string) DicewarePassword {
 func displayPassword(password DicewarePassword) {
 	fmt.Printf("Here's a password, you should now write this down on a piece of paper and keep it with you on your person:\n")
 
-	fmt.Printf("\n  %v\n\n", colour.LightBlue(password.AsString()))
+	fmt.Printf("\n  %v\n", colour.LightBlue(password.AsString()))
+
+	promptForInput("Press enter when you've written it down. ")
 }

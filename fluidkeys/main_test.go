@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"strings"
 	"testing"
 )
@@ -41,6 +42,21 @@ func TestGeneratePassword(t *testing.T) {
 
 		if numberOfHyphens != 5 {
 			t.Errorf("asked for '-' separator, got password '%s'", password)
+		}
+	})
+}
+
+func TestPromptForInput(t *testing.T) {
+	t.Run("reads an input", func(t *testing.T) {
+		typedInput := "Ian\n"
+		expectedReturn := "Ian"
+
+		fakeStdin := bufio.NewReader(strings.NewReader(typedInput))
+
+		actualReturn := promptForInputWithPipes(" [name] : ", fakeStdin)
+
+		if actualReturn != expectedReturn {
+			t.Errorf("expected '%s', got '%s'", expectedReturn, actualReturn)
 		}
 	})
 }
