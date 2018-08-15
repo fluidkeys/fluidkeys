@@ -1,11 +1,11 @@
 package pgpkey
 
 import (
+	"bytes"
 	"fmt"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/openpgp/packet"
-	"os"
 )
 
 type PgpKey struct {
@@ -20,12 +20,12 @@ func Generate(email string) PgpKey {
 		fmt.Println("shit")
 	}
 
-	write_closer, err := armor.Encode(os.Stdout, openpgp.PublicKeyType, nil)
-	defer write_closer.Close()
-
+	buf := new(bytes.Buffer)
+	write_closer, err := armor.Encode(buf, openpgp.PublicKeyType, nil)
 	entity.Serialize(write_closer)
-	fmt.Println()
+	write_closer.Close()
 
-	k := PgpKey{email}
+	publicKey := buf.String()
+	k := PgpKey{publicKey}
 	return k
 }
