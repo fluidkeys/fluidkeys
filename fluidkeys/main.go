@@ -11,7 +11,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
-	"github.com/fluidkeys/go-diceware/diceware"
+	"github.com/sethvargo/go-diceware/diceware"
 )
 
 const DicewareNumberOfWords int = 6
