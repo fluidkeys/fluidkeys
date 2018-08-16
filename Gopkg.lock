@@ -3,6 +3,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/alokmenghrajani/gpgeez"
+  packages = ["."]
+  revision = "1a06f1c582f9199d70894e080f6e829aa2082d1d"
+
+[[projects]]
+  branch = "master"
   name = "github.com/sethvargo/go-diceware"
   packages = ["diceware"]
   revision = "2cc4e45af027798e625c3256fc10925eb3f1e5c0"
@@ -16,6 +22,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9792fa720abba2edbef2b6658cd3e6bfd0149bbc8cca3bdca41a8b70f81656aa"
+  inputs-digest = "ea49aebd396389f9da685606d9a797097582d9f62885cedae4886dd40877e036"
   solver-name = "gps-cdcl"
   solver-version = 1
