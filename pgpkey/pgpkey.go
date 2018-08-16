@@ -3,6 +3,7 @@ package pgpkey
 import (
 	"bytes"
 	"fmt"
+	"github.com/alokmenghrajani/gpgeez"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/openpgp/packet"
