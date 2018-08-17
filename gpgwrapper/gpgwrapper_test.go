@@ -1,9 +1,6 @@
 package gpgwrapper
 
-import (
-	"errors"
-	"testing"
-)
+import "testing"
 
 func TestParseGPGOutputVersion(t *testing.T) {
 
@@ -25,8 +22,7 @@ func TestParseGPGOutputVersion(t *testing.T) {
 	t.Run("test output not containing a version number", func(t *testing.T) {
 		gpgOutput := "foo\ngpg\nbar"
 		_, err := parseVersionString(gpgOutput)
-		want := errors.New("version string not found in GPG output")
-		assertError(t, err, want)
+		assertError(t, err, ErrNoVersionStringFound)
 	})
 }
 

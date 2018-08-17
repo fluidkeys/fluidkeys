@@ -10,6 +10,8 @@ import (
 
 const GpgPath = "gpg"
 
+var ErrNoVersionStringFound = errors.New("version string not found in GPG output")
+
 var VersionRegexp = regexp.MustCompile(`gpg \(GnuPG.*\) (\d+\.\d+\.\d+)`)
 
 func Version() (string, error) {
@@ -34,7 +36,7 @@ func parseVersionString(gpgStdout string) (string, error) {
 	match := VersionRegexp.FindStringSubmatch(gpgStdout)
 
 	if match == nil {
-		return "", errors.New("version string not found in GPG output")
+		return "", ErrNoVersionStringFound
 	}
 
 	return match[1], nil
