@@ -43,7 +43,7 @@ func parseVersionString(gpgStdout string) (string, error) {
 }
 
 func runGpg(arguments string) (string, error) {
-	out, err := exec.Command(GpgPath, "--version").Output()
+	out, err := exec.Command(GpgPath, arguments).Output()
 
 	if err != nil {
 		// TODO: it would be kinder if we interpreted GPG's
