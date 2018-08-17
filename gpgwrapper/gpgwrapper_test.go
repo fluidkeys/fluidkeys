@@ -26,6 +26,21 @@ func TestParseGPGOutputVersion(t *testing.T) {
 	})
 }
 
+func TestRunningGPG(t *testing.T) {
+	t.Run("with valid arguments", func(t *testing.T) {
+		arguments := "--version"
+		_, err := runGpg(arguments)
+		assertNoError(t, err)
+	})
+
+	t.Run("with invalid arguments", func(t *testing.T) {
+		arguments := "--foo"
+		want := ErrProblemExecutingGPG(arguments)
+		_, err := runGpg(arguments)
+		assertError(t, err, want)
+	})
+}
+
 func assert_parses_version_correctly(t *testing.T, gpgOutput string, want string) {
 	t.Helper()
 	got, err := parseVersionString(gpgOutput)
@@ -46,7 +61,14 @@ func assertError(t *testing.T, got error, want error) {
 		t.Fatal("wanted an error but didnt get one")
 	}
 
-	if got != want {
+	if got.Error() != want.Error() {
 		t.Errorf("wanted '%s', got '%s'", got, want)
+	}
+}
+
+func assertNoError(t *testing.T, got error) {
+	t.Helper()
+	if got != nil {
+		t.Fatalf("got an error but didnt want one '%s'", got)
 	}
 }

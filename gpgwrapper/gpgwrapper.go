@@ -4,6 +4,7 @@ package gpgwrapper
 
 import (
 	"errors"
+	"fmt"
 	"os/exec"
 	"regexp"
 )
@@ -11,6 +12,10 @@ import (
 const GpgPath = "gpg"
 
 var ErrNoVersionStringFound = errors.New("version string not found in GPG output")
+
+func ErrProblemExecutingGPG(arguments string) error {
+	return fmt.Errorf("problem executing GPG with %s", arguments)
+}
 
 var VersionRegexp = regexp.MustCompile(`gpg \(GnuPG.*\) (\d+\.\d+\.\d+)`)
 
@@ -20,12 +25,14 @@ func Version() (string, error) {
 	outString, err := runGpg("--version")
 
 	if err != nil {
+		err = fmt.Errorf("problem running GPG, %v", err)
 		return "", err
 	}
 
 	version, err := parseVersionString(outString)
 
 	if err != nil {
+		err = fmt.Errorf("problem parsing version string, %v", err)
 		return "", err
 	}
 
@@ -48,6 +55,8 @@ func runGpg(arguments string) (string, error) {
 	if err != nil {
 		// TODO: it would be kinder if we interpreted GPG's
 		// output and returned a specific Error type.
+
+		err = ErrProblemExecutingGPG(arguments)
 		return "", err
 	}
 	outString := string(out)
