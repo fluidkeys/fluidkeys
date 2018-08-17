@@ -41,6 +41,21 @@ func TestRunningGPG(t *testing.T) {
 	})
 }
 
+func TestVersion(t *testing.T) {
+	t.Run("with valid arguments", func(t *testing.T) {
+		arguments := "--version"
+		_, err := runGpg(arguments)
+		assertNoError(t, err)
+	})
+
+	t.Run("with invalid arguments", func(t *testing.T) {
+		arguments := "--foo"
+		want := ErrProblemExecutingGPG(arguments)
+		_, err := runGpg(arguments)
+		assertError(t, err, want)
+	})
+}
+
 func assert_parses_version_correctly(t *testing.T, gpgOutput string, want string) {
 	t.Helper()
 	got, err := parseVersionString(gpgOutput)
