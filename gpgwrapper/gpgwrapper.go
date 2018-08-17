@@ -5,6 +5,7 @@ package gpgwrapper
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os/exec"
 	"regexp"
 )
@@ -61,4 +62,26 @@ func runGpg(arguments string) (string, error) {
 	}
 	outString := string(out)
 	return outString, nil
+}
+
+func runGpgWithStdin(arguments string, textToSend string) (string, error) {
+
+	cmd := exec.Command(GpgPath, arguments)
+	stdin, err := cmd.StdinPipe()
+
+	if err != nil {
+		return "", errors.New(fmt.Sprintf("Failed to get stdin pipe '%s'", err))
+	}
+
+	io.WriteString(stdin, textToSend)
+	stdin.Close()
+
+	stdoutAndStderr, err := cmd.CombinedOutput()
+
+	if err != nil {
+		return "", errors.New(fmt.Sprintf("GPG failed with error '%s', stdout said '%s'", err, stdoutAndStderr))
+	}
+
+	output := string(stdoutAndStderr)
+	return output, nil
 }
