@@ -110,7 +110,7 @@ func TestRunGpgWithStdin(t *testing.T) {
 
 		arguments := "--import"
 
-		output, err := runGpgWithStdin(arguments, ExamplePublicKey)
+		output, err := runGpgWithStdin(ExamplePublicKey, arguments)
 
 		if err != nil {
 			t.Errorf("Test failed, returned error %s", err)
