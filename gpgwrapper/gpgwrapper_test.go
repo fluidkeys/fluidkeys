@@ -104,13 +104,13 @@ func TestVersion(t *testing.T) {
 func TestRunGpgWithStdin(t *testing.T) {
 	t.Run("with a valid public key", func(t *testing.T) {
 		successMessages := []string{
-			"gpg: key 0BBD7E7E5B85C8D3: public key \"test@example.com\" imported",
-			"gpg: key 0BBD7E7E5B85C8D3: \"test@example.com\" not changed",
+			"gpg: key 0x0BBD7E7E5B85C8D3: public key \"test@example.com\" imported",
+			"gpg: key 0x0BBD7E7E5B85C8D3: \"test@example.com\" not changed",
 		}
 
-		arguments := "--import"
+		arguments := []string{"--import"}
 
-		output, err := runGpgWithStdin(ExamplePublicKey, arguments)
+		output, err := runGpgWithStdin(ExamplePublicKey, arguments...)
 
 		if err != nil {
 			t.Errorf("Test failed, returned error %s", err)

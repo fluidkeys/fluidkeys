@@ -51,7 +51,8 @@ func parseVersionString(gpgStdout string) (string, error) {
 }
 
 func runGpg(arguments ...string) (string, error) {
-	out, err := exec.Command(GpgPath, arguments...).Output()
+	fullArguments := appendGlobalArguments(arguments...)
+	out, err := exec.Command(GpgPath, fullArguments...).Output()
 
 	if err != nil {
 		// TODO: it would be kinder if we interpreted GPG's
@@ -65,8 +66,8 @@ func runGpg(arguments ...string) (string, error) {
 }
 
 func runGpgWithStdin(textToSend string, arguments ...string) (string, error) {
-
-	cmd := exec.Command(GpgPath, arguments...)
+	fullArguments := appendGlobalArguments(arguments...)
+	cmd := exec.Command(GpgPath, fullArguments...)
 	stdin, err := cmd.StdinPipe()
 
 	if err != nil {
@@ -84,4 +85,11 @@ func runGpgWithStdin(textToSend string, arguments ...string) (string, error) {
 
 	output := string(stdoutAndStderr)
 	return output, nil
+}
+
+func appendGlobalArguments(arguments ...string) []string {
+	var globalArguments = []string{
+		"--keyid-format", "0xlong",
+	}
+	return append(arguments, globalArguments...)
 }
