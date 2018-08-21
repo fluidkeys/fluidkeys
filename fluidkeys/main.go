@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/fluidkeys/fluidkeys/colour"
+	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/sethvargo/go-diceware/diceware"
@@ -16,6 +17,10 @@ import (
 
 const DicewareNumberOfWords int = 6
 const DicewareSeparator string = "."
+
+const GPGMissing string = "GPG isn't working on your system 🤒\n"
+const ContinueWithoutGPG string = "You can still use FluidKeys to make a key and then later import it from your backup.\n\nAlternatively, quit now [ctrl-c], install GPG then run FluidKeys again.\n"
+const PromptPressEnter string = "Press enter to continue"
 
 const PromptEmail string = "To start using Fluidkeys, first you'll need to create a key.\n\nEnter your email address, this will help other people find your key.\n"
 const PromptFirstPassword string = "This is your password.\n\n* If you use a password manager, save it there now\n* Otherwise write it on a piece of paper and keep it with you\n"
@@ -32,6 +37,11 @@ func (d DicewarePassword) AsString() string {
 }
 
 func main() {
+	if !gpgwrapper.IsWorking() {
+		fmt.Printf(colour.Warn("\n" + GPGMissing + "\n"))
+		fmt.Printf(ContinueWithoutGPG)
+		promptForInput("Press enter to continue. ")
+	}
 	email := promptForEmail()
 	channel := make(chan pgpkey.PgpKey)
 	go generatePgpKey(email, channel)
