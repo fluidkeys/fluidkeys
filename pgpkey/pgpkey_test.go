@@ -25,6 +25,52 @@ func TestTheTestHelperFunctions(t *testing.T) {
 	})
 }
 
+func TestSlugMethod(t *testing.T) {
+
+	entity, err := readEntityFromString(examplePublicKey)
+	if err != nil {
+		t.Errorf("failed to load example PGP key: %v", err)
+	}
+	pgpKey := PgpKey{*entity}
+
+	t.Run("test slug method", func(*testing.T) {
+		slug, err := pgpKey.Slug()
+		if err != nil {
+			t.Fatal(err)
+		}
+		assertEqual(t, "2018-08-15-test-example-com-0BBD7E7E5B85C8D3", slug)
+	})
+}
+
+func TestSlugify(t *testing.T) {
+	var tests = []struct {
+		email    string
+		wantSlug string
+	}{
+		{"test@example.com", "test-example-com"},
+		{"test123@example.com", "test123-example-com"},
+		{"test.foo@example.com", "test-foo-example-com"},
+		{"test_foo@example.com", "test-foo-example-com"},
+		{"test__foo@example.com", "test-foo-example-com"},
+		{".@example.com", "-example-com"},
+		{`" @"@example.com`, "-example-com"},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("slugify(%s)", test.email), func(*testing.T) {
+			assertEqual(t, test.wantSlug, slugify(test.email))
+		})
+
+	}
+}
+
+func assertEqual(t *testing.T, want string, got string) {
+	t.Helper()
+	if want != got {
+		t.Errorf("want: '%s', got: '%s'", want, got)
+	}
+}
+
 func getSingleUid(identities map[string]*openpgp.Identity) string {
 	var uids []string
 
