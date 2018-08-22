@@ -8,6 +8,14 @@ import (
 	"github.com/fluidkeys/crypto/openpgp/packet"
 )
 
+const (
+	// Use Mozilla infosec team's recommendation: https://infosec.mozilla.org/guidelines/key_management#recommended---generally-valid-for-up-to-10-years-default
+	RsaSizeSecureKeyBits = 4096
+
+	// Use a small key insecure key for fast testing
+	RsaSizeInsecureKeyBits = 1024
+)
+
 type PgpKey struct {
 	PublicKey string
 }
