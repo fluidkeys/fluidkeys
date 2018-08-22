@@ -13,6 +13,7 @@ import (
 
 	"github.com/fluidkeys/fluidkeys/backupzip"
 	"github.com/fluidkeys/fluidkeys/colour"
+	"github.com/fluidkeys/fluidkeys/database"
 	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
@@ -106,6 +107,9 @@ func main() {
 	gpg.ImportArmoredKey(privateKey)
 	fmt.Println("The new key has been imported into GnuPG, inspect it with:")
 	fmt.Printf(" > gpg --list-keys '%s'\n", email)
+
+	db := database.New(fluidkeysDirectory)
+	db.RecordKeyIdImportedIntoGnuPG(generateJob.pgpKey.PrimaryKey.KeyId)
 }
 
 func getFluidkeysDirectory() (string, error) {
