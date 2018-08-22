@@ -80,7 +80,7 @@ func TestRunningGPG(t *testing.T) {
 
 	t.Run("with invalid arguments", func(t *testing.T) {
 		arguments := "--foo"
-		want := ErrProblemExecutingGPG(arguments)
+		want := ErrProblemExecutingGPG("gpg: invalid option \"--foo\"\n", arguments)
 		_, err := runGpg(arguments)
 		assertError(t, err, want)
 	})

@@ -14,8 +14,8 @@ const GpgPath = "gpg"
 
 var ErrNoVersionStringFound = errors.New("version string not found in GPG output")
 
-func ErrProblemExecutingGPG(arguments ...string) error {
-	return fmt.Errorf("problem executing GPG with %s", arguments)
+func ErrProblemExecutingGPG(gpgStdout string, arguments ...string) error {
+	return fmt.Errorf("error executing GPG with %s: %s", arguments, gpgStdout)
 }
 
 var VersionRegexp = regexp.MustCompile(`gpg \(GnuPG.*\) (\d+\.\d+\.\d+)`)
@@ -52,14 +52,11 @@ func parseVersionString(gpgStdout string) (string, error) {
 
 func runGpg(arguments ...string) (string, error) {
 	fullArguments := appendGlobalArguments(arguments...)
-	out, err := exec.Command(GpgPath, fullArguments...).Output()
+	out, err := exec.Command(GpgPath, fullArguments...).CombinedOutput()
 
 	if err != nil {
-		// TODO: it would be kinder if we interpreted GPG's
-		// output and returned a specific Error type.
-
-		err = ErrProblemExecutingGPG(arguments...)
-		return "", err
+		error := ErrProblemExecutingGPG(string(out), arguments...)
+		return "", error
 	}
 	outString := string(out)
 	return outString, nil
