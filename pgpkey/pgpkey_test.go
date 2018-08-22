@@ -3,7 +3,7 @@ package pgpkey
 import (
 	"errors"
 	"fmt"
-	"golang.org/x/crypto/openpgp"
+	"github.com/fluidkeys/crypto/openpgp"
 	"strings"
 	"testing"
 )

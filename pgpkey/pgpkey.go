@@ -3,9 +3,9 @@ package pgpkey
 import (
 	"bytes"
 	"fmt"
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
-	"golang.org/x/crypto/openpgp/packet"
+	"github.com/fluidkeys/crypto/openpgp"
+	"github.com/fluidkeys/crypto/openpgp/armor"
+	"github.com/fluidkeys/crypto/openpgp/packet"
 )
 
 type PgpKey struct {
