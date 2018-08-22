@@ -90,13 +90,12 @@ func (key *PgpKey) Slug() (string, error) {
 	emailSlug := slugify(email)
 
 	dateString := key.PrimaryKey.CreationTime.Format("2006-01-02")
-	keyId := fmt.Sprintf("%016X", key.PrimaryKey.KeyId)
 
 	return fmt.Sprintf(
 		"%s-%s-%s",
 		dateString,
 		emailSlug,
-		keyId,
+		key.FingerprintString(),
 	), nil
 }
 

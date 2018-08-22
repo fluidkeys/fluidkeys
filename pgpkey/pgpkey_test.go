@@ -38,7 +38,7 @@ func TestSlugMethod(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		assertEqual(t, "2018-08-15-test-example-com-0BBD7E7E5B85C8D3", slug)
+		assertEqual(t, "2018-08-15-test-example-com-8FBC076876F2B042AE2BA37B0BBD7E7E5B85C8D3", slug)
 	})
 }
 
