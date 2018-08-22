@@ -60,3 +60,13 @@ func TestPromptForInput(t *testing.T) {
 		}
 	})
 }
+
+func TestGetFluidkeysDirectory(t *testing.T) {
+	dir, err := getFluidkeysDirectory()
+
+	if err != nil {
+		t.Fatalf("failed to get fluidkeys directory: %v", err)
+	}
+
+	t.Logf(dir)
+}

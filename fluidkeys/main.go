@@ -3,8 +3,10 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/mitchellh/go-homedir"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -83,6 +85,18 @@ func main() {
 	fmt.Println(publicKey)
 	fmt.Println(privateKey)
 	// TODO: use gpgwrapper to import the keys into GnuPG
+}
+
+func getFluidkeysDirectory() (string, error) {
+	homeDirectory, err := homedir.Dir()
+
+	if err != nil {
+		return "", err
+	}
+
+	fluidkeysDir := filepath.Join(homeDirectory, ".fluidkeys")
+	os.MkdirAll(fluidkeysDir, 0700)
+	return fluidkeysDir, nil
 }
 
 func generatePgpKey(email string, channel chan generatePgpKeyResult) {
