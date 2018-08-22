@@ -26,5 +26,5 @@
   name = "github.com/sethvargo/go-diceware"
 
 [[constraint]]
-  branch = "master"
-  name = "golang.org/x/crypto"
+  branch = "encrypt-private-key"
+  name = "github.com/fluidkeys/crypto"

@@ -36,6 +36,11 @@ func (d DicewarePassword) AsString() string {
 	return strings.Join(d.words, d.separator)
 }
 
+type generatePgpKeyResult struct {
+	pgpKey *pgpkey.PgpKey
+	err    error
+}
+
 func main() {
 	if !gpgwrapper.IsWorking() {
 		fmt.Printf(colour.Warn("\n" + GPGMissing + "\n"))
@@ -43,7 +48,7 @@ func main() {
 		promptForInput("Press enter to continue. ")
 	}
 	email := promptForEmail()
-	channel := make(chan pgpkey.PgpKey)
+	channel := make(chan generatePgpKeyResult)
 	go generatePgpKey(email, channel)
 
 	password := generatePassword(DicewareNumberOfWords, DicewareSeparator)
@@ -60,12 +65,30 @@ func main() {
 	fmt.Println("Generating key for", email)
 	fmt.Println()
 
-	generatedPgpKey := <-channel
-	fmt.Println(generatedPgpKey.PublicKey)
+	generateJob := <-channel
+
+	if generateJob.err != nil {
+		panic(fmt.Sprint("Failed to generate key: ", generateJob.err))
+	}
+
+	publicKey, err := generateJob.pgpKey.Armor()
+	if err != nil {
+		panic(fmt.Sprint("Failed to output public key: ", err))
+	}
+
+	privateKey, err := generateJob.pgpKey.ArmorPrivate(password.AsString())
+	if err != nil {
+		panic(fmt.Sprint("Failed to output private key: ", err))
+	}
+	fmt.Println(publicKey)
+	fmt.Println(privateKey)
+	// TODO: use gpgwrapper to import the keys into GnuPG
 }
 
-func generatePgpKey(email string, channel chan pgpkey.PgpKey) {
-	channel <- pgpkey.Generate(email)
+func generatePgpKey(email string, channel chan generatePgpKeyResult) {
+	key, err := pgpkey.Generate(email)
+
+	channel <- generatePgpKeyResult{key, err}
 }
 
 func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {

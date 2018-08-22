@@ -3,7 +3,7 @@ package pgpkey
 import (
 	"errors"
 	"fmt"
-	"golang.org/x/crypto/openpgp"
+	"github.com/fluidkeys/crypto/openpgp"
 	"strings"
 	"testing"
 )
@@ -98,10 +98,18 @@ func readEntityFromString(asciiArmoredString string) (*openpgp.Entity, error) {
 
 func TestGenerate(t *testing.T) {
 	janeEmail := "jane@example.com"
-	generatedKey := Generate(janeEmail)
+	generatedKey, err := generateInsecure(janeEmail)
+
+	if err != nil {
+		t.Errorf("failed to generate PGP key in tests")
+	}
 
 	t.Run("generate makes a UID with just an email and no brackets", func(*testing.T) {
-		entity, err := readEntityFromString(generatedKey.PublicKey)
+		armored, err := generatedKey.Armor()
+		if err != nil {
+			t.Errorf("failed to ascii armor key: %v", err)
+		}
+		entity, err := readEntityFromString(armored)
 		if err != nil {
 			t.Errorf("failed to load example PGP key: %v", err)
 		}
