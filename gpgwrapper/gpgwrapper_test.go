@@ -86,21 +86,6 @@ func TestRunningGPG(t *testing.T) {
 	})
 }
 
-func TestVersion(t *testing.T) {
-	t.Run("with valid arguments", func(t *testing.T) {
-		arguments := "--version"
-		_, err := runGpg(arguments)
-		assertNoError(t, err)
-	})
-
-	t.Run("with invalid arguments", func(t *testing.T) {
-		arguments := "--foo"
-		want := ErrProblemExecutingGPG(arguments)
-		_, err := runGpg(arguments)
-		assertError(t, err, want)
-	})
-}
-
 func TestRunGpgWithStdin(t *testing.T) {
 	t.Run("with a valid public key", func(t *testing.T) {
 		successMessages := []string{
@@ -140,7 +125,7 @@ func assertParsesVersionCorrectly(t *testing.T, gpgOutput string, want string) {
 	}
 
 	if got != want {
-		t.Errorf("Test failed, expected '%s', got '%s'", want, got)
+		t.Errorf("Test failed, wanted '%s', got '%s'", want, got)
 	}
 }
 
@@ -152,7 +137,7 @@ func assertError(t *testing.T, got error, want error) {
 	}
 
 	if got.Error() != want.Error() {
-		t.Errorf("wanted '%s', got '%s'", got, want)
+		t.Errorf("wanted '%s', got '%s'", want, got)
 	}
 }
 
