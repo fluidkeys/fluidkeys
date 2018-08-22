@@ -1,6 +1,7 @@
 package gpgwrapper
 
 import (
+	"io/ioutil"
 	"strings"
 	"testing"
 )
@@ -29,7 +30,7 @@ func TestParseGPGOutputVersion(t *testing.T) {
 }
 
 func TestRunningGPG(t *testing.T) {
-	gpg := GnuPG{}
+	gpg := GnuPG{homeDir: makeTempGnupgHome(t)}
 
 	t.Run("with valid arguments", func(t *testing.T) {
 		arguments := "--version"
@@ -53,7 +54,7 @@ func TestRunningGPG(t *testing.T) {
 }
 
 func TestRunGpgWithStdin(t *testing.T) {
-	gpg := GnuPG{}
+	gpg := GnuPG{homeDir: makeTempGnupgHome(t)}
 
 	t.Run("with a valid public key", func(t *testing.T) {
 		successMessages := []string{
@@ -85,7 +86,7 @@ func TestRunGpgWithStdin(t *testing.T) {
 }
 
 func TestImportPublicKey(t *testing.T) {
-	gpg := GnuPG{}
+	gpg := GnuPG{homeDir: makeTempGnupgHome(t)}
 
 	t.Run("with valid public key", func(t *testing.T) {
 		_, err := gpg.ImportArmoredKey(ExamplePublicKey)
@@ -96,6 +97,15 @@ func TestImportPublicKey(t *testing.T) {
 		_, err := gpg.ImportArmoredKey(ExamplePrivateKey)
 		assertNoError(t, err)
 	})
+}
+
+func makeTempGnupgHome(t *testing.T) string {
+	t.Helper()
+	dir, err := ioutil.TempDir("", "gpg.test.")
+	if err != nil {
+		t.Fatalf("Failed to create temp GnuPG dir: %v", err)
+	}
+	return dir
 }
 
 func assertParsesVersionCorrectly(t *testing.T, gpgOutput string, want string) {
