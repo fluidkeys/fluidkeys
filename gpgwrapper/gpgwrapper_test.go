@@ -81,6 +81,13 @@ func TestRunGpgWithStdin(t *testing.T) {
 	})
 }
 
+func TestImportArmoredPublicKey(t *testing.T) {
+	t.Run("with valid public key", func(t *testing.T) {
+		_, err := ImportArmoredPublicKey(ExamplePublicKey)
+		assertNoError(t, err)
+	})
+}
+
 func assertParsesVersionCorrectly(t *testing.T, gpgOutput string, want string) {
 	t.Helper()
 	got, err := parseVersionString(gpgOutput)

@@ -51,6 +51,17 @@ func IsWorking() bool {
 	return true
 }
 
+// Import an armored key into the GPG key ring
+func ImportArmoredPublicKey(armoredPublicKey string) (string, error) {
+	output, err := runGpgWithStdin(armoredPublicKey, "--import")
+	if err != nil {
+		err = fmt.Errorf("problem importing key, %v", err)
+		return "", err
+	}
+
+	return output, nil
+}
+
 func parseVersionString(gpgStdout string) (string, error) {
 	match := VersionRegexp.FindStringSubmatch(gpgStdout)
 
