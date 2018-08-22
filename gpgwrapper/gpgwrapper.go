@@ -20,10 +20,14 @@ func ErrProblemExecutingGPG(gpgStdout string, arguments ...string) error {
 
 var VersionRegexp = regexp.MustCompile(`gpg \(GnuPG.*\) (\d+\.\d+\.\d+)`)
 
-func Version() (string, error) {
+type GnuPG struct {
+	homeDir string
+}
+
+func (g *GnuPG) Version() (string, error) {
 	// Returns the GnuPG version string, e.g. "1.2.3"
 
-	outString, err := runGpg("--version")
+	outString, err := g.run("--version")
 
 	if err != nil {
 		err = fmt.Errorf("problem running GPG, %v", err)
@@ -41,8 +45,8 @@ func Version() (string, error) {
 }
 
 // Checks whether GPG is working
-func IsWorking() bool {
-	_, err := Version()
+func (g *GnuPG) IsWorking() bool {
+	_, err := g.Version()
 
 	if err != nil {
 		return false
@@ -52,8 +56,8 @@ func IsWorking() bool {
 }
 
 // Import an armored key into the GPG key ring
-func ImportArmoredPublicKey(armoredPublicKey string) (string, error) {
-	output, err := runGpgWithStdin(armoredPublicKey, "--import")
+func (g *GnuPG) ImportArmoredKey(armoredKey string) (string, error) {
+	output, err := g.runWithStdin(armoredKey, "--import")
 	if err != nil {
 		err = fmt.Errorf("problem importing key, %v", err)
 		return "", err
@@ -72,8 +76,8 @@ func parseVersionString(gpgStdout string) (string, error) {
 	return match[1], nil
 }
 
-func runGpg(arguments ...string) (string, error) {
-	fullArguments := appendGlobalArguments(arguments...)
+func (g *GnuPG) run(arguments ...string) (string, error) {
+	fullArguments := g.appendGlobalArguments(arguments...)
 	out, err := exec.Command(GpgPath, fullArguments...).CombinedOutput()
 
 	if err != nil {
@@ -84,8 +88,8 @@ func runGpg(arguments ...string) (string, error) {
 	return outString, nil
 }
 
-func runGpgWithStdin(textToSend string, arguments ...string) (string, error) {
-	fullArguments := appendGlobalArguments(arguments...)
+func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (string, error) {
+	fullArguments := g.appendGlobalArguments(arguments...)
 	cmd := exec.Command(GpgPath, fullArguments...)
 	stdin, err := cmd.StdinPipe()
 
@@ -106,9 +110,15 @@ func runGpgWithStdin(textToSend string, arguments ...string) (string, error) {
 	return output, nil
 }
 
-func appendGlobalArguments(arguments ...string) []string {
+func (g *GnuPG) appendGlobalArguments(arguments ...string) []string {
 	var globalArguments = []string{
 		"--keyid-format", "0xlong",
+		"--batch",
+		"--no-tty",
+	}
+	if g.homeDir != "" {
+		homeDirArgs := []string{"--homedir", g.homeDir}
+		globalArguments = append(globalArguments, homeDirArgs...)
 	}
 	return append(arguments, globalArguments...)
 }

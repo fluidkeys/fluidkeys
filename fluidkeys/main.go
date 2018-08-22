@@ -46,7 +46,8 @@ type generatePgpKeyResult struct {
 }
 
 func main() {
-	if !gpgwrapper.IsWorking() {
+	gpg := gpgwrapper.GnuPG{}
+	if !gpg.IsWorking() {
 		fmt.Printf(colour.Warn("\n" + GPGMissing + "\n"))
 		fmt.Printf(ContinueWithoutGPG)
 		promptForInput("Press enter to continue. ")
@@ -101,7 +102,8 @@ func main() {
 	}
 	fmt.Printf("Full key backup saved to %s", backupFilename)
 
-	gpgwrapper.ImportArmoredPublicKey(publicKey)
+	gpg.ImportArmoredKey(publicKey)
+	gpg.ImportArmoredKey(privateKey)
 	fmt.Println("The new key has been imported into GnuPG, inspect it with:")
 	fmt.Printf(" > gpg --list-keys '%s'\n", email)
 }

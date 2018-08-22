@@ -1,12 +1,12 @@
 package gpgwrapper
 
 import (
+	"io/ioutil"
 	"strings"
 	"testing"
 )
 
 func TestParseGPGOutputVersion(t *testing.T) {
-
 	t.Run("test GPG output from Ubuntu", func(t *testing.T) {
 		gpgOutput := "foo\ngpg (GnuPG) 2.2.4\nbar"
 		assertParsesVersionCorrectly(t, gpgOutput, "2.2.4")
@@ -30,15 +30,17 @@ func TestParseGPGOutputVersion(t *testing.T) {
 }
 
 func TestRunningGPG(t *testing.T) {
+	gpg := GnuPG{homeDir: makeTempGnupgHome(t)}
+
 	t.Run("with valid arguments", func(t *testing.T) {
 		arguments := "--version"
-		_, err := runGpg(arguments)
+		_, err := gpg.run(arguments)
 		assertNoError(t, err)
 	})
 
 	t.Run("with invalid arguments", func(t *testing.T) {
 		arguments := "--foo"
-		_, err := runGpg(arguments)
+		_, err := gpg.run(arguments)
 		if err == nil {
 			t.Fatalf("wanted an error but didn't get one")
 		}
@@ -52,6 +54,8 @@ func TestRunningGPG(t *testing.T) {
 }
 
 func TestRunGpgWithStdin(t *testing.T) {
+	gpg := GnuPG{homeDir: makeTempGnupgHome(t)}
+
 	t.Run("with a valid public key", func(t *testing.T) {
 		successMessages := []string{
 			"gpg: key 0x0BBD7E7E5B85C8D3: public key \"test@example.com\" imported",
@@ -60,7 +64,7 @@ func TestRunGpgWithStdin(t *testing.T) {
 
 		arguments := []string{"--import"}
 
-		output, err := runGpgWithStdin(ExamplePublicKey, arguments...)
+		output, err := gpg.runWithStdin(ExamplePublicKey, arguments...)
 
 		if err != nil {
 			t.Errorf("Test failed, returned error %s", err)
@@ -81,11 +85,27 @@ func TestRunGpgWithStdin(t *testing.T) {
 	})
 }
 
-func TestImportArmoredPublicKey(t *testing.T) {
+func TestImportPublicKey(t *testing.T) {
+	gpg := GnuPG{homeDir: makeTempGnupgHome(t)}
+
 	t.Run("with valid public key", func(t *testing.T) {
-		_, err := ImportArmoredPublicKey(ExamplePublicKey)
+		_, err := gpg.ImportArmoredKey(ExamplePublicKey)
 		assertNoError(t, err)
 	})
+
+	t.Run("with valid private key", func(t *testing.T) {
+		_, err := gpg.ImportArmoredKey(ExamplePrivateKey)
+		assertNoError(t, err)
+	})
+}
+
+func makeTempGnupgHome(t *testing.T) string {
+	t.Helper()
+	dir, err := ioutil.TempDir("", "gpg.test.")
+	if err != nil {
+		t.Fatalf("Failed to create temp GnuPG dir: %v", err)
+	}
+	return dir
 }
 
 func assertParsesVersionCorrectly(t *testing.T, gpgOutput string, want string) {
@@ -171,3 +191,63 @@ kJrhXCqCUxTBBu+37kUBk7lRbtM0nca5/jsO4BAvqMgedc06m6SHEGdX9eT4wHSi
 We0fI5qRW/I=
 =MZEv
 -----END PGP PUBLIC KEY BLOCK-----`
+
+const ExamplePrivateKey string = `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+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
+gccR56G2L/PJK9su8t1NtZp3d8h/7yCJhyM=
+=24gu
+-----END PGP PRIVATE KEY BLOCK-----`

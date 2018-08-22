@@ -25,7 +25,7 @@ build/bin/fk: $(MAIN_GO_FILES)
 
 .PHONY: test
 test:
-	go test ./...
+	go test ./... -v
 	./script/test_make_compile
 	./script/test_make_install
 
