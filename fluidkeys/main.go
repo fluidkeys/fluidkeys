@@ -109,7 +109,7 @@ func main() {
 	fmt.Printf(" > gpg --list-keys '%s'\n", email)
 
 	db := database.New(fluidkeysDirectory)
-	db.RecordKeyIdImportedIntoGnuPG(generateJob.pgpKey.PrimaryKey.KeyId)
+	db.RecordFingerprintImportedIntoGnuPG(generateJob.pgpKey.FingerprintString())
 }
 
 func getFluidkeysDirectory() (string, error) {

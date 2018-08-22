@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
 )
 
 type Database struct {
@@ -18,7 +17,7 @@ type DatabaseMessage struct {
 }
 
 type KeyImportedIntoGnuPGMessage struct {
-	KeyId string
+	Fingerprint string
 }
 
 func New(fluidkeysDirectory string) Database {
@@ -26,14 +25,14 @@ func New(fluidkeysDirectory string) Database {
 	return Database{jsonFilename: jsonFilename}
 }
 
-func (db *Database) RecordKeyIdImportedIntoGnuPG(newKeyId uint64) error {
-	existingKeyIds, err := db.GetKeyIdsImportedIntoGnuPG()
+func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint string) error {
+	existingFingerprints, err := db.GetFingerprintsImportedIntoGnuPG()
 	if err != nil {
 		return err
 	}
 
-	allKeyIds := append(existingKeyIds, newKeyId)
-	databaseMessage := makeDatabaseMessageFromKeyIds(allKeyIds)
+	allFingerprints := append(existingFingerprints, newFingerprint)
+	databaseMessage := makeDatabaseMessageFromFingerprints(allFingerprints)
 
 	file, err := os.Create(db.jsonFilename)
 	if err != nil {
@@ -46,11 +45,11 @@ func (db *Database) RecordKeyIdImportedIntoGnuPG(newKeyId uint64) error {
 	return encoder.Encode(databaseMessage)
 }
 
-func makeDatabaseMessageFromKeyIds(keyIds []uint64) DatabaseMessage {
+func makeDatabaseMessageFromFingerprints(fingerprints []string) DatabaseMessage {
 	var messages []KeyImportedIntoGnuPGMessage
 
-	for _, keyId := range keyIds {
-		messages = append(messages, KeyImportedIntoGnuPGMessage{KeyId: strconv.FormatUint(keyId, 16)})
+	for _, fingerprint := range fingerprints {
+		messages = append(messages, KeyImportedIntoGnuPGMessage{Fingerprint: fingerprint})
 	}
 
 	databaseMessage := DatabaseMessage{
@@ -59,11 +58,11 @@ func makeDatabaseMessageFromKeyIds(keyIds []uint64) DatabaseMessage {
 	return databaseMessage
 }
 
-func (db *Database) GetKeyIdsImportedIntoGnuPG() ([]uint64, error) {
+func (db *Database) GetFingerprintsImportedIntoGnuPG() ([]string, error) {
 	file, err := os.Open(db.jsonFilename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return []uint64{}, nil
+			return []string{}, nil
 		} else {
 			return nil, fmt.Errorf("Couldn't open '%s': %v", db.jsonFilename, err)
 		}
@@ -78,26 +77,22 @@ func (db *Database) GetKeyIdsImportedIntoGnuPG() ([]uint64, error) {
 
 	json.Unmarshal(byteValue, &databaseMessage)
 
-	var keyIds []uint64
+	var fingerprints []string
 
 	for _, v := range databaseMessage.KeysImportedIntoGnuPG {
-		keyId, err := strconv.ParseUint(v.KeyId, 16, 64)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to convert Hex to 64 bit integer keyid '%v'", v.KeyId)
-		}
-		keyIds = append(keyIds, keyId)
+		fingerprints = append(fingerprints, v.Fingerprint)
 	}
 
-	return deduplicate(keyIds), nil
+	return deduplicate(fingerprints), nil
 }
 
-func deduplicate(slice []uint64) []uint64 {
-	sliceMap := make(map[uint64]bool)
+func deduplicate(slice []string) []string {
+	sliceMap := make(map[string]bool)
 	for _, v := range slice {
 		sliceMap[v] = true
 	}
 
-	var deduped []uint64
+	var deduped []string
 	for key, _ := range sliceMap {
 		deduped = append(deduped, key)
 	}

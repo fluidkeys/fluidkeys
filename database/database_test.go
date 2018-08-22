@@ -5,70 +5,70 @@ import (
 	"testing"
 )
 
-func TestRecordKeyIdImportedIntoGnuPG(t *testing.T) {
+func TestRecordFingerprintImportedIntoGnuPG(t *testing.T) {
 
 	t.Run("record works to an empty database", func(t *testing.T) {
-		keyId := uint64(1234)
+		fingerprint := string("FOO")
 		database := New(makeTempDirectory(t))
-		err := database.RecordKeyIdImportedIntoGnuPG(keyId)
+		err := database.RecordFingerprintImportedIntoGnuPG(fingerprint)
 		assertErrorIsNil(t, err)
 
-		importedKeyIds, err := database.GetKeyIdsImportedIntoGnuPG()
-		assertContains(t, importedKeyIds, keyId)
+		importedFingerprints, err := database.GetFingerprintsImportedIntoGnuPG()
+		assertContains(t, importedFingerprints, fingerprint)
 	})
 
 	t.Run("record appends a new key to a database with key ids already stored", func(t *testing.T) {
-		existingKeyId := uint64(1234)
-		newKeyId := uint64(5678)
+		existingFingerprint := string(1234)
+		newFingerprint := string(5678)
 		database := New(makeTempDirectory(t))
 
-		err := database.RecordKeyIdImportedIntoGnuPG(existingKeyId)
+		err := database.RecordFingerprintImportedIntoGnuPG(existingFingerprint)
 		assertErrorIsNil(t, err)
-		err = database.RecordKeyIdImportedIntoGnuPG(newKeyId)
+		err = database.RecordFingerprintImportedIntoGnuPG(newFingerprint)
 		assertErrorIsNil(t, err)
 
-		importedKeyIds, err := database.GetKeyIdsImportedIntoGnuPG()
-		assertContains(t, importedKeyIds, existingKeyId)
-		assertContains(t, importedKeyIds, newKeyId)
+		importedFingerprints, err := database.GetFingerprintsImportedIntoGnuPG()
+		assertContains(t, importedFingerprints, existingFingerprint)
+		assertContains(t, importedFingerprints, newFingerprint)
 	})
 
 	t.Run("doesn't duplicate key ids if trying to record a key that already is stored", func(t *testing.T) {
-		keyId := uint64(1234)
+		fingerprint := string(1234)
 		database := New(makeTempDirectory(t))
 
-		err := database.RecordKeyIdImportedIntoGnuPG(keyId)
+		err := database.RecordFingerprintImportedIntoGnuPG(fingerprint)
 		assertErrorIsNil(t, err)
-		err = database.RecordKeyIdImportedIntoGnuPG(keyId)
+		err = database.RecordFingerprintImportedIntoGnuPG(fingerprint)
 		assertErrorIsNil(t, err)
 
-		importedKeyIds, err := database.GetKeyIdsImportedIntoGnuPG()
-		if len(importedKeyIds) != 1 {
-			t.Errorf("Expected 1 entry in slice, '%v'", importedKeyIds)
+		importedFingerprints, err := database.GetFingerprintsImportedIntoGnuPG()
+		if len(importedFingerprints) != 1 {
+			t.Errorf("Expected 1 entry in slice, '%v'", importedFingerprints)
 		}
 	})
 }
 
-func TestGetKeyIdsImportedIntoGnuPG(t *testing.T) {
+func TestGetFingerprintsImportedIntoGnuPG(t *testing.T) {
 
-	t.Run("can read back keyId written to database", func(t *testing.T) {
+	t.Run("can read back fingerprint written to database", func(t *testing.T) {
 		database := New(makeTempDirectory(t))
-		keyId := uint64(1234)
-		err := database.RecordKeyIdImportedIntoGnuPG(keyId)
+		fingerprint := string(1234)
+		err := database.RecordFingerprintImportedIntoGnuPG(fingerprint)
 		assertErrorIsNil(t, err)
 
-		importedKeyIds, err := database.GetKeyIdsImportedIntoGnuPG()
+		importedFingerprints, err := database.GetFingerprintsImportedIntoGnuPG()
 		assertErrorIsNil(t, err)
-		assertContains(t, importedKeyIds, keyId)
+		assertContains(t, importedFingerprints, fingerprint)
 	})
 
 }
 
 func TestDeduplicate(t *testing.T) {
 
-	slice := []uint64{1, 1, 2, 2, 2, 3, 4}
+	slice := []string{"FOO", "FOO", "BAR", "BAZ"}
 
 	got := deduplicate(slice)
-	want := []uint64{1, 2, 3, 4}
+	want := []string{"FOO", "BAR", "BAZ"}
 
 	if len(got) != len(want) {
 		t.Errorf("Expected '%v' but got '%v'", want, got)
@@ -84,7 +84,7 @@ func makeTempDirectory(t *testing.T) string {
 	return dir
 }
 
-func assertContains(t *testing.T, slice []uint64, element uint64) {
+func assertContains(t *testing.T, slice []string, element string) {
 	t.Helper()
 	if !contains(slice, element) {
 		t.Fatalf("Expected '%v' to contain '%v'", slice, element)
@@ -98,7 +98,7 @@ func assertErrorIsNil(t *testing.T, got error) {
 	}
 }
 
-func contains(s []uint64, e uint64) bool {
+func contains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
 			return true
