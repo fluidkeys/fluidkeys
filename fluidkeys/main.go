@@ -97,7 +97,7 @@ func main() {
 		panic(fmt.Sprintf("Failed to get slug for key to work out backup location"))
 	}
 
-	backupFilename, err := backupzip.OutputZipBackupFile(
+	_, err = backupzip.OutputZipBackupFile(
 		fluidkeysDirectory,
 		keySlug,
 		publicKey,
@@ -106,7 +106,7 @@ func main() {
 	if err != nil {
 		fmt.Printf("Failed to create backup ZIP file: %s", err)
 	}
-	fmt.Printf("Full key backup saved to %s\n", backupFilename)
+	fmt.Printf("Full key backup saved to %s\n", fluidkeysDirectory)
 
 	gpg.ImportArmoredKey(publicKey)
 	gpg.ImportArmoredKey(privateKey)
