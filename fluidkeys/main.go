@@ -83,8 +83,6 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprint("Failed to output private key: ", err))
 	}
-	fmt.Println(publicKey)
-	fmt.Println(privateKey)
 	// TODO: use gpgwrapper to import the keys into GnuPG
 
 	fluidkeysDirectory, err := getFluidkeysDirectory()
