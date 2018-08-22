@@ -25,7 +25,7 @@ func OutputZipBackupFile(fluidkeysDir, armoredPublicKey string, armoredPrivateKe
 	if err != nil {
 		return "", fmt.Errorf("WriteZipData failed: %v", err)
 	}
-	return filename, err
+	return filename, nil
 }
 
 // Write ZIP data to the given `w` io.Writer
