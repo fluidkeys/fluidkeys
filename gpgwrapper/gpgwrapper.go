@@ -30,6 +30,17 @@ func Version() (string, error) {
 	return version, nil
 }
 
+// Checks whether GPG is working
+func IsWorking() bool {
+	_, err := Version()
+
+	if err != nil {
+		return false
+	}
+
+	return true
+}
+
 func parseVersionString(gpgStdout string) (string, error) {
 	match := VersionRegexp.FindStringSubmatch(gpgStdout)
 
