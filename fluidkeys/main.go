@@ -100,7 +100,7 @@ func main() {
 	if err != nil {
 		fmt.Printf("Failed to create backup ZIP file: %s", err)
 	}
-	fmt.Printf("Full key backup saved to %s", backupFilename)
+	fmt.Printf("Full key backup saved to %s\n", backupFilename)
 
 	gpg.ImportArmoredKey(publicKey)
 	gpg.ImportArmoredKey(privateKey)
