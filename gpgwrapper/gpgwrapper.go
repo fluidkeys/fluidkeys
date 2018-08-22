@@ -52,8 +52,8 @@ func IsWorking() bool {
 }
 
 // Import an armored key into the GPG key ring
-func ImportArmoredPublicKey(armoredPublicKey string) (string, error) {
-	output, err := runGpgWithStdin(armoredPublicKey, "--import")
+func ImportArmoredKey(armoredKey string) (string, error) {
+	output, err := runGpgWithStdin(armoredKey, "--import")
 	if err != nil {
 		err = fmt.Errorf("problem importing key, %v", err)
 		return "", err
@@ -109,6 +109,8 @@ func runGpgWithStdin(textToSend string, arguments ...string) (string, error) {
 func appendGlobalArguments(arguments ...string) []string {
 	var globalArguments = []string{
 		"--keyid-format", "0xlong",
+		"--batch",
+		"--no-tty",
 	}
 	return append(arguments, globalArguments...)
 }
