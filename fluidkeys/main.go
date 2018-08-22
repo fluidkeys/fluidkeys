@@ -3,11 +3,14 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/mitchellh/go-homedir"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/fluidkeys/fluidkeys/backupzip"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 	"github.com/fluidkeys/fluidkeys/humanize"
@@ -80,9 +83,35 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprint("Failed to output private key: ", err))
 	}
-	fmt.Println(publicKey)
-	fmt.Println(privateKey)
 	// TODO: use gpgwrapper to import the keys into GnuPG
+
+	fluidkeysDirectory, err := getFluidkeysDirectory()
+
+	if err != nil {
+		fmt.Printf("Failed to get fluidkeys directory")
+	}
+
+	backupFilename, err := backupzip.OutputZipBackupFile(
+		fluidkeysDirectory,
+		publicKey,
+		privateKey,
+	)
+	if err != nil {
+		fmt.Printf("Failed to create backup ZIP file: %s", err)
+	}
+	fmt.Printf("Full key backup saved to %s", backupFilename)
+}
+
+func getFluidkeysDirectory() (string, error) {
+	homeDirectory, err := homedir.Dir()
+
+	if err != nil {
+		return "", err
+	}
+
+	fluidkeysDir := filepath.Join(homeDirectory, ".fluidkeys")
+	os.MkdirAll(fluidkeysDir, 0700)
+	return fluidkeysDir, nil
 }
 
 func generatePgpKey(email string, channel chan generatePgpKeyResult) {

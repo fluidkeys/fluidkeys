@@ -19,6 +19,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:83854f6b1d2ce047b69657e3a87ba7602f4c5505e8bdfd02ab857db8e983bde1"
+  name = "github.com/mitchellh/go-homedir"
+  packages = ["."]
+  pruneopts = ""
+  revision = "58046073cbffe2f25d425fe1331102f55cf719de"
+
+[[projects]]
+  branch = "master"
   digest = "1:cbf98c3b2c6382b31a34b356e02ade0c8a42d7cd93109c65d2d192152a71d59c"
   name = "github.com/sethvargo/go-diceware"
   packages = ["diceware"]
@@ -32,6 +40,7 @@
     "github.com/fluidkeys/crypto/openpgp",
     "github.com/fluidkeys/crypto/openpgp/armor",
     "github.com/fluidkeys/crypto/openpgp/packet",
+    "github.com/mitchellh/go-homedir",
     "github.com/sethvargo/go-diceware/diceware",
   ]
   solver-name = "gps-cdcl"
