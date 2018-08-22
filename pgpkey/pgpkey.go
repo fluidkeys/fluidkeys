@@ -23,7 +23,7 @@ func Generate(email string) (*PgpKey, error) {
 	return generateKeyOfSize(email, RsaSizeSecureKeyBits)
 }
 
-func GenerateInsecure(email string) (*PgpKey, error) {
+func generateInsecure(email string) (*PgpKey, error) {
 	return generateKeyOfSize(email, RsaSizeInsecureKeyBits)
 }
 

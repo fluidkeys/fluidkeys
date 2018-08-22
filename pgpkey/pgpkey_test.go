@@ -98,7 +98,7 @@ func readEntityFromString(asciiArmoredString string) (*openpgp.Entity, error) {
 
 func TestGenerate(t *testing.T) {
 	janeEmail := "jane@example.com"
-	generatedKey, err := GenerateInsecure(janeEmail)
+	generatedKey, err := generateInsecure(janeEmail)
 
 	if err != nil {
 		t.Errorf("failed to generate PGP key in tests")
