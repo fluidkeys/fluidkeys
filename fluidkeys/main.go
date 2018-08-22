@@ -92,8 +92,14 @@ func main() {
 		fmt.Printf("Failed to get fluidkeys directory")
 	}
 
+	keySlug, err := generateJob.pgpKey.Slug()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to get slug for key to work out backup location"))
+	}
+
 	backupFilename, err := backupzip.OutputZipBackupFile(
 		fluidkeysDirectory,
+		keySlug,
 		publicKey,
 		privateKey,
 	)
