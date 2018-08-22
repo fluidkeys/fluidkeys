@@ -7,6 +7,7 @@ endif
 
 DEB=pkg/debian
 SECRETS_ID_RSA=.secret/download-fluidkeys-com.id_rsa
+MAIN_GO_FILES=fluidkeys/main.go
 
 # `make compile` should populate build/ with all files that will
 # ultimately be installed to PREFIX (/usr/local), for example
@@ -18,9 +19,9 @@ compile: clean install_dependencies build/bin/fk
 install_dependencies:
 	dep ensure
 
-build/bin/fk: fluidkeys/main.go
+build/bin/fk: $(MAIN_GO_FILES)
 	@mkdir -p build/bin
-	go build -o $@ $<
+	go build -o $@ $(MAIN_GO_FILES)
 
 .PHONY: test
 test:
@@ -29,7 +30,7 @@ test:
 	./script/test_make_install
 
 .PHONY: run
-run: fluidkeys/main.go
+run: $(MAIN_GO_FILES)
 	go run $<
 
 .PHONY: publish_latest_tag
