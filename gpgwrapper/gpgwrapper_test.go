@@ -38,9 +38,16 @@ func TestRunningGPG(t *testing.T) {
 
 	t.Run("with invalid arguments", func(t *testing.T) {
 		arguments := "--foo"
-		want := ErrProblemExecutingGPG("gpg: invalid option \"--foo\"\n", arguments)
 		_, err := runGpg(arguments)
-		assertError(t, err, want)
+		if err == nil {
+			t.Fatalf("wanted an error but didn't get one")
+		}
+		got := err.Error()
+		differentGPGErrors := []string{
+			"gpg: invalid option \"--foo\"",
+			"gpg: Invalid option \"--foo\"",
+		}
+		assertStringHasOneOfSlice(t, got, differentGPGErrors)
 	})
 }
 
@@ -104,6 +111,16 @@ func assertNoError(t *testing.T, got error) {
 	if got != nil {
 		t.Fatalf("got an error but didnt want one '%s'", got)
 	}
+}
+
+func assertStringHasOneOfSlice(t *testing.T, a string, list []string) {
+	t.Helper()
+	for _, b := range list {
+		if strings.Contains(a, b) {
+			return
+		}
+	}
+	t.Errorf("expected '%v', to contain '%s'", list, a)
 }
 
 const ExamplePublicKey string = `-----BEGIN PGP PUBLIC KEY BLOCK-----
