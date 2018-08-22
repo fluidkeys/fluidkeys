@@ -21,6 +21,7 @@ func ErrProblemExecutingGPG(gpgStdout string, arguments ...string) error {
 var VersionRegexp = regexp.MustCompile(`gpg \(GnuPG.*\) (\d+\.\d+\.\d+)`)
 
 type GnuPG struct {
+	homeDir string
 }
 
 func (g *GnuPG) Version() (string, error) {
@@ -76,7 +77,7 @@ func parseVersionString(gpgStdout string) (string, error) {
 }
 
 func (g *GnuPG) run(arguments ...string) (string, error) {
-	fullArguments := appendGlobalArguments(arguments...)
+	fullArguments := g.appendGlobalArguments(arguments...)
 	out, err := exec.Command(GpgPath, fullArguments...).CombinedOutput()
 
 	if err != nil {
@@ -88,7 +89,7 @@ func (g *GnuPG) run(arguments ...string) (string, error) {
 }
 
 func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (string, error) {
-	fullArguments := appendGlobalArguments(arguments...)
+	fullArguments := g.appendGlobalArguments(arguments...)
 	cmd := exec.Command(GpgPath, fullArguments...)
 	stdin, err := cmd.StdinPipe()
 
@@ -109,11 +110,15 @@ func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (string, er
 	return output, nil
 }
 
-func appendGlobalArguments(arguments ...string) []string {
+func (g *GnuPG) appendGlobalArguments(arguments ...string) []string {
 	var globalArguments = []string{
 		"--keyid-format", "0xlong",
 		"--batch",
 		"--no-tty",
+	}
+	if g.homeDir != "" {
+		homeDirArgs := []string{"--homedir", g.homeDir}
+		globalArguments = append(globalArguments, homeDirArgs...)
 	}
 	return append(arguments, globalArguments...)
 }
