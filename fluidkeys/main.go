@@ -31,9 +31,14 @@ func (d DicewarePassword) AsString() string {
 	return strings.Join(d.words, d.separator)
 }
 
+type job struct {
+	pgpKey *pgpkey.PgpKey
+	err    error
+}
+
 func main() {
 	email := promptForEmail()
-	channel := make(chan pgpkey.PgpKey)
+	channel := make(chan job)
 	go generatePgpKey(email, channel)
 
 	password := generatePassword(DicewareNumberOfWords, DicewareSeparator)
@@ -50,12 +55,17 @@ func main() {
 	fmt.Println("Generating key for", email)
 	fmt.Println()
 
-	generatedPgpKey := <-channel
-	fmt.Println(generatedPgpKey.PublicKey)
+	generateJob := <-channel
+
+	if generateJob.err != nil {
+		panic(fmt.Sprint("Failed to generate key: ", generateJob.err))
+	}
 }
 
-func generatePgpKey(email string, channel chan pgpkey.PgpKey) {
-	channel <- pgpkey.Generate(email)
+func generatePgpKey(email string, channel chan job) {
+	key, err := pgpkey.Generate(email)
+
+	channel <- job{key, err}
 }
 
 func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
