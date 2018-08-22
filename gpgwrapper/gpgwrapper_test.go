@@ -6,7 +6,6 @@ import (
 )
 
 func TestParseGPGOutputVersion(t *testing.T) {
-
 	t.Run("test GPG output from Ubuntu", func(t *testing.T) {
 		gpgOutput := "foo\ngpg (GnuPG) 2.2.4\nbar"
 		assertParsesVersionCorrectly(t, gpgOutput, "2.2.4")
@@ -30,15 +29,17 @@ func TestParseGPGOutputVersion(t *testing.T) {
 }
 
 func TestRunningGPG(t *testing.T) {
+	gpg := GnuPG{}
+
 	t.Run("with valid arguments", func(t *testing.T) {
 		arguments := "--version"
-		_, err := runGpg(arguments)
+		_, err := gpg.run(arguments)
 		assertNoError(t, err)
 	})
 
 	t.Run("with invalid arguments", func(t *testing.T) {
 		arguments := "--foo"
-		_, err := runGpg(arguments)
+		_, err := gpg.run(arguments)
 		if err == nil {
 			t.Fatalf("wanted an error but didn't get one")
 		}
@@ -52,6 +53,8 @@ func TestRunningGPG(t *testing.T) {
 }
 
 func TestRunGpgWithStdin(t *testing.T) {
+	gpg := GnuPG{}
+
 	t.Run("with a valid public key", func(t *testing.T) {
 		successMessages := []string{
 			"gpg: key 0x0BBD7E7E5B85C8D3: public key \"test@example.com\" imported",
@@ -60,7 +63,7 @@ func TestRunGpgWithStdin(t *testing.T) {
 
 		arguments := []string{"--import"}
 
-		output, err := runGpgWithStdin(ExamplePublicKey, arguments...)
+		output, err := gpg.runWithStdin(ExamplePublicKey, arguments...)
 
 		if err != nil {
 			t.Errorf("Test failed, returned error %s", err)
@@ -82,13 +85,15 @@ func TestRunGpgWithStdin(t *testing.T) {
 }
 
 func TestImportPublicKey(t *testing.T) {
+	gpg := GnuPG{}
+
 	t.Run("with valid public key", func(t *testing.T) {
-		_, err := ImportArmoredKey(ExamplePublicKey)
+		_, err := gpg.ImportArmoredKey(ExamplePublicKey)
 		assertNoError(t, err)
 	})
 
 	t.Run("with valid private key", func(t *testing.T) {
-		_, err := ImportArmoredKey(ExamplePrivateKey)
+		_, err := gpg.ImportArmoredKey(ExamplePrivateKey)
 		assertNoError(t, err)
 	})
 }
