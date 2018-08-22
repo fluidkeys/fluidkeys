@@ -102,7 +102,8 @@ func main() {
 	fmt.Printf("Full key backup saved to %s", backupFilename)
 
 	gpgwrapper.ImportArmoredPublicKey(publicKey)
-	fmt.Println("Your public key has been imported into GPG")
+	fmt.Println("The new key has been imported into GnuPG, inspect it with:")
+	fmt.Printf(" > gpg --list-keys '%s'\n", email)
 }
 
 func getFluidkeysDirectory() (string, error) {
