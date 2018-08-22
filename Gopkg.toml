@@ -28,3 +28,7 @@
 [[constraint]]
   branch = "encrypt-private-key"
   name = "github.com/fluidkeys/crypto"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/mitchellh/go-homedir"
