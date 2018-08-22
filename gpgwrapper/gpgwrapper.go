@@ -4,11 +4,19 @@ package gpgwrapper
 
 import (
 	"errors"
+	"fmt"
+	"io"
 	"os/exec"
 	"regexp"
 )
 
 const GpgPath = "gpg"
+
+var ErrNoVersionStringFound = errors.New("version string not found in GPG output")
+
+func ErrProblemExecutingGPG(gpgStdout string, arguments ...string) error {
+	return fmt.Errorf("error executing GPG with %s: %s", arguments, gpgStdout)
+}
 
 var VersionRegexp = regexp.MustCompile(`gpg \(GnuPG.*\) (\d+\.\d+\.\d+)`)
 
@@ -18,12 +26,14 @@ func Version() (string, error) {
 	outString, err := runGpg("--version")
 
 	if err != nil {
+		err = fmt.Errorf("problem running GPG, %v", err)
 		return "", err
 	}
 
 	version, err := parseVersionString(outString)
 
 	if err != nil {
+		err = fmt.Errorf("problem parsing version string, %v", err)
 		return "", err
 	}
 
@@ -45,20 +55,49 @@ func parseVersionString(gpgStdout string) (string, error) {
 	match := VersionRegexp.FindStringSubmatch(gpgStdout)
 
 	if match == nil {
-		return "", errors.New("version string not found in GPG output")
+		return "", ErrNoVersionStringFound
 	}
 
 	return match[1], nil
 }
 
-func runGpg(arguments string) (string, error) {
-	out, err := exec.Command(GpgPath, "--version").Output()
+func runGpg(arguments ...string) (string, error) {
+	fullArguments := appendGlobalArguments(arguments...)
+	out, err := exec.Command(GpgPath, fullArguments...).CombinedOutput()
 
 	if err != nil {
-		// TODO: it would be kinder if we interpreted GPG's
-		// output and returned a specific Error type.
-		return "", err
+		error := ErrProblemExecutingGPG(string(out), arguments...)
+		return "", error
 	}
 	outString := string(out)
 	return outString, nil
+}
+
+func runGpgWithStdin(textToSend string, arguments ...string) (string, error) {
+	fullArguments := appendGlobalArguments(arguments...)
+	cmd := exec.Command(GpgPath, fullArguments...)
+	stdin, err := cmd.StdinPipe()
+
+	if err != nil {
+		return "", errors.New(fmt.Sprintf("Failed to get stdin pipe '%s'", err))
+	}
+
+	io.WriteString(stdin, textToSend)
+	stdin.Close()
+
+	stdoutAndStderr, err := cmd.CombinedOutput()
+
+	if err != nil {
+		return "", errors.New(fmt.Sprintf("GPG failed with error '%s', stdout said '%s'", err, stdoutAndStderr))
+	}
+
+	output := string(stdoutAndStderr)
+	return output, nil
+}
+
+func appendGlobalArguments(arguments ...string) []string {
+	var globalArguments = []string{
+		"--keyid-format", "0xlong",
+	}
+	return append(arguments, globalArguments...)
 }
