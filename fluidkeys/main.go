@@ -31,14 +31,14 @@ func (d DicewarePassword) AsString() string {
 	return strings.Join(d.words, d.separator)
 }
 
-type job struct {
+type generatePgpKeyResult struct {
 	pgpKey *pgpkey.PgpKey
 	err    error
 }
 
 func main() {
 	email := promptForEmail()
-	channel := make(chan job)
+	channel := make(chan generatePgpKeyResult)
 	go generatePgpKey(email, channel)
 
 	password := generatePassword(DicewareNumberOfWords, DicewareSeparator)
@@ -75,10 +75,10 @@ func main() {
 	// TODO: use gpgwrapper to import the keys into GnuPG
 }
 
-func generatePgpKey(email string, channel chan job) {
+func generatePgpKey(email string, channel chan generatePgpKeyResult) {
 	key, err := pgpkey.Generate(email)
 
-	channel <- job{key, err}
+	channel <- generatePgpKeyResult{key, err}
 }
 
 func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
