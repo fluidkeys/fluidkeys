@@ -60,6 +60,19 @@ func main() {
 	if generateJob.err != nil {
 		panic(fmt.Sprint("Failed to generate key: ", generateJob.err))
 	}
+
+	publicKey, err := generateJob.pgpKey.Armor()
+	if err != nil {
+		panic(fmt.Sprint("Failed to output public key: ", err))
+	}
+
+	privateKey, err := generateJob.pgpKey.ArmorPrivate(password.AsString())
+	if err != nil {
+		panic(fmt.Sprint("Failed to output private key: ", err))
+	}
+	fmt.Println(publicKey)
+	fmt.Println(privateKey)
+	// TODO: use gpgwrapper to import the keys into GnuPG
 }
 
 func generatePgpKey(email string, channel chan job) {
