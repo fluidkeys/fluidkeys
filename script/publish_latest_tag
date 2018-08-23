@@ -1,7 +1,8 @@
 #!/bin/sh -eux
 
 WORKSPACE=${WORKSPACE:-$PWD}
-REPO_DIR=$(mktemp -d)
+export GOPATH=$(mktemp -d)
+REPO_DIR="${GOPATH}/src/github.com/fluidkeys/fluidkeys"
 DEB_PACKAGE_ARCHIVE_REPO=$(mktemp -d)
 ARTIFACTS_DIR="${WORKSPACE}/artifacts"
 mkdir -p "${ARTIFACTS_DIR}"
