@@ -74,6 +74,5 @@ homebrew_install: install
 
 .PHONY: install
 install: compile
-	@echo "Installing following files to $(PREFIX) (change with PREFIX=/some/directory)"
-	@tree build
+	@echo "Installing into $(PREFIX) (change with PREFIX=/some/directory)"
 	rsync -razv build/ ${PREFIX}
