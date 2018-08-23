@@ -51,7 +51,7 @@ copy_down_existing_deb_files() {
 
 make_install_into_deb_pkg_location() {
     cd ${REPO_DIR}
-    PREFIX=${WORKSPACE}/pkg/debian make install
+    PREFIX=${REPO_DIR}/pkg/debian make install
     cd -
 }
 
@@ -72,15 +72,16 @@ make_deb_package() {
 }
 
 make_apt_repo() {
-    reprepro -b ${REPO_DIR}/pkg/apt-repo includedeb any ${DEB_PACKAGE_ARCHIVE_REPO}/fluidkeys*.deb
+    reprepro -b ${WORKSPACE}/pkg/apt-repo includedeb any ${DEB_PACKAGE_ARCHIVE_REPO}/fluidkeys*.deb
 }
 
 
 upload_apt_repo() {
     rsync \
         -razv \
+        --delete \
         -e "ssh -i ${WORKSPACE}/.secret/download-fluidkeys-com.id_rsa" \
-        ${WORKSPACE}/pkg/apt-repo/ download-fluidkeys-com@download.fluidkeys.com:~/html
+        ${WORKSPACE}/pkg/apt-repo/ download-fluidkeys-com@download.fluidkeys.com:~/html/desktop/apt
 }
 
 publish_tag_as_homebrew_formula() {
@@ -139,7 +140,11 @@ build_deb_file_for_tag() {
 }
 
 clean_up() {
-    rm -rf "${DEB_PACKAGE_ARCHIVE_REPO}"
+    CLEAN_UP=${CLEAN_UP:-1}
+    if [ "${CLEAN_UP}" -eq "1" ]; then
+        rm -rf "${DEB_PACKAGE_ARCHIVE_REPO}"
+        rm -rf "${GOPATH}"
+    fi
 }
 
 
