@@ -79,6 +79,7 @@ make_apt_repo() {
 upload_apt_repo() {
     rsync \
         -razv \
+        --delete \
         -e "ssh -i ${WORKSPACE}/.secret/download-fluidkeys-com.id_rsa" \
         ${WORKSPACE}/pkg/apt-repo/ download-fluidkeys-com@download.fluidkeys.com:~/html/desktop/apt
 }
