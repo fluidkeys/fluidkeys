@@ -80,7 +80,7 @@ upload_apt_repo() {
     rsync \
         -razv \
         -e "ssh -i ${WORKSPACE}/.secret/download-fluidkeys-com.id_rsa" \
-        ${WORKSPACE}/pkg/apt-repo/ download-fluidkeys-com@download.fluidkeys.com:~/html
+        ${WORKSPACE}/pkg/apt-repo/ download-fluidkeys-com@download.fluidkeys.com:~/html/desktop/apt
 }
 
 publish_tag_as_homebrew_formula() {
