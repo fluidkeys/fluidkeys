@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // Writes a ZIP file containing text files with ASCII-armored backups of the
@@ -60,8 +61,9 @@ func writeDataToFileInZip(zipWriter *zip.Writer, data []byte, filename string) e
 
 func makeFileWriter(zipWriter *zip.Writer, filename string) (io.Writer, error) {
 	header := zip.FileHeader{
-		Name:   filename,
-		Method: zip.Deflate,
+		Name:     filename,
+		Method:   zip.Deflate,
+		Modified: time.Now(),
 	}
 
 	writer, err := zipWriter.CreateHeader(&header)
