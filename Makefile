@@ -16,9 +16,18 @@ MAIN_GO_FILES=fluidkeys/main.go
 compile: clean build/bin/fk
 
 
+TMPGOPATH := $(shell mktemp -d)
+
 build/bin/fk: $(MAIN_GO_FILES)
 	@mkdir -p build/bin
-	go build -o $@ $(MAIN_GO_FILES)
+	@echo "Creating temporary GOPATH $(TMPGOPATH)"
+
+	rsync -raz $(PWD)/vendor/ $(TMPGOPATH)/src
+
+	mkdir -p $(TMPGOPATH)/src/github.com/fluidkeys
+	ln -s $(PWD) $(TMPGOPATH)/src/github.com/fluidkeys/fluidkeys
+
+	GOPATH=$(TMPGOPATH) go build -o $@ $(MAIN_GO_FILES)
 
 .PHONY: test
 test:
