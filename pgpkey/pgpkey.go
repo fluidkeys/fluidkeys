@@ -3,10 +3,11 @@ package pgpkey
 import (
 	"bytes"
 	"fmt"
+	"regexp"
+
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/armor"
 	"github.com/fluidkeys/crypto/openpgp/packet"
-	"regexp"
 )
 
 const (
@@ -105,16 +106,17 @@ func (key *PgpKey) Slug() (string, error) {
 // If more than one User Id is found, an error is returned
 
 func (key *PgpKey) Email() (string, error) {
-	var uids []string
+	var emails []string
 
-	for uid := range key.Identities {
-		uids = append(uids, uid)
+	for _, uid := range key.Identities {
+		email := uid.UserId.Email
+		emails = append(emails, email)
 	}
-	if len(uids) != 1 {
-		return "", fmt.Errorf("expected identities map to have 1 element, has %d", len(uids))
+	if len(emails) != 1 {
+		return "", fmt.Errorf("expected identities map to have 1 element, has %d", len(emails))
 	}
 
-	return uids[0], nil
+	return emails[0], nil
 }
 
 func (key *PgpKey) FingerprintString() string {
