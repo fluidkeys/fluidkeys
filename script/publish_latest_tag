@@ -51,7 +51,7 @@ copy_down_existing_deb_files() {
 
 make_install_into_deb_pkg_location() {
     cd ${REPO_DIR}
-    PREFIX=${WORKSPACE}/pkg/debian make install
+    PREFIX=${REPO_DIR}/pkg/debian make install
     cd -
 }
 
