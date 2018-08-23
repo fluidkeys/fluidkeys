@@ -72,7 +72,7 @@ make_deb_package() {
 }
 
 make_apt_repo() {
-    reprepro -b ${REPO_DIR}/pkg/apt-repo includedeb any ${DEB_PACKAGE_ARCHIVE_REPO}/fluidkeys*.deb
+    reprepro -b ${WORKSPACE}/pkg/apt-repo includedeb any ${DEB_PACKAGE_ARCHIVE_REPO}/fluidkeys*.deb
 }
 
 
