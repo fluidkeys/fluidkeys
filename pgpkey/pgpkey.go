@@ -123,10 +123,6 @@ func (key *PgpKey) FingerprintString() string {
 	return fmt.Sprintf("%X", key.PrimaryKey.Fingerprint)
 }
 
-func (key *PgpKey) FingerprintString() string {
-	return fmt.Sprintf("%X", key.PrimaryKey.Fingerprint)
-}
-
 func slugify(textToSlugify string) (slugified string) {
 	var re = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 	slugified = re.ReplaceAllString(textToSlugify, `-`)
