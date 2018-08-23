@@ -1,14 +1,33 @@
 #!/bin/sh -eu
 
-run_make_compile() {
-    make compile || exit 1
+THIS_FILE=$0
+THIS_DIR=$(dirname $0)
+
+PREFIX_DIR=$(mktemp -d)
+
+copy_repo_to_random_directory() {
+    TEMP_REPO_DIR=$(mktemp -d)
+
+    cp -R "${THIS_DIR}/../"  "${TEMP_REPO_DIR}"
+}
+
+run_make_compile_without_goroot_or_gopath() {
+    cd "${TEMP_REPO_DIR}"
+    GOROOT="" GOPATH="" PREFIX=${PREFIX_DIR} make compile || exit 1
+    cd -
+}
+
+ensure_fk_binary_exists_in_build() {
+  if [ ! -f "${THIS_DIR}/../build/bin/fk" ] ; then
+      echo "Binary doesn't seem to have been installed in build/bin/fk"
+  fi
 }
 
 print_success() {
     echo 'OK: `make compile` ran successfully'
 }
 
-
-
-run_make_compile
+copy_repo_to_random_directory
+run_make_compile_without_goroot_or_gopath
+ensure_fk_binary_exists_in_build
 print_success

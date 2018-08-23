@@ -7,7 +7,6 @@ go:
 before_install:
   - sudo apt install tree
   - go get -u github.com/golang/dep/cmd/dep
-  - make install_dependencies
 
 script: make test
 

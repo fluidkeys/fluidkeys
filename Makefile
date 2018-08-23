@@ -13,15 +13,21 @@ MAIN_GO_FILES=fluidkeys/main.go
 # ultimately be installed to PREFIX (/usr/local), for example
 # ./build/bin/fk, ./build/share etc
 .PHONY: compile
-compile: clean install_dependencies build/bin/fk
+compile: clean build/bin/fk
 
-.PHONY: install_dependencies
-install_dependencies:
-	dep ensure
+
+TMPGOPATH := $(shell mktemp -d)
 
 build/bin/fk: $(MAIN_GO_FILES)
 	@mkdir -p build/bin
-	go build -o $@ $(MAIN_GO_FILES)
+	@echo "Creating temporary GOPATH $(TMPGOPATH)"
+
+	rsync -raz $(PWD)/vendor/ $(TMPGOPATH)/src
+
+	mkdir -p $(TMPGOPATH)/src/github.com/fluidkeys
+	ln -s $(PWD) $(TMPGOPATH)/src/github.com/fluidkeys/fluidkeys
+
+	GOPATH=$(TMPGOPATH) go build -o $@ $(MAIN_GO_FILES)
 
 .PHONY: test
 test:
