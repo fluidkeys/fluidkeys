@@ -9,7 +9,7 @@ import (
 
 func TestMakeBackupFile(t *testing.T) {
 	zipData := bytes.NewBuffer(nil)
-	WriteZipData(zipData, examplePublicKey, examplePrivateKey)
+	WriteZipData(zipData, exampleSlug, examplePublicKey, examplePrivateKey)
 	readerAt := bytes.NewReader(zipData.Bytes())
 	zipReader, err := zip.NewReader(readerAt, int64(len(zipData.Bytes())))
 
@@ -25,7 +25,10 @@ func TestMakeBackupFile(t *testing.T) {
 			gotFilenames = append(gotFilenames, f.Name)
 		}
 
-		wantFilenames := []string{"public.txt", "private.encrypted.txt"}
+		wantFilenames := []string{
+			"2018-01-15-test-example-com-FAKEFINGERPRINT.public.txt",
+			"2018-01-15-test-example-com-FAKEFINGERPRINT.private.encrypted.txt",
+		}
 
 		assertStringSlicesEqual(t, wantFilenames, gotFilenames)
 	})
@@ -43,13 +46,13 @@ func TestMakeBackupFile(t *testing.T) {
 			io.Copy(fileBuf, rc)
 			fileContents[f.Name] = fileBuf.Bytes()
 		}
-		assertEqual(t, string(fileContents["public.txt"]), examplePublicKey)
-		assertEqual(t, string(fileContents["private.encrypted.txt"]), examplePrivateKey)
+		assertEqual(t, string(fileContents["2018-01-15-test-example-com-FAKEFINGERPRINT.public.txt"]), examplePublicKey)
+		assertEqual(t, string(fileContents["2018-01-15-test-example-com-FAKEFINGERPRINT.private.encrypted.txt"]), examplePrivateKey)
 	})
 
 	t.Run("getZipFilename returns correct location", func(t *testing.T) {
-		assertEqual(t, "/tmp/fluidkeys/backup.zip", getZipFilename("/tmp/fluidkeys"))
-		assertEqual(t, "/tmp/.foo/backup.zip", getZipFilename("/tmp/.foo"))
+		assertEqual(t, "/tmp/fluidkeys/backups/2018-01-15-test-example-com-FAKEFINGERPRINT.zip", getZipFilename("/tmp/fluidkeys", exampleSlug))
+		assertEqual(t, "/tmp/.foo/backups/2018-01-15-test-example-com-FAKEFINGERPRINT.zip", getZipFilename("/tmp/.foo", exampleSlug))
 	})
 
 }
@@ -75,5 +78,6 @@ func assertEqual(t *testing.T, want string, got string) {
 	}
 }
 
+const exampleSlug string = "2018-01-15-test-example-com-FAKEFINGERPRINT"
 const examplePublicKey string = "PUBLIC"
 const examplePrivateKey string = "PRIVATE"

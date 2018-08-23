@@ -6,14 +6,15 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // Writes a ZIP file containing text files with ASCII-armored backups of the
 // given public and private key.
 //
 // Returns: the full filename of the ZIP file that was written
-func OutputZipBackupFile(fluidkeysDir, armoredPublicKey string, armoredPrivateKey string) (filename string, err error) {
-	filename = getZipFilename(fluidkeysDir)
+func OutputZipBackupFile(fluidkeysDir, uniqueSlug string, armoredPublicKey string, armoredPrivateKey string) (filename string, err error) {
+	filename = getZipFilename(fluidkeysDir, uniqueSlug)
 
 	backupZipFile, err := os.Create(filename)
 	if err != nil {
@@ -21,7 +22,7 @@ func OutputZipBackupFile(fluidkeysDir, armoredPublicKey string, armoredPrivateKe
 	}
 	defer backupZipFile.Close()
 
-	err = WriteZipData(backupZipFile, armoredPublicKey, armoredPrivateKey)
+	err = WriteZipData(backupZipFile, uniqueSlug, armoredPublicKey, armoredPrivateKey)
 	if err != nil {
 		return "", fmt.Errorf("WriteZipData failed: %v", err)
 	}
@@ -29,16 +30,16 @@ func OutputZipBackupFile(fluidkeysDir, armoredPublicKey string, armoredPrivateKe
 }
 
 // Write ZIP data to the given `w` io.Writer
-func WriteZipData(w io.Writer, armoredPublicKey string, armoredPrivateKey string) (err error) {
+func WriteZipData(w io.Writer, uniqueSlug string, armoredPublicKey string, armoredPrivateKey string) (err error) {
 	zipWriter := zip.NewWriter(w)
 	defer zipWriter.Close()
 
-	err = writeDataToFileInZip(zipWriter, []byte(armoredPublicKey), "public.txt")
+	err = writeDataToFileInZip(zipWriter, []byte(armoredPublicKey), uniqueSlug+".public.txt")
 	if err != nil {
 		return err
 	}
 
-	err = writeDataToFileInZip(zipWriter, []byte(armoredPrivateKey), "private.encrypted.txt")
+	err = writeDataToFileInZip(zipWriter, []byte(armoredPrivateKey), uniqueSlug+".private.encrypted.txt")
 	if err != nil {
 		return
 	}
@@ -60,8 +61,9 @@ func writeDataToFileInZip(zipWriter *zip.Writer, data []byte, filename string) e
 
 func makeFileWriter(zipWriter *zip.Writer, filename string) (io.Writer, error) {
 	header := zip.FileHeader{
-		Name:   filename,
-		Method: zip.Deflate,
+		Name:     filename,
+		Method:   zip.Deflate,
+		Modified: time.Now(),
 	}
 
 	writer, err := zipWriter.CreateHeader(&header)
@@ -71,6 +73,8 @@ func makeFileWriter(zipWriter *zip.Writer, filename string) (io.Writer, error) {
 	return writer, nil
 }
 
-func getZipFilename(fluidkeysDir string) string {
-	return filepath.Join(fluidkeysDir, "backup.zip")
+func getZipFilename(fluidkeysDir string, slug string) string {
+	backupDirectory := filepath.Join(fluidkeysDir, "backups")
+	os.MkdirAll(backupDirectory, 0700)
+	return filepath.Join(backupDirectory, slug+".zip")
 }
