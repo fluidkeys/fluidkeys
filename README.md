@@ -35,6 +35,8 @@ brew install fluidkeys
 
 ## Develop
 
+If you want to hack on Fluidkeys locally you'll need [Go 1.10](https://golang.org/dl/) and [dep](https://github.com/golang/dep#installation).
+
 Get dependencies:
 
 ```
