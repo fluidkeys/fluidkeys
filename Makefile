@@ -13,11 +13,8 @@ MAIN_GO_FILES=fluidkeys/main.go
 # ultimately be installed to PREFIX (/usr/local), for example
 # ./build/bin/fk, ./build/share etc
 .PHONY: compile
-compile: clean install_dependencies build/bin/fk
+compile: clean build/bin/fk
 
-.PHONY: install_dependencies
-install_dependencies:
-	dep ensure
 
 build/bin/fk: $(MAIN_GO_FILES)
 	@mkdir -p build/bin
