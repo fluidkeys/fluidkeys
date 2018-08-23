@@ -42,6 +42,20 @@ func TestSlugMethod(t *testing.T) {
 	})
 }
 
+func TestFingerprintMethod(t *testing.T) {
+
+	entity, err := readEntityFromString(examplePublicKey)
+	if err != nil {
+		t.Errorf("failed to load example PGP key: %v", err)
+	}
+	pgpKey := PgpKey{*entity}
+
+	t.Run("test PgpKey.FingerprintString() returns the right string", func(*testing.T) {
+		slug := pgpKey.FingerprintString()
+		assertEqual(t, "8FBC076876F2B042AE2BA37B0BBD7E7E5B85C8D3", slug)
+	})
+}
+
 func TestSlugify(t *testing.T) {
 	var tests = []struct {
 		email    string
