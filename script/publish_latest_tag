@@ -139,7 +139,11 @@ build_deb_file_for_tag() {
 }
 
 clean_up() {
-    rm -rf "${DEB_PACKAGE_ARCHIVE_REPO}"
+    CLEAN_UP=${CLEAN_UP:-1}
+    if [ "${CLEAN_UP}" -eq "1" ]; then
+        rm -rf "${DEB_PACKAGE_ARCHIVE_REPO}"
+        rm -rf "${GOPATH}"
+    fi
 }
 
 
