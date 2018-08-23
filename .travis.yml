@@ -10,3 +10,6 @@ before_install:
   - make install_dependencies
 
 script: make test
+
+notifications:
+    email: false
