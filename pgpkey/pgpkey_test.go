@@ -1,6 +1,7 @@
 package pgpkey
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -8,12 +9,13 @@ import (
 	"time"
 
 	"github.com/fluidkeys/crypto/openpgp"
+	"github.com/fluidkeys/crypto/openpgp/packet"
 )
 
 func TestTheTestHelperFunctions(t *testing.T) {
 	pgpKey := loadExamplePgpKey(t)
 
-	t.Run("example PGP key has expected UID", func(*testing.T) {
+	t.Run("example PGP key expected UID", func(*testing.T) {
 		expectedUid := exampleUid
 
 		_, ok := pgpKey.Identities[expectedUid]
@@ -53,9 +55,104 @@ func TestEmailMethod(t *testing.T) {
 func TestFingerprintMethod(t *testing.T) {
 	pgpKey := loadExamplePgpKey(t)
 
-	t.Run("test PgpKey.FingerprintString() returns the right string", func(*testing.T) {
+	t.Run("test PgpKey.FingerprintString() returns the right string", func(t *testing.T) {
 		slug := pgpKey.FingerprintString()
 		assertEqual(t, "0C10C4A26E9B1B46E713C8D2BEBF0628DAFF9F4B", slug)
+	})
+}
+
+func TestRevocationCertificate(t *testing.T) {
+	pgpKey, err := generateInsecure("revoke.test@example.com")
+	if err != nil {
+		t.Fatalf("failed to generate PGP key in tests")
+	}
+
+	revocation, err := pgpKey.GetRevocationSignature(0, "no reason")
+	if err != nil {
+		t.Fatalf("Failed to call PgpKey.SerializeRevocation(): %v", err)
+	}
+
+	t.Run("revocation signature is of type 'key revocation'", func(t *testing.T) {
+		gotSignatureType := revocation.SigType
+		var expectedSignatureType packet.SignatureType = packet.SigTypeKeyRevocation
+
+		if expectedSignatureType != gotSignatureType {
+			t.Fatalf("expected signature type %v, got %v", expectedSignatureType, gotSignatureType)
+		}
+	})
+
+	t.Run("revocation signature validates with PublicKey.VerifyRevocationSignature(..)", func(t *testing.T) {
+		err = pgpKey.PrimaryKey.VerifyRevocationSignature(revocation)
+		if err != nil {
+			t.Fatalf("verify failed: %v", err)
+		}
+
+	})
+}
+
+func TestRevocationReasonSerializeParse(t *testing.T) {
+	// Get the revocation signature, serialize it, then read it back to
+	// test that the reason & reason text are set correctly.
+	// Note: if this testing was in crypto/openpgp itself it could just
+	// test the unexported outSubpackets field.
+
+	pgpKey, err := generateInsecure("revoke.test@example.com")
+	if err != nil {
+		t.Fatalf("failed to generate PGP key in tests")
+	}
+
+	var tests = []struct {
+		reason     uint8
+		reasonText string
+	}{
+		{0, "test text for reason 0"},
+		{1, "test text for reason 1"},
+		{2, "test text for reason 2"},
+		{3, "test text for reason 3"},
+		{32, "test text for reason 32"},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("revocation reason #%d (%s) is serialized and deserialized correctly", test.reason, test.reasonText), func(t *testing.T) {
+			revocation, err := pgpKey.GetRevocationSignature(test.reason, test.reasonText)
+			if err != nil {
+				t.Fatalf("Failed to call PgpKey.SerializeRevocation(): %v", err)
+			}
+
+			// We have to output then read back the signature to do this...
+			buf := bytes.NewBuffer(nil)
+			revocation.Serialize(buf)
+
+			pkt, err := packet.Read(buf)
+			if err != nil {
+				t.Fatalf("packet.Read(revocation) failed: %v", err)
+			}
+
+			if parsedSig, ok := pkt.(*packet.Signature); ok {
+				if parsedSig.RevocationReason == nil {
+					t.Fatalf("expected reason %d, got nil", test.reason)
+				}
+
+				if *parsedSig.RevocationReason != test.reason {
+					t.Fatalf("expected %d, got %d", test.reason, *parsedSig.RevocationReason)
+				}
+
+				if parsedSig.RevocationReasonText != test.reasonText {
+					t.Fatalf("expected '%s', got '%s'", test.reasonText, parsedSig.RevocationReasonText)
+				}
+			} else {
+				t.Fatalf("failed to cast back to Signature")
+			}
+
+		})
+	}
+
+	t.Run("PgpKey.ArmorRevocationCertificate returns an ascii armored public key containing a revocation signature", func(t *testing.T) {
+		_, err := pgpKey.ArmorRevocationCertificate()
+		if err != nil {
+			t.Fatalf("error calling ArmorRevocationCertificate(): %v", err)
+		}
+
 	})
 }
 
