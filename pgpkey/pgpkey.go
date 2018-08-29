@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/armor"
@@ -18,6 +19,13 @@ const (
 	RsaSizeInsecureKeyBits = 1024
 )
 
+// Config for generating keys.
+type Config struct {
+	packet.Config
+	// Expiry is the duration that the generated key will be valid for.
+	Expiry time.Duration
+}
+
 type PgpKey struct {
 	openpgp.Entity
 }
@@ -31,13 +39,33 @@ func generateInsecure(email string) (*PgpKey, error) {
 }
 
 func generateKeyOfSize(email string, rsaBits int) (*PgpKey, error) {
-	config := &packet.Config{RSABits: rsaBits}
+	config := Config{}
+	config.Config.RSABits = rsaBits
+	config.Expiry = time.Hour * 24 * 60 // 60 days
 
 	name, comment := "", ""
-	entity, err := openpgp.NewEntity(name, comment, email, config)
+	entity, err := openpgp.NewEntity(name, comment, email, &config.Config)
 
 	if err != nil {
 		return nil, err
+	}
+
+	duration := uint32(config.Expiry.Seconds())
+
+	for _, id := range entity.Identities {
+		id.SelfSignature.KeyLifetimeSecs = &duration
+		err := id.SelfSignature.SignUserId(id.UserId.Id, entity.PrimaryKey, entity.PrivateKey, &config.Config)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for _, subkey := range entity.Subkeys {
+		subkey.Sig.KeyLifetimeSecs = &duration
+		err := subkey.Sig.SignKey(subkey.PublicKey, entity.PrivateKey, &config.Config)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	pgpKey := PgpKey{*entity}
