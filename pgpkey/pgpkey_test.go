@@ -11,29 +11,21 @@ import (
 )
 
 func TestTheTestHelperFunctions(t *testing.T) {
-	t.Run("load from ascii armored public key", func(*testing.T) {
-		entity, err := readEntityFromString(examplePublicKey)
-		if err != nil {
-			t.Errorf("failed to load example PGP key: %v", err)
-		}
+	pgpKey := loadExamplePgpKey(t)
 
+	t.Run("example PGP key has expected UID", func(*testing.T) {
 		expectedUid := exampleUid
 
-		_, ok := entity.Identities[expectedUid]
+		_, ok := pgpKey.Identities[expectedUid]
 
 		if ok != true {
-			t.Errorf("loaded exmaple PGP key, didn't have UID %s", expectedUid)
+			t.Errorf("loaded example PGP key, didn't have UID %s", expectedUid)
 		}
 	})
 }
 
 func TestSlugMethod(t *testing.T) {
-
-	entity, err := readEntityFromString(examplePublicKey)
-	if err != nil {
-		t.Errorf("failed to load example PGP key: %v", err)
-	}
-	pgpKey := PgpKey{*entity}
+	pgpKey := loadExamplePgpKey(t)
 
 	t.Run("test slug method", func(*testing.T) {
 		slug, err := pgpKey.Slug()
@@ -46,11 +38,7 @@ func TestSlugMethod(t *testing.T) {
 
 func TestEmailMethod(t *testing.T) {
 	t.Run("returns only an email, stripping the '<' and '>'", func(*testing.T) {
-		entity, err := readEntityFromString(examplePublicKey)
-		if err != nil {
-			t.Errorf("failed to load example PGP key: %v", err)
-		}
-		pgpKey := PgpKey{*entity}
+		pgpKey := loadExamplePgpKey(t)
 
 		want := "test@example.com"
 		got, err := pgpKey.Email()
@@ -63,12 +51,7 @@ func TestEmailMethod(t *testing.T) {
 }
 
 func TestFingerprintMethod(t *testing.T) {
-
-	entity, err := readEntityFromString(examplePublicKey)
-	if err != nil {
-		t.Errorf("failed to load example PGP key: %v", err)
-	}
-	pgpKey := PgpKey{*entity}
+	pgpKey := loadExamplePgpKey(t)
 
 	t.Run("test PgpKey.FingerprintString() returns the right string", func(*testing.T) {
 		slug := pgpKey.FingerprintString()
@@ -96,6 +79,17 @@ func TestSlugify(t *testing.T) {
 		})
 
 	}
+}
+
+func loadExamplePgpKey(t *testing.T) PgpKey {
+	t.Helper()
+
+	entity, err := readEntityFromString(examplePublicKey)
+	if err != nil {
+		t.Fatalf("failed to load example PGP key: %v", err)
+	}
+	pgpKey := PgpKey{*entity}
+	return pgpKey
 }
 
 func assertEqual(t *testing.T, want string, got string) {
