@@ -50,10 +50,10 @@ func generateKeyOfSize(email string, rsaBits int) (*PgpKey, error) {
 		return nil, err
 	}
 
-	duration := uint32(config.Expiry.Seconds())
+	keyLifetimeSeconds := uint32(config.Expiry.Seconds())
 
 	for _, id := range entity.Identities {
-		id.SelfSignature.KeyLifetimeSecs = &duration
+		id.SelfSignature.KeyLifetimeSecs = &keyLifetimeSeconds
 		err := id.SelfSignature.SignUserId(id.UserId.Id, entity.PrimaryKey, entity.PrivateKey, &config.Config)
 		if err != nil {
 			return nil, err
@@ -61,7 +61,7 @@ func generateKeyOfSize(email string, rsaBits int) (*PgpKey, error) {
 	}
 
 	for _, subkey := range entity.Subkeys {
-		subkey.Sig.KeyLifetimeSecs = &duration
+		subkey.Sig.KeyLifetimeSecs = &keyLifetimeSeconds
 		err := subkey.Sig.SignKey(subkey.PublicKey, entity.PrivateKey, &config.Config)
 		if err != nil {
 			return nil, err
