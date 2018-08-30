@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/fluidkeys/crypto/openpgp"
 )
@@ -153,6 +154,23 @@ func TestGenerate(t *testing.T) {
 
 		if expected != actual {
 			t.Errorf("expected UID '%s', got '%s'", expected, actual)
+		}
+	})
+
+	t.Run("generate makes a key that by default expires in 60 days", func(*testing.T) {
+		identityName := getSingleUid(generatedKey.Identities)
+		sixtyDaysInSeconds := uint32((time.Hour * 24 * 60).Seconds())
+		actualLifetimeOfKey := generatedKey.Identities[identityName].SelfSignature.KeyLifetimeSecs
+
+		if *actualLifetimeOfKey != sixtyDaysInSeconds {
+			t.Fatalf("expected KeyLifetimeSecs to be '%v', got '%v'", sixtyDaysInSeconds, *actualLifetimeOfKey)
+		}
+
+		for _, subkey := range generatedKey.Subkeys {
+			actualLifetimeOfSubkey := subkey.Sig.SigLifetimeSecs
+			if *actualLifetimeOfKey != sixtyDaysInSeconds {
+				t.Fatalf("expected KeyLifetimeSecs of Subkey to be '%v', got '%v'", sixtyDaysInSeconds, *actualLifetimeOfSubkey)
+			}
 		}
 	})
 }
