@@ -26,7 +26,7 @@
   name = "github.com/sethvargo/go-diceware"
 
 [[constraint]]
-  branch = "encrypt-private-key"
+  version = "2018-08-22"
   name = "github.com/fluidkeys/crypto"
 
 [[constraint]]

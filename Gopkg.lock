@@ -2,7 +2,6 @@
 
 
 [[projects]]
-  branch = "encrypt-private-key"
   digest = "1:63134f6042f32182e3f49eeefe90d14a55ec93d1e51744645e36e502cd1abc1b"
   name = "github.com/fluidkeys/crypto"
   packages = [
@@ -16,6 +15,7 @@
   ]
   pruneopts = ""
   revision = "899979fc5077af94efd47af6d07e2f713918ec0c"
+  version = "2018-08-22"
 
 [[projects]]
   branch = "master"
