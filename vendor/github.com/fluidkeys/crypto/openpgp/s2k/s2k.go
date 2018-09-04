@@ -15,21 +15,23 @@ import (
 	"github.com/fluidkeys/crypto/openpgp/errors"
 )
 
+type stringToKeySpecifier = uint8
+
 const (
-	S2KCountUnsafeMin = 1024
-	S2KCountMin       = 65536
-	S2KCountMax       = 65011712
+	S2KCountMin     = 1024
+	S2KCountDefault = 65536
+	S2KCountMax     = 65011712
 )
 
 const (
 	// https://tools.ietf.org/html/rfc4880#section-3.7.1.1
-	SimpleS2K = 0x00
+	SimpleS2K stringToKeySpecifier = 0
 
 	// https://tools.ietf.org/html/rfc4880#section-3.7.1.2
-	SaltedS2K = 0x01
+	SaltedS2K stringToKeySpecifier = 1
 
 	// https://tools.ietf.org/html/rfc4880#section-3.7.1.3
-	IteratedAndSaltedS2K = 0x03
+	IteratedAndSaltedS2K stringToKeySpecifier = 3
 )
 
 // Config collects configuration parameters for s2k key-stretching
@@ -63,17 +65,20 @@ func (c *Config) hash() crypto.Hash {
 }
 
 func (c *Config) encodedCount() uint8 {
+	var i int
+
 	if c == nil || c.S2KCount == 0 {
-		return 96 // The common case. Correspoding to 65536
+		i = S2KCountDefault
+	} else {
+		i = c.S2KCount
 	}
 
-	i := c.S2KCount
 	switch {
 	// Behave like GPG. Should we make 65536 the lowest value used?
-	case i < 1024:
-		i = 1024
-	case i > 65011712:
-		i = 65011712
+	case i < S2KCountMin:
+		i = S2KCountMin
+	case i > S2KCountMax:
+		i = S2KCountMax
 	}
 
 	return encodeCount(i)
@@ -85,7 +90,7 @@ func (c *Config) encodedCount() uint8 {
 // if i is not in the above range (encodedCount above takes care to
 // pass i in the correct range). See RFC 4880 Section 3.7.7.1.
 func encodeCount(i int) uint8 {
-	if i < 1024 || i > 65011712 {
+	if i < S2KCountMin || i > S2KCountMax {
 		panic("count arg i outside the required range")
 	}
 

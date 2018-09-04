@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fluidkeys/crypto/openpgp/armor"
 	"github.com/fluidkeys/crypto/openpgp/packet"
 )
 
@@ -125,41 +124,6 @@ func TestNewEntity(t *testing.T) {
 	if !bytes.Equal(w.Bytes(), serialized) {
 		t.Errorf("results differed")
 	}
-}
-
-func TestNewEntitySerializeEncrypted(t *testing.T) {
-	if testing.Short() {
-		return
-	}
-
-	e, err := NewEntity("Test User", "test", "test@example.com", &packet.Config{RSABits: 1024})
-	if err != nil {
-		t.Errorf("failed to create entity: %s", err)
-		return
-	}
-
-	w := bytes.NewBuffer(nil)
-	if err := e.SerializePrivate(w, &packet.Config{SerializePrivatePassword: "foo"}); err != nil {
-		t.Errorf("failed to serialize entity: %s", err)
-		return
-	}
-	serialized := w.Bytes()
-	t.Log(Armor(serialized))
-}
-
-func Armor(keyBytes []byte) (string, error) {
-	outputBuffer := bytes.NewBuffer(nil)
-
-	armor, err := armor.Encode(outputBuffer, "PGP PRIVATE KEY BLOCK", nil)
-	if err != nil {
-		return "", err
-	}
-	defer armor.Close()
-
-	armor.Write(keyBytes)
-	armor.Close()
-
-	return outputBuffer.String(), nil
 }
 
 func TestSymmetricEncryption(t *testing.T) {

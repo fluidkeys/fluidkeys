@@ -1,0 +1,10 @@
+language: go
+
+go:
+  - "1.10.x"
+  - master
+
+script: cd openpgp ; go test -v ./...
+
+notifications:
+    email: false
