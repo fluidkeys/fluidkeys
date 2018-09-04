@@ -9,7 +9,7 @@ import (
 
 func TestMakeBackupFile(t *testing.T) {
 	zipData := bytes.NewBuffer(nil)
-	WriteZipData(zipData, exampleSlug, examplePublicKey, examplePrivateKey)
+	WriteZipData(zipData, exampleSlug, examplePublicKey, examplePrivateKey, exampleRevocationCert)
 	readerAt := bytes.NewReader(zipData.Bytes())
 	zipReader, err := zip.NewReader(readerAt, int64(len(zipData.Bytes())))
 
@@ -28,6 +28,7 @@ func TestMakeBackupFile(t *testing.T) {
 		wantFilenames := []string{
 			"2018-01-15-test-example-com-FAKEFINGERPRINT.public.txt",
 			"2018-01-15-test-example-com-FAKEFINGERPRINT.private.encrypted.txt",
+			"2018-01-15-test-example-com-FAKEFINGERPRINT.revoke.txt",
 		}
 
 		assertStringSlicesEqual(t, wantFilenames, gotFilenames)
@@ -48,6 +49,7 @@ func TestMakeBackupFile(t *testing.T) {
 		}
 		assertEqual(t, string(fileContents["2018-01-15-test-example-com-FAKEFINGERPRINT.public.txt"]), examplePublicKey)
 		assertEqual(t, string(fileContents["2018-01-15-test-example-com-FAKEFINGERPRINT.private.encrypted.txt"]), examplePrivateKey)
+		assertEqual(t, string(fileContents["2018-01-15-test-example-com-FAKEFINGERPRINT.revoke.txt"]), exampleRevocationCert)
 	})
 
 	t.Run("getZipFilename returns correct location", func(t *testing.T) {
@@ -81,3 +83,4 @@ func assertEqual(t *testing.T, want string, got string) {
 const exampleSlug string = "2018-01-15-test-example-com-FAKEFINGERPRINT"
 const examplePublicKey string = "PUBLIC"
 const examplePrivateKey string = "PRIVATE"
+const exampleRevocationCert string = "REVOKE"

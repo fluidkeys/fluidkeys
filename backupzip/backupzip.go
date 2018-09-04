@@ -13,7 +13,7 @@ import (
 // given public and private key.
 //
 // Returns: the full filename of the ZIP file that was written
-func OutputZipBackupFile(fluidkeysDir, uniqueSlug string, armoredPublicKey string, armoredPrivateKey string) (filename string, err error) {
+func OutputZipBackupFile(fluidkeysDir, uniqueSlug string, armoredPublicKey string, armoredPrivateKey string, armoredRevocationCert string) (filename string, err error) {
 	filename = getZipFilename(fluidkeysDir, uniqueSlug)
 
 	backupZipFile, err := os.Create(filename)
@@ -22,7 +22,7 @@ func OutputZipBackupFile(fluidkeysDir, uniqueSlug string, armoredPublicKey strin
 	}
 	defer backupZipFile.Close()
 
-	err = WriteZipData(backupZipFile, uniqueSlug, armoredPublicKey, armoredPrivateKey)
+	err = WriteZipData(backupZipFile, uniqueSlug, armoredPublicKey, armoredPrivateKey, armoredRevocationCert)
 	if err != nil {
 		return "", fmt.Errorf("WriteZipData failed: %v", err)
 	}
@@ -30,7 +30,7 @@ func OutputZipBackupFile(fluidkeysDir, uniqueSlug string, armoredPublicKey strin
 }
 
 // Write ZIP data to the given `w` io.Writer
-func WriteZipData(w io.Writer, uniqueSlug string, armoredPublicKey string, armoredPrivateKey string) (err error) {
+func WriteZipData(w io.Writer, uniqueSlug string, armoredPublicKey string, armoredPrivateKey string, armoredRevocationCert string) (err error) {
 	zipWriter := zip.NewWriter(w)
 	defer zipWriter.Close()
 
@@ -40,6 +40,11 @@ func WriteZipData(w io.Writer, uniqueSlug string, armoredPublicKey string, armor
 	}
 
 	err = writeDataToFileInZip(zipWriter, []byte(armoredPrivateKey), uniqueSlug+".private.encrypted.txt")
+	if err != nil {
+		return
+	}
+
+	err = writeDataToFileInZip(zipWriter, []byte(armoredRevocationCert), uniqueSlug+".revoke.txt")
 	if err != nil {
 		return
 	}
