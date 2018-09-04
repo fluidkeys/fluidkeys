@@ -2,46 +2,25 @@
 
 
 [[projects]]
-  digest = "1:63134f6042f32182e3f49eeefe90d14a55ec93d1e51744645e36e502cd1abc1b"
   name = "github.com/fluidkeys/crypto"
-  packages = [
-    "cast5",
-    "openpgp",
-    "openpgp/armor",
-    "openpgp/elgamal",
-    "openpgp/errors",
-    "openpgp/packet",
-    "openpgp/s2k",
-  ]
-  pruneopts = ""
-  revision = "899979fc5077af94efd47af6d07e2f713918ec0c"
-  version = "2018-08-22"
+  packages = ["cast5","openpgp","openpgp/armor","openpgp/elgamal","openpgp/errors","openpgp/packet","openpgp/s2k"]
+  revision = "2018-08-22"
 
 [[projects]]
   branch = "master"
-  digest = "1:83854f6b1d2ce047b69657e3a87ba7602f4c5505e8bdfd02ab857db8e983bde1"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
-  pruneopts = ""
   revision = "58046073cbffe2f25d425fe1331102f55cf719de"
 
 [[projects]]
   branch = "master"
-  digest = "1:cbf98c3b2c6382b31a34b356e02ade0c8a42d7cd93109c65d2d192152a71d59c"
   name = "github.com/sethvargo/go-diceware"
   packages = ["diceware"]
-  pruneopts = ""
   revision = "2cc4e45af027798e625c3256fc10925eb3f1e5c0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = [
-    "github.com/fluidkeys/crypto/openpgp",
-    "github.com/fluidkeys/crypto/openpgp/armor",
-    "github.com/fluidkeys/crypto/openpgp/packet",
-    "github.com/mitchellh/go-homedir",
-    "github.com/sethvargo/go-diceware/diceware",
-  ]
+  inputs-digest = "ee161f06513860ee82502400d94c9a2b98fb1243660ff6fd3c665f754e3de654"
   solver-name = "gps-cdcl"
   solver-version = 1
