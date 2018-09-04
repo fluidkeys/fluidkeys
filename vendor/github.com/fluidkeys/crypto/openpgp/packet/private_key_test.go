@@ -14,8 +14,6 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"errors"
-	"fmt"
-	"github.com/fluidkeys/crypto/openpgp/armor"
 	"hash"
 	"io"
 	"testing"
@@ -85,10 +83,9 @@ func TestPrivateKeySerialize(t *testing.T) {
 	}
 
 	t.Run("serialize", func(t *testing.T) {
-		var b bytes.Buffer
-		// w := bufio.NewWriter(&b)
+		b := bytes.NewBuffer(nil)
 
-		if err := priv.Serialize(&b, &Config{}); err != nil {
+		if err := priv.Serialize(b, &Config{}); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -102,19 +99,15 @@ func TestPrivateKeySerializeEncrypted(t *testing.T) {
 	}
 
 	t.Run("serialize with an encryption password", func(t *testing.T) {
-		var serialized bytes.Buffer
-		// w := bufio.NewWriter(&b)
+		serialized := bytes.NewBuffer(nil)
 		config := Config{SerializePrivatePassword: "foo"}
 
-		if err := priv.Serialize(&serialized, &config); err != nil {
+		if err := priv.Serialize(serialized, &config); err != nil {
 			t.Fatal(err)
 		}
 
-		// ascii-armor and print b
-		fmt.Println(Armor(serialized.Bytes()))
-
 		// now try to decrypt again
-		p, err := Read(&serialized)
+		p, err := Read(serialized)
 
 		if err != nil {
 			t.Fatal(err)
@@ -138,21 +131,6 @@ func TestPrivateKeySerializeEncrypted(t *testing.T) {
 			t.Fatalf("failed to Decrypt re-loaded key: %v", err)
 		}
 	})
-}
-
-func Armor(keyBytes []byte) (string, error) {
-	outputBuffer := bytes.NewBuffer(nil)
-
-	armor, err := armor.Encode(outputBuffer, "PGP PRIVATE KEY BLOCK", nil)
-	if err != nil {
-		return "", err
-	}
-	defer armor.Close()
-
-	armor.Write(keyBytes)
-	armor.Close()
-
-	return outputBuffer.String(), nil
 }
 
 func loadTestRSAPrivateKey() (priv *PrivateKey, err error) {

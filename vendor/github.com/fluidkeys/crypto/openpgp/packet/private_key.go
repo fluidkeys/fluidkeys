@@ -433,7 +433,7 @@ func getPublicKeyBytes(pk *PrivateKey) (b []byte, err error) {
 // TODO: remove this, since it's only used for the unencrypted case
 func getPrivateKeyHeaderBytes(pk *PrivateKey) (b []byte, err error) {
 	buf := bytes.NewBuffer(nil)
-	buf.WriteByte(S2KUsageConventionUnencrypted)
+	buf.WriteByte(0 /* no encryption */)
 	return buf.Bytes(), nil
 }
 

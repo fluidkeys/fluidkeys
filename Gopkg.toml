@@ -26,7 +26,7 @@
   name = "github.com/sethvargo/go-diceware"
 
 [[constraint]]
-  revision = "2018-08-22"
+  revision = "2018-09-04"
   name = "github.com/fluidkeys/crypto"
 
 [[constraint]]

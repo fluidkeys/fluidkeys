@@ -638,13 +638,16 @@ func (pk *PublicKey) VerifyKeySignature(signed *PublicKey, sig *Signature) error
 	return nil
 }
 
-func keyRevocationHash(pk signingKey, hashFunc crypto.Hash) (h hash.Hash, err error) {
+// KeyRevocationHash produces a hash over the public key data. This is used
+// to prove that a revocation signature relates to a particular public key.
+// See https://tools.ietf.org/html/rfc4880#section-5.2.4
+
+func KeyRevocationHash(pk signingKey, hashFunc crypto.Hash) (h hash.Hash, err error) {
 	if !hashFunc.Available() {
 		return nil, errors.UnsupportedError("hash function")
 	}
 	h = hashFunc.New()
 
-	// RFC 4880, section 5.2.4
 	pk.SerializeSignaturePrefix(h)
 	pk.serializeWithoutHeaders(h)
 
@@ -654,7 +657,7 @@ func keyRevocationHash(pk signingKey, hashFunc crypto.Hash) (h hash.Hash, err er
 // VerifyRevocationSignature returns nil iff sig is a valid signature, made by this
 // public key.
 func (pk *PublicKey) VerifyRevocationSignature(sig *Signature) (err error) {
-	h, err := keyRevocationHash(pk, sig.Hash)
+	h, err := KeyRevocationHash(pk, sig.Hash)
 	if err != nil {
 		return err
 	}

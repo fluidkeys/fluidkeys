@@ -87,6 +87,11 @@ func main() {
 		panic(fmt.Sprint("Failed to output private key: ", err))
 	}
 
+	revocationCert, err := generateJob.pgpKey.ArmorRevocationCertificate()
+	if err != nil {
+		panic(fmt.Sprint("Failed to output revocation cert: ", err))
+	}
+
 	fluidkeysDirectory, err := getFluidkeysDirectory()
 
 	if err != nil {
@@ -103,6 +108,7 @@ func main() {
 		keySlug,
 		publicKey,
 		privateKey,
+		revocationCert,
 	)
 	if err != nil {
 		fmt.Printf("Failed to create backup ZIP file: %s", err)
