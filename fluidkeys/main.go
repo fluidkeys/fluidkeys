@@ -11,6 +11,7 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 
+	"github.com/docopt/docopt-go"
 	"github.com/fluidkeys/fluidkeys/backupzip"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/database"
