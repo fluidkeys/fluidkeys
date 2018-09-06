@@ -125,6 +125,16 @@ func main() {
 }
 
 func getFluidkeysDirectory() (string, error) {
+	dirFromEnv := os.Getenv("FLUIDKEYS_DIR")
+
+	if dirFromEnv != "" {
+		return dirFromEnv, nil
+	} else {
+		return makeFluidkeysHomeDirectory()
+	}
+}
+
+func makeFluidkeysHomeDirectory() (string, error) {
 	homeDirectory, err := homedir.Dir()
 
 	if err != nil {
