@@ -33,6 +33,8 @@ const PromptFirstPassword string = "This is your password.\n\n* If you use a pas
 const PromptLastPassword string = "That didn't match 🤷🏽 This is your last chance!\n"
 const FailedToConfirmPassword string = "That didn't match. Quitting...\n"
 
+const Version = "0.1.1"
+
 type DicewarePassword struct {
 	words     []string
 	separator string

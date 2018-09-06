@@ -40,6 +40,7 @@ prompt_for_new_version() {
 
 modify_source_files() {
   sed -i "s/^\/\/ version: .*/\/\/ version: ${NEW_VERSION}/g" "${FLUIDKEYS_GO}"
+  sed -i "s/const Version = \".*/const Version = \"${NEW_VERSION}\"/g" "${FLUIDKEYS_GO}"
   sed -i "s/^Version: .*/Version: ${NEW_VERSION}/g" "${DEBIAN_CONTROL}"
   echo "${NEW_VERSION}" > "${VERSION_FILE}"
 }
