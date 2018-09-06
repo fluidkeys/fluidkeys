@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/docopt/docopt-go"
+  packages = ["."]
+  revision = "ee0de3bc6815ee19d4a46c7eb90f829db0e014b1"
+
+[[projects]]
   name = "github.com/fluidkeys/crypto"
   packages = ["cast5","openpgp","openpgp/armor","openpgp/elgamal","openpgp/errors","openpgp/packet","openpgp/s2k"]
   revision = "2018-09-04"
@@ -21,6 +27,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7cad393c85a3336d424211544b7a0b7fa4a0a19b487302448fdb335bdec6df38"
+  inputs-digest = "67d75f2cf9fae7089a2921d815a25557571b6121bb1c721878b3785b4ebc2b7c"
   solver-name = "gps-cdcl"
   solver-version = 1
