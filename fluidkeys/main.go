@@ -52,13 +52,13 @@ type generatePgpKeyResult struct {
 type exitCode = int
 
 func main() {
-	usage := `Fluidkeys
+	usage := fmt.Sprintf(`Fluidkeys %s
 
 Usage:
 	fk key create
 
 Options:
-	-h --help    Show this screen`
+	-h --help    Show this screen`, Version)
 
 	args, _ := docopt.ParseDoc(usage)
 
