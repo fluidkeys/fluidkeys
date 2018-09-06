@@ -47,7 +47,57 @@ type generatePgpKeyResult struct {
 	err    error
 }
 
+type exitCode = int
+
 func main() {
+	usage := `Fluidkeys
+
+Usage:
+	fk key create
+
+Options:
+	-h --help    Show this screen`
+
+	args, _ := docopt.ParseDoc(usage)
+
+	switch getSubcommand(args, []string{"key"}) {
+	case "init":
+		os.Exit(initSubcommand(args))
+	case "key":
+		os.Exit(keySubcommand(args))
+	}
+}
+
+func getSubcommand(args docopt.Opts, subcommands []string) string {
+	// subcommands := []string{"init", "key"}
+
+	for _, subcommand := range subcommands {
+		value, err := args.Bool(subcommand)
+		if err != nil {
+			panic(err)
+		}
+		if value {
+			return subcommand
+		}
+	}
+	panic(fmt.Errorf("expected to find one of these subcommands: %v", subcommands))
+}
+
+func initSubcommand(args docopt.Opts) exitCode {
+	fmt.Println("`init` subcommand not currently implemented.")
+	return 1
+}
+
+func keySubcommand(args docopt.Opts) exitCode {
+	switch getSubcommand(args, []string{"create"}) {
+	case "create":
+		os.Exit(keyCreate())
+	}
+	panic(fmt.Errorf("keySubcommand got unexpected arguments: %v", args))
+}
+
+func keyCreate() exitCode {
+
 	gpg := gpgwrapper.GnuPG{}
 	if !gpg.IsWorking() {
 		fmt.Printf(colour.Warn("\n" + GPGMissing + "\n"))
@@ -123,6 +173,7 @@ func main() {
 
 	db := database.New(fluidkeysDirectory)
 	db.RecordFingerprintImportedIntoGnuPG(generateJob.pgpKey.FingerprintString())
+	return 0
 }
 
 func getFluidkeysDirectory() (string, error) {
