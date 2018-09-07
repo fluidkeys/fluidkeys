@@ -66,11 +66,11 @@ func (p *listSecretKeysParser) Keys() []SecretKeyListing {
 
 // Informs the parser that there are no more lines to parse.
 func (p *listSecretKeysParser) end() {
-	p.addCurrentKeyToList()
+	p.addPartialKeyToList()
 }
 
 func (p *listSecretKeysParser) handleSecretPrimaryKeyLine(cols []string) {
-	p.addCurrentKeyToList()
+	p.addPartialKeyToList()
 
 	validity := cols[1]
 	if validity == "r" || validity == "e" || validity == "n" {
@@ -134,7 +134,7 @@ func (p *listSecretKeysParser) handleUidLine(cols []string) {
 // When the next primary key line (or the end of the output) is encountered,
 // we need to check that the temporary key is complete and put it on Keys.
 
-func (p *listSecretKeysParser) addCurrentKeyToList() {
+func (p *listSecretKeysParser) addPartialKeyToList() {
 	if p.partialKey != nil && p.partialKey.Fingerprint != "" && len(p.partialKey.Uids) > 0 {
 		p.keys = append(p.keys, *p.partialKey)
 	}
