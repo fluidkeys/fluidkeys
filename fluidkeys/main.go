@@ -98,6 +98,17 @@ func keySubcommand(args docopt.Opts) exitCode {
 	panic(fmt.Errorf("keySubcommand got unexpected arguments: %v", args))
 }
 
+func keyFromGpg() exitCode {
+	gpg := gpgwrapper.GnuPG{}
+	secretKeys, err := gpg.ListSecretKeys()
+	if err != nil {
+		fmt.Errorf("Error getting secret keys from GPG: %v", err)
+		return 1
+	}
+	fmt.Printf(listKeysForImportingFromGpg(secretKeys))
+	return 0
+}
+
 func keyCreate() exitCode {
 
 	gpg := gpgwrapper.GnuPG{}
@@ -204,6 +215,24 @@ func generatePgpKey(email string, channel chan generatePgpKeyResult) {
 	key, err := pgpkey.Generate(email)
 
 	channel <- generatePgpKeyResult{key, err}
+}
+
+func listKeysForImportingFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) string {
+	str := fmt.Sprintf("Found %s in GnuPG:\n\n", humanize.Plural(len(secretKeyListings), "key", "keys"))
+	for _, key := range secretKeyListings {
+		str += printSecretKeyListing(key)
+	}
+	return str
+}
+
+func printSecretKeyListing(key gpgwrapper.SecretKeyListing) string {
+	output := fmt.Sprintf("    %s\n", key.Fingerprint)
+	output += fmt.Sprintf("    Created on %s\n", key.Created.Format("2 January 2006"))
+	for _, uid := range key.Uids {
+		output += fmt.Sprintf("      %v\n", uid)
+	}
+	output += fmt.Sprintf("\n")
+	return output
 }
 
 func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {

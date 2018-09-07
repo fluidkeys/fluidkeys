@@ -4,6 +4,9 @@ import (
 	"bufio"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 )
 
 func TestGeneratePassword(t *testing.T) {
@@ -69,4 +72,70 @@ func TestGetFluidkeysDirectory(t *testing.T) {
 	}
 
 	t.Logf(dir)
+}
+
+func TestPromptForWhichGpgKey(t *testing.T) {
+	t.Run("pluarlises the word key in the sentence", func(t *testing.T) {
+		secretKeyListings := []gpgwrapper.SecretKeyListing{
+			exampleSecretKey,
+		}
+
+		actualReturn := listKeysForImportingFromGpg(secretKeyListings)
+		actualFirstLineReturn := strings.Split(actualReturn, "\n")[0]
+		expectedFirstLineReturn := "Found 1 key in GnuPG:"
+
+		if actualFirstLineReturn != expectedFirstLineReturn {
+			t.Errorf("expected '%s', got '%s'", expectedFirstLineReturn, actualFirstLineReturn)
+		}
+
+		secretKeyListings = []gpgwrapper.SecretKeyListing{
+			exampleSecretKey,
+			exampleSecretKey,
+			exampleSecretKey,
+		}
+
+		actualReturn = listKeysForImportingFromGpg(secretKeyListings)
+		actualFirstLineReturn = strings.Split(actualReturn, "\n")[0]
+		expectedFirstLineReturn = "Found 3 keys in GnuPG:"
+
+		if actualFirstLineReturn != expectedFirstLineReturn {
+			t.Errorf("expected '%s', got '%s'", expectedFirstLineReturn, actualFirstLineReturn)
+		}
+	})
+
+	t.Run("prints a correctly formatted secret key", func(t *testing.T) {
+		secretKeyListings := []gpgwrapper.SecretKeyListing{
+			gpgwrapper.SecretKeyListing{
+				Fingerprint: "BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB",
+				Uids: []string{
+					"Chat Wannamaker<chat2@example.com>",
+					"Chat Rulez<chat3@example.com>",
+				},
+				Created: time.Date(2012, 06, 15, 12, 00, 00, 00, time.UTC),
+			},
+		}
+
+		gotReturn := listKeysForImportingFromGpg(secretKeyListings)
+		expectedReturn := `Found 1 key in GnuPG:
+
+    BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB
+    Created on 15 June 2012
+      Chat Wannamaker<chat2@example.com>
+      Chat Rulez<chat3@example.com>
+
+`
+
+		if gotReturn != expectedReturn {
+			t.Errorf("expected '%s', got '%s'", expectedReturn, gotReturn)
+		}
+	})
+}
+
+var exampleSecretKey = gpgwrapper.SecretKeyListing{
+	Fingerprint: "BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB",
+	Uids: []string{
+		"Chat Wannamaker<chat2@example.com>",
+		"Chat Rulez<chat3@example.com>",
+	},
+	Created: time.Now(),
 }
