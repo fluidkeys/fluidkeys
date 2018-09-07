@@ -17,11 +17,10 @@ func parseListSecretKeys(colonDelimitedString string) ([]SecretKeyListing, error
 	parser := listSecretKeysParser{}
 
 	for _, line := range strings.Split(colonDelimitedString, "\n") {
-		parser.pushLine(strings.Split(line, ":"))
+		parser.PushLine(strings.Split(line, ":"))
 	}
-	parser.end()
 
-	return parser.Keys, nil
+	return parser.Keys(), nil
 }
 
 // listSecretKeysParser takes a line at a time from the colon-delimited output
@@ -34,13 +33,11 @@ func parseListSecretKeys(colonDelimitedString string) ([]SecretKeyListing, error
 
 type listSecretKeysParser struct {
 	partialKey *SecretKeyListing
-	Keys       []SecretKeyListing
+	keys       []SecretKeyListing
 }
 
 // Adds a line to the parser, which builds up its internal Keys field.
-// You must call .end() when there are no more lines, else you'll lose the last
-// key.
-func (p *listSecretKeysParser) pushLine(cols []string) {
+func (p *listSecretKeysParser) PushLine(cols []string) {
 
 	typeOfRecord := cols[0]
 
@@ -57,6 +54,14 @@ func (p *listSecretKeysParser) pushLine(cols []string) {
 		p.handleUidLine(cols)
 		return
 	}
+}
+
+// Keys() returns the list of keys that have been accumulated so far.
+// It should be called when all lines have been pushed with `PushLine`, else
+// keys may be missing, or, worse, they may have missing UIDs.
+func (p *listSecretKeysParser) Keys() []SecretKeyListing {
+	p.end()
+	return p.keys
 }
 
 // Informs the parser that there are no more lines to parse.
@@ -131,7 +136,7 @@ func (p *listSecretKeysParser) handleUidLine(cols []string) {
 
 func (p *listSecretKeysParser) addCurrentKeyToList() {
 	if p.partialKey != nil && p.partialKey.Fingerprint != "" && len(p.partialKey.Uids) > 0 {
-		p.Keys = append(p.Keys, *p.partialKey)
+		p.keys = append(p.keys, *p.partialKey)
 	}
 	p.partialKey = nil
 }
