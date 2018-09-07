@@ -83,7 +83,7 @@ func (p *listSecretKeysParser) handleSecretPrimaryKeyLine(cols []string) {
 	}
 
 	p.partialKey = &SecretKeyListing{
-		created: *createdTime,
+		Created: *createdTime,
 	}
 
 }
@@ -96,7 +96,7 @@ func (p *listSecretKeysParser) handleFingerprintLine(cols []string) {
 		return
 	}
 
-	if p.partialKey.fingerprint != "" {
+	if p.partialKey.Fingerprint != "" {
 		// We've already got a fingerprint for this key, so this is
 		// probably a fingerprint for a subkey, which we're not
 		// interested in
@@ -107,7 +107,7 @@ func (p *listSecretKeysParser) handleFingerprintLine(cols []string) {
 		return
 	}
 
-	p.partialKey.fingerprint = fingerprint
+	p.partialKey.Fingerprint = fingerprint
 }
 
 func (p *listSecretKeysParser) handleUidLine(cols []string) {
@@ -120,7 +120,7 @@ func (p *listSecretKeysParser) handleUidLine(cols []string) {
 
 	uid := cols[9]
 
-	p.partialKey.uids = append(p.partialKey.uids, uid)
+	p.partialKey.Uids = append(p.partialKey.Uids, uid)
 }
 
 // Append partialKey (if set) to Keys and set it to nil.
@@ -130,7 +130,7 @@ func (p *listSecretKeysParser) handleUidLine(cols []string) {
 // we need to check that the temporary key is complete and put it on Keys.
 
 func (p *listSecretKeysParser) addCurrentKeyToList() {
-	if p.partialKey != nil && p.partialKey.fingerprint != "" && len(p.partialKey.uids) > 0 {
+	if p.partialKey != nil && p.partialKey.Fingerprint != "" && len(p.partialKey.Uids) > 0 {
 		p.Keys = append(p.Keys, *p.partialKey)
 	}
 	p.partialKey = nil

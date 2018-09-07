@@ -116,9 +116,9 @@ func TestListSecretKeys(t *testing.T) {
 	}
 
 	expectedKey := SecretKeyListing{
-		fingerprint: "C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6",
-		uids:        []string{"test@example.com"},
-		created:     time.Date(2018, 8, 22, 12, 8, 23, 0, time.UTC),
+		Fingerprint: "C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6",
+		Uids:        []string{"test@example.com"},
+		Created:     time.Date(2018, 8, 22, 12, 8, 23, 0, time.UTC),
 	}
 
 	assertEqual(t, expectedKey, secretKeys[0])
@@ -137,15 +137,15 @@ func TestParseListSecretKeys(t *testing.T) {
 		}
 
 		expectedFirst := SecretKeyListing{
-			fingerprint: "A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
-			created:     time.Date(2014, 10, 31, 21, 34, 34, 0, time.UTC), // 31 October 2014 21:34:34
-			uids:        []string{"Paul Michael Furley <paul@paulfurley.com>"},
+			Fingerprint: "A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
+			Created:     time.Date(2014, 10, 31, 21, 34, 34, 0, time.UTC), // 31 October 2014 21:34:34
+			Uids:        []string{"Paul Michael Furley <paul@paulfurley.com>"},
 		}
 
 		expectedSecond := SecretKeyListing{
-			fingerprint: "B79F 0840 DEF1 2EBB A72F  F72D 7327 A44C 2157 A758",
-			created:     time.Date(2018, 9, 4, 16, 15, 46, 0, time.UTC), // Tue Sep  4 17:15:46 BST 2018
-			uids:        []string{"<paul@fluidkeys.com>"},
+			Fingerprint: "B79F 0840 DEF1 2EBB A72F  F72D 7327 A44C 2157 A758",
+			Created:     time.Date(2018, 9, 4, 16, 15, 46, 0, time.UTC), // Tue Sep  4 17:15:46 BST 2018
+			Uids:        []string{"<paul@fluidkeys.com>"},
 		}
 
 		gotFirst := result[0]
@@ -295,22 +295,22 @@ func TestParseTimestamp(t *testing.T) {
 
 func assertEqual(t *testing.T, expected SecretKeyListing, got SecretKeyListing) {
 	t.Helper()
-	if expected.fingerprint != got.fingerprint {
+	if expected.Fingerprint != got.Fingerprint {
 		t.Fatalf("fingerprints don't match, expected '%s', got '%s'",
-			expected.fingerprint, got.fingerprint)
+			expected.Fingerprint, got.Fingerprint)
 	}
 
-	if expected.created != got.created {
-		t.Fatalf("created don't match, expected '%s', got '%s'", expected.created, got.created)
+	if expected.Created != got.Created {
+		t.Fatalf("created don't match, expected '%s', got '%s'", expected.Created, got.Created)
 	}
 
-	if len(expected.uids) != len(got.uids) {
-		t.Fatalf("uids don't match, expected '%v', got '%v'", expected.uids, got.uids)
+	if len(expected.Uids) != len(got.Uids) {
+		t.Fatalf("uids don't match, expected '%v', got '%v'", expected.Uids, got.Uids)
 	}
 
-	for i := range expected.uids {
-		if expected.uids[i] != got.uids[i] {
-			t.Fatalf("uids don't match, expected '%v', got '%v'", expected.uids, got.uids)
+	for i := range expected.Uids {
+		if expected.Uids[i] != got.Uids[i] {
+			t.Fatalf("uids don't match, expected '%v', got '%v'", expected.Uids, got.Uids)
 		}
 	}
 }

@@ -26,10 +26,20 @@ type GnuPG struct {
 	homeDir string
 }
 
+// SecretKeyListing refers to a key parsed from running `gpg --list-secret-keys`
 type SecretKeyListing struct {
-	fingerprint string
-	uids        []string
-	created     time.Time
+
+	// Fingerprint is the human-readable format of the fingerprint of the
+	// primary key, for example:
+	// `AB01 AB01 AB01 AB01 AB01  AB01 AB01 AB01 AB01 AB01`
+	Fingerprint string
+
+	// Uids is a list of UTF-8 user ID strings as defined in
+	// https://tools.ietf.org/html/rfc4880#section-5.11
+	Uids []string
+
+	// Created is the time the key was apparently created in UTC.
+	Created time.Time
 }
 
 func (g *GnuPG) Version() (string, error) {
