@@ -81,7 +81,7 @@ func (g *GnuPG) run(arguments ...string) (string, error) {
 	out, err := exec.Command(GpgPath, fullArguments...).CombinedOutput()
 
 	if err != nil {
-		error := ErrProblemExecutingGPG(string(out), arguments...)
+		error := ErrProblemExecutingGPG(string(out), fullArguments...)
 		return "", error
 	}
 	outString := string(out)
