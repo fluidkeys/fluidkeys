@@ -1,9 +1,11 @@
 package gpgwrapper
 
 import (
+	"fmt"
 	"io/ioutil"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestParseGPGOutputVersion(t *testing.T) {
@@ -97,6 +99,65 @@ func TestImportPublicKey(t *testing.T) {
 		_, err := gpg.ImportArmoredKey(ExamplePrivateKey)
 		assertNoError(t, err)
 	})
+}
+
+func TestParseTimestamp(t *testing.T) {
+	ignore := time.Now()
+
+	var timestampTests = []struct {
+		inputString       string
+		expectedTime      time.Time
+		shouldReturnError bool
+	}{
+		{
+			"1536317435", // in BST
+			time.Date(2018, 9, 7, 10, 50, 35, 0, time.UTC),
+			false,
+		},
+		{
+			"1516034100", // in GMT
+			time.Date(2018, 1, 15, 16, 35, 0, 0, time.UTC),
+			false,
+		},
+		{
+			"-10",
+			time.Date(1969, 12, 31, 23, 59, 50, 0, time.UTC),
+			false,
+		},
+		{
+			"1516034100a", // bad: not an int
+			ignore,
+			true, // should return error
+		},
+	}
+
+	for _, test := range timestampTests {
+		t.Run(fmt.Sprintf("parseTimestamp(%v)", test.inputString), func(t *testing.T) {
+			gotTime, err := parseTimestamp(test.inputString)
+
+			var gotError bool = (err != nil)
+
+			if (gotError && !test.shouldReturnError) || (!gotError && test.shouldReturnError) {
+				t.Fatalf("expected shouldReturnError=%v, got err=%v", test.shouldReturnError, err)
+			}
+
+			if gotError {
+				if gotTime != nil {
+					t.Fatalf("returned an error, expected *time.Time to be nil but it wasn't. err: %v, time: %v", err, gotTime)
+				}
+
+			} else {
+				if gotTime == nil {
+					t.Fatalf("got nil *time.Time but err wasn't set")
+				}
+
+				if test.expectedTime != *gotTime {
+					t.Errorf("expected time: %v, got: %v", test.expectedTime, gotTime)
+				}
+			}
+
+		})
+	}
 }
 
 func makeTempGnupgHome(t *testing.T) string {
