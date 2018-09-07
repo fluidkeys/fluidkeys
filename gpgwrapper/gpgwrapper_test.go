@@ -1,9 +1,11 @@
 package gpgwrapper
 
 import (
+	"fmt"
 	"io/ioutil"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestParseGPGOutputVersion(t *testing.T) {
@@ -97,6 +99,244 @@ func TestImportPublicKey(t *testing.T) {
 		_, err := gpg.ImportArmoredKey(ExamplePrivateKey)
 		assertNoError(t, err)
 	})
+}
+
+func TestListSecretKeys(t *testing.T) {
+
+	gpg := GnuPG{homeDir: makeTempGnupgHome(t)}
+	gpg.ImportArmoredKey(ExamplePublicKey)
+	gpg.ImportArmoredKey(ExamplePrivateKey)
+	secretKeys, err := gpg.ListSecretKeys()
+	if err != nil {
+		t.Fatalf("error calling gpg.ListSecretKeys(): %v", err)
+	}
+
+	if len(secretKeys) != 1 {
+		t.Fatalf("expected 1 secret key, got %d: %v", len(secretKeys), secretKeys)
+	}
+
+	expectedKey := SecretKeyListing{
+		Fingerprint: "C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6",
+		Uids:        []string{"test@example.com"},
+		Created:     time.Date(2018, 8, 22, 12, 8, 23, 0, time.UTC),
+	}
+
+	assertEqual(t, expectedKey, secretKeys[0])
+
+}
+
+func TestParseListSecretKeys(t *testing.T) {
+	t.Run("test parsing example colon delimited data", func(t *testing.T) {
+		result, err := parseListSecretKeys(exampleListSecretKeys)
+		if err != nil {
+			t.Fatalf("error running ParseListSecretKeys(..): %v", err)
+		}
+
+		if len(result) != 2 {
+			t.Fatalf("expected 2 secret keys, got %d: %v", len(result), result)
+		}
+
+		expectedFirst := SecretKeyListing{
+			Fingerprint: "A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
+			Created:     time.Date(2014, 10, 31, 21, 34, 34, 0, time.UTC), // 31 October 2014 21:34:34
+			Uids: []string{
+				"Paul Michael Furley <paul@paulfurley.com>",
+				"Paul M Furley (http://paulfurley.com) <paul@paulfurley.com>",
+			},
+		}
+
+		expectedSecond := SecretKeyListing{
+			Fingerprint: "B79F 0840 DEF1 2EBB A72F  F72D 7327 A44C 2157 A758",
+			Created:     time.Date(2018, 9, 4, 16, 15, 46, 0, time.UTC), // Tue Sep  4 17:15:46 BST 2018
+			Uids:        []string{"<paul@fluidkeys.com>"},
+		}
+
+		gotFirst := result[0]
+		gotSecond := result[1]
+
+		assertEqual(t, expectedFirst, gotFirst)
+		assertEqual(t, expectedSecond, gotSecond)
+	})
+
+	t.Run("parser ignores keys with invalid creation time", func(t *testing.T) {
+		result, err := parseListSecretKeys(exampleListSecretKeysInvalidCreationTime)
+		if err != nil {
+			t.Fatalf("error running ParseListSecretKeys(..): %v", err)
+		}
+
+		if len(result) != 0 {
+			t.Fatalf("expected 0 secret keys, got %d: %v", len(result), result)
+		}
+	})
+
+	t.Run("parser ignores keys with revoked flag", func(t *testing.T) {
+		result, err := parseListSecretKeys(exampleListSecretKeysRevoked)
+		if err != nil {
+			t.Fatalf("error running ParseListSecretKeys(..): %v", err)
+		}
+
+		if len(result) != 0 {
+			t.Fatalf("expected 0 secret keys, got %d: %v", len(result), result)
+		}
+	})
+}
+
+func TestParseFingerprint(t *testing.T) {
+	var tests = []struct {
+		inputString       string
+		expectedOutput    string
+		shouldReturnError bool
+	}{
+		{
+			"A999B7498D1A8DC473E53C92309F635DAD1B5517",
+			"A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
+			false,
+		},
+		{
+			"a999b7498d1a8dc473e53c92309f635dad1b5517",
+			"A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
+			false,
+		},
+		{
+			"DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFD",
+			"",
+			true, // error: too long
+		},
+		{
+			"DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEE",
+			"",
+			true, // error: too long
+		},
+		{
+			"DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFG",
+			"",
+			true, // error, contains bad character G
+		},
+		{
+			"",
+			"",
+			true, // error, empty
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("parseFingerprint(%v)", test.inputString), func(t *testing.T) {
+			gotOutput, err := parseFingerprint(test.inputString)
+
+			var gotError bool = err != nil
+
+			if gotError != test.shouldReturnError {
+				t.Errorf("expected shouldReturnError=%v, got err=%v", test.shouldReturnError, err)
+			}
+
+			if test.expectedOutput != gotOutput {
+				t.Errorf("expected output='%s', got='%s'", test.expectedOutput, gotOutput)
+			}
+
+		})
+	}
+}
+
+func TestParseTimestamp(t *testing.T) {
+	ignore := time.Now()
+
+	var timestampTests = []struct {
+		inputString       string
+		expectedTime      time.Time
+		shouldReturnError bool
+	}{
+		{
+			"1536317435", // in BST
+			time.Date(2018, 9, 7, 10, 50, 35, 0, time.UTC),
+			false,
+		},
+		{
+			"1516034100", // in GMT
+			time.Date(2018, 1, 15, 16, 35, 0, 0, time.UTC),
+			false,
+		},
+		{
+			"-10",
+			time.Date(1969, 12, 31, 23, 59, 50, 0, time.UTC),
+			false,
+		},
+		{
+			"1516034100a", // bad: not an int
+			ignore,
+			true, // should return error
+		},
+	}
+
+	for _, test := range timestampTests {
+		t.Run(fmt.Sprintf("parseTimestamp(%v)", test.inputString), func(t *testing.T) {
+			gotTime, err := parseTimestamp(test.inputString)
+
+			var gotError bool = (err != nil)
+
+			if (gotError && !test.shouldReturnError) || (!gotError && test.shouldReturnError) {
+				t.Fatalf("expected shouldReturnError=%v, got err=%v", test.shouldReturnError, err)
+			}
+
+			if gotError {
+				if gotTime != nil {
+					t.Fatalf("returned an error, expected *time.Time to be nil but it wasn't. err: %v, time: %v", err, gotTime)
+				}
+
+			} else {
+				if gotTime == nil {
+					t.Fatalf("got nil *time.Time but err wasn't set")
+				}
+
+				if test.expectedTime != *gotTime {
+					t.Errorf("expected time: %v, got: %v", test.expectedTime, gotTime)
+				}
+			}
+
+		})
+	}
+}
+
+func TestUnquoteColons(t *testing.T) {
+	var tests = []struct {
+		inputString    string
+		expectedOutput string
+	}{
+		{
+			`http\x3a//`,
+			"http://",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("unquoteColons(%v)", test.inputString), func(t *testing.T) {
+			gotOutput := unquoteColons(test.inputString)
+			if test.expectedOutput != gotOutput {
+				t.Fatalf("expected '%s', got '%s'", test.expectedOutput, gotOutput)
+			}
+		})
+	}
+}
+
+func assertEqual(t *testing.T, expected SecretKeyListing, got SecretKeyListing) {
+	t.Helper()
+	if expected.Fingerprint != got.Fingerprint {
+		t.Fatalf("fingerprints don't match, expected '%s', got '%s'",
+			expected.Fingerprint, got.Fingerprint)
+	}
+
+	if expected.Created != got.Created {
+		t.Fatalf("created don't match, expected '%s', got '%s'", expected.Created, got.Created)
+	}
+
+	if len(expected.Uids) != len(got.Uids) {
+		t.Fatalf("uids don't match, expected '%v', got '%v'", expected.Uids, got.Uids)
+	}
+
+	for i := range expected.Uids {
+		if expected.Uids[i] != got.Uids[i] {
+			t.Fatalf("uids don't match, expected '%v', got '%v'", expected.Uids, got.Uids)
+		}
+	}
 }
 
 func makeTempGnupgHome(t *testing.T) string {
@@ -251,3 +491,38 @@ SC0EwAbMtIYkeautEiv91AhgrTRqaG03U4zEYTpA1sQ4agYlLssOLCdguzIsV2bU
 gccR56G2L/PJK9su8t1NtZp3d8h/7yCJhyM=
 =24gu
 -----END PGP PRIVATE KEY BLOCK-----`
+
+const exampleListSecretKeys = `sec:u:4096:1:309F635DAD1B5517:1414791274:1542012845::u:::scESC:::#:::23::0:
+fpr:::::::::A999B7498D1A8DC473E53C92309F635DAD1B5517:
+grp:::::::::D38C00EFE88C8E779D9318054320996065468794:
+uid:u::::1534236845::38BE7958B7C6E0759B846025E16E993513464797::Paul Michael Furley <paul@paulfurley.com>::::::::::0:
+uid:u::::1534236845::7E1BD05565F46274DE035907B610AAD20A5A8079::Paul M Furley (http\x3a//paulfurley.com) <paul@paulfurley.com>::::::::::0:
+ssb:u:4096:1:627B1B4E8E532C34:1414791274:1542012904:::::e:::+:::23:
+fpr:::::::::58B67D78347ACEAD63C0B185627B1B4E8E532C34:
+grp:::::::::C0ADBA1B8590E50B2FCC1B20834B3CEA437C2CBF:
+ssb:u:4096:1:0AC6AD63E8E8A9B0:1414792059:1542012904:::::s:::+:::23:
+fpr:::::::::CF2954DA9D72255C217CF92A0AC6AD63E8E8A9B0:
+grp:::::::::70C585727C0DEF68975055F28C752897DB84FC73:
+sec:-:4096:1:7327A44C2157A758:1536077746:1541261746::-:::scESC:::+:::23::0:
+fpr:::::::::B79F0840DEF12EBBA72FF72D7327A44C2157A758:
+grp:::::::::225E673D5B6E04A75C95377F5856284AF748FC9B:
+uid:-::::1536077746::45B589243F83642ED19A8BF02668D946D0182C7C::<paul@fluidkeys.com>::::::::::0:
+ssb:-:4096:1:AC51B3BFA77D277A:1536077746:1541261746:::::e:::+:::23:
+fpr:::::::::AE02CA144D5F7E91D245F038AC51B3BFA77D277A:
+grp:::::::::F9B6EF16A8800449EE7598A73C14EA17962A68D3:`
+
+const exampleListSecretKeysInvalidCreationTime = `sec:-:4096:1:7327A44C2157A758:1536077746XXX:1541261746::-:::scESC:::+:::23::0:
+fpr:::::::::B79F0840DEF12EBBA72FF72D7327A44C2157A758:
+grp:::::::::225E673D5B6E04A75C95377F5856284AF748FC9B:
+uid:-::::1536077746::45B589243F83642ED19A8BF02668D946D0182C7C::<paul@fluidkeys.com>::::::::::0:
+ssb:-:4096:1:AC51B3BFA77D277A:1536077746:1541261746:::::e:::+:::23:
+fpr:::::::::AE02CA144D5F7E91D245F038AC51B3BFA77D277A:
+grp:::::::::F9B6EF16A8800449EE7598A73C14EA17962A68D3:`
+
+const exampleListSecretKeysRevoked = `sec:r:2048:1:638C78A5E281ACDB:1392480548:::-:::sc:::+:::23::0:
+fpr:::::::::5DD5B8F28CBEFA024F9F472B638C78A5E281ACDB:
+grp:::::::::7DCA4CD7282D7447D0F6AA36109FF6E82FC864B0:
+uid:r::::1392480548::7E1BD05565F46274DE035907B610AAD20A5A8079::Paul M Furley (http\x3a//paulfurley.com) <paul@paulfurley.com>::::::::::0:
+ssb:r:2048:1:D023F7ED26F2E8C2:1392480548:1441742552:::::e:::+:::23:
+fpr:::::::::95A1D6AF08EA03BE3A51D30BD023F7ED26F2E8C2:
+grp:::::::::F38929556F4ACCC9EFD861A3286114D4AC9227AB:`

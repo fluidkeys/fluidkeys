@@ -8,6 +8,8 @@ import (
 	"io"
 	"os/exec"
 	"regexp"
+	"strings"
+	"time"
 )
 
 const GpgPath = "gpg"
@@ -22,6 +24,22 @@ var VersionRegexp = regexp.MustCompile(`gpg \(GnuPG.*\) (\d+\.\d+\.\d+)`)
 
 type GnuPG struct {
 	homeDir string
+}
+
+// SecretKeyListing refers to a key parsed from running `gpg --list-secret-keys`
+type SecretKeyListing struct {
+
+	// Fingerprint is the human-readable format of the fingerprint of the
+	// primary key, for example:
+	// `AB01 AB01 AB01 AB01 AB01  AB01 AB01 AB01 AB01 AB01`
+	Fingerprint string
+
+	// Uids is a list of UTF-8 user ID strings as defined in
+	// https://tools.ietf.org/html/rfc4880#section-5.11
+	Uids []string
+
+	// Created is the time the key was apparently created in UTC.
+	Created time.Time
 }
 
 func (g *GnuPG) Version() (string, error) {
@@ -64,6 +82,21 @@ func (g *GnuPG) ImportArmoredKey(armoredKey string) (string, error) {
 	}
 
 	return output, nil
+}
+
+func (g *GnuPG) ListSecretKeys() ([]SecretKeyListing, error) {
+	args := []string{
+		"--with-colons",
+		"--with-fingerprint",
+		"--fixed-list-mode",
+		"--list-secret-keys",
+	}
+	outString, err := g.run(args...)
+	if err != nil {
+		return nil, fmt.Errorf("error running 'gpg %s': %v", strings.Join(args, " "), err)
+	}
+
+	return parseListSecretKeys(outString)
 }
 
 func parseVersionString(gpgStdout string) (string, error) {
