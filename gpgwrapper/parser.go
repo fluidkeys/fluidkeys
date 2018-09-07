@@ -123,7 +123,7 @@ func (p *listSecretKeysParser) handleUidLine(cols []string) {
 		return
 	}
 
-	uid := cols[9]
+	uid := unquoteColons(cols[9])
 
 	p.partialKey.Uids = append(p.partialKey.Uids, uid)
 }
@@ -168,4 +168,12 @@ func parseFingerprint(fp string) (string, error) {
 		"%s %s %s %s %s  %s %s %s %s %s",
 		f[0:4], f[4:8], f[8:12], f[12:16], f[16:20],
 		f[20:24], f[24:28], f[28:32], f[32:36], f[36:40]), nil
+}
+
+// unquoteColons undoes GnuPG's quoting which is used to prevent fields breaking
+// the colon-delimited output. Colons are replaced with a literal `\x3a`. No
+// other characters are affected.
+//
+func unquoteColons(uid string) string {
+	return strings.Replace(uid, `\x3a`, ":", -1)
 }

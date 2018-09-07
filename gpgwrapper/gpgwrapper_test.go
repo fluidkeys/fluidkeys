@@ -139,7 +139,10 @@ func TestParseListSecretKeys(t *testing.T) {
 		expectedFirst := SecretKeyListing{
 			Fingerprint: "A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
 			Created:     time.Date(2014, 10, 31, 21, 34, 34, 0, time.UTC), // 31 October 2014 21:34:34
-			Uids:        []string{"Paul Michael Furley <paul@paulfurley.com>"},
+			Uids: []string{
+				"Paul Michael Furley <paul@paulfurley.com>",
+				"Paul M Furley (http://paulfurley.com) <paul@paulfurley.com>",
+			},
 		}
 
 		expectedSecond := SecretKeyListing{
@@ -289,6 +292,27 @@ func TestParseTimestamp(t *testing.T) {
 				}
 			}
 
+		})
+	}
+}
+
+func TestUnquoteColons(t *testing.T) {
+	var tests = []struct {
+		inputString    string
+		expectedOutput string
+	}{
+		{
+			`http\x3a//`,
+			"http://",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("unquoteColons(%v)", test.inputString), func(t *testing.T) {
+			gotOutput := unquoteColons(test.inputString)
+			if test.expectedOutput != gotOutput {
+				t.Fatalf("expected '%s', got '%s'", test.expectedOutput, gotOutput)
+			}
 		})
 	}
 }
@@ -472,6 +496,7 @@ const exampleListSecretKeys = `sec:u:4096:1:309F635DAD1B5517:1414791274:15420128
 fpr:::::::::A999B7498D1A8DC473E53C92309F635DAD1B5517:
 grp:::::::::D38C00EFE88C8E779D9318054320996065468794:
 uid:u::::1534236845::38BE7958B7C6E0759B846025E16E993513464797::Paul Michael Furley <paul@paulfurley.com>::::::::::0:
+uid:u::::1534236845::7E1BD05565F46274DE035907B610AAD20A5A8079::Paul M Furley (http\x3a//paulfurley.com) <paul@paulfurley.com>::::::::::0:
 ssb:u:4096:1:627B1B4E8E532C34:1414791274:1542012904:::::e:::+:::23:
 fpr:::::::::58B67D78347ACEAD63C0B185627B1B4E8E532C34:
 grp:::::::::C0ADBA1B8590E50B2FCC1B20834B3CEA437C2CBF:
