@@ -101,6 +101,30 @@ func TestImportPublicKey(t *testing.T) {
 	})
 }
 
+func TestListSecretKeys(t *testing.T) {
+
+	gpg := GnuPG{homeDir: makeTempGnupgHome(t)}
+	gpg.ImportArmoredKey(ExamplePublicKey)
+	gpg.ImportArmoredKey(ExamplePrivateKey)
+	secretKeys, err := gpg.ListSecretKeys()
+	if err != nil {
+		t.Fatalf("error calling gpg.ListSecretKeys(): %v", err)
+	}
+
+	if len(secretKeys) != 1 {
+		t.Fatalf("expected 1 secret key, got %d: %v", len(secretKeys), secretKeys)
+	}
+
+	expectedKey := SecretKeyListing{
+		fingerprint: "C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6",
+		uids:        []string{"test@example.com"},
+		created:     time.Date(2018, 8, 22, 12, 8, 23, 0, time.UTC),
+	}
+
+	assertEqual(t, expectedKey, secretKeys[0])
+
+}
+
 func TestParseListSecretKeys(t *testing.T) {
 	t.Run("test parsing example colon delimited data", func(t *testing.T) {
 		result, err := parseListSecretKeys(exampleListSecretKeys)

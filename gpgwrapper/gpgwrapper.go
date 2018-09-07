@@ -75,21 +75,18 @@ func (g *GnuPG) ImportArmoredKey(armoredKey string) (string, error) {
 }
 
 func (g *GnuPG) ListSecretKeys() ([]SecretKeyListing, error) {
-	return []SecretKeyListing{
-		SecretKeyListing{
-			fingerprint: "AAAA AAAA AAAA AAAA AAAA  AAAA AAAA AAAA AAAA AAAA",
-			uids:        []string{"Chat <chat@example.com"},
-			created:     time.Now(),
-		},
-		SecretKeyListing{
-			fingerprint: "BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB",
-			uids: []string{
-				"Chat Wannamaker<chat2@example.com",
-				"Chat Rulez<chat3@example.com",
-			},
-			created: time.Now(),
-		},
-	}, nil
+	args := []string{
+		"--with-colons",
+		"--with-fingerprint",
+		"--fixed-list-mode",
+		"--list-secret-keys",
+	}
+	outString, err := g.run(args...)
+	if err != nil {
+		return nil, fmt.Errorf("error running 'gpg %s': %v", strings.Join(args, " "), err)
+	}
+
+	return parseListSecretKeys(outString)
 }
 
 func parseVersionString(gpgStdout string) (string, error) {
