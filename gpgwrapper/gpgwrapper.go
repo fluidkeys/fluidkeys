@@ -8,6 +8,7 @@ import (
 	"io"
 	"os/exec"
 	"regexp"
+	"time"
 )
 
 const GpgPath = "gpg"
@@ -22,6 +23,12 @@ var VersionRegexp = regexp.MustCompile(`gpg \(GnuPG.*\) (\d+\.\d+\.\d+)`)
 
 type GnuPG struct {
 	homeDir string
+}
+
+type SecretKeyListing struct {
+	fingerprint string
+	uids        []string
+	created     time.Time
 }
 
 func (g *GnuPG) Version() (string, error) {
@@ -64,6 +71,24 @@ func (g *GnuPG) ImportArmoredKey(armoredKey string) (string, error) {
 	}
 
 	return output, nil
+}
+
+func (g *GnuPG) ListSecretKeys() ([]SecretKeyListing, error) {
+	return []SecretKeyListing{
+		SecretKeyListing{
+			fingerprint: "AAAA AAAA AAAA AAAA AAAA  AAAA AAAA AAAA AAAA AAAA",
+			uids:        []string{"Chat <chat@example.com"},
+			created:     time.Now(),
+		},
+		SecretKeyListing{
+			fingerprint: "BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB",
+			uids: []string{
+				"Chat Wannamaker<chat2@example.com",
+				"Chat Rulez<chat3@example.com",
+			},
+			created: time.Now(),
+		},
+	}, nil
 }
 
 func parseVersionString(gpgStdout string) (string, error) {
