@@ -77,7 +77,7 @@ func parseVersionString(gpgStdout string) (string, error) {
 }
 
 func (g *GnuPG) run(arguments ...string) (string, error) {
-	fullArguments := g.appendGlobalArguments(arguments...)
+	fullArguments := g.prependGlobalArguments(arguments...)
 	out, err := exec.Command(GpgPath, fullArguments...).CombinedOutput()
 
 	if err != nil {
@@ -89,7 +89,7 @@ func (g *GnuPG) run(arguments ...string) (string, error) {
 }
 
 func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (string, error) {
-	fullArguments := g.appendGlobalArguments(arguments...)
+	fullArguments := g.prependGlobalArguments(arguments...)
 	cmd := exec.Command(GpgPath, fullArguments...)
 	stdin, err := cmd.StdinPipe()
 
@@ -110,7 +110,7 @@ func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (string, er
 	return output, nil
 }
 
-func (g *GnuPG) appendGlobalArguments(arguments ...string) []string {
+func (g *GnuPG) prependGlobalArguments(arguments ...string) []string {
 	var globalArguments = []string{
 		"--keyid-format", "0xlong",
 		"--batch",
@@ -120,5 +120,5 @@ func (g *GnuPG) appendGlobalArguments(arguments ...string) []string {
 		homeDirArgs := []string{"--homedir", g.homeDir}
 		globalArguments = append(globalArguments, homeDirArgs...)
 	}
-	return append(arguments, globalArguments...)
+	return append(globalArguments, arguments...)
 }
