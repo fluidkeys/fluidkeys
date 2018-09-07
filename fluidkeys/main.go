@@ -56,6 +56,7 @@ func main() {
 
 Usage:
 	fk key create
+	fk key from-gpg
 
 Options:
 	-h --help    Show this screen`, Version)
@@ -91,9 +92,11 @@ func initSubcommand(args docopt.Opts) exitCode {
 }
 
 func keySubcommand(args docopt.Opts) exitCode {
-	switch getSubcommand(args, []string{"create"}) {
+	switch getSubcommand(args, []string{"create", "from-gpg"}) {
 	case "create":
 		os.Exit(keyCreate())
+	case "from-gpg":
+		os.Exit(keyFromGpg())
 	}
 	panic(fmt.Errorf("keySubcommand got unexpected arguments: %v", args))
 }
