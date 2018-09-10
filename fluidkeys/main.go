@@ -230,7 +230,7 @@ func generatePgpKey(email string, channel chan generatePgpKeyResult) {
 }
 
 func formatListedKeysForImportingFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) string {
-	str := fmt.Sprintf("Found %s in GnuPG:\n\n", humanize.Plural(len(secretKeyListings), "key", "keys"))
+	str := fmt.Sprintf("Found %s in GnuPG:\n\n", humanize.Pluralize(len(secretKeyListings), "key", "keys"))
 	for index, key := range secretKeyListings {
 		str += printSecretKeyListing(index+1, key)
 	}

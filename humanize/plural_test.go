@@ -2,7 +2,7 @@ package humanize
 
 import "fmt"
 
-func ExamplePlural() {
-	fmt.Println(Plural(2, "fox", "foxes"))
+func ExamplePluralize() {
+	fmt.Println(Pluralize(2, "fox", "foxes"))
 	// Output: 2 foxes
 }
