@@ -188,6 +188,11 @@ func TestParseFingerprint(t *testing.T) {
 		shouldReturnError bool
 	}{
 		{
+			"A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
+			"A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
+			false,
+		},
+		{
 			"A999B7498D1A8DC473E53C92309F635DAD1B5517",
 			"A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
 			false,
