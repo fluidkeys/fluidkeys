@@ -238,15 +238,8 @@ func formatListedKeysForImportingFromGpg(secretKeyListings []gpgwrapper.SecretKe
 }
 
 func printSecretKeyListing(listNumber int, key gpgwrapper.SecretKeyListing) string {
-	runeLengthListNumber := len(strconv.Itoa(listNumber) + ".")
-	remainingIndents := 4 - runeLengthListNumber
-	remainingIndent := ""
-	for i := 0; i < remainingIndents; i++ {
-		remainingIndent += " "
-	}
-	formattedListNumber := colour.LightBlue(strconv.Itoa(listNumber) + ".")
-
-	output := fmt.Sprintf(formattedListNumber+remainingIndent+"%s\n", key.Fingerprint)
+	formattedListNumber := colour.LightBlue(fmt.Sprintf("%-4s", (strconv.Itoa(listNumber) + ".")))
+	output := fmt.Sprintf("%s%s\n", formattedListNumber, key.Fingerprint)
 	output += fmt.Sprintf("    Created on %s\n", key.Created.Format("2 January 2006"))
 	for _, uid := range key.Uids {
 		output += fmt.Sprintf("      %v\n", uid)
