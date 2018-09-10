@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 const GpgPath = "gpg2"
@@ -32,7 +34,7 @@ type SecretKeyListing struct {
 	// Fingerprint is the human-readable format of the fingerprint of the
 	// primary key, for example:
 	// `AB01 AB01 AB01 AB01 AB01  AB01 AB01 AB01 AB01 AB01`
-	Fingerprint string
+	Fingerprint fingerprint.Fingerprint
 
 	// Uids is a list of UTF-8 user ID strings as defined in
 	// https://tools.ietf.org/html/rfc4880#section-5.11
