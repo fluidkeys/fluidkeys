@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,6 +33,8 @@ const PromptEmail string = "To start using Fluidkeys, first you'll need to creat
 const PromptFirstPassword string = "This is your password.\n\n* If you use a password manager, save it there now\n* Otherwise write it on a piece of paper and keep it with you\n"
 const PromptLastPassword string = "That didn't match 🤷🏽 This is your last chance!\n"
 const FailedToConfirmPassword string = "That didn't match. Quitting...\n"
+
+const PromptWhichKeyFromGPG string = "Which key would you like to import?"
 
 const Version = "0.1.1"
 
@@ -103,12 +106,18 @@ func keySubcommand(args docopt.Opts) exitCode {
 
 func keyFromGpg() exitCode {
 	gpg := gpgwrapper.GnuPG{}
+
 	secretKeys, err := gpg.ListSecretKeys()
 	if err != nil {
 		fmt.Errorf("Error getting secret keys from GPG: %v", err)
 		return 1
 	}
 	fmt.Printf(listKeysForImportingFromGpg(secretKeys))
+	keyToImport := promptForKeyToImportFromGpg(secretKeys)
+
+	fmt.Printf("Key to import: %v", keyToImport.Fingerprint)
+
+	// TODO: Record that Fluidkeys now has permission to manage this key
 	return 0
 }
 
@@ -236,6 +245,25 @@ func printSecretKeyListing(key gpgwrapper.SecretKeyListing) string {
 	}
 	output += fmt.Sprintf("\n")
 	return output
+}
+
+func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) gpgwrapper.SecretKeyListing {
+	var selectedKey int
+	for validInput := false; !validInput; {
+		rangePrompt := colour.LightBlue(fmt.Sprintf("[1-%v]", len(secretKeyListings)))
+		input := promptForInput(fmt.Sprintf(PromptWhichKeyFromGPG + " " + rangePrompt + " "))
+		if intergerSelected, err := strconv.Atoi(input); err != nil {
+			fmt.Printf("Only numbers please\n")
+		} else {
+			if (intergerSelected >= 1) && (intergerSelected <= len(secretKeyListings)) {
+				selectedKey = intergerSelected - 1
+				validInput = true
+			} else {
+				fmt.Printf("Number not available\n")
+			}
+		}
+	}
+	return secretKeyListings[selectedKey]
 }
 
 func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
