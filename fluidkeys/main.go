@@ -254,11 +254,11 @@ func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing
 	for validInput := false; !validInput; {
 		rangePrompt := colour.LightBlue(fmt.Sprintf("[1-%v]", len(secretKeyListings)))
 		input := promptForInput(fmt.Sprintf(PromptWhichKeyFromGPG + " " + rangePrompt + " "))
-		if intergerSelected, err := strconv.Atoi(input); err != nil {
+		if integerSelected, err := strconv.Atoi(input); err != nil {
 			fmt.Print(invalidEntry)
 		} else {
-			if (intergerSelected >= 1) && (intergerSelected <= len(secretKeyListings)) {
-				selectedKey = intergerSelected - 1
+			if (integerSelected >= 1) && (integerSelected <= len(secretKeyListings)) {
+				selectedKey = integerSelected - 1
 				validInput = true
 			} else {
 				fmt.Print(invalidEntry)
