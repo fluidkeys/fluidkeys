@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -33,6 +34,8 @@ const PromptFirstPassword string = "This is your password.\n\n* If you use a pas
 const PromptLastPassword string = "That didn't match 🤷🏽 This is your last chance!\n"
 const FailedToConfirmPassword string = "That didn't match. Quitting...\n"
 
+const PromptWhichKeyFromGPG string = "Which key would you like to import?"
+
 const Version = "0.1.1"
 
 type DicewarePassword struct {
@@ -56,6 +59,7 @@ func main() {
 
 Usage:
 	fk key create
+	fk key from-gpg
 
 Options:
 	-h --help    Show this screen`, Version)
@@ -91,11 +95,30 @@ func initSubcommand(args docopt.Opts) exitCode {
 }
 
 func keySubcommand(args docopt.Opts) exitCode {
-	switch getSubcommand(args, []string{"create"}) {
+	switch getSubcommand(args, []string{"create", "from-gpg"}) {
 	case "create":
 		os.Exit(keyCreate())
+	case "from-gpg":
+		os.Exit(keyFromGpg())
 	}
 	panic(fmt.Errorf("keySubcommand got unexpected arguments: %v", args))
+}
+
+func keyFromGpg() exitCode {
+	gpg := gpgwrapper.GnuPG{}
+
+	secretKeys, err := gpg.ListSecretKeys()
+	if err != nil {
+		fmt.Errorf("Error getting secret keys from GPG: %v", err)
+		return 1
+	}
+	fmt.Printf(formatListedKeysForImportingFromGpg(secretKeys))
+	keyToImport := promptForKeyToImportFromGpg(secretKeys)
+
+	fmt.Printf("Key to import: %v", keyToImport.Fingerprint)
+
+	// TODO: Record that Fluidkeys now has permission to manage this key
+	return 0
 }
 
 func keyCreate() exitCode {
@@ -204,6 +227,45 @@ func generatePgpKey(email string, channel chan generatePgpKeyResult) {
 	key, err := pgpkey.Generate(email)
 
 	channel <- generatePgpKeyResult{key, err}
+}
+
+func formatListedKeysForImportingFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) string {
+	str := fmt.Sprintf("Found %s in GnuPG:\n\n", humanize.Pluralize(len(secretKeyListings), "key", "keys"))
+	for index, key := range secretKeyListings {
+		str += printSecretKeyListing(index+1, key)
+	}
+	return str
+}
+
+func printSecretKeyListing(listNumber int, key gpgwrapper.SecretKeyListing) string {
+	formattedListNumber := colour.LightBlue(fmt.Sprintf("%-4s", (strconv.Itoa(listNumber) + ".")))
+	output := fmt.Sprintf("%s%s\n", formattedListNumber, key.Fingerprint)
+	output += fmt.Sprintf("    Created on %s\n", key.Created.Format("2 January 2006"))
+	for _, uid := range key.Uids {
+		output += fmt.Sprintf("      %v\n", uid)
+	}
+	output += fmt.Sprintf("\n")
+	return output
+}
+
+func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) gpgwrapper.SecretKeyListing {
+	var selectedKey int
+	invalidEntry := fmt.Sprintf("Please select between 1 and %v.\n", len(secretKeyListings))
+	for validInput := false; !validInput; {
+		rangePrompt := colour.LightBlue(fmt.Sprintf("[1-%v]", len(secretKeyListings)))
+		input := promptForInput(fmt.Sprintf(PromptWhichKeyFromGPG + " " + rangePrompt + " "))
+		if integerSelected, err := strconv.Atoi(input); err != nil {
+			fmt.Print(invalidEntry)
+		} else {
+			if (integerSelected >= 1) && (integerSelected <= len(secretKeyListings)) {
+				selectedKey = integerSelected - 1
+				validInput = true
+			} else {
+				fmt.Print(invalidEntry)
+			}
+		}
+	}
+	return secretKeyListings[selectedKey]
 }
 
 func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
