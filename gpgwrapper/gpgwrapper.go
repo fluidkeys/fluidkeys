@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const GpgPath = "gpg"
+const GpgPath = "gpg2"
 
 var ErrNoVersionStringFound = errors.New("version string not found in GPG output")
 
