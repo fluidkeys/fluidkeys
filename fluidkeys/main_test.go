@@ -81,7 +81,7 @@ func TestPromptForWhichGpgKey(t *testing.T) {
 			exampleSecretKey,
 		}
 
-		actualReturn := listKeysForImportingFromGpg(secretKeyListings)
+		actualReturn := formatListedKeysForImportingFromGpg(secretKeyListings)
 		actualFirstLineReturn := strings.Split(actualReturn, "\n")[0]
 		expectedFirstLineReturn := "Found 1 key in GnuPG:"
 
@@ -95,7 +95,7 @@ func TestPromptForWhichGpgKey(t *testing.T) {
 			exampleSecretKey,
 		}
 
-		actualReturn = listKeysForImportingFromGpg(secretKeyListings)
+		actualReturn = formatListedKeysForImportingFromGpg(secretKeyListings)
 		actualFirstLineReturn = strings.Split(actualReturn, "\n")[0]
 		expectedFirstLineReturn = "Found 3 keys in GnuPG:"
 
@@ -116,7 +116,7 @@ func TestPromptForWhichGpgKey(t *testing.T) {
 			},
 		}
 
-		gotReturn := listKeysForImportingFromGpg(secretKeyListings)
+		gotReturn := formatListedKeysForImportingFromGpg(secretKeyListings)
 		expectedReturn := `Found 1 key in GnuPG:
 
 ` + colour.LightBlue("1.") + `  BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB

@@ -112,7 +112,7 @@ func keyFromGpg() exitCode {
 		fmt.Errorf("Error getting secret keys from GPG: %v", err)
 		return 1
 	}
-	fmt.Printf(listKeysForImportingFromGpg(secretKeys))
+	fmt.Printf(formatListedKeysForImportingFromGpg(secretKeys))
 	keyToImport := promptForKeyToImportFromGpg(secretKeys)
 
 	fmt.Printf("Key to import: %v", keyToImport.Fingerprint)
@@ -229,7 +229,7 @@ func generatePgpKey(email string, channel chan generatePgpKeyResult) {
 	channel <- generatePgpKeyResult{key, err}
 }
 
-func listKeysForImportingFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) string {
+func formatListedKeysForImportingFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) string {
 	str := fmt.Sprintf("Found %s in GnuPG:\n\n", humanize.Plural(len(secretKeyListings), "key", "keys"))
 	for index, key := range secretKeyListings {
 		str += printSecretKeyListing(index+1, key)
