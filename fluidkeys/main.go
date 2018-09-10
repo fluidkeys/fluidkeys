@@ -257,17 +257,18 @@ func printSecretKeyListing(listNumber int, key gpgwrapper.SecretKeyListing) stri
 
 func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) gpgwrapper.SecretKeyListing {
 	var selectedKey int
+	invalidEntry := fmt.Sprintf("Please select between 1 and %v.\n", len(secretKeyListings))
 	for validInput := false; !validInput; {
 		rangePrompt := colour.LightBlue(fmt.Sprintf("[1-%v]", len(secretKeyListings)))
 		input := promptForInput(fmt.Sprintf(PromptWhichKeyFromGPG + " " + rangePrompt + " "))
 		if intergerSelected, err := strconv.Atoi(input); err != nil {
-			fmt.Printf("Only numbers please\n")
+			fmt.Print(invalidEntry)
 		} else {
 			if (intergerSelected >= 1) && (intergerSelected <= len(secretKeyListings)) {
 				selectedKey = intergerSelected - 1
 				validInput = true
 			} else {
-				fmt.Printf("Number not available\n")
+				fmt.Print(invalidEntry)
 			}
 		}
 	}
