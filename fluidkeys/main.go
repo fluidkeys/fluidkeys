@@ -231,14 +231,22 @@ func generatePgpKey(email string, channel chan generatePgpKeyResult) {
 
 func listKeysForImportingFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) string {
 	str := fmt.Sprintf("Found %s in GnuPG:\n\n", humanize.Plural(len(secretKeyListings), "key", "keys"))
-	for _, key := range secretKeyListings {
-		str += printSecretKeyListing(key)
+	for index, key := range secretKeyListings {
+		str += printSecretKeyListing(index+1, key)
 	}
 	return str
 }
 
-func printSecretKeyListing(key gpgwrapper.SecretKeyListing) string {
-	output := fmt.Sprintf("    %s\n", key.Fingerprint)
+func printSecretKeyListing(listNumber int, key gpgwrapper.SecretKeyListing) string {
+	runeLengthListNumber := len(strconv.Itoa(listNumber) + ".")
+	remainingIndents := 4 - runeLengthListNumber
+	remainingIndent := ""
+	for i := 0; i < remainingIndents; i++ {
+		remainingIndent += " "
+	}
+	formattedListNumber := colour.LightBlue(strconv.Itoa(listNumber) + ".")
+
+	output := fmt.Sprintf(formattedListNumber+remainingIndent+"%s\n", key.Fingerprint)
 	output += fmt.Sprintf("    Created on %s\n", key.Created.Format("2 January 2006"))
 	for _, uid := range key.Uids {
 		output += fmt.Sprintf("      %v\n", uid)

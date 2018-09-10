@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 )
 
@@ -118,7 +119,7 @@ func TestPromptForWhichGpgKey(t *testing.T) {
 		gotReturn := listKeysForImportingFromGpg(secretKeyListings)
 		expectedReturn := `Found 1 key in GnuPG:
 
-    BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB
+` + colour.LightBlue("1.") + `  BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB
     Created on 15 June 2012
       Chat Wannamaker<chat2@example.com>
       Chat Rulez<chat3@example.com>
