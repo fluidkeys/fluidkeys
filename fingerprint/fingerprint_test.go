@@ -27,6 +27,11 @@ func TestFingerprint(t *testing.T) {
 			false,
 		},
 		{
+			`0C10 C4A2 6E9B 1B46 E713  C8D2 BEBF 0628 DAFF 9F4B`,
+			`0C10 C4A2 6E9B 1B46 E713  C8D2 BEBF 0628 DAFF 9F4B`,
+			false,
+		},
+		{
 			"a999b7498d1a8dc473e53c92309f635dad1b5517",
 			"A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
 			false,
