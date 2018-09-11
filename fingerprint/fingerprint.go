@@ -27,7 +27,7 @@ func Parse(fp string) (Fingerprint, error) {
 		return nilFingerprint, fmt.Errorf("fingerprint doesn't match pattern '%v', err=%v", expectedPattern, err)
 	}
 
-	withoutLeading0x := strings.TrimLeft(withoutSpaces, "0x")
+	withoutLeading0x := strings.TrimPrefix(withoutSpaces, "0x")
 
 	bytes, err := hex.DecodeString(withoutLeading0x)
 	if err != nil {
