@@ -115,15 +115,21 @@ func keyFromGpg() exitCode {
 	fmt.Printf(formatListedKeysForImportingFromGpg(secretKeys))
 	keyToImport := promptForKeyToImportFromGpg(secretKeys)
 
-	fluidkeysDirectory, err := getFluidkeysDirectory()
-	if err != nil {
-		fmt.Printf("Failed to get fluidkeys directory")
-		return 1
-	}
+	if keyToImport != nil {
+		fmt.Printf("Key to import: %v", keyToImport.Fingerprint)
 
-	db := database.New(fluidkeysDirectory)
-	db.RecordFingerprintImportedIntoGnuPG(keyToImport.Fingerprint)
-	fmt.Printf("The key has been linked to Fluidkeys\n")
+		fluidkeysDirectory, err := getFluidkeysDirectory()
+		if err != nil {
+			fmt.Printf("Failed to get fluidkeys directory")
+			return 1
+		}
+
+		db := database.New(fluidkeysDirectory)
+		db.RecordFingerprintImportedIntoGnuPG(keyToImport.Fingerprint)
+		fmt.Printf("The key has been linked to Fluidkeys\n")
+	} else {
+		fmt.Printf("No key selected to link\n")
+	}
 	return 0
 }
 
@@ -254,24 +260,57 @@ func printSecretKeyListing(listNumber int, key gpgwrapper.SecretKeyListing) stri
 	return output
 }
 
-func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) gpgwrapper.SecretKeyListing {
+func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) *gpgwrapper.SecretKeyListing {
 	var selectedKey int
-	invalidEntry := fmt.Sprintf("Please select between 1 and %v.\n", len(secretKeyListings))
-	for validInput := false; !validInput; {
-		rangePrompt := colour.LightBlue(fmt.Sprintf("[1-%v]", len(secretKeyListings)))
-		input := promptForInput(fmt.Sprintf(PromptWhichKeyFromGPG + " " + rangePrompt + " "))
-		if integerSelected, err := strconv.Atoi(input); err != nil {
-			fmt.Print(invalidEntry)
+	if len(secretKeyListings) == 1 {
+		onlyKey := secretKeyListings[0]
+		if promptToConfirmImportKeyFromGpg(onlyKey) {
+			return &onlyKey
 		} else {
-			if (integerSelected >= 1) && (integerSelected <= len(secretKeyListings)) {
-				selectedKey = integerSelected - 1
-				validInput = true
-			} else {
+			return nil
+		}
+	} else {
+		invalidEntry := fmt.Sprintf("Please select between 1 and %v.\n", len(secretKeyListings))
+		for validInput := false; !validInput; {
+			rangePrompt := colour.LightBlue(fmt.Sprintf("[1-%v]", len(secretKeyListings)))
+			input := promptForInput(fmt.Sprintf(PromptWhichKeyFromGPG + " " + rangePrompt + " "))
+			if integerSelected, err := strconv.Atoi(input); err != nil {
 				fmt.Print(invalidEntry)
+			} else {
+				if (integerSelected >= 1) && (integerSelected <= len(secretKeyListings)) {
+					selectedKey = integerSelected - 1
+					validInput = true
+				} else {
+					fmt.Print(invalidEntry)
+				}
 			}
 		}
+		return &secretKeyListings[selectedKey]
 	}
-	return secretKeyListings[selectedKey]
+}
+
+func promptToConfirmImportKeyFromGpg(key gpgwrapper.SecretKeyListing) bool {
+	var confirmed bool
+	for validInput := false; !validInput; {
+		input := promptForInput("Import key? [Y/n] ")
+		switch input {
+		case "Y":
+			confirmed = true
+			validInput = true
+		case "y":
+			confirmed = true
+			validInput = true
+		case "N":
+			confirmed = false
+			validInput = true
+		case "n":
+			confirmed = false
+			validInput = true
+		default:
+			fmt.Printf("Please select only Y or N.\n")
+		}
+	}
+	return confirmed
 }
 
 func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
