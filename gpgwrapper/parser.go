@@ -156,12 +156,13 @@ func parseTimestamp(utcTimestamp string) (*time.Time, error) {
 // `AB01 AB01 AB01 AB01 AB01  AB01 AB01 AB01 AB01 AB01`
 
 func parseFingerprint(fp string) (string, error) {
+	withoutSpaces := strings.Replace(fp, " ", "", -1)
+
 	expectedPattern := `^[A-Fa-f0-9 ]{40}$`
-	if matched, err := regexp.MatchString(expectedPattern, fp); !matched || err != nil {
-		return "", fmt.Errorf("fingerprint doesn't match pattern '%v', err=%v", expectedPattern, err)
+	if matched, err := regexp.MatchString(expectedPattern, withoutSpaces); !matched || err != nil {
+		return "", fmt.Errorf("fingerprint '%s' doesn't match pattern '%v', err=%v", fp, expectedPattern, err)
 	}
 
-	withoutSpaces := strings.Replace(fp, " ", "", -1)
 	f := strings.ToUpper(withoutSpaces)
 
 	return fmt.Sprintf(
