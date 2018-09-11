@@ -10,6 +10,8 @@ import (
 
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/packet"
+
+	"github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 func TestTheTestHelperFunctions(t *testing.T) {
@@ -264,6 +266,18 @@ func TestGenerate(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestLoadArmoredPublicKey(t *testing.T) {
+	pgpKey, err := LoadArmoredPublicKey(examplePublicKey)
+	if err != nil {
+		t.Fatalf("LoadArmoredPublicKey(..) failed: %v", err)
+	}
+	expected := fingerprint.MustParse("0C10 C4A2 6E9B 1B46 E713  C8D2 BEBF 0628 DAFF 9F4B")
+	got := pgpKey.Fingerprint()
+	if got != expected {
+		t.Fatalf("loaded pgp key but it had unexpected fingerprint. exprted: %v, got: %v", expected, got)
+	}
 }
 
 const examplePublicKey string = `-----BEGIN PGP PUBLIC KEY BLOCK-----
