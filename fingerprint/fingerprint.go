@@ -51,6 +51,14 @@ func MustParse(fp string) Fingerprint {
 	return result
 }
 
+// FromBytes takes 20 bytes and returns a Fingerprint.
+func FromBytes(bytes [20]byte) Fingerprint {
+	return Fingerprint{
+		fingerprintBytes: bytes,
+		isSet:            true,
+	}
+}
+
 // Return a human-friendly version of the fingerprint, which should be a 40
 // character hex string.
 // `AB01 AB01 AB01 AB01 AB01  AB01 AB01 AB01 AB01 AB01`

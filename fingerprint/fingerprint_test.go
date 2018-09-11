@@ -84,6 +84,21 @@ func TestFingerprint(t *testing.T) {
 		})
 	}
 
+	t.Run("FromBytes function", func(t *testing.T) {
+
+		fp := FromBytes(exampleFingerprintBytes)
+		if !fp.IsSet() {
+			t.Fatalf("FromBytes did not set IsSet=true")
+		}
+
+		expected := "A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517"
+		got := fp.String()
+
+		if expected != got {
+			t.Errorf("expected String='%s', got='%s'", expected, got)
+		}
+	})
+
 	t.Run("Hex method", func(t *testing.T) {
 		fp := MustParse("A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517")
 		expected := "A999B7498D1A8DC473E53C92309F635DAD1B5517"
@@ -116,7 +131,7 @@ func TestFingerprint(t *testing.T) {
 
 	t.Run("Bytes method", func(t *testing.T) {
 		fp := MustParse("A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517")
-		expected := [20]byte{0xA9, 0x99, 0xB7, 0x49, 0x8D, 0x1A, 0x8D, 0xC4, 0x73, 0xE5, 0x3C, 0x92, 0x30, 0x9F, 0x63, 0x5D, 0xAD, 0x1B, 0x55, 0x17}
+		expected := exampleFingerprintBytes
 		got := fp.Bytes()
 
 		if expected != got {
@@ -125,3 +140,5 @@ func TestFingerprint(t *testing.T) {
 	})
 
 }
+
+var exampleFingerprintBytes = [20]byte{0xA9, 0x99, 0xB7, 0x49, 0x8D, 0x1A, 0x8D, 0xC4, 0x73, 0xE5, 0x3C, 0x92, 0x30, 0x9F, 0x63, 0x5D, 0xAD, 0x1B, 0x55, 0x17}
