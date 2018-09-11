@@ -282,8 +282,49 @@ func keyList() exitCode {
 		panic(err)
 	}
 
-	fmt.Printf("%v\n", keys)
+	emailAddressColumnWidth := len("Email address")
+
+	for _, key := range keys {
+		for _, id := range key.Identities {
+			emailAddressColumnWidth = Max(emailAddressColumnWidth, len(id.Name))
+		}
+	}
+
+	createdColumnWidth := len("31 May 2018")
+	nextRotationColumnWidth := len("Next rotation")
+
+	header := fmt.Sprintf("%-*s  ", emailAddressColumnWidth, "Email address")
+	header += fmt.Sprintf("%-*s  ", createdColumnWidth, "Created")
+	header += fmt.Sprintf("%-*s  ", nextRotationColumnWidth, "Next rotation")
+
+	fmt.Printf("%s\n", colour.LightBlue(header))
+
+	printHorizontalRule(emailAddressColumnWidth, createdColumnWidth, nextRotationColumnWidth)
+
+	for _, key := range keys {
+		firstRow := true
+		for id := range key.Identities {
+			if firstRow {
+				fmt.Printf("%-*s  ", emailAddressColumnWidth, id)
+				fmt.Printf("%-*s  ", createdColumnWidth, key.PrimaryKey.CreationTime.Format("2 Jan 2006"))
+				fmt.Printf("\n")
+				firstRow = false
+			} else {
+				fmt.Printf("%s\n", id)
+			}
+
+		}
+		printHorizontalRule(emailAddressColumnWidth, createdColumnWidth, nextRotationColumnWidth)
+	}
+
 	return 0
+}
+
+func printHorizontalRule(columnWidths ...int) {
+	for _, columnWidth := range columnWidths {
+		fmt.Printf("%s  ", strings.Repeat("─", columnWidth))
+	}
+	fmt.Printf("\n")
 }
 
 func getFluidkeysDirectory() (string, error) {
@@ -425,4 +466,12 @@ func userConfirmedRandomWord(password DicewarePassword) bool {
 
 func clearScreen() {
 	fmt.Print("\033[H\033[2J")
+}
+
+// Max returns the larger of x or y.
+func Max(x, y int) int {
+	if x < y {
+		return y
+	}
+	return x
 }
