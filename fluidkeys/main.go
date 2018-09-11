@@ -289,27 +289,19 @@ func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing
 }
 
 func promptToConfirmImportKeyFromGpg(key gpgwrapper.SecretKeyListing) bool {
-	var confirmed bool
-	for validInput := false; !validInput; {
+	for {
 		input := promptForInput("Import key? [Y/n] ")
-		switch input {
-		case "Y":
-			confirmed = true
-			validInput = true
+		switch strings.ToLower(input) {
+		case "":
+			return true
 		case "y":
-			confirmed = true
-			validInput = true
-		case "N":
-			confirmed = false
-			validInput = true
+			return true
 		case "n":
-			confirmed = false
-			validInput = true
+			return false
 		default:
 			fmt.Printf("Please select only Y or N.\n")
 		}
 	}
-	return confirmed
 }
 
 func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
