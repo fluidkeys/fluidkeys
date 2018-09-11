@@ -59,6 +59,17 @@ func FromBytes(bytes [20]byte) Fingerprint {
 	}
 }
 
+// Contains returns true if the given needle (Fingerprint) is present in the
+// given haystack, or false if not.
+func Contains(haystack []Fingerprint, needle Fingerprint) bool {
+	for _, value := range haystack {
+		if value == needle {
+			return true
+		}
+	}
+	return false
+}
+
 // Return a human-friendly version of the fingerprint, which should be a 40
 // character hex string.
 // `AB01 AB01 AB01 AB01 AB01  AB01 AB01 AB01 AB01 AB01`
