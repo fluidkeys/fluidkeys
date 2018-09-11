@@ -34,7 +34,7 @@ func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fingerprin
 	}
 
 	allFingerprints := append(existingFingerprints, newFingerprint)
-	databaseMessage := makeDatabaseMessageFromFingerprints(allFingerprints)
+	databaseMessage := makeDatabaseMessageFromFingerprints(deduplicate(allFingerprints))
 
 	file, err := os.Create(db.jsonFilename)
 	if err != nil {
