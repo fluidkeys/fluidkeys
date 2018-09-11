@@ -10,6 +10,7 @@ import (
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/armor"
 	"github.com/fluidkeys/crypto/openpgp/packet"
+	"github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 const (
@@ -168,7 +169,7 @@ func (key *PgpKey) Slug() (string, error) {
 		"%s-%s-%s",
 		dateString,
 		emailSlug,
-		key.FingerprintString(),
+		key.Fingerprint().Hex(),
 	), nil
 }
 
@@ -191,8 +192,8 @@ func (key *PgpKey) Email() (string, error) {
 	return emails[0], nil
 }
 
-func (key *PgpKey) FingerprintString() string {
-	return fmt.Sprintf("%X", key.PrimaryKey.Fingerprint)
+func (key *PgpKey) Fingerprint() fingerprint.Fingerprint {
+	return fingerprint.FromBytes(key.PrimaryKey.Fingerprint)
 }
 
 func slugify(textToSlugify string) (slugified string) {

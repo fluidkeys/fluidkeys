@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 func TestParseGPGOutputVersion(t *testing.T) {
@@ -116,7 +118,7 @@ func TestListSecretKeys(t *testing.T) {
 	}
 
 	expectedKey := SecretKeyListing{
-		Fingerprint: "C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6",
+		Fingerprint: fingerprint.MustParse("C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6"),
 		Uids:        []string{"test@example.com"},
 		Created:     time.Date(2018, 8, 22, 12, 8, 23, 0, time.UTC),
 	}
@@ -137,7 +139,7 @@ func TestParseListSecretKeys(t *testing.T) {
 		}
 
 		expectedFirst := SecretKeyListing{
-			Fingerprint: "A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
+			Fingerprint: fingerprint.MustParse("A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517"),
 			Created:     time.Date(2014, 10, 31, 21, 34, 34, 0, time.UTC), // 31 October 2014 21:34:34
 			Uids: []string{
 				"Paul Michael Furley <paul@paulfurley.com>",
@@ -146,7 +148,7 @@ func TestParseListSecretKeys(t *testing.T) {
 		}
 
 		expectedSecond := SecretKeyListing{
-			Fingerprint: "B79F 0840 DEF1 2EBB A72F  F72D 7327 A44C 2157 A758",
+			Fingerprint: fingerprint.MustParse("B79F 0840 DEF1 2EBB A72F  F72D 7327 A44C 2157 A758"),
 			Created:     time.Date(2018, 9, 4, 16, 15, 46, 0, time.UTC), // Tue Sep  4 17:15:46 BST 2018
 			Uids:        []string{"<paul@fluidkeys.com>"},
 		}
@@ -179,62 +181,6 @@ func TestParseListSecretKeys(t *testing.T) {
 			t.Fatalf("expected 0 secret keys, got %d: %v", len(result), result)
 		}
 	})
-}
-
-func TestParseFingerprint(t *testing.T) {
-	var tests = []struct {
-		inputString       string
-		expectedOutput    string
-		shouldReturnError bool
-	}{
-		{
-			"A999B7498D1A8DC473E53C92309F635DAD1B5517",
-			"A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
-			false,
-		},
-		{
-			"a999b7498d1a8dc473e53c92309f635dad1b5517",
-			"A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
-			false,
-		},
-		{
-			"DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFD",
-			"",
-			true, // error: too long
-		},
-		{
-			"DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEE",
-			"",
-			true, // error: too long
-		},
-		{
-			"DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFG",
-			"",
-			true, // error, contains bad character G
-		},
-		{
-			"",
-			"",
-			true, // error, empty
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("parseFingerprint(%v)", test.inputString), func(t *testing.T) {
-			gotOutput, err := parseFingerprint(test.inputString)
-
-			var gotError bool = err != nil
-
-			if gotError != test.shouldReturnError {
-				t.Errorf("expected shouldReturnError=%v, got err=%v", test.shouldReturnError, err)
-			}
-
-			if test.expectedOutput != gotOutput {
-				t.Errorf("expected output='%s', got='%s'", test.expectedOutput, gotOutput)
-			}
-
-		})
-	}
 }
 
 func TestParseTimestamp(t *testing.T) {
