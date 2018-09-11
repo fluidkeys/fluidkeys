@@ -16,6 +16,12 @@ import (
 
 const GpgPath = "gpg2"
 
+const publicHeader = "-----BEGIN PGP PUBLIC KEY BLOCK-----"
+const publicFooter = "-----END PGP PUBLIC KEY BLOCK-----"
+const privateHeader = "-----BEGIN PGP PRIVATE KEY BLOCK-----"
+const privateFooter = "-----END PGP PRIVATE KEY BLOCK-----"
+const nothingExported = "WARNING: nothing exported"
+
 var ErrNoVersionStringFound = errors.New("version string not found in GPG output")
 
 func ErrProblemExecutingGPG(gpgStdout string, arguments ...string) error {
@@ -99,6 +105,37 @@ func (g *GnuPG) ListSecretKeys() ([]SecretKeyListing, error) {
 	}
 
 	return parseListSecretKeys(outString)
+}
+
+// ExportPublicKey returns 1 ascii armored public key for the given
+// fingerprint
+func (g *GnuPG) ExportPublicKey(fingerprint fingerprint.Fingerprint) (string, error) {
+	args := []string{
+		"--export-options", "export-minimal",
+		"--armor",
+		"--export",
+		fingerprint.Hex(),
+	}
+
+	stdout, err := g.run(args...)
+	if err != nil {
+		return "", err
+	}
+
+	if strings.Contains(stdout, nothingExported) {
+		return "", fmt.Errorf("GnuPG returned 'nothing exported' for fingerprint '%s'", fingerprint)
+	}
+
+	numHeaders := strings.Count(stdout, publicHeader)
+	numFooters := strings.Count(stdout, publicFooter)
+
+	if numHeaders != 1 || numFooters != 1 {
+		return "", fmt.Errorf(
+			"Expected exactly 1 ascii-armored public key, got %d headers and %d footers",
+			numHeaders, numFooters)
+	}
+
+	return stdout, nil
 }
 
 func parseVersionString(gpgStdout string) (string, error) {

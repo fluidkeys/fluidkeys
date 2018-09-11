@@ -127,6 +127,29 @@ func TestListSecretKeys(t *testing.T) {
 
 }
 
+func TestExportPublicKey(t *testing.T) {
+	gpg := GnuPG{homeDir: makeTempGnupgHome(t)}
+	gpg.ImportArmoredKey(ExamplePublicKey)
+	gpg.ImportArmoredKey(ExamplePrivateKey)
+
+	t.Run("with a valid fingerprint", func(t *testing.T) {
+		_, err := gpg.ExportPublicKey(fingerprint.MustParse("8FBC 0768 76F2 B042 AE2B  A37B 0BBD 7E7E 5B85 C8D3"))
+
+		if err != nil {
+			t.Errorf("Failed to run ExportPublicKey: %v", err)
+		}
+
+	})
+
+	t.Run("with an invalid fingerprint", func(t *testing.T) {
+		_, err := gpg.ExportPublicKey(fingerprint.MustParse("0000 0000 0000 0000 0000 0000 0000 0000 0000 0000"))
+
+		if err == nil {
+			t.Errorf("ExportPublicKey should have returned an error but didnt")
+		}
+	})
+}
+
 func TestParseListSecretKeys(t *testing.T) {
 	t.Run("test parsing example colon delimited data", func(t *testing.T) {
 		result, err := parseListSecretKeys(exampleListSecretKeys)
