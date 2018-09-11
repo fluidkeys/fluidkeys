@@ -133,7 +133,7 @@ func TestExportPrivateKey(t *testing.T) {
 	gpg.ImportArmoredKey(ExamplePrivateKey)
 
 	t.Run("with a valid fingerprint and password", func(t *testing.T) {
-		armored, err := gpg.ExportPrivateKey("C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6", "foo")
+		armored, err := gpg.ExportPrivateKey(fingerprint.MustParse("C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6"), "foo")
 
 		if err != nil {
 			t.Errorf("Failed to run ExportPrivateKey: %v", err)
@@ -143,7 +143,7 @@ func TestExportPrivateKey(t *testing.T) {
 	})
 
 	t.Run("with an invalid password", func(t *testing.T) {
-		_, err := gpg.ExportPrivateKey("C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6", "wrong password")
+		_, err := gpg.ExportPrivateKey(fingerprint.MustParse("C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6"), "wrong password")
 
 		if err == nil {
 			t.Errorf("ExportPrivateKey should have returned an error but didnt")
@@ -151,7 +151,7 @@ func TestExportPrivateKey(t *testing.T) {
 	})
 
 	t.Run("with an invalid fingerprint", func(t *testing.T) {
-		_, err := gpg.ExportPrivateKey("non existent", "bar")
+		_, err := gpg.ExportPrivateKey(fingerprint.MustParse("0000000000000000000000000000000000000000"), "bar")
 
 		if err == nil {
 			t.Errorf("ExportPrivateKey should have returned an error but didnt")

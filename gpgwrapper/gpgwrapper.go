@@ -110,18 +110,13 @@ func (g *GnuPG) ListSecretKeys() ([]SecretKeyListing, error) {
 // ExportPrivateKey returns 1 ascii armored private key for the given
 // fingerprint, assuming it is encrypted with the given password.
 // The outputted private key is encrypted with the password.
-func (g *GnuPG) ExportPrivateKey(fingerprint string, password string) (string, error) {
+func (g *GnuPG) ExportPrivateKey(fingerprint fingerprint.Fingerprint, password string) (string, error) {
 	args := []string{
 		"--pinentry-mode", "loopback", // don't use OS password prompt
 		"--passphrase-fd", "0", // read password from stdin
 		"--armor",
 		"--export-secret-keys",
-		fingerprint,
-	}
-
-	_, err := parseFingerprint(fingerprint)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse fingerprint: %v", err)
+		fingerprint.Hex(),
 	}
 
 	stdout, err := g.runWithStdin(password, args...)
