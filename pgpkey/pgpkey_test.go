@@ -2,9 +2,7 @@ package pgpkey
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
@@ -183,12 +181,11 @@ func TestSlugify(t *testing.T) {
 func loadExamplePgpKey(t *testing.T) PgpKey {
 	t.Helper()
 
-	entity, err := readEntityFromString(examplePublicKey)
+	pgpKey, err := LoadArmoredPublicKey(examplePublicKey)
 	if err != nil {
 		t.Fatalf("failed to load example PGP key: %v", err)
 	}
-	pgpKey := PgpKey{*entity}
-	return pgpKey
+	return *pgpKey
 }
 
 func assertEqual(t *testing.T, want string, got string) {
@@ -211,19 +208,6 @@ func getSingleUid(identities map[string]*openpgp.Identity) string {
 	return uids[0]
 }
 
-func readEntityFromString(asciiArmoredString string) (*openpgp.Entity, error) {
-	ioReader := strings.NewReader(asciiArmoredString)
-	entityList, err := openpgp.ReadArmoredKeyRing(ioReader)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if len(entityList) != 1 {
-		return nil, errors.New(fmt.Sprintf("expected 1 entity, got %d", len(entityList)))
-	}
-	return entityList[0], nil
-}
 
 func TestGenerate(t *testing.T) {
 	janeEmail := "jane@example.com"
@@ -238,7 +222,7 @@ func TestGenerate(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to ascii armor key: %v", err)
 		}
-		entity, err := readEntityFromString(armored)
+		entity, err := LoadArmoredPublicKey(armored)
 		if err != nil {
 			t.Errorf("failed to load example PGP key: %v", err)
 		}
