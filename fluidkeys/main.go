@@ -16,6 +16,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/backupzip"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/database"
+	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
@@ -105,36 +106,60 @@ func keySubcommand(args docopt.Opts) exitCode {
 }
 
 func keyFromGpg() exitCode {
-	gpg := gpgwrapper.GnuPG{}
-
-	secretKeys, err := gpg.ListSecretKeys()
+	fluidkeysDirectory, err := getFluidkeysDirectory()
 	if err != nil {
-		fmt.Errorf("Error getting secret keys from GPG: %v", err)
+		fmt.Printf("Failed to get fluidkeys directory: %v\n", err)
 		return 1
 	}
-	if len(secretKeys) == 0 {
+	db := database.New(fluidkeysDirectory)
+	gpg := gpgwrapper.GnuPG{}
+
+	availableKeys, err := keysAvailableToGetFromGpg(db, gpg)
+	if err != nil {
+		fmt.Printf("Failed to list available keys: %v", err)
+		return 1
+	}
+
+	if len(availableKeys) == 0 {
 		fmt.Printf("No secret keys found in GPG\n")
 		return 1
 	}
 
-	fmt.Printf(formatListedKeysForImportingFromGpg(secretKeys))
-	keyToImport := promptForKeyToImportFromGpg(secretKeys)
+	fmt.Printf(formatListedKeysForImportingFromGpg(availableKeys))
+	keyToImport := promptForKeyToImportFromGpg(availableKeys)
 
 	if keyToImport == nil {
 		fmt.Printf("No key selected to link\n")
 		return 0
 	}
 
-	fluidkeysDirectory, err := getFluidkeysDirectory()
-	if err != nil {
-		fmt.Printf("Failed to get fluidkeys directory")
-		return 1
-	}
-
-	db := database.New(fluidkeysDirectory)
 	db.RecordFingerprintImportedIntoGnuPG(keyToImport.Fingerprint)
 	fmt.Printf("The key has been linked to Fluidkeys\n")
 	return 0
+}
+
+// keysAvailableToGetFromGpg returns a filtered slice of SecretKeyListings, removing
+// any keys that Fluidkeys is already managing.
+func keysAvailableToGetFromGpg(db database.Database, gpg gpgwrapper.GnuPG) ([]gpgwrapper.SecretKeyListing, error) {
+
+	importedFingerprints, err := db.GetFingerprintsImportedIntoGnuPG()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get fingerprints from database: %v\n", err)
+	}
+
+	var availableKeys []gpgwrapper.SecretKeyListing
+
+	allGpgKeys, err := gpg.ListSecretKeys()
+	if err != nil {
+		return nil, fmt.Errorf("Error getting secret keys from GPG: %v", err)
+	}
+
+	for _, key := range allGpgKeys {
+		if !fingerprint.Contains(importedFingerprints, key.Fingerprint) {
+			availableKeys = append(availableKeys, key)
+		}
+	}
+	return availableKeys, nil
 }
 
 func keyCreate() exitCode {
