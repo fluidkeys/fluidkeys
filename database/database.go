@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 type Database struct {
@@ -25,7 +27,7 @@ func New(fluidkeysDirectory string) Database {
 	return Database{jsonFilename: jsonFilename}
 }
 
-func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint string) error {
+func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fingerprint.Fingerprint) error {
 	existingFingerprints, err := db.GetFingerprintsImportedIntoGnuPG()
 	if err != nil {
 		return err
@@ -45,11 +47,11 @@ func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint string) er
 	return encoder.Encode(databaseMessage)
 }
 
-func makeDatabaseMessageFromFingerprints(fingerprints []string) DatabaseMessage {
+func makeDatabaseMessageFromFingerprints(fingerprints []fingerprint.Fingerprint) DatabaseMessage {
 	var messages []KeyImportedIntoGnuPGMessage
 
 	for _, fingerprint := range fingerprints {
-		messages = append(messages, KeyImportedIntoGnuPGMessage{Fingerprint: fingerprint})
+		messages = append(messages, KeyImportedIntoGnuPGMessage{Fingerprint: fingerprint.Hex()})
 	}
 
 	databaseMessage := DatabaseMessage{
@@ -58,11 +60,11 @@ func makeDatabaseMessageFromFingerprints(fingerprints []string) DatabaseMessage 
 	return databaseMessage
 }
 
-func (db *Database) GetFingerprintsImportedIntoGnuPG() ([]string, error) {
+func (db *Database) GetFingerprintsImportedIntoGnuPG() ([]fingerprint.Fingerprint, error) {
 	file, err := os.Open(db.jsonFilename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return []string{}, nil
+			return []fingerprint.Fingerprint{}, nil
 		} else {
 			return nil, fmt.Errorf("Couldn't open '%s': %v", db.jsonFilename, err)
 		}
@@ -77,22 +79,27 @@ func (db *Database) GetFingerprintsImportedIntoGnuPG() ([]string, error) {
 
 	json.Unmarshal(byteValue, &databaseMessage)
 
-	var fingerprints []string
+	var fingerprints []fingerprint.Fingerprint
 
 	for _, v := range databaseMessage.KeysImportedIntoGnuPG {
-		fingerprints = append(fingerprints, v.Fingerprint)
+		fingerprintString := v.Fingerprint
+		parsedFingerprint, err := fingerprint.Parse(fingerprintString)
+		if err != nil {
+			continue
+		}
+		fingerprints = append(fingerprints, parsedFingerprint)
 	}
 
 	return deduplicate(fingerprints), nil
 }
 
-func deduplicate(slice []string) []string {
-	sliceMap := make(map[string]bool)
+func deduplicate(slice []fingerprint.Fingerprint) []fingerprint.Fingerprint {
+	sliceMap := make(map[fingerprint.Fingerprint]bool)
 	for _, v := range slice {
 		sliceMap[v] = true
 	}
 
-	var deduped []string
+	var deduped []fingerprint.Fingerprint
 	for key, _ := range sliceMap {
 		deduped = append(deduped, key)
 	}
