@@ -117,7 +117,14 @@ func keyFromGpg() exitCode {
 
 	fmt.Printf("Key to import: %v", keyToImport.Fingerprint)
 
-	// TODO: Record that Fluidkeys now has permission to manage this key
+	fluidkeysDirectory, err := getFluidkeysDirectory()
+	if err != nil {
+		fmt.Printf("Failed to get fluidkeys directory")
+	}
+
+	db := database.New(fluidkeysDirectory)
+	db.RecordFingerprintImportedIntoGnuPG(keyToImport.Fingerprint)
+	fmt.Printf("The key has been linked to Fluidkeys\n")
 	return 0
 }
 
