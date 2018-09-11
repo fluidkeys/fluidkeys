@@ -120,6 +120,7 @@ func keyFromGpg() exitCode {
 	fluidkeysDirectory, err := getFluidkeysDirectory()
 	if err != nil {
 		fmt.Printf("Failed to get fluidkeys directory")
+		return 1
 	}
 
 	db := database.New(fluidkeysDirectory)
