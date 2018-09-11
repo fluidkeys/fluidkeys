@@ -115,19 +115,20 @@ func keyFromGpg() exitCode {
 	fmt.Printf(formatListedKeysForImportingFromGpg(secretKeys))
 	keyToImport := promptForKeyToImportFromGpg(secretKeys)
 
-	if keyToImport != nil {
-		fluidkeysDirectory, err := getFluidkeysDirectory()
-		if err != nil {
-			fmt.Printf("Failed to get fluidkeys directory")
-			return 1
-		}
-
-		db := database.New(fluidkeysDirectory)
-		db.RecordFingerprintImportedIntoGnuPG(keyToImport.Fingerprint)
-		fmt.Printf("The key has been linked to Fluidkeys\n")
-	} else {
+	if keyToImport == nil {
 		fmt.Printf("No key selected to link\n")
+		return 0
 	}
+
+	fluidkeysDirectory, err := getFluidkeysDirectory()
+	if err != nil {
+		fmt.Printf("Failed to get fluidkeys directory")
+		return 1
+	}
+
+	db := database.New(fluidkeysDirectory)
+	db.RecordFingerprintImportedIntoGnuPG(keyToImport.Fingerprint)
+	fmt.Printf("The key has been linked to Fluidkeys\n")
 	return 0
 }
 
