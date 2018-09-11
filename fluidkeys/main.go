@@ -112,6 +112,11 @@ func keyFromGpg() exitCode {
 		fmt.Errorf("Error getting secret keys from GPG: %v", err)
 		return 1
 	}
+	if len(secretKeys) == 0 {
+		fmt.Printf("No secret keys found in GPG\n")
+		return 1
+	}
+
 	fmt.Printf(formatListedKeysForImportingFromGpg(secretKeys))
 	keyToImport := promptForKeyToImportFromGpg(secretKeys)
 
