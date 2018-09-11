@@ -37,7 +37,7 @@ test:
 
 .PHONY: run
 run: $(MAIN_GO_FILES)
-	go run $(MAIN_GO_FILES)
+	go run $<
 
 .PHONY: publish_latest_tag
 publish_latest_tag: $(SECRETS_ID_RSA)

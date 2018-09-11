@@ -61,6 +61,7 @@ func main() {
 Usage:
 	fk key create
 	fk key from-gpg
+	fk key list
 
 Options:
 	-h --help    Show this screen`, Version)
@@ -96,11 +97,13 @@ func initSubcommand(args docopt.Opts) exitCode {
 }
 
 func keySubcommand(args docopt.Opts) exitCode {
-	switch getSubcommand(args, []string{"create", "from-gpg"}) {
+	switch getSubcommand(args, []string{"create", "from-gpg", "list"}) {
 	case "create":
 		os.Exit(keyCreate())
 	case "from-gpg":
 		os.Exit(keyFromGpg())
+	case "list":
+		os.Exit(keyList())
 	}
 	panic(fmt.Errorf("keySubcommand got unexpected arguments: %v", args))
 }
@@ -264,6 +267,22 @@ func keyCreate() exitCode {
 
 	db := database.New(fluidkeysDirectory)
 	db.RecordFingerprintImportedIntoGnuPG(generateJob.pgpKey.Fingerprint())
+	return 0
+}
+
+func keyList() exitCode {
+	fluidkeysDirectory, err := getFluidkeysDirectory()
+	if err != nil {
+		fmt.Printf("Failed to get fluidkeys directory")
+	}
+	db := database.New(fluidkeysDirectory)
+
+	keys, err := loadPgpKeys(db)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%v\n", keys)
 	return 0
 }
 
