@@ -116,8 +116,6 @@ func keyFromGpg() exitCode {
 	keyToImport := promptForKeyToImportFromGpg(secretKeys)
 
 	if keyToImport != nil {
-		fmt.Printf("Key to import: %v", keyToImport.Fingerprint)
-
 		fluidkeysDirectory, err := getFluidkeysDirectory()
 		if err != nil {
 			fmt.Printf("Failed to get fluidkeys directory")
