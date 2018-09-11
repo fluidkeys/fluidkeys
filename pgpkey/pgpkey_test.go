@@ -56,7 +56,7 @@ func TestFingerprintMethod(t *testing.T) {
 	pgpKey := loadExamplePgpKey(t)
 
 	t.Run("test PgpKey.FingerprintString() returns the right string", func(t *testing.T) {
-		slug := pgpKey.FingerprintString()
+		slug := pgpKey.Fingerprint().Hex()
 		assertEqual(t, "0C10C4A26E9B1B46E713C8D2BEBF0628DAFF9F4B", slug)
 	})
 }
