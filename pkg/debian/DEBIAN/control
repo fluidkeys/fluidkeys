@@ -5,6 +5,7 @@ Essential: no
 Section: devel
 Priority: optional
 Depends:
+Recommends: gnupg2
 Maintainer: Paul Furley, Ian Drysdale
 Installed-Size: 96
 Description: Fluidkeys makes PGP simple.
