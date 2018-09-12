@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
 
@@ -21,7 +22,7 @@ func Print(keys []pgpkey.PgpKey) {
 
 func makeTable(keys []pgpkey.PgpKey) string {
 	var table string
-	table += fmt.Sprintf("%s\n", makeHeader(columnWidths(keys)))
+	table += fmt.Sprintf("%s\n", colour.LightBlue(makeHeader(columnWidths(keys))))
 	table += fmt.Sprintf("%s\n", makeHorizontalUnderlines(columnWidths(keys)))
 
 	for _, key := range keys {

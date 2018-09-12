@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
@@ -16,7 +17,9 @@ func TestMakeTable(t *testing.T) {
 
 	keys := []pgpkey.PgpKey{*pgpKey}
 
-	want := fmt.Sprintf("Email address                       Created      Next rotation\n")
+	want := fmt.Sprintf("%s\n",
+		colour.LightBlue("Email address                       Created      Next rotation"),
+	)
 	want += fmt.Sprintf("──────────────────────────────────  ───────────  ─────────────\n")
 	want += fmt.Sprintf("another@example.com                 10 Sep 2018\n")
 	want += fmt.Sprintf("test3@example.com\n")
