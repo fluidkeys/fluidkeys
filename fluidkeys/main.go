@@ -19,6 +19,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 	"github.com/fluidkeys/fluidkeys/humanize"
+	"github.com/fluidkeys/fluidkeys/keytableprinter"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/sethvargo/go-diceware/diceware"
 )
@@ -61,6 +62,7 @@ func main() {
 Usage:
 	fk key create
 	fk key from-gpg
+	fk key list
 
 Options:
 	-h --help    Show this screen`, Version)
@@ -96,11 +98,13 @@ func initSubcommand(args docopt.Opts) exitCode {
 }
 
 func keySubcommand(args docopt.Opts) exitCode {
-	switch getSubcommand(args, []string{"create", "from-gpg"}) {
+	switch getSubcommand(args, []string{"create", "from-gpg", "list"}) {
 	case "create":
 		os.Exit(keyCreate())
 	case "from-gpg":
 		os.Exit(keyFromGpg())
+	case "list":
+		os.Exit(keyList())
 	}
 	panic(fmt.Errorf("keySubcommand got unexpected arguments: %v", args))
 }
@@ -267,6 +271,22 @@ func keyCreate() exitCode {
 	return 0
 }
 
+func keyList() exitCode {
+	fluidkeysDirectory, err := getFluidkeysDirectory()
+	if err != nil {
+		fmt.Printf("Failed to get fluidkeys directory")
+	}
+	db := database.New(fluidkeysDirectory)
+
+	keys, err := loadPgpKeys(db)
+	if err != nil {
+		panic(err)
+	}
+
+	keytableprinter.Print(keys)
+	return 0
+}
+
 func getFluidkeysDirectory() (string, error) {
 	dirFromEnv := os.Getenv("FLUIDKEYS_DIR")
 
@@ -406,4 +426,12 @@ func userConfirmedRandomWord(password DicewarePassword) bool {
 
 func clearScreen() {
 	fmt.Print("\033[H\033[2J")
+}
+
+// Max returns the larger of x or y.
+func Max(x, y int) int {
+	if x < y {
+		return y
+	}
+	return x
 }
