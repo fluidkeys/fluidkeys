@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -188,6 +189,7 @@ func loadPgpKeys(db database.Database) ([]pgpkey.PgpKey, error) {
 		}
 		keys = append(keys, *pgpKey)
 	}
+	sort.Sort(pgpkey.ByCreated(keys))
 	return keys, nil
 }
 
