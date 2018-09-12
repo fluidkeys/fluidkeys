@@ -178,7 +178,7 @@ func loadPgpKeys(db database.Database) ([]pgpkey.PgpKey, error) {
 			continue // skip this key. TODO: log?
 		}
 
-		pgpKey, err := pgpkey.LoadArmoredPublicKey(armoredPublicKey)
+		pgpKey, err := pgpkey.LoadFromArmoredPublicKey(armoredPublicKey)
 		if err != nil {
 			continue // skip this key. TODO: log?
 		}
