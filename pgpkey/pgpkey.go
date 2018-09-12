@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/fluidkeys/crypto/openpgp"
@@ -34,6 +35,22 @@ type PgpKey struct {
 
 func Generate(email string) (*PgpKey, error) {
 	return generateKeyOfSize(email, RsaSizeSecureKeyBits)
+}
+
+// LoadFromArmoredPublicKey takes a single ascii-armored public key and
+// returns a PgpKey
+func LoadFromArmoredPublicKey(armoredPublicKey string) (*PgpKey, error) {
+	entityList, err := openpgp.ReadArmoredKeyRing(strings.NewReader(armoredPublicKey))
+	if err != nil {
+		return nil, fmt.Errorf("error reading armored key ring: %v", err)
+	}
+	if len(entityList) != 1 {
+		return nil, fmt.Errorf("expected 1 openpgp.Entity, got %d!", len(entityList))
+	}
+	entity := entityList[0]
+
+	pgpKey := PgpKey{*entity}
+	return &pgpKey, nil
 }
 
 func generateInsecure(email string) (*PgpKey, error) {

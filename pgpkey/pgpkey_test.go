@@ -2,14 +2,14 @@ package pgpkey
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/packet"
+
+	"github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 func TestTheTestHelperFunctions(t *testing.T) {
@@ -181,12 +181,11 @@ func TestSlugify(t *testing.T) {
 func loadExamplePgpKey(t *testing.T) PgpKey {
 	t.Helper()
 
-	entity, err := readEntityFromString(examplePublicKey)
+	pgpKey, err := LoadFromArmoredPublicKey(examplePublicKey)
 	if err != nil {
 		t.Fatalf("failed to load example PGP key: %v", err)
 	}
-	pgpKey := PgpKey{*entity}
-	return pgpKey
+	return *pgpKey
 }
 
 func assertEqual(t *testing.T, want string, got string) {
@@ -209,19 +208,6 @@ func getSingleUid(identities map[string]*openpgp.Identity) string {
 	return uids[0]
 }
 
-func readEntityFromString(asciiArmoredString string) (*openpgp.Entity, error) {
-	ioReader := strings.NewReader(asciiArmoredString)
-	entityList, err := openpgp.ReadArmoredKeyRing(ioReader)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if len(entityList) != 1 {
-		return nil, errors.New(fmt.Sprintf("expected 1 entity, got %d", len(entityList)))
-	}
-	return entityList[0], nil
-}
 
 func TestGenerate(t *testing.T) {
 	janeEmail := "jane@example.com"
@@ -236,7 +222,7 @@ func TestGenerate(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to ascii armor key: %v", err)
 		}
-		entity, err := readEntityFromString(armored)
+		entity, err := LoadFromArmoredPublicKey(armored)
 		if err != nil {
 			t.Errorf("failed to load example PGP key: %v", err)
 		}
@@ -264,6 +250,18 @@ func TestGenerate(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestLoadFromArmoredPublicKey(t *testing.T) {
+	pgpKey, err := LoadFromArmoredPublicKey(examplePublicKey)
+	if err != nil {
+		t.Fatalf("LoadFromArmoredPublicKey(..) failed: %v", err)
+	}
+	expected := fingerprint.MustParse("0C10 C4A2 6E9B 1B46 E713  C8D2 BEBF 0628 DAFF 9F4B")
+	got := pgpKey.Fingerprint()
+	if got != expected {
+		t.Fatalf("loaded pgp key but it had unexpected fingerprint. exprted: %v, got: %v", expected, got)
+	}
 }
 
 const examplePublicKey string = `-----BEGIN PGP PUBLIC KEY BLOCK-----
