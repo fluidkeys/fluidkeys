@@ -67,7 +67,7 @@ make_deb_package() {
     tree ${REPO_DIR}/pkg/debian
 
 
-    dpkg -b ${REPO_DIR}/pkg/debian "${DEB_FILE}"
+    fakeroot dpkg-deb --build ${REPO_DIR}/pkg/debian "${DEB_FILE}"
     dpkg --contents "${DEB_FILE}"
 }
 
