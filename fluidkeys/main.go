@@ -39,7 +39,7 @@ const FailedToConfirmPassword string = "That didn't match. Quitting...\n"
 
 const PromptWhichKeyFromGPG string = "Which key would you like to import?"
 
-const Version = "0.1.1"
+const Version = "0.1.2"
 
 type DicewarePassword struct {
 	words     []string
