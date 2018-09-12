@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -196,17 +197,51 @@ func (key *PgpKey) Slug() (string, error) {
 // If more than one User Id is found, an error is returned
 
 func (key *PgpKey) Email() (string, error) {
-	var emails []string
+	emails := key.Emails(true)
 
-	for _, uid := range key.Identities {
-		email := uid.UserId.Email
-		emails = append(emails, email)
-	}
 	if len(emails) != 1 {
 		return "", fmt.Errorf("expected identities map to have 1 element, has %d", len(emails))
 	}
 
 	return emails[0], nil
+}
+
+// Emails returns an alphabetically sorted list of email addresses
+//
+// Set allowUnbracketed to true to accept (invalid) email-only UIDs from GnuPG.
+//
+// A UID with the form `example@example.com` is technically not a valid
+// `name-addr` (https://tools.ietf.org/html/rfc2822#section-3.4)
+// as it should have angle brackets: `<example@example.com>`
+//
+// Currently with GnuPG it's impossible to make a email-only UID that is a
+// valid name-addr (it outputs as 'example@example.com' and won't allow you to
+// force '<example@example.com>`
+func (key *PgpKey) Emails(allowUnbracketed bool) []string {
+	var emails []string
+
+	for _, identity := range key.Identities {
+		email := identity.UserId.Email
+		if email == "" {
+			// email will be blank if it wasn't inside < >
+			// in the UID. if allowUnbracketed *and* the raw UID
+			// looks like an email address, use that instead.
+			if allowUnbracketed && roughlyValidateEmail(identity.UserId.Id) {
+				email = identity.UserId.Id
+			} else {
+				continue // skip this whole UID
+			}
+		}
+
+		emails = append(emails, email)
+	}
+
+	sort.Strings(emails)
+	return emails
+}
+
+func roughlyValidateEmail(email string) bool {
+	return strings.Contains(email, "@")
 }
 
 func (key *PgpKey) Fingerprint() fingerprint.Fingerprint {

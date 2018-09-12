@@ -9,6 +9,7 @@ import (
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/packet"
 
+	"github.com/fluidkeys/fluidkeys/exampledata"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
@@ -49,6 +50,49 @@ func TestEmailMethod(t *testing.T) {
 			t.Fatalf("Error calling PgpKey.Email(): %v", err)
 		}
 		assertEqual(t, want, got)
+	})
+}
+
+func TestEmailsMethod(t *testing.T) {
+	pgpKey, err := LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
+	if err != nil {
+		t.Fatalf("Failed to load example test data: %v", err)
+	}
+
+	t.Run("returns sorted email addresses with allowUnbracketed=false", func(t *testing.T) {
+		expected := []string{
+			"another@example.com",
+			"test3@example.com",
+		}
+		got := pgpKey.Emails(false)
+
+		if len(got) != len(expected) {
+			t.Fatalf("Expected %d emails, got %d: %v", len(expected), len(got), got)
+		}
+
+		for i := range expected {
+			if expected[i] != got[i] {
+				t.Fatalf("expected[%d] = '%s', got = '%s'", i, expected[i], got[i])
+			}
+		}
+	})
+	t.Run("returns sorted email addresses with allowUnbracketed=true", func(t *testing.T) {
+		expected := []string{
+			"another@example.com",
+			"test3@example.com",
+			"unbracketedemail@example.com",
+		}
+		got := pgpKey.Emails(true)
+
+		if len(got) != len(expected) {
+			t.Fatalf("Expected %d emails, got %d: %v", len(expected), len(got), got)
+		}
+
+		for i := range expected {
+			if expected[i] != got[i] {
+				t.Fatalf("expected[%d] = '%s', got = '%s'", i, expected[i], got[i])
+			}
+		}
 	})
 }
 
