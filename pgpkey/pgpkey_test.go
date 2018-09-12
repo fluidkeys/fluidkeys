@@ -9,8 +9,8 @@ import (
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/packet"
 
+	"github.com/fluidkeys/fluidkeys/exampledata"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
-	"github.com/fluidkeys/fluidkeys/testdata"
 )
 
 func TestTheTestHelperFunctions(t *testing.T) {
@@ -54,7 +54,7 @@ func TestEmailMethod(t *testing.T) {
 }
 
 func TestEmailsMethod(t *testing.T) {
-	pgpKey, err := LoadFromArmoredPublicKey(testdata.ExamplePublicKey3)
+	pgpKey, err := LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
 	if err != nil {
 		t.Fatalf("Failed to load example test data: %v", err)
 	}

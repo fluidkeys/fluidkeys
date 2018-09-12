@@ -1,4 +1,4 @@
-package testdata
+package exampledata
 
 import (
 	"github.com/fluidkeys/fluidkeys/fingerprint"
