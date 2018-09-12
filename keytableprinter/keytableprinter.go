@@ -26,11 +26,15 @@ func makeTable(keys []pgpkey.PgpKey) string {
 	table += fmt.Sprintf("%s\n", makeHorizontalUnderlines(columnWidths(keys)))
 
 	for _, key := range keys {
-		firstEmail := key.Emails(true)[0]
+		emails := key.Emails(true)
+		if len(emails) == 0 {
+			continue // skip this key
+		}
+		firstEmail := emails[0]
 		table += fmt.Sprintf("%-*s%s", columnWidths(keys)[0], firstEmail, gutter)
 		table += fmt.Sprintf("%-*s", columnWidths(keys)[1], key.PrimaryKey.CreationTime.Format("2 Jan 2006"))
 		table += fmt.Sprintf("\n")
-		for _, email := range key.Emails(true)[1:] {
+		for _, email := range emails[1:] {
 			table += fmt.Sprintf("%v\n", email)
 		}
 
