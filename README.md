@@ -13,7 +13,7 @@ Once installed, run it with `fk`.
 1. Get our public key
 
 ```
-sudo apt-key adv --keyserver pool.sks-keyservers.net --recv-key 0x36D46F41F57A1DF676730BE4EA53212450A89809
+curl --silent https://www.fluidkeys.com/release.asc | sudo apt-key add -
 ```
 
 2. Add our apt repository
