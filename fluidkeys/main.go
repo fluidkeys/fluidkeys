@@ -162,6 +162,31 @@ func keysAvailableToGetFromGpg(db database.Database, gpg gpgwrapper.GnuPG) ([]gp
 	return availableKeys, nil
 }
 
+func loadPgpKeys(db database.Database) ([]pgpkey.PgpKey, error) {
+	fingerprints, err := db.GetFingerprintsImportedIntoGnuPG()
+	if err != nil {
+		return nil, err
+	}
+
+	gpg := gpgwrapper.GnuPG{}
+
+	var keys []pgpkey.PgpKey
+
+	for _, fingerprint := range fingerprints {
+		armoredPublicKey, err := gpg.ExportPublicKey(fingerprint)
+		if err != nil {
+			continue // skip this key. TODO: log?
+		}
+
+		pgpKey, err := pgpkey.LoadFromArmoredPublicKey(armoredPublicKey)
+		if err != nil {
+			continue // skip this key. TODO: log?
+		}
+		keys = append(keys, *pgpKey)
+	}
+	return keys, nil
+}
+
 func keyCreate() exitCode {
 
 	gpg := gpgwrapper.GnuPG{}
