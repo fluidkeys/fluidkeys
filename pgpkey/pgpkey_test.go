@@ -181,7 +181,7 @@ func TestSlugify(t *testing.T) {
 func loadExamplePgpKey(t *testing.T) PgpKey {
 	t.Helper()
 
-	pgpKey, err := LoadArmoredPublicKey(examplePublicKey)
+	pgpKey, err := LoadFromArmoredPublicKey(examplePublicKey)
 	if err != nil {
 		t.Fatalf("failed to load example PGP key: %v", err)
 	}
@@ -222,7 +222,7 @@ func TestGenerate(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to ascii armor key: %v", err)
 		}
-		entity, err := LoadArmoredPublicKey(armored)
+		entity, err := LoadFromArmoredPublicKey(armored)
 		if err != nil {
 			t.Errorf("failed to load example PGP key: %v", err)
 		}
@@ -252,10 +252,10 @@ func TestGenerate(t *testing.T) {
 	})
 }
 
-func TestLoadArmoredPublicKey(t *testing.T) {
-	pgpKey, err := LoadArmoredPublicKey(examplePublicKey)
+func TestLoadFromArmoredPublicKey(t *testing.T) {
+	pgpKey, err := LoadFromArmoredPublicKey(examplePublicKey)
 	if err != nil {
-		t.Fatalf("LoadArmoredPublicKey(..) failed: %v", err)
+		t.Fatalf("LoadFromArmoredPublicKey(..) failed: %v", err)
 	}
 	expected := fingerprint.MustParse("0C10 C4A2 6E9B 1B46 E713  C8D2 BEBF 0628 DAFF 9F4B")
 	got := pgpKey.Fingerprint()

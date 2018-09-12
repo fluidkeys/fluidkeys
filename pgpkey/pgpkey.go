@@ -37,9 +37,9 @@ func Generate(email string) (*PgpKey, error) {
 	return generateKeyOfSize(email, RsaSizeSecureKeyBits)
 }
 
-// LoadArmoredPublicKey takes a single ascii-armored public key and
+// LoadFromArmoredPublicKey takes a single ascii-armored public key and
 // returns a PgpKey
-func LoadArmoredPublicKey(armoredPublicKey string) (*PgpKey, error) {
+func LoadFromArmoredPublicKey(armoredPublicKey string) (*PgpKey, error) {
 	entityList, err := openpgp.ReadArmoredKeyRing(strings.NewReader(armoredPublicKey))
 	if err != nil {
 		return nil, fmt.Errorf("error reading armored key ring: %v", err)
