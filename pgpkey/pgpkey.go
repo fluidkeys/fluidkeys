@@ -197,12 +197,8 @@ func (key *PgpKey) Slug() (string, error) {
 // If more than one User Id is found, an error is returned
 
 func (key *PgpKey) Email() (string, error) {
-	var emails []string
+	emails := key.Emails(true)
 
-	for _, uid := range key.Identities {
-		email := uid.UserId.Email
-		emails = append(emails, email)
-	}
 	if len(emails) != 1 {
 		return "", fmt.Errorf("expected identities map to have 1 element, has %d", len(emails))
 	}
