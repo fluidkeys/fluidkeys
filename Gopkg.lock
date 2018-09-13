@@ -10,7 +10,7 @@
 [[projects]]
   name = "github.com/fluidkeys/crypto"
   packages = ["cast5","openpgp","openpgp/armor","openpgp/elgamal","openpgp/errors","openpgp/packet","openpgp/s2k"]
-  revision = "2018-09-04"
+  revision = "2018-09-13"
 
 [[projects]]
   branch = "master"
@@ -27,6 +27,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "67d75f2cf9fae7089a2921d815a25557571b6121bb1c721878b3785b4ebc2b7c"
+  inputs-digest = "ce3fd75f59fd0d58c0a50ca4f9a8a583879a47d818b3d23630e55f2f0d5c579e"
   solver-name = "gps-cdcl"
   solver-version = 1
