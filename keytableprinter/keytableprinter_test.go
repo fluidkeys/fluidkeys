@@ -1,74 +1,109 @@
 package keytableprinter
 
 import (
-	"fmt"
 	"testing"
 
+	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/colour"
-	"github.com/fluidkeys/fluidkeys/exampledata"
-	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
 
-func TestMakeTable(t *testing.T) {
-	pgpKey, err := pgpkey.LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
-	if err != nil {
-		t.Fatalf("Failed to load example test data: %v", err)
+func TestMakeRowsFromColumns(t *testing.T) {
+	columns := []column{
+		column{"Jane", "Jill"},
+		column{"One", "Two", "Three", "Four"},
+		column{"", "Hello"},
 	}
 
-	keys := []pgpkey.PgpKey{*pgpKey}
-
-	want := fmt.Sprintf("%s\n",
-		colour.LightBlue("Email address                       Created      Next rotation"),
-	)
-	want += fmt.Sprintf("──────────────────────────────────  ───────────  ─────────────\n")
-	want += fmt.Sprintf("another@example.com                 10 Sep 2018\n")
-	want += fmt.Sprintf("test3@example.com\n")
-	want += fmt.Sprintf("unbracketedemail@example.com\n")
-	want += fmt.Sprintf("──────────────────────────────────  ───────────  ─────────────\n")
-
-	got := makeTable(keys)
-
-	if got != want {
-		t.Fatalf("Expected:\n---\n%v\n---\nGot:\n---\n%v\n---", want, got)
+	got := makeRowsFromColumns(columns)
+	want := []row{
+		row{"Jane", "One", ""},
+		row{"Jill", "Two", "Hello"},
+		row{"", "Three", ""},
+		row{"", "Four", ""},
 	}
+
+	AssertEqualCells(t, want, got)
 }
 
-func TestColumnWidths(t *testing.T) {
-	pgpKey, err := pgpkey.LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
-	if err != nil {
-		t.Fatalf("Failed to load example test data: %v", err)
-	}
+func TestMakeStringsFromRows(t *testing.T) {
+	t.Run("with unformatted strings", func(t *testing.T) {
+		rows := []row{
+			row{"Name", "Age", "Location"},
+			row{divider, divider, divider},
+			row{"Gillian", "45", ""},
+			row{divider, divider, divider},
+			row{"Jill", "76", "Sheffield"},
+			row{divider, divider, divider},
+			row{"", "23", ""},
+			row{"", "12", ""},
+		}
 
-	keys := []pgpkey.PgpKey{*pgpKey}
+		got := makeStringsFromRows(rows)
+		want := []string{
+			"Name     Age  Location ",
+			"───────  ───  ─────────",
+			"Gillian  45            ",
+			"───────  ───  ─────────",
+			"Jill     76   Sheffield",
+			"───────  ───  ─────────",
+			"         23            ",
+			"         12            ",
+		}
 
-	want := [3]int{34, 11, 13}
-	got := columnWidths(keys)
+		assert.AssertEqualSliceOfStrings(t, want, got)
+	})
 
-	if !assertEqualColumnWidths(t, want, got) {
-		t.Fatalf("Expected %v, got %v", want, got)
-	}
+	t.Run("with coloured strings", func(t *testing.T) {
+		rows := []row{
+			row{colour.LightBlue("Name"), colour.LightBlue("Age")},
+			row{divider, divider},
+			row{"Gillian", "45"},
+		}
+
+		got := makeStringsFromRows(rows)
+		want := []string{
+			colour.LightBlue("Name") + "     " + colour.LightBlue("Age"),
+			"───────  ───",
+			"Gillian  45 ",
+		}
+
+		assert.AssertEqualSliceOfStrings(t, want, got)
+	})
 }
 
-func TestHorizontalUnderlines(t *testing.T) {
-	columns := [3]int{4, 2, 5}
+func TestGetColumnWidths(t *testing.T) {
+	rows := []row{
+		row{"1234", "12", "123"},
+		row{"12", "123456", "1"},
+		row{"123", "123", "12"},
+	}
 
-	got := makeHorizontalUnderlines(columns)
-	want := "────  ──  ─────"
+	want := []int{4, 6, 3}
+	got := getColumnWidths(rows)
+
+	assert.AssertEqualSliceOfInts(t, want, got)
+}
+
+func TestMaxInSlice(t *testing.T) {
+	integers := []int{2, 5, 10, 1, -9, 7}
+
+	want := 10
+	got := maxInSlice(integers)
 
 	if got != want {
 		t.Fatalf("Expected '%v', got '%v'", want, got)
 	}
 }
 
-func assertEqualColumnWidths(t *testing.T, a, b [3]int) bool {
+// AssertEqualCells compares two string slices and calls t.Fatalf
+// with a message if they differ.
+func AssertEqualCells(t *testing.T, expected, got [][]string) {
 	t.Helper()
-	if len(a) != len(b) {
-		return false
+	if len(expected) != len(got) {
+		t.Fatalf("expected length %d, got %d. expected: %v, got: %v",
+			len(expected), len(got), expected, got)
 	}
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
+	for i := range expected {
+		assert.AssertEqualSliceOfStrings(t, expected[i], got[i])
 	}
-	return true
 }

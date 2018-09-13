@@ -85,7 +85,7 @@ func TestFormatKeyWarningLines(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("for status %v", test.warning), func(t *testing.T) {
-			gotOutput := FormatKeyWarningLines(test.warning)
+			gotOutput := formatKeyWarningLines(test.warning)
 
 			assert.AssertEqualSliceOfStrings(t, test.expectedOutput, gotOutput)
 		})

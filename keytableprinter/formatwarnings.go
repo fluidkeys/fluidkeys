@@ -12,7 +12,7 @@ func keyWarningLines(key pgpkey.PgpKey) []string {
 	keyWarnings, _ := status.GetKeyWarnings(key)
 	keyWarningLines := []string{}
 	for _, keyWarning := range keyWarnings {
-		keyWarningLines = append(keyWarningLines, FormatKeyWarningLines(keyWarning)...)
+		keyWarningLines = append(keyWarningLines, formatKeyWarningLines(keyWarning)...)
 	}
 	return keyWarningLines
 }
@@ -20,7 +20,7 @@ func keyWarningLines(key pgpkey.PgpKey) []string {
 // FormatKeyWarningLines takes a status.KeyWarning and returns an array of
 // human friendly messages coloured appropriately for printing to the
 // terminal.
-func FormatKeyWarningLines(warning status.KeyWarning) []string {
+func formatKeyWarningLines(warning status.KeyWarning) []string {
 	switch warning.(type) {
 
 	case status.DueForRotation:
