@@ -132,3 +132,7 @@ func White(message string) string {
 func Yellow(message string) string {
 	return FgYellow + message + Reset
 }
+
+func Grey(message string) string {
+	return Bright + FgBlack + message + Reset
+}
