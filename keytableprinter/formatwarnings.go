@@ -14,7 +14,7 @@ func FormatKeyWarningLines(warning status.KeyWarning) []string {
 	switch warning.(type) {
 
 	case status.DueForRotation:
-		return []string{colour.Warn("Due for rotation 🔄")}
+		return []string{colour.Yellow("Due for rotation 🔄")}
 
 	case status.OverdueForRotation:
 		warnings := []string{
@@ -35,7 +35,7 @@ func FormatKeyWarningLines(warning status.KeyWarning) []string {
 		return []string{colour.Red("No expiry date set 📅")}
 
 	case status.LongExpiry:
-		return []string{colour.Warn("Expiry date too far off 📅")}
+		return []string{colour.Yellow("Expiry date too far off 📅")}
 
 	case status.Expired:
 		var message string

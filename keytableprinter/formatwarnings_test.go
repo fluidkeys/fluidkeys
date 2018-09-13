@@ -17,7 +17,7 @@ func TestFormatKeyWarningLines(t *testing.T) {
 		{
 			status.DueForRotation{},
 			[]string{
-				colour.Warn("Due for rotation 🔄"),
+				colour.Yellow("Due for rotation 🔄"),
 			},
 		},
 		{
@@ -50,7 +50,7 @@ func TestFormatKeyWarningLines(t *testing.T) {
 		{
 			status.LongExpiry{},
 			[]string{
-				colour.Warn("Expiry date too far off 📅"),
+				colour.Yellow("Expiry date too far off 📅"),
 			},
 		},
 		{
