@@ -11,7 +11,7 @@ type DueForRotation struct {
 type OverdueForRotation struct {
 	KeyWarning
 
-	DaysUntilExpiry int
+	DaysUntilExpiry uint // 0 means within 24 hours from now, 1 means tomorrow
 }
 
 type Expired struct {
