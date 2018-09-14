@@ -150,6 +150,52 @@ func TestExportPublicKey(t *testing.T) {
 	})
 }
 
+func TestExportPrivateKey(t *testing.T) {
+	gpg := GnuPG{homeDir: makeTempGnupgHome(t)}
+	gpg.ImportArmoredKey(ExamplePublicKey)
+	gpg.ImportArmoredKey(ExamplePrivateKey)
+
+	t.Run("with a valid fingerprint and password", func(t *testing.T) {
+		_, err := gpg.ExportPrivateKey(fingerprint.MustParse("C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6"), "foo")
+
+		if err != nil {
+			t.Errorf("Failed to run ExportPrivateKey: %v", err)
+		}
+	})
+
+	t.Run("with an invalid password", func(t *testing.T) {
+		// GnuPG versions 2.1+ require a password to export a secret key, even though it's
+		// exported *encrypted* with the password.
+		// Previous versions just output the encrypted key without a password.
+
+		version, err := gpg.Version()
+		if err != nil {
+			t.Fatalf("failed to get version: %v", err)
+		}
+
+		fmt.Printf("gpg version: %s\n", version)
+
+		if version[0:3] == "2.1" || version[0:3] == "2.0" {
+			fmt.Printf("skipping test, GnuPG < 2.2 didn't require a valid password to export private keys\n")
+			t.Skip()
+		}
+
+		output, err := gpg.ExportPrivateKey(fingerprint.MustParse("C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6"), "wrong password")
+
+		if err == nil {
+			t.Errorf("ExportPrivateKey should have returned an error but didnt. output: %s", output)
+		}
+	})
+
+	t.Run("with an invalid fingerprint", func(t *testing.T) {
+		_, err := gpg.ExportPrivateKey(fingerprint.MustParse("0000 0000 0000 0000 0000 0000 0000 0000 0000 0000"), "bar")
+
+		if err == nil {
+			t.Errorf("ExportPrivateKey should have returned an error but didnt")
+		}
+	})
+}
+
 func TestParseListSecretKeys(t *testing.T) {
 	t.Run("test parsing example colon delimited data", func(t *testing.T) {
 		result, err := parseListSecretKeys(exampleListSecretKeys)
