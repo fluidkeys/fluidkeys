@@ -139,31 +139,9 @@ func Grey(message string) string {
 
 // StripAllColourCodes strips all the ANSI colour codes from a string
 func StripAllColourCodes(message string) string {
-	message = strings.Replace(message, Reset, "", -1)
-	message = strings.Replace(message, Bright, "", -1)
-	message = strings.Replace(message, Dim, "", -1)
-	message = strings.Replace(message, Underscore, "", -1)
-	message = strings.Replace(message, Blink, "", -1)
-	message = strings.Replace(message, Reverse, "", -1)
-	message = strings.Replace(message, Hidden, "", -1)
-
-	message = strings.Replace(message, FgBlack, "", -1)
-	message = strings.Replace(message, FgRed, "", -1)
-	message = strings.Replace(message, FgGreen, "", -1)
-	message = strings.Replace(message, FgYellow, "", -1)
-	message = strings.Replace(message, FgBlue, "", -1)
-	message = strings.Replace(message, FgMagenta, "", -1)
-	message = strings.Replace(message, FgCyan, "", -1)
-	message = strings.Replace(message, FgWhite, "", -1)
-
-	message = strings.Replace(message, BgBlack, "", -1)
-	message = strings.Replace(message, BgRed, "", -1)
-	message = strings.Replace(message, BgGreen, "", -1)
-	message = strings.Replace(message, BgYellow, "", -1)
-	message = strings.Replace(message, BgBlue, "", -1)
-	message = strings.Replace(message, BgMagenta, "", -1)
-	message = strings.Replace(message, BgCyan, "", -1)
-	message = strings.Replace(message, BgWhite, "", -1)
+	for _, colourCode := range AllColourCodes {
+		message = strings.Replace(message, colourCode, "", -1)
+	}
 
 	return message
 }
