@@ -27,3 +27,31 @@ const (
 	BgCyan    = "\x1b[46m"
 	BgWhite   = "\x1b[47m"
 )
+
+var AllColourCodes = []string{
+	Reset,
+	Bright,
+	Dim,
+	Underscore,
+	Blink,
+	Reverse,
+	Hidden,
+
+	FgBlack,
+	FgRed,
+	FgGreen,
+	FgYellow,
+	FgBlue,
+	FgMagenta,
+	FgCyan,
+	FgWhite,
+
+	BgBlack,
+	BgRed,
+	BgGreen,
+	BgYellow,
+	BgBlue,
+	BgMagenta,
+	BgCyan,
+	BgWhite,
+}
