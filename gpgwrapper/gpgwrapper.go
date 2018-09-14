@@ -21,6 +21,7 @@ const publicFooter = "-----END PGP PUBLIC KEY BLOCK-----"
 const privateHeader = "-----BEGIN PGP PRIVATE KEY BLOCK-----"
 const privateFooter = "-----END PGP PRIVATE KEY BLOCK-----"
 const nothingExported = "WARNING: nothing exported"
+const invalidOptionPinentryMode = `gpg: invalid option "--pinentry-mode"`
 
 var ErrNoVersionStringFound = errors.New("version string not found in GPG output")
 
@@ -138,6 +139,79 @@ func (g *GnuPG) ExportPublicKey(fingerprint fingerprint.Fingerprint) (string, er
 	return stdout, nil
 }
 
+// ExportPrivateKey returns 1 ascii armored private key for the given
+// fingerprint, assuming it is encrypted with the given password.
+// The outputted private key is encrypted with the password.
+func (g *GnuPG) ExportPrivateKey(fingerprint fingerprint.Fingerprint, password string) (string, error) {
+
+	output, err := g.runWithStdin(
+		password,
+		getArgsExportPrivateKeyWithPinentry(fingerprint)...,
+	)
+
+	if err != nil {
+		if strings.Contains(output, invalidOptionPinentryMode) {
+			output, err := g.runWithStdin(
+				password,
+				getArgsExportPrivateKeyWithoutPinentry(fingerprint)...,
+			)
+
+			if err != nil {
+				return "", err
+			}
+
+			return checkValidExportPrivateOutput(output)
+		} else {
+			return "", err
+		}
+	}
+
+	return checkValidExportPrivateOutput(output)
+}
+
+func getArgsExportPrivateKeyWithPinentry(fingerprint fingerprint.Fingerprint) []string {
+	return []string{
+		"--pinentry-mode", "loopback", // don't use OS password prompt
+		"--passphrase-fd", "0", // read password from stdin
+		"--armor",
+		"--export-secret-keys",
+		fingerprint.Hex(),
+	}
+}
+
+func getArgsExportPrivateKeyWithoutPinentry(fingerprint fingerprint.Fingerprint) []string {
+	return []string{
+		"--passphrase-fd", "0", // read password from stdin
+		"--armor",
+		"--export-secret-keys",
+		fingerprint.Hex(),
+	}
+}
+
+// checkValidExportPrivateOutput takes the output of `gpg --export-secret-key ...`
+// and ensures:
+// 1. there's exactly 1 ascii-armored secret key
+// 2. there's no GnuPG warning message
+//
+// then it returns the output with err=nil if everything looks good.
+func checkValidExportPrivateOutput(output string) (string, error) {
+
+	if strings.Contains(output, nothingExported) {
+		return "", fmt.Errorf("GnuPG returned 'nothing exported'")
+	}
+
+	numHeaders := strings.Count(output, privateHeader)
+	numFooters := strings.Count(output, privateFooter)
+
+	if numHeaders != 1 || numFooters != 1 {
+		return "", fmt.Errorf(
+			"Expected exactly 1 ascii-armored secret key, got %d headers and %d footers",
+			numHeaders, numFooters)
+	}
+
+	return output, nil
+}
+
 func parseVersionString(gpgStdout string) (string, error) {
 	match := VersionRegexp.FindStringSubmatch(gpgStdout)
 
@@ -175,7 +249,7 @@ func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (string, er
 	stdoutAndStderr, err := cmd.CombinedOutput()
 
 	if err != nil {
-		return "", errors.New(fmt.Sprintf("GPG failed with error '%s', stdout said '%s'", err, stdoutAndStderr))
+		return string(stdoutAndStderr), errors.New(fmt.Sprintf("GPG failed with error '%s', stdout said '%s'", err, stdoutAndStderr))
 	}
 
 	output := string(stdoutAndStderr)
