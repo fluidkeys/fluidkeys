@@ -144,6 +144,9 @@ func makeCellString(value string, cellLength int) string {
 // getColumnWidths takes a slice of rows and then finds the length of the
 // longest value in each column.
 func getColumnWidths(rows []row) []int {
+	if len(rows) == 0 {
+		return []int{}
+	}
 	maxColumnWidths := make(map[int]int) // Column index -> Maximum width
 
 	for _, row := range rows {
