@@ -9,7 +9,7 @@ import (
 )
 
 func keyWarningLines(key pgpkey.PgpKey) []string {
-	keyWarnings, _ := status.GetKeyWarnings(key)
+	keyWarnings := status.GetKeyWarnings(key)
 	keyWarningLines := []string{}
 	for _, keyWarning := range keyWarnings {
 		keyWarningLines = append(keyWarningLines, formatKeyWarningLines(keyWarning)...)
