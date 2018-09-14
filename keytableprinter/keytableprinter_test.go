@@ -90,16 +90,27 @@ func TestMakeStringsFromRows(t *testing.T) {
 }
 
 func TestGetColumnWidths(t *testing.T) {
-	rows := []row{
-		row{"1234", "12", "123"},
-		row{"12", "123456", "1"},
-		row{"123", "123", "12"},
-	}
+	t.Run("with sensible rows", func(t *testing.T) {
+		rows := []row{
+			row{"1234", "12", "123"},
+			row{"12", "123456", "1"},
+			row{"123", "123", "12"},
+		}
 
-	want := []int{4, 6, 3}
-	got := getColumnWidths(rows)
+		want := []int{4, 6, 3}
+		got := getColumnWidths(rows)
 
-	assert.AssertEqualSliceOfInts(t, want, got)
+		assert.AssertEqualSliceOfInts(t, want, got)
+	})
+
+	t.Run("with empty rows", func(t *testing.T) {
+		rows := []row{}
+
+		want := []int{}
+		got := getColumnWidths(rows)
+
+		assert.AssertEqualSliceOfInts(t, want, got)
+	})
 }
 
 func TestMaxInSlice(t *testing.T) {
