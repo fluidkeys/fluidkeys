@@ -5,7 +5,25 @@ import (
 
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/colour"
+	"github.com/fluidkeys/fluidkeys/exampledata"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
+
+func TestMakeTableRows(t *testing.T) {
+	pgpKey, err := pgpkey.LoadFromArmoredPublicKey(exampledata.ExamplePublicKey2)
+	if err != nil {
+		t.Fatalf("failed to load example PgpKey: %v", err)
+	}
+
+	t.Run("with example pgp key", func(t *testing.T) {
+		makeTableRows([]pgpkey.PgpKey{*pgpKey})
+	})
+
+	t.Run("with empty slice of keys", func(t *testing.T) {
+		makeTableRows([]pgpkey.PgpKey{})
+	})
+
+}
 
 func TestMakeRowsFromColumns(t *testing.T) {
 	columns := []column{
