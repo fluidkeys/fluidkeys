@@ -33,3 +33,19 @@ func AssertEqualSliceOfStrings(t *testing.T, expected, got []string) {
 	}
 
 }
+
+// AssertEqualSliceOfInts compares two slices of ints and calls t.Fatalf
+// with a message if they differ.
+func AssertEqualSliceOfInts(t *testing.T, expected, got []int) {
+	t.Helper()
+	if len(expected) != len(got) {
+		t.Fatalf("expected length %d, got %d. expected: %v, got: %v",
+			len(expected), len(got), expected, got)
+	}
+	for i := range expected {
+		if expected[i] != got[i] {
+			t.Fatalf("expected[%d] differs, expected '%d', got '%d'", i, expected[i], got[i])
+		}
+	}
+
+}
