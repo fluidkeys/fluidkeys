@@ -34,6 +34,14 @@ type PgpKey struct {
 	openpgp.Entity
 }
 
+type IncorrectPassword struct {
+	decryptErrorMessage string
+}
+
+func (e *IncorrectPassword) Error() string {
+	return fmt.Sprintf("incorrect password: %s", e.decryptErrorMessage)
+}
+
 func Generate(email string) (*PgpKey, error) {
 	return generateKeyOfSize(email, RsaSizeSecureKeyBits)
 }
@@ -49,6 +57,30 @@ func LoadFromArmoredPublicKey(armoredPublicKey string) (*PgpKey, error) {
 		return nil, fmt.Errorf("expected 1 openpgp.Entity, got %d!", len(entityList))
 	}
 	entity := entityList[0]
+
+	pgpKey := PgpKey{*entity}
+	return &pgpKey, nil
+}
+
+// LoadFromArmoredEncryptedPrivateKey takes a single ascii-armored, encrypted
+// private key and returns PgpKey with a decrypted PrivateKey.
+//
+// If the password is wrong (at least, if .PrivateKey.Decrypt(password) returns
+// an error), this function returns an error of type `IncorrectPassword`.
+func LoadFromArmoredEncryptedPrivateKey(armoredPublicKey string, password string) (*PgpKey, error) {
+	entityList, err := openpgp.ReadArmoredKeyRing(strings.NewReader(armoredPublicKey))
+	if err != nil {
+		return nil, fmt.Errorf("error reading armored key ring: %v", err)
+	}
+	if len(entityList) != 1 {
+		return nil, fmt.Errorf("expected 1 openpgp.Entity, got %d!", len(entityList))
+	}
+	entity := entityList[0]
+
+	err = entity.PrivateKey.Decrypt([]byte(password))
+	if err != nil {
+		return nil, &IncorrectPassword{decryptErrorMessage: err.Error()}
+	}
 
 	pgpKey := PgpKey{*entity}
 	return &pgpKey, nil

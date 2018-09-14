@@ -252,7 +252,6 @@ func getSingleUid(identities map[string]*openpgp.Identity) string {
 	return uids[0]
 }
 
-
 func TestGenerate(t *testing.T) {
 	janeEmail := "jane@example.com"
 	generatedKey, err := generateInsecure(janeEmail)
@@ -306,6 +305,53 @@ func TestLoadFromArmoredPublicKey(t *testing.T) {
 	if got != expected {
 		t.Fatalf("loaded pgp key but it had unexpected fingerprint. exprted: %v, got: %v", expected, got)
 	}
+}
+
+func TestLoadFromArmoredEncryptedPrivateKey(t *testing.T) {
+	pgpKey, err := LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey2, "test2")
+	if err != nil {
+		t.Fatalf("LoadFromArmoredEncryptedPrivateKey(..) failed: %v", err)
+	}
+
+	t.Run("fingerprint matches", func(t *testing.T) {
+		expectedFingerprint := exampledata.ExampleFingerprint2
+		got := pgpKey.Fingerprint()
+		if got != expectedFingerprint {
+			t.Fatalf("expectected fingerprint: %v, got: %v", expectedFingerprint, got)
+		}
+	})
+
+	t.Run("loaded key has been decrypted", func(t *testing.T) {
+		if pgpKey.PrivateKey.Encrypted == true {
+			t.Fatalf("loaded pgp key but it's still encrypted")
+		}
+	})
+
+	t.Run("bad password returns IncorrectPassword error type", func(t *testing.T) {
+		_, err := LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey2, "badpassword")
+		if err == nil {
+			t.Fatalf("err should have been set for bad password.")
+		}
+
+		if _, ok := err.(*IncorrectPassword); !ok {
+			t.Fatalf("expected err.(type) = IncorrectPassword, got %v", err)
+		}
+
+		expectedText := "incorrect password: openpgp: invalid data: private key sha1 failure"
+		gotText := err.Error()
+
+		if expectedText != gotText {
+			t.Fatalf("expected '%s', got '%s'", expectedText, gotText)
+
+		}
+	})
+
+	t.Run("load fails with invalid ascii armor", func(t *testing.T) {
+		_, err := LoadFromArmoredEncryptedPrivateKey("INVALID ASCII ARMOR", "badpassword")
+		if err == nil {
+			t.Fatalf("err should have been set for invalid ascii armor")
+		}
+	})
 }
 
 const examplePublicKey string = `-----BEGIN PGP PUBLIC KEY BLOCK-----
