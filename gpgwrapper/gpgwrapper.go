@@ -175,7 +175,7 @@ func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (string, er
 	stdoutAndStderr, err := cmd.CombinedOutput()
 
 	if err != nil {
-		return "", errors.New(fmt.Sprintf("GPG failed with error '%s', stdout said '%s'", err, stdoutAndStderr))
+		return string(stdoutAndStderr), errors.New(fmt.Sprintf("GPG failed with error '%s', stdout said '%s'", err, stdoutAndStderr))
 	}
 
 	output := string(stdoutAndStderr)
