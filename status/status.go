@@ -1,7 +1,9 @@
 package status
 
 import (
+	"fmt"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"time"
 )
 
 type DueForRotation struct {
@@ -31,7 +33,209 @@ type LongExpiry struct {
 type KeyWarning interface {
 }
 
-func GetKeyWarnings(pgpkey.PgpKey) ([]KeyWarning, error) {
-	return []KeyWarning{
-	}, nil
+// GetKeyWarnings returns a slice of KeyWarnings indicating problems found
+// with the given PgpKey.
+func GetKeyWarnings(key pgpkey.PgpKey) []KeyWarning {
+	var warnings []KeyWarning
+
+	now := time.Now()
+	hasExpiry, expiry := getEarliestExpiryTime(key)
+
+	if hasExpiry {
+		nextRotation := calculateNextRotationTime(*expiry)
+
+		if isExpired(*expiry, now) {
+			warning := Expired{
+				DaysSinceExpiry: getDaysSinceExpiry(*expiry, now),
+			}
+			warnings = append(warnings, warning)
+
+		} else if isOverdueForRotation(nextRotation, now) {
+			warning := OverdueForRotation{
+				DaysUntilExpiry: getDaysUntilExpiry(nextRotation, now),
+			}
+			warnings = append(warnings, warning)
+
+		} else if isDueForRotation(nextRotation, now) {
+			warnings = append(warnings, DueForRotation{})
+		}
+
+		if isExpiryTooLong(*expiry, now) {
+			warnings = append(warnings, LongExpiry{})
+		}
+	} else { // no expiry
+		warnings = append(warnings, NoExpiry{})
+	}
+
+	return warnings
+}
+
+const tenDays time.Duration = time.Duration(time.Hour * 24 * 10)
+const thirtyDays time.Duration = time.Duration(time.Hour * 24 * 30)
+const fortyFiveDays time.Duration = time.Duration(time.Hour * 24 * 45)
+
+// CalculateNextRotationTime returns 30 days before the earliest expiry time on
+// the key.
+// If the key doesn't expire, it returns nil.
+func calculateNextRotationTime(expiry time.Time) time.Time {
+	return expiry.Add(-thirtyDays)
+}
+
+// isExpiryTooLong returns true if the expiry is too far in the future.
+//
+// It's important not to raise this warning for expiries that we've set
+// ourselves.
+// We use `nextExpiryTime` such that when we set an expiry date it's *exactly*
+// on the cusp of being too long, and can only get shorter after that point.
+func isExpiryTooLong(expiry time.Time, now time.Time) bool {
+	latestAcceptableExpiry := nextExpiryTime(now)
+	return expiry.After(latestAcceptableExpiry)
+}
+
+func isExpired(expiry time.Time, now time.Time) bool {
+	return expiry.Before(now)
+}
+
+// isOverdueForRotation returns true if `now` is more than 10 days after
+// nextRotation
+func isOverdueForRotation(nextRotation time.Time, now time.Time) bool {
+	overdueTime := nextRotation.Add(tenDays)
+	return overdueTime.Before(now)
+}
+
+// isDueForRotation returns true if `now` is any time after the key's next
+// rotation time
+func isDueForRotation(nextRotation time.Time, now time.Time) bool {
+	return nextRotation.Before(now)
+}
+
+// getDaysSinceExpiry returns the number of whole 24-hour periods until the
+// `expiry`
+func getDaysUntilExpiry(expiry time.Time, now time.Time) uint {
+	days := inDays(expiry.Sub(now))
+	if days < 0 {
+		panic(fmt.Errorf("getDaysUntilExpiry: expiry has already passed: %v", expiry))
+	}
+	return uint(days)
+}
+
+func inDays(duration time.Duration) int {
+	return int(duration.Seconds() / 86400)
+}
+
+// getDaysSinceExpiry returns the number of whole 24-hour periods that have
+// elapsed since `expiry`
+func getDaysSinceExpiry(expiry time.Time, now time.Time) uint {
+	days := inDays(now.Sub(expiry))
+	if days < 0 {
+		panic(fmt.Errorf("getDaysSinceExpiry: expiry is in the future: %v", expiry))
+	}
+	return uint(days)
+}
+
+// getEarliestExpiryTime returns the soonest expiry time from the key that
+// would cause it to lose functionality.
+//
+// There are 3 types of self-signatures: (https://tools.ietf.org/html/rfc4880#section-5.2.3.3)
+//
+// 1. certification self-signatures (0x10, 0x11, 0x12, 0x13)
+//    * user ID 1 + preferences
+//    * user ID 2 + preferences
+//
+// 2. subkey binding signatures (0x18)
+//    * subkey
+//
+// 3. direct key signatures (0x1F)
+//
+// * the primary key
+// * all subkeys "subkey binding signatures"
+// * self signatures / UIDs (?)
+//
+// There are also *signature expiration times* - the validity period of the
+// signature. https://tools.ietf.org/html/rfc4880#section-5.2.3.10
+// this is in Signature.SigLifetimeSecs
+
+func getEarliestExpiryTime(key pgpkey.PgpKey) (bool, *time.Time) {
+	var allExpiryTimes []time.Time
+
+	for _, id := range key.Identities {
+		hasExpiry, expiryTime := calculateExpiry(
+			key.PrimaryKey.CreationTime, // not to be confused with the time of the *signature*
+			id.SelfSignature.KeyLifetimeSecs,
+		)
+		if hasExpiry {
+			allExpiryTimes = append(allExpiryTimes, *expiryTime)
+		}
+	}
+
+	for _, subkey := range key.Subkeys {
+		hasExpiry, expiryTime := calculateExpiry(
+			subkey.PublicKey.CreationTime, // not to be confused with the time of the *signature*
+			subkey.Sig.KeyLifetimeSecs,
+		)
+		if hasExpiry {
+			allExpiryTimes = append(allExpiryTimes, *expiryTime)
+		}
+	}
+
+	if len(allExpiryTimes) > 0 {
+		earliestExpiry := earliest(allExpiryTimes)
+		return true, &earliestExpiry
+	} else {
+		return false, nil
+	}
+}
+
+func earliest(times []time.Time) time.Time {
+	if len(times) == 0 {
+		panic(fmt.Errorf("earliest called with empty slice"))
+	}
+
+	set := false
+	var earliestSoFar time.Time
+
+	for _, t := range times {
+		if !set || t.Before(earliestSoFar) {
+			earliestSoFar = t
+			set = true
+		}
+	}
+	return earliestSoFar
+}
+
+// calculateExpiry takes a creationtime and a key lifetime in seconds (pointer)
+// and returns a corresponding time.Time
+//
+// From https://tools.ietf.org/html/rfc4880#section-5.2.3.6
+// "If this is not present or has a value of zero, the key never expires."
+func calculateExpiry(creationTime time.Time, lifetimeSecs *uint32) (bool, *time.Time) {
+	//
+	if lifetimeSecs == nil {
+		return false, nil
+	}
+
+	if *lifetimeSecs == 0 {
+		return false, nil
+	}
+
+	expiry := creationTime.Add(time.Duration(*lifetimeSecs) * time.Second).In(time.UTC)
+	return true, &expiry
+}
+
+// nextExpiryTime returns the expiry time in UTC, according to the policy:
+//     "30 days after the 1st of the next month"
+// for example, if today is 15th September, nextExpiryTime would return
+// 1st October + 30 days
+func nextExpiryTime(now time.Time) time.Time {
+	return firstOfNextMonth(now).Add(thirtyDays).In(time.UTC)
+}
+
+func firstOfNextMonth(today time.Time) time.Time {
+	firstOfThisMonth := beginningOfMonth(today)
+	return beginningOfMonth(firstOfThisMonth.Add(fortyFiveDays))
+}
+
+func beginningOfMonth(now time.Time) time.Time {
+	y, m, _ := now.Date()
+	return time.Date(y, m, 1, 0, 0, 0, 0, now.Location()).In(time.UTC)
 }
