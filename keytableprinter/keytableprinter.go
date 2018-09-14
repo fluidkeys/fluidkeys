@@ -7,6 +7,7 @@ import (
 
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"github.com/fluidkeys/fluidkeys/status"
 )
 
 type column = []string
@@ -51,7 +52,7 @@ func makeRowsForKeys(keys []pgpkey.PgpKey) []row {
 		columns := []column{
 			key.Emails(true),
 			[]string{key.PrimaryKey.CreationTime.Format("2 Jan 2006")},
-			keyWarningLines(key),
+			keyWarningLines(key, status.GetKeyWarnings(key)),
 		}
 		keyRows := makeRowsFromColumns(columns)
 		allRows = append(allRows, keyRows...)

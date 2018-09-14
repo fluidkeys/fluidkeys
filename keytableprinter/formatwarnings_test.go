@@ -6,6 +6,8 @@ import (
 
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/colour"
+	"github.com/fluidkeys/fluidkeys/exampledata"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/status"
 )
 
@@ -90,4 +92,17 @@ func TestFormatKeyWarningLines(t *testing.T) {
 			assert.AssertEqualSliceOfStrings(t, test.expectedOutput, gotOutput)
 		})
 	}
+}
+
+func TestKeyWarningLines(t *testing.T) {
+
+	pgpKey, err := pgpkey.LoadFromArmoredPublicKey(exampledata.ExamplePublicKey2)
+	if err != nil {
+		t.Fatalf("failed to load example PgpKey: %v", err)
+	}
+
+	want := []string{colour.Green("Good ✔")}
+	got := keyWarningLines(*pgpKey, []status.KeyWarning{})
+
+	assert.AssertEqualSliceOfStrings(t, want, got)
 }
