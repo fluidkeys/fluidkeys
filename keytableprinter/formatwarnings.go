@@ -8,11 +8,14 @@ import (
 	"github.com/fluidkeys/fluidkeys/status"
 )
 
-func keyWarningLines(key pgpkey.PgpKey) []string {
-	keyWarnings := status.GetKeyWarnings(key)
+func keyWarningLines(key pgpkey.PgpKey, keyWarnings []status.KeyWarning) []string {
 	keyWarningLines := []string{}
-	for _, keyWarning := range keyWarnings {
-		keyWarningLines = append(keyWarningLines, formatKeyWarningLines(keyWarning)...)
+	if len(keyWarnings) > 0 {
+		for _, keyWarning := range keyWarnings {
+			keyWarningLines = append(keyWarningLines, formatKeyWarningLines(keyWarning)...)
+		}
+	} else {
+		keyWarningLines = append(keyWarningLines, colour.Green("Good ✔"))
 	}
 	return keyWarningLines
 }
