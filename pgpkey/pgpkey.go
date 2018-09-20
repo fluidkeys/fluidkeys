@@ -354,6 +354,42 @@ func (key *PgpKey) createNewEncryptionSubkey(validUntil time.Time, now time.Time
 	return nil
 }
 
+// RevokeSubkey prevents the given subkey from being usable.
+func (key *PgpKey) RevokeSubkey(subkeyId uint64) error {
+	return key.updateSubkeyExpiryToNow(subkeyId)
+}
+
+func (key *PgpKey) Subkey(subkeyId uint64) (*openpgp.Subkey, error) {
+	for i, subkey := range key.Subkeys {
+		if subkey.PublicKey.KeyId == subkeyId {
+			return &key.Subkeys[i], nil
+		}
+	}
+
+	return nil, fmt.Errorf("no subkey with subkeyID 0x%X", subkeyId)
+}
+
+func (key *PgpKey) updateSubkeyExpiryToNow(subkeyId uint64) error {
+	subkey, err := key.Subkey(subkeyId)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+	keyLifetimeSeconds := uint32(now.Sub(subkey.PublicKey.CreationTime).Seconds())
+
+	subkey.Sig.SigType = packet.SigTypeSubkeyBinding
+	subkey.Sig.CreationTime = now // essential that this sig is the most recent
+	subkey.Sig.KeyLifetimeSecs = &keyLifetimeSeconds
+
+	err = subkey.Sig.SignKey(subkey.PublicKey, key.PrivateKey, nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (key *PgpKey) validEncryptionSubkeys(now time.Time) []openpgp.Subkey {
 	var subkeys []openpgp.Subkey
 
