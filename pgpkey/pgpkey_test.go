@@ -2,6 +2,7 @@ package pgpkey
 
 import (
 	"bytes"
+	"crypto/rsa"
 	"fmt"
 	"testing"
 	"time"
@@ -352,6 +353,231 @@ func TestLoadFromArmoredEncryptedPrivateKey(t *testing.T) {
 			t.Fatalf("err should have been set for invalid ascii armor")
 		}
 	})
+}
+
+func TestEncryptionSubkey(t *testing.T) {
+	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
+	thirtyDaysAgo := now.Add(-time.Duration(24*30) * time.Hour)
+	sixtyDaysAgo := now.Add(-time.Duration(24*60) * time.Hour)
+	tenDaysFromNow := now.Add(time.Duration(24*10) * time.Hour)
+	thirtyDaysFromNow := now.Add(time.Duration(24*30) * time.Hour)
+	tenYearsFromNow := now.Add(time.Duration(24*365*10) * time.Hour)
+
+	subkeyTests := []subkeyConfig{
+		{
+			// 1: valid, created 60 days ago
+			expectedValid: true,
+			creationTime:  sixtyDaysAgo,
+			expiryTime:    thirtyDaysFromNow, // valid, within expiry
+			revoked:       false,
+			flagsValid:    true,
+			encryptFlags:  true,
+		},
+		{
+			// 2: valid, created 30 days ago (most recent should be selected)
+			expectedValid: true,
+			creationTime:  thirtyDaysAgo,
+			expiryTime:    thirtyDaysFromNow, // valid, within expiry
+			revoked:       false,
+			flagsValid:    true,
+			encryptFlags:  true,
+		},
+		// TODO: add "no expiry" case
+		{
+			// 3: invalid, created in the future
+			expectedValid: false,
+			creationTime:  tenDaysFromNow,
+			expiryTime:    thirtyDaysFromNow,
+			revoked:       false,
+			flagsValid:    true,
+			encryptFlags:  true,
+		},
+		{
+			// 4: invalid, expired
+			expectedValid: false,
+			creationTime:  sixtyDaysAgo,
+			expiryTime:    thirtyDaysAgo, // expired
+			revoked:       false,
+			flagsValid:    true,
+			encryptFlags:  true,
+		},
+		{
+			// 5: invalid, revoked
+			expectedValid: false,
+			creationTime:  sixtyDaysAgo,
+			expiryTime:    thirtyDaysFromNow, // valid, within expiry
+			revoked:       true,
+			flagsValid:    true,
+			encryptFlags:  true,
+		},
+		{
+			// 6: invalid, can't do encryption
+			expectedValid: false,
+			creationTime:  sixtyDaysAgo,
+			expiryTime:    thirtyDaysFromNow, // valid, within expiry
+			revoked:       false,
+			flagsValid:    true,
+			encryptFlags:  false,
+		},
+		{
+			// 7: invalid, FlagsValid=false
+			expectedValid: false,
+			creationTime:  sixtyDaysAgo,
+			expiryTime:    thirtyDaysFromNow, // valid, within expiry
+			revoked:       false,
+			flagsValid:    false,
+			encryptFlags:  true,
+		},
+	}
+
+	pgpKey, err := makeKeyWithSubkeys(t, subkeyTests, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i, subkey := range pgpKey.Subkeys {
+		t.Run(fmt.Sprintf("isEncryptionSubkeyValid(subkeyConfig %d)", i), func(t *testing.T) {
+			gotIsValid := isEncryptionSubkeyValid(subkey, now)
+			expectedIsValid := subkeyTests[i].expectedValid
+
+			if expectedIsValid != gotIsValid {
+				t.Errorf("subkeyTests[%d]: expected valid=%v, got %v", i, expectedIsValid, gotIsValid)
+			}
+		})
+
+		t.Run(fmt.Sprintf("isEncryptionSubkeyValid(subkeyConfig %d) now=future", i), func(t *testing.T) {
+			gotIsValid := isEncryptionSubkeyValid(subkey, tenYearsFromNow)
+			expectedIsValid := false
+
+			if expectedIsValid != gotIsValid {
+				t.Errorf("subkeyTests[%d] (future) expected valid=%v, got %v", i, expectedIsValid, gotIsValid)
+			}
+		})
+	}
+
+	t.Run("validEncryptionSubkeys filters valid keys", func(t *testing.T) {
+		expectedValidSubkeyConfigIndexes := []int{0, 1}
+		var expectedSubkeys []openpgp.Subkey // we don't know these until they've been generated
+
+		for _, index := range expectedValidSubkeyConfigIndexes {
+			expectedSubkeys = append(expectedSubkeys, pgpKey.Subkeys[index])
+		}
+
+		gotSubkeys := pgpKey.validEncryptionSubkeys(now)
+		if len(gotSubkeys) != len(expectedSubkeys) {
+			t.Logf("gpKey.subkeys: %v", pgpKey.Subkeys)
+			t.Fatalf("expected %d valid subkeys, got %d: %v", len(expectedSubkeys), len(gotSubkeys), gotSubkeys)
+		}
+
+		for i := range expectedSubkeys {
+			if expectedSubkeys[i] != gotSubkeys[i] {
+				t.Fatalf("expectedSubkeys[%d] != gotSubkeys[%d]. expected: %v, got: %v",
+					i, i, expectedSubkeys[i], gotSubkeys[i])
+			}
+		}
+
+	})
+
+	t.Run("validEncryptionSubkeys returns empty if no valid keys", func(t *testing.T) {
+		gotKeys := pgpKey.validEncryptionSubkeys(tenYearsFromNow)
+		if len(gotKeys) != 0 {
+			t.Fatalf("expected empty slice, got %v", gotKeys)
+		}
+	})
+
+	t.Run("EncryptionSubkey selects most recent subkey", func(t *testing.T) {
+		expectedKey := pgpKey.Subkeys[1]
+		gotKey := pgpKey.encryptionSubkey(now)
+
+		if gotKey == nil {
+			t.Fatalf("expected a subkey, got nil")
+		}
+
+		if gotKey.PublicKey.KeyId != expectedKey.PublicKey.KeyId {
+			t.Fatalf("expected: %v (created %v), got: %v (created %v)",
+				expectedKey,
+				expectedKey.Sig.CreationTime,
+				gotKey,
+				gotKey.Sig.CreationTime)
+		}
+	})
+
+	t.Run("EncryptionSubkey returns nil if no valid subkeys", func(t *testing.T) {
+		gotKey := pgpKey.encryptionSubkey(tenYearsFromNow)
+
+		if gotKey != nil {
+			t.Fatalf("expected nil for no valid keys, got %v", gotKey)
+		}
+	})
+}
+
+type subkeyConfig struct {
+	expectedValid bool
+	creationTime  time.Time
+	expiryTime    time.Time
+	revoked       bool
+	flagsValid    bool
+	encryptFlags  bool
+}
+
+func makeKeyWithSubkeys(t *testing.T, subkeyConfigs []subkeyConfig, now time.Time) (*PgpKey, error) {
+	t.Helper()
+
+	pgpKey, err := generateInsecure("subkey.test@example.com")
+	if err != nil {
+		t.Fatalf("failed to generate PGP key in tests")
+	}
+	pgpKey.Subkeys = []openpgp.Subkey{} // delete existing subkey
+
+	config := packet.Config{}
+
+	for i, subkeyConfig := range subkeyConfigs {
+		privateKey, err := rsa.GenerateKey(config.Random(), 1024)
+		if err != nil {
+			t.Fatalf("failed to generate subkey from subkeyConfig[%d]: %v", i, err)
+		}
+
+		expiryDuration := uint32(subkeyConfig.expiryTime.Sub(subkeyConfig.creationTime).Seconds())
+		subkey := openpgp.Subkey{
+			PublicKey:  packet.NewRSAPublicKey(now, &privateKey.PublicKey),
+			PrivateKey: packet.NewRSAPrivateKey(now, privateKey),
+			Sig: &packet.Signature{
+				CreationTime:              subkeyConfig.creationTime,
+				KeyLifetimeSecs:           &expiryDuration,
+				SigType:                   packet.SigTypeSubkeyBinding,
+				PubKeyAlgo:                packet.PubKeyAlgoRSA,
+				Hash:                      config.Hash(),
+				FlagsValid:                subkeyConfig.flagsValid,
+				FlagEncryptStorage:        subkeyConfig.encryptFlags,
+				FlagEncryptCommunications: subkeyConfig.encryptFlags,
+				IssuerKeyId:               &pgpKey.PrimaryKey.KeyId,
+			},
+		}
+
+		subkey.PublicKey.IsSubkey = true
+		subkey.PrivateKey.IsSubkey = true
+
+		err = subkey.Sig.SignKey(subkey.PublicKey, pgpKey.PrivateKey, &config)
+		if err != nil {
+			t.Fatalf("failed to sign subkey: %v", err)
+		}
+
+		if subkeyConfig.revoked {
+			subkey.Sig = &packet.Signature{
+				SigType:     packet.SigTypeSubkeyRevocation,
+				Hash:        config.Hash(),
+				IssuerKeyId: &pgpKey.PrimaryKey.KeyId,
+			}
+		}
+
+		err = subkey.Sig.SignKey(subkey.PublicKey, pgpKey.PrivateKey, &config)
+		if err != nil {
+			t.Fatalf("failed to create subkey revocation sig: %v", err)
+		}
+
+		pgpKey.Subkeys = append(pgpKey.Subkeys, subkey)
+	}
+	return pgpKey, nil
 }
 
 const examplePublicKey string = `-----BEGIN PGP PUBLIC KEY BLOCK-----

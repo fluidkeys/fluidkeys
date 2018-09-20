@@ -280,6 +280,49 @@ func (key *PgpKey) Fingerprint() fingerprint.Fingerprint {
 	return fingerprint.FromBytes(key.PrimaryKey.Fingerprint)
 }
 
+// EncryptionSubkey returns either nil or a single openpgp.Subkey which:
+//
+// * has the valid flag set
+// * has one or both of the capability flags: encrypt communications and encrypt storage
+// * has a valid, in-date signature
+// * has the latest CreationTime (e.g. most recent)
+
+func (key *PgpKey) EncryptionSubkey() *openpgp.Subkey {
+	return key.encryptionSubkey(time.Now())
+}
+
+func (key *PgpKey) encryptionSubkey(now time.Time) *openpgp.Subkey {
+	subkeys := key.validEncryptionSubkeys(now)
+
+	if len(subkeys) == 0 {
+		return nil
+	}
+
+	sort.Sort(sort.Reverse(BySubkeyCreated(subkeys)))
+	return &subkeys[0]
+}
+
+func (key *PgpKey) validEncryptionSubkeys(now time.Time) []openpgp.Subkey {
+	var subkeys []openpgp.Subkey
+
+	for _, subkey := range key.Subkeys {
+		if isEncryptionSubkeyValid(subkey, now) {
+			subkeys = append(subkeys, subkey)
+		}
+	}
+	return subkeys
+}
+
+func isEncryptionSubkeyValid(subkey openpgp.Subkey, now time.Time) bool {
+	isRevoked := subkey.Sig.SigType == packet.SigTypeSubkeyRevocation
+	createdInThePast := subkey.Sig.CreationTime.Before(now)
+	hasEncryptionFlag := subkey.Sig.FlagEncryptCommunications || subkey.Sig.FlagEncryptStorage
+	inDate := !subkey.Sig.KeyExpired(now)
+
+	valid := !isRevoked && createdInThePast && subkey.Sig.FlagsValid && hasEncryptionFlag && inDate
+	return valid
+}
+
 func slugify(textToSlugify string) (slugified string) {
 	var re = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 	slugified = re.ReplaceAllString(textToSlugify, `-`)
