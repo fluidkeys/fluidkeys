@@ -52,7 +52,7 @@ func GetKeyWarnings(key pgpkey.PgpKey) []KeyWarning {
 
 		} else if isOverdueForRotation(nextRotation, now) {
 			warning := OverdueForRotation{
-				DaysUntilExpiry: getDaysUntilExpiry(nextRotation, now),
+				DaysUntilExpiry: getDaysUntilExpiry(*expiry, now),
 			}
 			warnings = append(warnings, warning)
 
