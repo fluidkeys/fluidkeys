@@ -17,70 +17,70 @@ func TestFormatKeyWarningLines(t *testing.T) {
 		expectedOutput []string
 	}{
 		{
-			status.DueForRotation{},
+			status.KeyWarning{Type: status.PrimaryKeyDueForRotation},
 			[]string{
 				colour.Yellow("Due for rotation 🔄"),
 			},
 		},
 		{
-			status.OverdueForRotation{DaysUntilExpiry: 5},
+			status.KeyWarning{Type: status.PrimaryKeyOverdueForRotation, DaysUntilExpiry: 5},
 			[]string{
 				colour.Red("Overdue for rotation ⏰"),
 				colour.Red("Expires in 5 days!"),
 			},
 		},
 		{
-			status.OverdueForRotation{DaysUntilExpiry: 1},
+			status.KeyWarning{Type: status.PrimaryKeyOverdueForRotation, DaysUntilExpiry: 1},
 			[]string{
 				colour.Red("Overdue for rotation ⏰"),
 				colour.Red("Expires tomorrow!"),
 			},
 		},
 		{
-			status.OverdueForRotation{DaysUntilExpiry: 0},
+			status.KeyWarning{Type: status.PrimaryKeyOverdueForRotation, DaysUntilExpiry: 0},
 			[]string{
 				colour.Red("Overdue for rotation ⏰"),
 				colour.Red("Expires today!"),
 			},
 		},
 		{
-			status.NoExpiry{},
+			status.KeyWarning{Type: status.PrimaryKeyNoExpiry},
 			[]string{
 				colour.Red("No expiry date set 📅"),
 			},
 		},
 		{
-			status.LongExpiry{},
+			status.KeyWarning{Type: status.PrimaryKeyLongExpiry},
 			[]string{
 				colour.Yellow("Expiry date too far off 📅"),
 			},
 		},
 		{
-			status.Expired{DaysSinceExpiry: 0},
+			status.KeyWarning{Type: status.PrimaryKeyExpired, DaysSinceExpiry: 0},
 			[]string{
 				colour.Grey("Expired today ⚰️"),
 			},
 		},
 		{
-			status.Expired{DaysSinceExpiry: 1},
+			status.KeyWarning{Type: status.PrimaryKeyExpired, DaysSinceExpiry: 1},
 			[]string{
 				colour.Grey("Expired yesterday ⚰️"),
 			},
 		},
 		{
-			status.Expired{DaysSinceExpiry: 9},
+			status.KeyWarning{Type: status.PrimaryKeyExpired, DaysSinceExpiry: 9},
 			[]string{
 				colour.Grey("Expired 9 days ago ⚰️"),
 			},
 		},
 		{
-			status.Expired{DaysSinceExpiry: 10},
+			status.KeyWarning{Type: status.PrimaryKeyExpired, DaysSinceExpiry: 10},
 			[]string{
 				colour.Grey("Expired"),
 			},
 		},
 		{
-			nil,
+			status.KeyWarning{}, // unspecified type
 			[]string{},
 		},
 	}

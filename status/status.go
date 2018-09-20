@@ -6,36 +6,24 @@ import (
 	"time"
 )
 
-type DueForRotation struct {
-	KeyWarning
-}
-
-type OverdueForRotation struct {
-	KeyWarning
-
-	DaysUntilExpiry uint // 0 means within 24 hours from now, 1 means tomorrow
-}
-
-type Expired struct {
-	KeyWarning
-
-	DaysSinceExpiry uint // 0 means less than 24 hours ago, 1 means yesterday
-}
-
-type NoExpiry struct {
-	KeyWarning
-}
-
-type LongExpiry struct {
-	KeyWarning
-}
-
-type KeyWarning interface {
-}
-
 // GetKeyWarnings returns a slice of KeyWarnings indicating problems found
 // with the given PgpKey.
 func GetKeyWarnings(key pgpkey.PgpKey) []KeyWarning {
+	var warnings []KeyWarning
+
+	warnings = append(warnings, getPrimaryKeyWarnings(key)...)
+	return warnings
+}
+
+
+
+
+
+
+
+}
+
+func getPrimaryKeyWarnings(key pgpkey.PgpKey) []KeyWarning {
 	var warnings []KeyWarning
 
 	now := time.Now()
@@ -45,26 +33,32 @@ func GetKeyWarnings(key pgpkey.PgpKey) []KeyWarning {
 		nextRotation := calculateNextRotationTime(*expiry)
 
 		if isExpired(*expiry, now) {
-			warning := Expired{
+			warning := KeyWarning{
+				Type:            PrimaryKeyExpired,
 				DaysSinceExpiry: getDaysSinceExpiry(*expiry, now),
 			}
 			warnings = append(warnings, warning)
 
 		} else if isOverdueForRotation(nextRotation, now) {
-			warning := OverdueForRotation{
+			warning := KeyWarning{
+				Type:            PrimaryKeyOverdueForRotation,
 				DaysUntilExpiry: getDaysUntilExpiry(*expiry, now),
 			}
+
 			warnings = append(warnings, warning)
 
 		} else if isDueForRotation(nextRotation, now) {
-			warnings = append(warnings, DueForRotation{})
+			warning := KeyWarning{Type: PrimaryKeyDueForRotation}
+			warnings = append(warnings, warning)
 		}
 
 		if isExpiryTooLong(*expiry, now) {
-			warnings = append(warnings, LongExpiry{})
+			warning := KeyWarning{Type: PrimaryKeyLongExpiry}
+			warnings = append(warnings, warning)
 		}
 	} else { // no expiry
-		warnings = append(warnings, NoExpiry{})
+		warning := KeyWarning{Type: PrimaryKeyNoExpiry}
+		warnings = append(warnings, warning)
 	}
 
 	return warnings
