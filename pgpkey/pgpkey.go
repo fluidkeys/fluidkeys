@@ -3,6 +3,7 @@ package pgpkey
 import (
 	"bytes"
 	"crypto"
+	"crypto/rsa"
 	"fmt"
 	"regexp"
 	"sort"
@@ -307,6 +308,47 @@ func (key *PgpKey) encryptionSubkey(now time.Time) *openpgp.Subkey {
 
 	sort.Sort(sort.Reverse(BySubkeyCreated(subkeys)))
 	return &subkeys[0]
+}
+
+func (key *PgpKey) CreateNewEncryptionSubkey(validUntil time.Time) error {
+	config := packet.Config{
+		RSABits: 2048,
+	}
+
+	now := time.Now()
+
+	encryptingPriv, err := rsa.GenerateKey(config.Random(), config.RSABits)
+	if err != nil {
+		fmt.Printf("ERROR %v\n", err)
+		return err
+	}
+
+	keyLifetimeSeconds := uint32(validUntil.Sub(now).Seconds())
+
+	subkey := openpgp.Subkey{
+		PublicKey:  packet.NewRSAPublicKey(now, &encryptingPriv.PublicKey),
+		PrivateKey: packet.NewRSAPrivateKey(now, encryptingPriv),
+		Sig: &packet.Signature{
+			CreationTime:              now,
+			KeyLifetimeSecs:           &keyLifetimeSeconds,
+			SigType:                   packet.SigTypeSubkeyBinding,
+			PubKeyAlgo:                packet.PubKeyAlgoRSA,
+			Hash:                      config.Hash(),
+			FlagsValid:                true,
+			FlagEncryptStorage:        true,
+			FlagEncryptCommunications: true,
+			IssuerKeyId:               &key.PrimaryKey.KeyId,
+		},
+	}
+	subkey.PublicKey.IsSubkey = true
+	subkey.PrivateKey.IsSubkey = true
+
+	err = subkey.Sig.SignKey(subkey.PublicKey, key.PrivateKey, &config)
+	if err != nil {
+		return err
+	}
+	key.Subkeys = append(key.Subkeys, subkey)
+	return nil
 }
 
 func (key *PgpKey) validEncryptionSubkeys(now time.Time) []openpgp.Subkey {
