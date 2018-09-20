@@ -27,7 +27,7 @@ func getPrimaryKeyWarnings(key pgpkey.PgpKey) []KeyWarning {
 	var warnings []KeyWarning
 
 	now := time.Now()
-	hasExpiry, expiry := getEarliestExpiryTime(key)
+	hasExpiry, expiry := getEarliestUidExpiry(key)
 
 	if hasExpiry {
 		nextRotation := calculateNextRotationTime(*expiry)
@@ -125,6 +125,39 @@ func getDaysSinceExpiry(expiry time.Time, now time.Time) uint {
 		panic(fmt.Errorf("getDaysSinceExpiry: expiry is in the future: %v", expiry))
 	}
 	return uint(days)
+}
+
+
+// getEarliestUidExpiry is roughly equivalent to "the expiry of the primary key"
+//
+// returns (hasExpiry, expiryTime) where hasExpiry is a bool indicating if
+// an expiry is actually set
+//
+// Each User ID is signed with an expiry. When the last one is expired, the
+// primary key is treated as expired (even though it's just the UIDs).
+//
+// If there are multiple UIDs we choose the earliest expiry, since that'll
+// disrupt the working of the key (plus, Keyflow advises not to use multiple
+// UIDs at all, let alone different expiry dates, so this is an edge-case)
+func getEarliestUidExpiry(key pgpkey.PgpKey) (bool, *time.Time) {
+	var allExpiryTimes []time.Time
+
+	for _, id := range key.Identities {
+		hasExpiry, expiryTime := calculateExpiry(
+			key.PrimaryKey.CreationTime, // not to be confused with the time of the *signature*
+			id.SelfSignature.KeyLifetimeSecs,
+		)
+		if hasExpiry {
+			allExpiryTimes = append(allExpiryTimes, *expiryTime)
+		}
+	}
+
+	if len(allExpiryTimes) > 0 {
+		earliestExpiry := earliest(allExpiryTimes)
+		return true, &earliestExpiry
+	} else {
+		return false, nil
+	}
 }
 
 // getEarliestExpiryTime returns the soonest expiry time from the key that
