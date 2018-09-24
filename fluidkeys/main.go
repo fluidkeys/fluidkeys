@@ -187,6 +187,18 @@ func keysAvailableToGetFromGpg() ([]gpgwrapper.SecretKeyListing, error) {
 	return availableKeys, nil
 }
 
+type decryptError struct {
+	err string
+}
+
+func (e decryptError) Error() string {
+	if e.err == "" {
+		return "failed to decrypt"
+	} else {
+		return e.err
+	}
+}
+
 func loadPgpKeys() ([]pgpkey.PgpKey, error) {
 	fingerprints, err := db.GetFingerprintsImportedIntoGnuPG()
 	if err != nil {
