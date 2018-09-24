@@ -35,6 +35,11 @@ func TestArmoredKeys(t *testing.T) {
 			ExamplePrivateKey3,
 			ExampleFingerprint3,
 		},
+		{
+			`public key 4`,
+			ExamplePublicKey4,
+			ExampleFingerprint4,
+		},
 	}
 
 	for _, test := range tests {
