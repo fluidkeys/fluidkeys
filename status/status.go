@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
-	"sort"
 	"time"
 )
 
@@ -20,8 +19,7 @@ func GetKeyWarnings(key pgpkey.PgpKey) []KeyWarning {
 }
 
 func getEncryptionSubkeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning {
-	encryptionSubkey := getMostRecentEncryptionSubkey(key)
-
+	encryptionSubkey := key.EncryptionSubkey()
 
 	if encryptionSubkey == nil {
 		return []KeyWarning{KeyWarning{Type: NoValidEncryptionSubkey}}
@@ -216,38 +214,6 @@ func getEarliestUidExpiry(key pgpkey.PgpKey) (bool, *time.Time) {
 	} else {
 		return false, nil
 	}
-}
-
-// getMostRecentEncryptionSubkey returns the encryption subkey with latest
-// (future-most) CreationTime
-func getMostRecentEncryptionSubkey(key pgpkey.PgpKey) *openpgp.Subkey {
-	var subkeys []openpgp.Subkey
-
-	for _, subkey := range key.Subkeys {
-		hasEncryptionFlag := subkey.Sig.FlagEncryptCommunications || subkey.Sig.FlagEncryptStorage
-
-		if subkey.Sig.FlagsValid && hasEncryptionFlag {
-			subkeys = append(subkeys, subkey)
-		}
-	}
-
-	if len(subkeys) == 0 {
-		return nil
-	}
-	sort.Sort(sort.Reverse(ByCreated(subkeys)))
-	return &subkeys[0]
-}
-
-// ByCreated implements sort.Interface for []openpgp.Subkey based on
-// the PrimaryKey.CreationTime field.
-type ByCreated []openpgp.Subkey
-
-func (a ByCreated) Len() int      { return len(a) }
-func (a ByCreated) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a ByCreated) Less(i, j int) bool {
-	iTime := a[i].PublicKey.CreationTime
-	jTime := a[j].PublicKey.CreationTime
-	return iTime.Before(jTime)
 }
 
 // getEarliestExpiryTime returns the soonest expiry time from the key that
