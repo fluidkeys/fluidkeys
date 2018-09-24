@@ -288,6 +288,21 @@ func (key *PgpKey) Fingerprint() fingerprint.Fingerprint {
 	return fingerprint.FromBytes(key.PrimaryKey.Fingerprint)
 }
 
+func (key *PgpKey) UpdateExpiryForAllUserIds(validUntil time.Time) error {
+	config := Config{}
+
+	keyLifetimeSeconds := uint32(validUntil.Sub(key.PrimaryKey.CreationTime).Seconds())
+
+	for _, id := range key.Identities {
+		id.SelfSignature.KeyLifetimeSecs = &keyLifetimeSeconds
+		err := id.SelfSignature.SignUserId(id.UserId.Id, key.PrimaryKey, key.PrivateKey, &config.Config)
+		if err != nil {
+			return fmt.Errorf("failed to make self signature: %v", err)
+		}
+	}
+	return nil
+}
+
 // EncryptionSubkey returns either nil or a single openpgp.Subkey which:
 //
 // * has the valid flag set
