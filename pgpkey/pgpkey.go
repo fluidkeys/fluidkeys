@@ -132,7 +132,10 @@ func (key *PgpKey) Armor() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	key.Serialize(armor)
+	err = key.Serialize(armor)
+	if err != nil {
+		return "", fmt.Errorf("error calling key.Serialize(..): %v", err)
+	}
 	armor.Close()
 
 	return buf.String(), nil
@@ -152,7 +155,11 @@ func (key *PgpKey) ArmorPrivate(password string) (string, error) {
 		return "", err
 	}
 	config := packet.Config{SerializePrivatePassword: password}
-	key.SerializePrivate(armor, &config)
+
+	err = key.SerializePrivate(armor, &config)
+	if err != nil {
+		return "", fmt.Errorf("error calling key.SerializePrivate: %v", err)
+	}
 	armor.Close()
 
 	return buf.String(), nil
