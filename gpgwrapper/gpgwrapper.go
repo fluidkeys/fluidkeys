@@ -171,7 +171,7 @@ func (g *GnuPG) ExportPrivateKey(fingerprint fingerprint.Fingerprint, password s
 
 func getArgsExportPrivateKeyWithPinentry(fingerprint fingerprint.Fingerprint) []string {
 	return []string{
-		"--pinentry-mode", "loopback", // don't use OS password prompt
+		// "--pinentry-mode", "loopback", // don't use OS password prompt
 		"--passphrase-fd", "0", // read password from stdin
 		"--armor",
 		"--export-secret-keys",
