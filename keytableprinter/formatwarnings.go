@@ -26,10 +26,10 @@ func keyWarningLines(key pgpkey.PgpKey, keyWarnings []status.KeyWarning) []strin
 func formatKeyWarningLines(warning status.KeyWarning) []string {
 	switch warning.Type {
 
-	case status.PrimaryKeyDueForRotation:
+	case status.PrimaryKeyDueForRotation, status.SubkeyDueForRotation:
 		return []string{colour.Yellow("Due for rotation 🔄")}
 
-	case status.PrimaryKeyOverdueForRotation:
+	case status.PrimaryKeyOverdueForRotation, status.SubkeyOverdueForRotation:
 		warnings := []string{
 			colour.Red("Overdue for rotation ⏰"),
 		}
@@ -47,7 +47,12 @@ func formatKeyWarningLines(warning status.KeyWarning) []string {
 	case status.PrimaryKeyNoExpiry:
 		return []string{colour.Red("No expiry date set 📅")}
 
-	case status.PrimaryKeyLongExpiry:
+	case status.SubkeyNoExpiry:
+		return []string{colour.Red("Subkey never expires 📅")}
+
+	case status.PrimaryKeyLongExpiry, status.SubkeyLongExpiry:
+		// This message might be confusing if the primary key has a
+		// reasonable expiry, but the subkey has a long one.
 		return []string{colour.Yellow("Expiry date too far off 📅")}
 
 	case status.PrimaryKeyExpired:

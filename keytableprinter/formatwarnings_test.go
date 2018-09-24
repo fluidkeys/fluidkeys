@@ -23,6 +23,12 @@ func TestFormatKeyWarningLines(t *testing.T) {
 			},
 		},
 		{
+			status.KeyWarning{Type: status.SubkeyDueForRotation},
+			[]string{
+				colour.Yellow("Due for rotation 🔄"),
+			},
+		},
+		{
 			status.KeyWarning{Type: status.PrimaryKeyOverdueForRotation, DaysUntilExpiry: 5},
 			[]string{
 				colour.Red("Overdue for rotation ⏰"),
@@ -44,13 +50,32 @@ func TestFormatKeyWarningLines(t *testing.T) {
 			},
 		},
 		{
+			status.KeyWarning{Type: status.SubkeyOverdueForRotation, DaysUntilExpiry: 5},
+			[]string{
+				colour.Red("Overdue for rotation ⏰"),
+				colour.Red("Expires in 5 days!"),
+			},
+		},
+		{
 			status.KeyWarning{Type: status.PrimaryKeyNoExpiry},
 			[]string{
 				colour.Red("No expiry date set 📅"),
 			},
 		},
 		{
+			status.KeyWarning{Type: status.SubkeyNoExpiry},
+			[]string{
+				colour.Red("Subkey never expires 📅"),
+			},
+		},
+		{
 			status.KeyWarning{Type: status.PrimaryKeyLongExpiry},
+			[]string{
+				colour.Yellow("Expiry date too far off 📅"),
+			},
+		},
+		{
+			status.KeyWarning{Type: status.SubkeyLongExpiry},
 			[]string{
 				colour.Yellow("Expiry date too far off 📅"),
 			},
