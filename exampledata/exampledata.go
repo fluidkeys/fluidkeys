@@ -155,3 +155,32 @@ D/iQVXIhUGUcj8xSftV2Iw==
 `
 
 var ExampleFingerprint3 = fingerprint.MustParse("7C18 DE4D E478 1356 8B24  3AC8 719B D63E F03B DC20")
+
+const ExamplePublicKey4 = `
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+Comment: gpg --export-options export-minimal --armor --export
+Comment: pub   rsa1024/0xE0245EE7E4C7A137 2018-09-24 [SC] [expires: 2020-09-23]
+Comment:       Key fingerprint = 91BA F0EC 5FEE 73AE CA10  97EC E024 5EE7 E4C7 A137
+Comment: uid                   [ultimate] test4@example.com
+Comment: sub   rsa1024/0xDB82B23C733BEC02 2018-09-24 [E] [expires: 2018-10-01]
+
+mI0EW6i7SAEEANpoQMnuOfn/JiF7cd+BFr7oG2HJv0qFEteLf9nnAi3k618oExN1
+/ygekM7WAINpyhDJIhd0VtGSeUz+h2t5wPI6Cw2S/2kCO/iuXDJnTquCDccZwR6l
+lBkl+LeRepPhxdrMgNu85gBOYXpnB5C/eLa5TP9uhmB9Q9G60n6BX2J3ABEBAAG0
+EXRlc3Q0QGV4YW1wbGUuY29tiNQEEwEIAD4WIQSRuvDsX+5zrsoQl+zgJF7n5Meh
+NwUCW6i7SAIbAwUJA8JnAAULCQgHAgYVCgkICwIEFgIDAQIeAQIXgAAKCRDgJF7n
+5MehN6ZEA/9iXtcc2ScbYEWFVsfyTgyqXSRM95dLvOz8cdcQZJ45JctV1T/YJwKF
+FaNeGPUF+lzEWHhckl2DJaPOSmO0sW8loAOKIPvFxwYonohcP5iqn7kXOokPjCX7
+tEkXC62YEQI0e+Z4kkactodvb6LO+ghZNTip+Qowe7pvGASabA7mILiNBFuou3UB
+BACsAu4uC2or8pbFh1r7MoNMK/kDdRJCxPRL7BUoBUwoJkTb0rUieQGUwjaYjm/J
+DahxiKDe2MD5ZEnwAEIXnNuSE6QTVHDRvzaFXcEjhni4StCPXtnSRD2AocNNYUXK
+Z+h/XWMjD/AIcZg4Piy1sbEIHyHSOlIZxPoj1Sk6Ah/p5wARAQABiLwEGAEIACYW
+IQSRuvDsX+5zrsoQl+zgJF7n5MehNwUCW6i7dQIbDAUJAAk6gAAKCRDgJF7n5Meh
+Nxr7A/9QoeyT98VC/DgGRERe3vJ/jRwArHcBgdLvgeniCj1EOBcDfGbK3ODEnyIy
+gYvOyq8drfNbigSmHuijBHxtX0AYndFB4yGWHdxO8fXZ6Fvbk1SpcTOIlFqknaLI
+AZ/pcHIAAGipA1h5EsuciBwxrZ94q928uqc+jLfG6PNfgqZLeQ==
+=1vXz
+-----END PGP PUBLIC KEY BLOCK-----
+`
+
+var ExampleFingerprint4 = fingerprint.MustParse("91BA F0EC 5FEE 73AE CA10  97EC E024 5EE7 E4C7 A137")

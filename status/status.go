@@ -46,7 +46,7 @@ func getEncryptionSubkeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning 
 			warning := KeyWarning{
 				Type:            SubkeyOverdueForRotation,
 				SubkeyId:        subkeyId,
-				DaysUntilExpiry: getDaysUntilExpiry(nextRotation, now),
+				DaysUntilExpiry: getDaysUntilExpiry(*expiry, now),
 			}
 			warnings = append(warnings, warning)
 

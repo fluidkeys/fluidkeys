@@ -280,3 +280,50 @@ func TestDateHelpers(t *testing.T) {
 		}
 	})
 }
+
+func TestGetEncryptionSubkeyWarnings(t *testing.T) {
+	t.Run("with a primary key with long expiry date and a subkey overdue for rotation", func(t *testing.T) {
+		pgpKey, err := pgpkey.LoadFromArmoredPublicKey(exampledata.ExamplePublicKey4)
+		if err != nil {
+			t.Fatalf("Failed to load example test data: %v", err)
+		}
+
+		t.Run("test we get appropriate subkey warnings", func(t *testing.T) {
+			expected := []KeyWarning{
+				KeyWarning{Type: SubkeyOverdueForRotation},
+			}
+
+			now := time.Date(2018, 9, 24, 18, 0, 0, 0, time.UTC)
+			got := getEncryptionSubkeyWarnings(*pgpKey, now)
+
+			assertEqualSliceOfKeyWarningTypes(t, expected, got)
+		})
+
+		t.Run("test we get appropriate primary key warnings", func(t *testing.T) {
+			expected := []KeyWarning{
+				KeyWarning{Type: PrimaryKeyLongExpiry},
+			}
+
+			now := time.Date(2018, 9, 24, 18, 0, 0, 0, time.UTC)
+			got := getPrimaryKeyWarnings(*pgpKey, now)
+
+			assertEqualSliceOfKeyWarningTypes(t, expected, got)
+		})
+	})
+}
+
+// assertEqualSliceOfKeyWarnings compares two slices of keywarnings and calls
+// t.Fatalf with a message if they differ.
+func assertEqualSliceOfKeyWarningTypes(t *testing.T, expected, got []KeyWarning) {
+	t.Helper()
+	if len(expected) != len(got) {
+		t.Fatalf("expected length %d, got %d. expected: %v, got: %v",
+			len(expected), len(got), expected, got)
+	}
+	for i := range expected {
+		if expected[i].Type != got[i].Type {
+			t.Fatalf("expected[%d] differs, expected '%d', got '%d'", i, expected[i].Type, got[i].Type)
+		}
+	}
+
+}
