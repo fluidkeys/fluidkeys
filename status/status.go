@@ -12,13 +12,14 @@ import (
 // with the given PgpKey.
 func GetKeyWarnings(key pgpkey.PgpKey) []KeyWarning {
 	var warnings []KeyWarning
+	now := time.Now()
 
-	warnings = append(warnings, getPrimaryKeyWarnings(key)...)
-	warnings = append(warnings, getEncryptionSubkeyWarnings(key)...)
+	warnings = append(warnings, getPrimaryKeyWarnings(key, now)...)
+	warnings = append(warnings, getEncryptionSubkeyWarnings(key, now)...)
 	return warnings
 }
 
-func getEncryptionSubkeyWarnings(key pgpkey.PgpKey) []KeyWarning {
+func getEncryptionSubkeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning {
 	encryptionSubkey := getMostRecentEncryptionSubkey(key)
 
 
@@ -28,7 +29,6 @@ func getEncryptionSubkeyWarnings(key pgpkey.PgpKey) []KeyWarning {
 
 	subkeyId := encryptionSubkey.PublicKey.KeyId
 
-	now := time.Now()
 	var warnings []KeyWarning
 
 	hasExpiry, expiry := getSubkeyExpiry(*encryptionSubkey)
@@ -76,10 +76,9 @@ func getEncryptionSubkeyWarnings(key pgpkey.PgpKey) []KeyWarning {
 	return warnings
 }
 
-func getPrimaryKeyWarnings(key pgpkey.PgpKey) []KeyWarning {
+func getPrimaryKeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning {
 	var warnings []KeyWarning
 
-	now := time.Now()
 	hasExpiry, expiry := getEarliestUidExpiry(key)
 
 	if hasExpiry {
