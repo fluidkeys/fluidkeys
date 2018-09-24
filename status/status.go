@@ -2,69 +2,116 @@ package status
 
 import (
 	"fmt"
+	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"sort"
 	"time"
 )
-
-type DueForRotation struct {
-	KeyWarning
-}
-
-type OverdueForRotation struct {
-	KeyWarning
-
-	DaysUntilExpiry uint // 0 means within 24 hours from now, 1 means tomorrow
-}
-
-type Expired struct {
-	KeyWarning
-
-	DaysSinceExpiry uint // 0 means less than 24 hours ago, 1 means yesterday
-}
-
-type NoExpiry struct {
-	KeyWarning
-}
-
-type LongExpiry struct {
-	KeyWarning
-}
-
-type KeyWarning interface {
-}
 
 // GetKeyWarnings returns a slice of KeyWarnings indicating problems found
 // with the given PgpKey.
 func GetKeyWarnings(key pgpkey.PgpKey) []KeyWarning {
 	var warnings []KeyWarning
 
+	warnings = append(warnings, getPrimaryKeyWarnings(key)...)
+	warnings = append(warnings, getEncryptionSubkeyWarnings(key)...)
+	return warnings
+}
+
+func getEncryptionSubkeyWarnings(key pgpkey.PgpKey) []KeyWarning {
+	encryptionSubkey := getMostRecentEncryptionSubkey(key)
+
+
+	if encryptionSubkey == nil {
+		return []KeyWarning{KeyWarning{Type: NoValidEncryptionSubkey}}
+	}
+
+	subkeyId := encryptionSubkey.PublicKey.KeyId
+
 	now := time.Now()
-	hasExpiry, expiry := getEarliestExpiryTime(key)
+	var warnings []KeyWarning
+
+	hasExpiry, expiry := getSubkeyExpiry(*encryptionSubkey)
 
 	if hasExpiry {
 		nextRotation := calculateNextRotationTime(*expiry)
 
 		if isExpired(*expiry, now) {
-			warning := Expired{
+			warning := KeyWarning{
+				Type: NoValidEncryptionSubkey,
+			}
+			warnings = append(warnings, warning)
+
+		} else if isOverdueForRotation(nextRotation, now) {
+			warning := KeyWarning{
+				Type:            SubkeyOverdueForRotation,
+				SubkeyId:        subkeyId,
+				DaysUntilExpiry: getDaysUntilExpiry(nextRotation, now),
+			}
+			warnings = append(warnings, warning)
+
+		} else if isDueForRotation(nextRotation, now) {
+			warning := KeyWarning{
+				Type:     SubkeyDueForRotation,
+				SubkeyId: subkeyId,
+			}
+			warnings = append(warnings, warning)
+		}
+
+		if isExpiryTooLong(*expiry, now) {
+			warning := KeyWarning{
+				Type:     SubkeyLongExpiry,
+				SubkeyId: subkeyId,
+			}
+			warnings = append(warnings, warning)
+		}
+	} else { // no expiry
+		warning := KeyWarning{
+			Type:     SubkeyNoExpiry,
+			SubkeyId: subkeyId,
+		}
+		warnings = append(warnings, warning)
+	}
+
+	return warnings
+}
+
+func getPrimaryKeyWarnings(key pgpkey.PgpKey) []KeyWarning {
+	var warnings []KeyWarning
+
+	now := time.Now()
+	hasExpiry, expiry := getEarliestUidExpiry(key)
+
+	if hasExpiry {
+		nextRotation := calculateNextRotationTime(*expiry)
+
+		if isExpired(*expiry, now) {
+			warning := KeyWarning{
+				Type:            PrimaryKeyExpired,
 				DaysSinceExpiry: getDaysSinceExpiry(*expiry, now),
 			}
 			warnings = append(warnings, warning)
 
 		} else if isOverdueForRotation(nextRotation, now) {
-			warning := OverdueForRotation{
+			warning := KeyWarning{
+				Type:            PrimaryKeyOverdueForRotation,
 				DaysUntilExpiry: getDaysUntilExpiry(*expiry, now),
 			}
+
 			warnings = append(warnings, warning)
 
 		} else if isDueForRotation(nextRotation, now) {
-			warnings = append(warnings, DueForRotation{})
+			warning := KeyWarning{Type: PrimaryKeyDueForRotation}
+			warnings = append(warnings, warning)
 		}
 
 		if isExpiryTooLong(*expiry, now) {
-			warnings = append(warnings, LongExpiry{})
+			warning := KeyWarning{Type: PrimaryKeyLongExpiry}
+			warnings = append(warnings, warning)
 		}
 	} else { // no expiry
-		warnings = append(warnings, NoExpiry{})
+		warning := KeyWarning{Type: PrimaryKeyNoExpiry}
+		warnings = append(warnings, warning)
 	}
 
 	return warnings
@@ -133,6 +180,77 @@ func getDaysSinceExpiry(expiry time.Time, now time.Time) uint {
 	return uint(days)
 }
 
+func getSubkeyExpiry(subkey openpgp.Subkey) (bool, *time.Time) {
+	return calculateExpiry(
+		subkey.PublicKey.CreationTime, // not to be confused with the time of the *signature*
+		subkey.Sig.KeyLifetimeSecs,
+	)
+}
+
+// getEarliestUidExpiry is roughly equivalent to "the expiry of the primary key"
+//
+// returns (hasExpiry, expiryTime) where hasExpiry is a bool indicating if
+// an expiry is actually set
+//
+// Each User ID is signed with an expiry. When the last one is expired, the
+// primary key is treated as expired (even though it's just the UIDs).
+//
+// If there are multiple UIDs we choose the earliest expiry, since that'll
+// disrupt the working of the key (plus, Keyflow advises not to use multiple
+// UIDs at all, let alone different expiry dates, so this is an edge-case)
+func getEarliestUidExpiry(key pgpkey.PgpKey) (bool, *time.Time) {
+	var allExpiryTimes []time.Time
+
+	for _, id := range key.Identities {
+		hasExpiry, expiryTime := calculateExpiry(
+			key.PrimaryKey.CreationTime, // not to be confused with the time of the *signature*
+			id.SelfSignature.KeyLifetimeSecs,
+		)
+		if hasExpiry {
+			allExpiryTimes = append(allExpiryTimes, *expiryTime)
+		}
+	}
+
+	if len(allExpiryTimes) > 0 {
+		earliestExpiry := earliest(allExpiryTimes)
+		return true, &earliestExpiry
+	} else {
+		return false, nil
+	}
+}
+
+// getMostRecentEncryptionSubkey returns the encryption subkey with latest
+// (future-most) CreationTime
+func getMostRecentEncryptionSubkey(key pgpkey.PgpKey) *openpgp.Subkey {
+	var subkeys []openpgp.Subkey
+
+	for _, subkey := range key.Subkeys {
+		hasEncryptionFlag := subkey.Sig.FlagEncryptCommunications || subkey.Sig.FlagEncryptStorage
+
+		if subkey.Sig.FlagsValid && hasEncryptionFlag {
+			subkeys = append(subkeys, subkey)
+		}
+	}
+
+	if len(subkeys) == 0 {
+		return nil
+	}
+	sort.Sort(sort.Reverse(ByCreated(subkeys)))
+	return &subkeys[0]
+}
+
+// ByCreated implements sort.Interface for []openpgp.Subkey based on
+// the PrimaryKey.CreationTime field.
+type ByCreated []openpgp.Subkey
+
+func (a ByCreated) Len() int      { return len(a) }
+func (a ByCreated) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByCreated) Less(i, j int) bool {
+	iTime := a[i].PublicKey.CreationTime
+	jTime := a[j].PublicKey.CreationTime
+	return iTime.Before(jTime)
+}
+
 // getEarliestExpiryTime returns the soonest expiry time from the key that
 // would cause it to lose functionality.
 //
@@ -169,10 +287,7 @@ func getEarliestExpiryTime(key pgpkey.PgpKey) (bool, *time.Time) {
 	}
 
 	for _, subkey := range key.Subkeys {
-		hasExpiry, expiryTime := calculateExpiry(
-			subkey.PublicKey.CreationTime, // not to be confused with the time of the *signature*
-			subkey.Sig.KeyLifetimeSecs,
-		)
+		hasExpiry, expiryTime := getSubkeyExpiry(subkey)
 		if hasExpiry {
 			allExpiryTimes = append(allExpiryTimes, *expiryTime)
 		}
