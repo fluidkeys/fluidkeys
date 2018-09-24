@@ -151,6 +151,7 @@ func (g *GnuPG) ExportPrivateKey(fingerprint fingerprint.Fingerprint, password s
 
 	if err != nil {
 		if strings.Contains(output, invalidOptionPinentryMode) {
+			fmt.Printf("Falling back to no pinentry command\n")
 			output, err := g.runWithStdin(
 				password,
 				getArgsExportPrivateKeyWithoutPinentry(fingerprint)...,
@@ -236,6 +237,7 @@ func (g *GnuPG) run(arguments ...string) (string, error) {
 
 func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (string, error) {
 	fullArguments := g.prependGlobalArguments(arguments...)
+	fmt.Printf("running %s with %v\n", GpgPath, fullArguments)
 	cmd := exec.Command(GpgPath, fullArguments...)
 	stdin, err := cmd.StdinPipe()
 
