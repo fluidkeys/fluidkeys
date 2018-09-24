@@ -105,6 +105,12 @@ func TestFormatKeyWarningLines(t *testing.T) {
 			},
 		},
 		{
+			status.KeyWarning{Type: status.NoValidEncryptionSubkey},
+			[]string{
+				colour.Yellow("Missing encryption subkey"),
+			},
+		},
+		{
 			status.KeyWarning{}, // unspecified type
 			[]string{},
 		},

@@ -26,6 +26,9 @@ func keyWarningLines(key pgpkey.PgpKey, keyWarnings []status.KeyWarning) []strin
 func formatKeyWarningLines(warning status.KeyWarning) []string {
 	switch warning.Type {
 
+	case status.NoValidEncryptionSubkey:
+		return []string{colour.Yellow("Missing encryption subkey")}
+
 	case status.PrimaryKeyDueForRotation, status.SubkeyDueForRotation:
 		return []string{colour.Yellow("Due for rotation 🔄")}
 
