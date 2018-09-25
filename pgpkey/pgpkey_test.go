@@ -361,8 +361,8 @@ func TestEncryptionSubkey(t *testing.T) {
 	sixtyDaysAgo := now.Add(-time.Duration(24*60) * time.Hour)
 	tenDaysFromNow := now.Add(time.Duration(24*10) * time.Hour)
 	thirtyDaysFromNow := now.Add(time.Duration(24*30) * time.Hour)
-	tenYearsFromNow := now.Add(time.Duration(24*365*10) * time.Hour)
-	fortyFiveDaysDuration := time.Duration(45*24) * time.Hour
+
+	sixtyDaysAgoAddFortyFive := sixtyDaysAgo.Add(time.Duration(45*24) * time.Hour)
 
 	subkeyTests := []subkeyConfig{
 		{
@@ -370,7 +370,7 @@ func TestEncryptionSubkey(t *testing.T) {
 			expectedValid:         true,
 			keyCreationTime:       sixtyDaysAgo,
 			signatureCreationTime: sixtyDaysAgo,
-			expiryTime:            thirtyDaysFromNow, // valid, within expiry
+			expiryTime:            &thirtyDaysFromNow, // valid, within expiry
 			revoked:               false,
 			flagsValid:            true,
 			encryptFlags:          true,
@@ -380,18 +380,27 @@ func TestEncryptionSubkey(t *testing.T) {
 			expectedValid:         true,
 			keyCreationTime:       thirtyDaysAgo,
 			signatureCreationTime: thirtyDaysAgo,
-			expiryTime:            thirtyDaysFromNow, // valid, within expiry
+			expiryTime:            &thirtyDaysFromNow, // valid, within expiry
 			revoked:               false,
 			flagsValid:            true,
 			encryptFlags:          true,
 		},
-		// TODO: add "no expiry" case
+		{
+			// valid, no expiry
+			expectedValid:         true,
+			keyCreationTime:       thirtyDaysAgo,
+			signatureCreationTime: thirtyDaysAgo,
+			expiryTime:            nil,
+			revoked:               false,
+			flagsValid:            true,
+			encryptFlags:          true,
+		},
 		{
 			// invalid, created in the future
 			expectedValid:         false,
 			keyCreationTime:       tenDaysFromNow,
 			signatureCreationTime: tenDaysFromNow,
-			expiryTime:            thirtyDaysFromNow,
+			expiryTime:            &thirtyDaysFromNow,
 			revoked:               false,
 			flagsValid:            true,
 			encryptFlags:          true,
@@ -408,7 +417,7 @@ func TestEncryptionSubkey(t *testing.T) {
 			expectedValid:         false,
 			keyCreationTime:       sixtyDaysAgo,
 			signatureCreationTime: thirtyDaysAgo,
-			expiryTime:            sixtyDaysAgo.Add(fortyFiveDaysDuration),
+			expiryTime:            &sixtyDaysAgoAddFortyFive,
 			revoked:               false,
 			flagsValid:            true,
 			encryptFlags:          true,
@@ -418,7 +427,7 @@ func TestEncryptionSubkey(t *testing.T) {
 			expectedValid:         false,
 			keyCreationTime:       sixtyDaysAgo,
 			signatureCreationTime: sixtyDaysAgo,
-			expiryTime:            thirtyDaysAgo, // expired
+			expiryTime:            &thirtyDaysAgo, // expired
 			revoked:               false,
 			flagsValid:            true,
 			encryptFlags:          true,
@@ -428,7 +437,7 @@ func TestEncryptionSubkey(t *testing.T) {
 			expectedValid:         false,
 			keyCreationTime:       sixtyDaysAgo,
 			signatureCreationTime: sixtyDaysAgo,
-			expiryTime:            thirtyDaysFromNow, // valid, within expiry
+			expiryTime:            &thirtyDaysFromNow, // valid, within expiry
 			revoked:               true,
 			flagsValid:            true,
 			encryptFlags:          true,
@@ -438,7 +447,7 @@ func TestEncryptionSubkey(t *testing.T) {
 			expectedValid:         false,
 			keyCreationTime:       sixtyDaysAgo,
 			signatureCreationTime: sixtyDaysAgo,
-			expiryTime:            thirtyDaysFromNow, // valid, within expiry
+			expiryTime:            &thirtyDaysFromNow, // valid, within expiry
 			revoked:               false,
 			flagsValid:            true,
 			encryptFlags:          false,
@@ -448,7 +457,7 @@ func TestEncryptionSubkey(t *testing.T) {
 			expectedValid:         false,
 			keyCreationTime:       sixtyDaysAgo,
 			signatureCreationTime: sixtyDaysAgo,
-			expiryTime:            thirtyDaysFromNow, // valid, within expiry
+			expiryTime:            &thirtyDaysFromNow, // valid, within expiry
 			revoked:               false,
 			flagsValid:            false,
 			encryptFlags:          true,
@@ -467,15 +476,6 @@ func TestEncryptionSubkey(t *testing.T) {
 
 			if expectedIsValid != gotIsValid {
 				t.Errorf("subkeyTests[%d]: expected valid=%v, got %v", i, expectedIsValid, gotIsValid)
-			}
-		})
-
-		t.Run(fmt.Sprintf("isEncryptionSubkeyValid(subkeyConfig %d) now=future", i), func(t *testing.T) {
-			gotIsValid := isEncryptionSubkeyValid(subkey, tenYearsFromNow)
-			expectedIsValid := false
-
-			if expectedIsValid != gotIsValid {
-				t.Errorf("subkeyTests[%d] (future) expected valid=%v, got %v", i, expectedIsValid, gotIsValid)
 			}
 		})
 	}
@@ -503,13 +503,6 @@ func TestEncryptionSubkey(t *testing.T) {
 
 	})
 
-	t.Run("validEncryptionSubkeys returns empty if no valid keys", func(t *testing.T) {
-		gotKeys := pgpKey.validEncryptionSubkeys(tenYearsFromNow)
-		if len(gotKeys) != 0 {
-			t.Fatalf("expected empty slice, got %v", gotKeys)
-		}
-	})
-
 	t.Run("EncryptionSubkey selects most recent subkey", func(t *testing.T) {
 		expectedKey := pgpKey.Subkeys[1]
 		gotKey := pgpKey.encryptionSubkey(now)
@@ -527,20 +520,35 @@ func TestEncryptionSubkey(t *testing.T) {
 		}
 	})
 
-	t.Run("EncryptionSubkey returns nil if no valid subkeys", func(t *testing.T) {
-		gotKey := pgpKey.encryptionSubkey(tenYearsFromNow)
+	t.Run("with no valid subkeys", func(t *testing.T) {
+		stashedSubkeys := pgpKey.Subkeys
+		pgpKey.Subkeys = []openpgp.Subkey{} // delete all the subkeys so there aren't any valid ones
 
-		if gotKey != nil {
-			t.Fatalf("expected nil for no valid keys, got %v", gotKey)
-		}
+		t.Run("validEncryptionSubkeys() returns empty", func(t *testing.T) {
+			gotKeys := pgpKey.validEncryptionSubkeys(now)
+			if len(gotKeys) != 0 {
+				t.Fatalf("expected empty slice, got %v", gotKeys)
+			}
+		})
+
+		t.Run("EncryptionSubkey() returns nil", func(t *testing.T) {
+			gotKey := pgpKey.encryptionSubkey(now)
+
+			if gotKey != nil {
+				t.Fatalf("expected nil for no valid keys, got %v", gotKey)
+			}
+		})
+
+		pgpKey.Subkeys = stashedSubkeys
 	})
+
 }
 
 type subkeyConfig struct {
 	expectedValid         bool
 	keyCreationTime       time.Time
 	signatureCreationTime time.Time
-	expiryTime            time.Time
+	expiryTime            *time.Time
 	revoked               bool
 	flagsValid            bool
 	encryptFlags          bool
@@ -563,13 +571,19 @@ func makeKeyWithSubkeys(t *testing.T, subkeyConfigs []subkeyConfig, now time.Tim
 			t.Fatalf("failed to generate subkey from subkeyConfig[%d]: %v", i, err)
 		}
 
-		expiryDuration := uint32(subkeyConfig.expiryTime.Sub(subkeyConfig.keyCreationTime).Seconds())
+		var expiryDuration *uint32
+		if subkeyConfig.expiryTime != nil {
+			tmp := uint32(subkeyConfig.expiryTime.Sub(subkeyConfig.keyCreationTime).Seconds())
+			expiryDuration = &tmp
+		} else {
+			expiryDuration = nil
+		}
 		subkey := openpgp.Subkey{
 			PublicKey:  packet.NewRSAPublicKey(now, &privateKey.PublicKey),
 			PrivateKey: packet.NewRSAPrivateKey(now, privateKey),
 			Sig: &packet.Signature{
 				CreationTime:              subkeyConfig.signatureCreationTime,
-				KeyLifetimeSecs:           &expiryDuration,
+				KeyLifetimeSecs:           expiryDuration,
 				SigType:                   packet.SigTypeSubkeyBinding,
 				PubKeyAlgo:                packet.PubKeyAlgoRSA,
 				Hash:                      config.Hash(),
