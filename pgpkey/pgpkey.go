@@ -317,7 +317,14 @@ func isEncryptionSubkeyValid(subkey openpgp.Subkey, now time.Time) bool {
 	isRevoked := subkey.Sig.SigType == packet.SigTypeSubkeyRevocation
 	createdInThePast := subkey.Sig.CreationTime.Before(now)
 	hasEncryptionFlag := subkey.Sig.FlagEncryptCommunications || subkey.Sig.FlagEncryptStorage
-	inDate := !subkey.Sig.KeyExpired(now)
+
+	hasExpiry, expiry := SubkeyExpiry(subkey)
+	var inDate bool
+	if hasExpiry {
+		inDate = now.Before(*expiry)
+	} else {
+		inDate = true
+	}
 
 	valid := !isRevoked && createdInThePast && subkey.Sig.FlagsValid && hasEncryptionFlag && inDate
 	return valid
