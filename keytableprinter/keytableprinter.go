@@ -30,6 +30,8 @@ func Print(keys []pgpkey.PgpKey) {
 	for _, rowString := range rowStrings {
 		fmt.Println(rowString)
 	}
+
+	printTopLevelHint(keys)
 }
 
 func makeTableRows(keys []pgpkey.PgpKey) []row {
@@ -181,4 +183,36 @@ func max(x int, y int) int {
 	} else {
 		return x
 	}
+}
+
+// printTopLevelHint prints single hint to suggest the user should run fk key
+// rotate if any of their keys are overdue for rotation or due for rotation.
+func printTopLevelHint(keys []pgpkey.PgpKey) {
+	var warnings []status.KeyWarning
+	for _, key := range keys {
+		warnings = append(warnings, status.GetKeyWarnings(key)...)
+	}
+	if warningsSliceContainsType(warnings, status.PrimaryKeyOverdueForRotation) ||
+		warningsSliceContainsType(warnings, status.SubkeyOverdueForRotation) {
+		fmt.Println(colour.Red(`[!] Your key(s) are overdue for rotation.
+They will expire unless you rotate them by running:
+    fk key rotate`))
+		return
+	}
+	if warningsSliceContainsType(warnings, status.PrimaryKeyDueForRotation) ||
+		warningsSliceContainsType(warnings, status.SubkeyDueForRotation) {
+		fmt.Println(colour.Yellow(`[!] Rotate your key(s) by running: fk key rotate`))
+		return
+	}
+}
+
+// contains returns true if the given needle (Warning) is present in the
+// given haystack pointing at it, false if not.
+func warningsSliceContainsType(haystack []status.KeyWarning, needle status.WarningType) bool {
+	for _, value := range haystack {
+		if value.Type == needle {
+			return true
+		}
+	}
+	return false
 }
