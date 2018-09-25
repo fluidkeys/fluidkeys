@@ -481,11 +481,12 @@ func TestEncryptionSubkey(t *testing.T) {
 	}
 
 	t.Run("validEncryptionSubkeys filters valid keys", func(t *testing.T) {
-		expectedValidSubkeyConfigIndexes := []int{0, 1}
 		var expectedSubkeys []openpgp.Subkey // we don't know these until they've been generated
 
-		for _, index := range expectedValidSubkeyConfigIndexes {
-			expectedSubkeys = append(expectedSubkeys, pgpKey.Subkeys[index])
+		for i, subkeyConfig := range subkeyTests {
+			if subkeyConfig.expectedValid {
+				expectedSubkeys = append(expectedSubkeys, pgpKey.Subkeys[i])
+			}
 		}
 
 		gotSubkeys := pgpKey.validEncryptionSubkeys(now)
