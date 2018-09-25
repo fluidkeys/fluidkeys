@@ -362,71 +362,96 @@ func TestEncryptionSubkey(t *testing.T) {
 	tenDaysFromNow := now.Add(time.Duration(24*10) * time.Hour)
 	thirtyDaysFromNow := now.Add(time.Duration(24*30) * time.Hour)
 	tenYearsFromNow := now.Add(time.Duration(24*365*10) * time.Hour)
+	fortyFiveDaysDuration := time.Duration(45*24) * time.Hour
 
 	subkeyTests := []subkeyConfig{
 		{
-			// 1: valid, created 60 days ago
-			expectedValid: true,
-			creationTime:  sixtyDaysAgo,
-			expiryTime:    thirtyDaysFromNow, // valid, within expiry
-			revoked:       false,
-			flagsValid:    true,
-			encryptFlags:  true,
+			// valid, created 60 days ago
+			expectedValid:         true,
+			keyCreationTime:       sixtyDaysAgo,
+			signatureCreationTime: sixtyDaysAgo,
+			expiryTime:            thirtyDaysFromNow, // valid, within expiry
+			revoked:               false,
+			flagsValid:            true,
+			encryptFlags:          true,
 		},
 		{
-			// 2: valid, created 30 days ago (most recent should be selected)
-			expectedValid: true,
-			creationTime:  thirtyDaysAgo,
-			expiryTime:    thirtyDaysFromNow, // valid, within expiry
-			revoked:       false,
-			flagsValid:    true,
-			encryptFlags:  true,
+			// valid, created 30 days ago (most recent should be selected)
+			expectedValid:         true,
+			keyCreationTime:       thirtyDaysAgo,
+			signatureCreationTime: thirtyDaysAgo,
+			expiryTime:            thirtyDaysFromNow, // valid, within expiry
+			revoked:               false,
+			flagsValid:            true,
+			encryptFlags:          true,
 		},
 		// TODO: add "no expiry" case
 		{
-			// 3: invalid, created in the future
-			expectedValid: false,
-			creationTime:  tenDaysFromNow,
-			expiryTime:    thirtyDaysFromNow,
-			revoked:       false,
-			flagsValid:    true,
-			encryptFlags:  true,
+			// invalid, created in the future
+			expectedValid:         false,
+			keyCreationTime:       tenDaysFromNow,
+			signatureCreationTime: tenDaysFromNow,
+			expiryTime:            thirtyDaysFromNow,
+			revoked:               false,
+			flagsValid:            true,
+			encryptFlags:          true,
 		},
 		{
-			// 4: invalid, expired
-			expectedValid: false,
-			creationTime:  sixtyDaysAgo,
-			expiryTime:    thirtyDaysAgo, // expired
-			revoked:       false,
-			flagsValid:    true,
-			encryptFlags:  true,
+			// invalid, *key* creation time vs signature creation time
+			//
+			// expiry is calculated as:
+			// *key creation time* + number of seconds
+			// NOT *signature creation time*
+			//
+			// this test ensures code calculates off the correct
+			// reference point.
+			expectedValid:         false,
+			keyCreationTime:       sixtyDaysAgo,
+			signatureCreationTime: thirtyDaysAgo,
+			expiryTime:            sixtyDaysAgo.Add(fortyFiveDaysDuration),
+			revoked:               false,
+			flagsValid:            true,
+			encryptFlags:          true,
 		},
 		{
-			// 5: invalid, revoked
-			expectedValid: false,
-			creationTime:  sixtyDaysAgo,
-			expiryTime:    thirtyDaysFromNow, // valid, within expiry
-			revoked:       true,
-			flagsValid:    true,
-			encryptFlags:  true,
+			// invalid, expired
+			expectedValid:         false,
+			keyCreationTime:       sixtyDaysAgo,
+			signatureCreationTime: sixtyDaysAgo,
+			expiryTime:            thirtyDaysAgo, // expired
+			revoked:               false,
+			flagsValid:            true,
+			encryptFlags:          true,
 		},
 		{
-			// 6: invalid, can't do encryption
-			expectedValid: false,
-			creationTime:  sixtyDaysAgo,
-			expiryTime:    thirtyDaysFromNow, // valid, within expiry
-			revoked:       false,
-			flagsValid:    true,
-			encryptFlags:  false,
+			// invalid, revoked
+			expectedValid:         false,
+			keyCreationTime:       sixtyDaysAgo,
+			signatureCreationTime: sixtyDaysAgo,
+			expiryTime:            thirtyDaysFromNow, // valid, within expiry
+			revoked:               true,
+			flagsValid:            true,
+			encryptFlags:          true,
 		},
 		{
-			// 7: invalid, FlagsValid=false
-			expectedValid: false,
-			creationTime:  sixtyDaysAgo,
-			expiryTime:    thirtyDaysFromNow, // valid, within expiry
-			revoked:       false,
-			flagsValid:    false,
-			encryptFlags:  true,
+			// invalid, can't do encryption
+			expectedValid:         false,
+			keyCreationTime:       sixtyDaysAgo,
+			signatureCreationTime: sixtyDaysAgo,
+			expiryTime:            thirtyDaysFromNow, // valid, within expiry
+			revoked:               false,
+			flagsValid:            true,
+			encryptFlags:          false,
+		},
+		{
+			// invalid, FlagsValid=false
+			expectedValid:         false,
+			keyCreationTime:       sixtyDaysAgo,
+			signatureCreationTime: sixtyDaysAgo,
+			expiryTime:            thirtyDaysFromNow, // valid, within expiry
+			revoked:               false,
+			flagsValid:            false,
+			encryptFlags:          true,
 		},
 	}
 
@@ -512,12 +537,13 @@ func TestEncryptionSubkey(t *testing.T) {
 }
 
 type subkeyConfig struct {
-	expectedValid bool
-	creationTime  time.Time
-	expiryTime    time.Time
-	revoked       bool
-	flagsValid    bool
-	encryptFlags  bool
+	expectedValid         bool
+	keyCreationTime       time.Time
+	signatureCreationTime time.Time
+	expiryTime            time.Time
+	revoked               bool
+	flagsValid            bool
+	encryptFlags          bool
 }
 
 func makeKeyWithSubkeys(t *testing.T, subkeyConfigs []subkeyConfig, now time.Time) (*PgpKey, error) {
@@ -537,12 +563,12 @@ func makeKeyWithSubkeys(t *testing.T, subkeyConfigs []subkeyConfig, now time.Tim
 			t.Fatalf("failed to generate subkey from subkeyConfig[%d]: %v", i, err)
 		}
 
-		expiryDuration := uint32(subkeyConfig.expiryTime.Sub(subkeyConfig.creationTime).Seconds())
+		expiryDuration := uint32(subkeyConfig.expiryTime.Sub(subkeyConfig.keyCreationTime).Seconds())
 		subkey := openpgp.Subkey{
 			PublicKey:  packet.NewRSAPublicKey(now, &privateKey.PublicKey),
 			PrivateKey: packet.NewRSAPrivateKey(now, privateKey),
 			Sig: &packet.Signature{
-				CreationTime:              subkeyConfig.creationTime,
+				CreationTime:              subkeyConfig.signatureCreationTime,
 				KeyLifetimeSecs:           &expiryDuration,
 				SigType:                   packet.SigTypeSubkeyBinding,
 				PubKeyAlgo:                packet.PubKeyAlgoRSA,
@@ -554,6 +580,7 @@ func makeKeyWithSubkeys(t *testing.T, subkeyConfigs []subkeyConfig, now time.Tim
 			},
 		}
 
+		subkey.PublicKey.CreationTime = subkeyConfig.keyCreationTime
 		subkey.PublicKey.IsSubkey = true
 		subkey.PrivateKey.IsSubkey = true
 
