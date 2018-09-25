@@ -309,6 +309,111 @@ func (key *PgpKey) encryptionSubkey(now time.Time) *openpgp.Subkey {
 	return &subkeys[0]
 }
 
+// createSubkeyRevocationSignature creates a revocation signature to prevent
+// the subkey from being usable.
+//
+// Note that it doesn't work :( GnuPG says it has a bad signature.
+//
+// From https://tools.ietf.org/html/rfc4880#section-5.2.1
+// > 0x28: Subkey revocation signature
+// > The signature is calculated directly on the subkey being revoked.
+// > A revoked subkey is not to be used.  Only revocation signatures
+// > by the top-level signature key that is bound to this subkey, or
+// > by an authorized revocation key, should be considered valid
+// > revocation signatures.
+func (key *PgpKey) createSubkeyRevocationSignature(subkeyId uint64) error {
+	// From GnuPG:
+	// Old: Signature Packet(tag 2)(566 bytes)
+	// Ver 4 - new
+	// Sig type - Subkey revocation signature(0x28).
+	// Pub alg - RSA Encrypt or Sign(pub 1)
+	// Hash alg - SHA256(hash 8)
+	// Hashed Sub: unknown(sub 33)(21 bytes)
+	// Hashed Sub: signature creation time(sub 2)(4 bytes)
+	// 	Time - Mon Sep 24 17:47:14 BST 2018
+	// Hashed Sub: reason for revocation(sub 29)(1 bytes)
+	// 	Reason - No reason specified
+	// 	Comment -
+	// Sub: issuer key ID(sub 16)(8 bytes)
+	// 	Key ID - 0x63D2DAC2F0D02A08
+	// Hash left 2 bytes - 0c 63
+	// RSA m^d mod n(4093 bits) - ...
+	// 	-> PKCS-1
+
+	// New: Signature Packet(tag 2)(543 bytes)
+	// Ver 4 - new
+	// Sig type - Subkey revocation signature(0x28).
+	// Pub alg - RSA Encrypt or Sign(pub 1)
+	// Hash alg - SHA512(hash 10)
+	// Hashed Sub: signature creation time(sub 2)(4 bytes)
+	// 	Time - Mon Sep 24 18:39:47 BST 2018
+	// Hashed Sub: issuer key ID(sub 16)(8 bytes)
+	// 	Key ID - 0x63D2DAC2F0D02A08
+	// Hashed Sub: reason for revocation(sub 29)(1 bytes)
+	// 	Reason - No reason specified
+	// 	Comment -
+	// Hash left 2 bytes - 9d 96
+	// RSA m^d mod n(4096 bits) - ...
+	// 	-> PKCS-1
+
+	//
+	// * we have extra signature creation time
+	// * gpg has extra "sub 33" subpacket
+	// * gpg issuer key id packet isn't hashed, ours is
+	// * ours has extra key valid length
+	// * secret keys hae 3 bit difference
+	//
+	// is gpg ignoring our revocation sig because:
+	// - it's skipping the private key?
+	// - it doesn't have reason for revocation?
+
+	// Seems the spec might be wrong:
+	// https://www.ietf.org/mail-archive/web/openpgp/current/msg07067.html
+
+	subkey, err := key.Subkey(subkeyId)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+
+	hashFunc := crypto.SHA512
+	reason := uint8(0) // "no reason", see https://tools.ietf.org/html/rfc4880#section-5.2.3.23
+
+	sig := &packet.Signature{
+		CreationTime:         now,
+		SigType:              packet.SigTypeSubkeyRevocation,
+		PubKeyAlgo:           key.PrimaryKey.PubKeyAlgo,
+		Hash:                 hashFunc,
+		IssuerKeyId:          &key.PrimaryKey.KeyId,
+		RevocationReason:     &reason,
+		RevocationReasonText: "FOO",
+	}
+
+	if key.PrivateKey.Encrypted {
+		return fmt.Errorf("key.PrivateKey is encrypted")
+	}
+
+	// h, err := packet.KeyRevocationHash(key.PrimaryKey, hashFunc)
+	h, err := packet.KeyRevocationHash(subkey.PublicKey, hashFunc)
+	if err != nil {
+		return err
+	}
+
+	err = sig.Sign(h, key.PrivateKey, nil)
+	if err != nil {
+		return fmt.Errorf("failed to make subkey revocation signature: %v", err)
+	}
+
+	// err = key.PrimaryKey.VerifyRevocationSignature(sig)
+	// if err != nil {
+	// 	return fmt.Errorf("verify failed: %v", err)
+	// }
+
+	subkey.Sig = sig
+	return nil
+}
+
 func (key *PgpKey) validEncryptionSubkeys(now time.Time) []openpgp.Subkey {
 	var subkeys []openpgp.Subkey
 
