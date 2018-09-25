@@ -285,6 +285,7 @@ func keyList() exitCode {
 		panic(err)
 	}
 
+	fmt.Printf("\n")
 	keytableprinter.Print(keys)
 	return 0
 }
