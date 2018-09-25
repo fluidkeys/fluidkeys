@@ -632,6 +632,66 @@ func makeKeyWithSubkeys(t *testing.T, subkeyConfigs []subkeyConfig, now time.Tim
 	return pgpKey, nil
 }
 
+func TestCreateNewEncryptionSubkey(t *testing.T) {
+
+	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
+	thirtyDaysFromNow := now.Add(time.Duration(24*30) * time.Hour)
+
+	pgpKey, err := generateInsecure("subkey.test@example.com")
+	if err != nil {
+		t.Fatalf("failed to generate PGP key in tests")
+	}
+	pgpKey.Subkeys = []openpgp.Subkey{} // delete existing subkey
+
+	err = pgpKey.createNewEncryptionSubkey(thirtyDaysFromNow, now)
+	if err != nil {
+		t.Fatalf("Error creating subkey: %v", err)
+	}
+
+	gotSubKey := pgpKey.encryptionSubkey(now)
+
+	t.Run("creates a valid subkey", func(t *testing.T) {
+		if gotSubKey == nil {
+			t.Fatalf("Expected to be able to get a subkey, but couldn't")
+		} else {
+			t.Run("with flags set correctly", func(t *testing.T) {
+				if gotSubKey.Sig.FlagsValid != true {
+					t.Fatalf("FlagsValid is false, expected true")
+				}
+				if gotSubKey.Sig.FlagEncryptStorage != true {
+					t.Fatalf("FlagEncryptStorage is false, expected true")
+				}
+				if gotSubKey.Sig.FlagEncryptCommunications != true {
+					t.Fatalf("FlagEncryptCommunications is false, expected true")
+				}
+			})
+
+			t.Run("with correct signature creation time", func(t *testing.T) {
+				got := gotSubKey.Sig.CreationTime
+				if got != now {
+					t.Fatalf("expected %v, got %v", now, got)
+				}
+			})
+
+			t.Run("with correction public key creation time", func(t *testing.T) {
+				got := gotSubKey.PublicKey.CreationTime
+				if got != now {
+					t.Fatalf("expected %v, got %v", now, got)
+				}
+			})
+		}
+	})
+
+	t.Run("with a valid signature", func(t *testing.T) {
+		err := pgpKey.PrimaryKey.VerifyKeySignature(gotSubKey.PublicKey, gotSubKey.Sig)
+
+		if err != nil {
+			t.Fatalf("Subkey signature is invalid: " + err.Error())
+		}
+	})
+
+}
+
 const examplePublicKey string = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mI0EW358xgEEAMv+L3f9UqB6FKWamHIBLxs615iVmPZwr0MvLg2nQ8TZJHTpLyIp
