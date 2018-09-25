@@ -694,6 +694,37 @@ func TestCreateNewEncryptionSubkey(t *testing.T) {
 		}
 	})
 
+	t.Run("can encrypt something", func(t *testing.T) {
+		config := packet.Config{
+			Time: func() time.Time { return now },
+		}
+
+		outputCipherText := bytes.NewBuffer(nil)
+		w, err := openpgp.Encrypt(
+			outputCipherText,
+			[]*openpgp.Entity{&pgpKey.Entity},
+			&pgpKey.Entity,
+			nil,
+			&config,
+		)
+
+		fmt.Printf("pgpSubkeys length: %d\n", len(pgpKey.Subkeys))
+
+		if err != nil {
+			t.Fatalf("Error creating the encrypt writer: %s", err)
+		}
+
+		const message = "A test message"
+		_, err = w.Write([]byte(message))
+		if err != nil {
+			t.Fatalf("Error writing plaintext: %s", err)
+		}
+		err = w.Close()
+		if err != nil {
+			t.Fatalf("Error closing WriteCloser: %s", err)
+		}
+	})
+
 }
 
 func temporaryWorkAroundSetHashPreference(key *PgpKey) error {
