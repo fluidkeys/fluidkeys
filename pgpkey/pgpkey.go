@@ -310,12 +310,16 @@ func (key *PgpKey) encryptionSubkey(now time.Time) *openpgp.Subkey {
 	return &subkeys[0]
 }
 
+// CreateNewEncryptionSubkey creaates and signs a new encryption subkey for
+// the primary key, valid until a specified time.
 func (key *PgpKey) CreateNewEncryptionSubkey(validUntil time.Time) error {
+	return key.createNewEncryptionSubkey(validUntil, time.Now())
+}
+
+func (key *PgpKey) createNewEncryptionSubkey(validUntil time.Time, now time.Time) error {
 	config := packet.Config{
 		RSABits: 2048,
 	}
-
-	now := time.Now()
 
 	encryptingPriv, err := rsa.GenerateKey(config.Random(), config.RSABits)
 	if err != nil {
