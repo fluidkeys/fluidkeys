@@ -2,7 +2,6 @@ package status
 
 import (
 	"fmt"
-	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"time"
 )
@@ -29,7 +28,7 @@ func getEncryptionSubkeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning 
 
 	var warnings []KeyWarning
 
-	hasExpiry, expiry := getSubkeyExpiry(*encryptionSubkey)
+	hasExpiry, expiry := pgpkey.SubkeyExpiry(*encryptionSubkey)
 
 	if hasExpiry {
 		nextRotation := calculateNextRotationTime(*expiry)
@@ -177,13 +176,6 @@ func getDaysSinceExpiry(expiry time.Time, now time.Time) uint {
 	return uint(days)
 }
 
-func getSubkeyExpiry(subkey openpgp.Subkey) (bool, *time.Time) {
-	return calculateExpiry(
-		subkey.PublicKey.CreationTime, // not to be confused with the time of the *signature*
-		subkey.Sig.KeyLifetimeSecs,
-	)
-}
-
 // getEarliestUidExpiry is roughly equivalent to "the expiry of the primary key"
 //
 // returns (hasExpiry, expiryTime) where hasExpiry is a bool indicating if
@@ -199,7 +191,7 @@ func getEarliestUidExpiry(key pgpkey.PgpKey) (bool, *time.Time) {
 	var allExpiryTimes []time.Time
 
 	for _, id := range key.Identities {
-		hasExpiry, expiryTime := calculateExpiry(
+		hasExpiry, expiryTime := pgpkey.CalculateExpiry(
 			key.PrimaryKey.CreationTime, // not to be confused with the time of the *signature*
 			id.SelfSignature.KeyLifetimeSecs,
 		)
@@ -242,7 +234,7 @@ func getEarliestExpiryTime(key pgpkey.PgpKey) (bool, *time.Time) {
 	var allExpiryTimes []time.Time
 
 	for _, id := range key.Identities {
-		hasExpiry, expiryTime := calculateExpiry(
+		hasExpiry, expiryTime := pgpkey.CalculateExpiry(
 			key.PrimaryKey.CreationTime, // not to be confused with the time of the *signature*
 			id.SelfSignature.KeyLifetimeSecs,
 		)
@@ -252,7 +244,7 @@ func getEarliestExpiryTime(key pgpkey.PgpKey) (bool, *time.Time) {
 	}
 
 	for _, subkey := range key.Subkeys {
-		hasExpiry, expiryTime := getSubkeyExpiry(subkey)
+		hasExpiry, expiryTime := pgpkey.SubkeyExpiry(subkey)
 		if hasExpiry {
 			allExpiryTimes = append(allExpiryTimes, *expiryTime)
 		}
@@ -281,25 +273,6 @@ func earliest(times []time.Time) time.Time {
 		}
 	}
 	return earliestSoFar
-}
-
-// calculateExpiry takes a creationtime and a key lifetime in seconds (pointer)
-// and returns a corresponding time.Time
-//
-// From https://tools.ietf.org/html/rfc4880#section-5.2.3.6
-// "If this is not present or has a value of zero, the key never expires."
-func calculateExpiry(creationTime time.Time, lifetimeSecs *uint32) (bool, *time.Time) {
-	//
-	if lifetimeSecs == nil {
-		return false, nil
-	}
-
-	if *lifetimeSecs == 0 {
-		return false, nil
-	}
-
-	expiry := creationTime.Add(time.Duration(*lifetimeSecs) * time.Second).In(time.UTC)
-	return true, &expiry
 }
 
 // nextExpiryTime returns the expiry time in UTC, according to the policy:
