@@ -396,6 +396,16 @@ func TestEncryptionSubkey(t *testing.T) {
 			encryptFlags:          true,
 		},
 		{
+			// valid, key and sig created just now
+			expectedValid:         true,
+			keyCreationTime:       now,
+			signatureCreationTime: now,
+			expiryTime:            &thirtyDaysFromNow, // valid, within expiry
+			revoked:               false,
+			flagsValid:            true,
+			encryptFlags:          true,
+		},
+		{
 			// invalid, created in the future
 			expectedValid:         false,
 			keyCreationTime:       tenDaysFromNow,
@@ -505,7 +515,7 @@ func TestEncryptionSubkey(t *testing.T) {
 	})
 
 	t.Run("EncryptionSubkey selects most recent subkey", func(t *testing.T) {
-		expectedKey := pgpKey.Subkeys[1]
+		expectedKey := pgpKey.Subkeys[3]
 		gotKey := pgpKey.encryptionSubkey(now)
 
 		if gotKey == nil {

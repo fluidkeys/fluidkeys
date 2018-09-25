@@ -368,7 +368,7 @@ func (key *PgpKey) validEncryptionSubkeys(now time.Time) []openpgp.Subkey {
 
 func isEncryptionSubkeyValid(subkey openpgp.Subkey, now time.Time) bool {
 	isRevoked := subkey.Sig.SigType == packet.SigTypeSubkeyRevocation
-	createdInThePast := subkey.Sig.CreationTime.Before(now)
+	createdInThePast := !subkey.PublicKey.CreationTime.After(now)
 	hasEncryptionFlag := subkey.Sig.FlagEncryptCommunications || subkey.Sig.FlagEncryptStorage
 
 	hasExpiry, expiry := SubkeyExpiry(subkey)
