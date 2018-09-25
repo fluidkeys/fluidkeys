@@ -150,39 +150,6 @@ func TestEarliest(t *testing.T) {
 	}
 }
 
-func TestCalculateExpiry(t *testing.T) {
-	createdTime := feb1st
-
-	t.Run("with nil lifetimeSecs", func(t *testing.T) {
-		hasExpiry, _ := calculateExpiry(createdTime, nil)
-		if hasExpiry {
-			t.Fatalf("expected hasExpiry=false for nil lifetimeSecs")
-		}
-	})
-
-	t.Run("with zero lifetimeSecs", func(t *testing.T) {
-		var lifetimeSecs uint32 = 0
-		hasExpiry, _ := calculateExpiry(createdTime, &lifetimeSecs)
-		if hasExpiry {
-			t.Fatalf("expected hasExpiry=false for zero lifetimeSecs")
-		}
-	})
-
-	t.Run("with valid lifetimeSecs", func(t *testing.T) {
-		var lifetimeSecs uint32 = 3600
-		hasExpiry, expiryTime := calculateExpiry(createdTime, &lifetimeSecs)
-		if !hasExpiry {
-			t.Fatalf("expected hasExpiry=true for valid lifetimeSecs")
-		}
-
-		expected := createdTime.Add(time.Duration(3600) * time.Second)
-
-		if *expiryTime != expected {
-			t.Fatalf("expected expiryTime: %v, got %v", expected, *expiryTime)
-		}
-	})
-}
-
 func TestDateHelpers(t *testing.T) {
 	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
 	expiryInFuture := now.Add(time.Duration(1) * time.Hour)
