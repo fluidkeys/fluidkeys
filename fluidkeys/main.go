@@ -80,9 +80,11 @@ Usage:
 	fk key create
 	fk key from-gpg
 	fk key list
+	fk key rotate [--dry-run]
 
 Options:
-	-h --help    Show this screen`, Version)
+	-h --help     Show this screen
+	--dry-run     Don't change anything: only output what would happen `, Version)
 
 	args, _ := docopt.ParseDoc(usage)
 
@@ -115,13 +117,21 @@ func initSubcommand(args docopt.Opts) exitCode {
 }
 
 func keySubcommand(args docopt.Opts) exitCode {
-	switch getSubcommand(args, []string{"create", "from-gpg", "list"}) {
+	switch getSubcommand(args, []string{
+		"create", "from-gpg", "list", "rotate",
+	}) {
 	case "create":
 		os.Exit(keyCreate())
 	case "from-gpg":
 		os.Exit(keyFromGpg())
 	case "list":
 		os.Exit(keyList())
+	case "rotate":
+		dryRun, err := args.Bool("--dry-run")
+		if err != nil {
+			panic(err)
+		}
+		os.Exit(keyRotate(dryRun))
 	}
 	panic(fmt.Errorf("keySubcommand got unexpected arguments: %v", args))
 }
@@ -279,6 +289,11 @@ func keyList() exitCode {
 
 	fmt.Printf("\n")
 	keytableprinter.Print(keys)
+	return 0
+}
+
+func keyRotate(dryRun bool) exitCode {
+	fmt.Printf("keyRotate(dryRun=%v): not implemented\n", dryRun)
 	return 0
 }
 
