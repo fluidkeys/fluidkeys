@@ -481,12 +481,7 @@ func TestEncryptionSubkey(t *testing.T) {
 
 	for i, subkey := range pgpKey.Subkeys {
 		t.Run(fmt.Sprintf("isEncryptionSubkeyValid(subkeyConfig %d)", i), func(t *testing.T) {
-			gotIsValid := isEncryptionSubkeyValid(subkey, now)
-			expectedIsValid := subkeyTests[i].expectedValid
-
-			if expectedIsValid != gotIsValid {
-				t.Errorf("subkeyTests[%d]: expected valid=%v, got %v", i, expectedIsValid, gotIsValid)
-			}
+			assertSubkeyValiditity(subkey, subkeyTests[i].expectedValid, now, t)
 		})
 	}
 
@@ -734,6 +729,15 @@ func temporaryWorkAroundSetHashPreference(key *PgpKey) error {
 		}
 	}
 	return nil
+}
+
+func assertSubkeyValiditity(subkey openpgp.Subkey, expectedIsValid bool, now time.Time, t *testing.T) {
+	t.Helper()
+	gotIsValid := isEncryptionSubkeyValid(subkey, now)
+
+	if expectedIsValid != gotIsValid {
+		t.Errorf("Expected valid=%v, got %v", expectedIsValid, gotIsValid)
+	}
 }
 
 const examplePublicKey string = `-----BEGIN PGP PUBLIC KEY BLOCK-----
