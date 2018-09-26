@@ -708,8 +708,6 @@ func TestCreateNewEncryptionSubkey(t *testing.T) {
 			&config,
 		)
 
-		fmt.Printf("pgpSubkeys length: %d\n", len(pgpKey.Subkeys))
-
 		if err != nil {
 			t.Fatalf("Error creating the encrypt writer: %s", err)
 		}

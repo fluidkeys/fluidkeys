@@ -323,7 +323,6 @@ func (key *PgpKey) createNewEncryptionSubkey(validUntil time.Time, now time.Time
 
 	encryptingPriv, err := rsa.GenerateKey(config.Random(), config.RSABits)
 	if err != nil {
-		fmt.Printf("ERROR %v\n", err)
 		return err
 	}
 
