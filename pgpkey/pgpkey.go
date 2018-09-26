@@ -294,6 +294,7 @@ func (key *PgpKey) UpdateExpiryForAllUserIds(validUntil time.Time) error {
 	keyLifetimeSeconds := uint32(validUntil.Sub(key.PrimaryKey.CreationTime).Seconds())
 
 	for _, id := range key.Identities {
+		id.SelfSignature.CreationTime = time.Now()
 		id.SelfSignature.KeyLifetimeSecs = &keyLifetimeSeconds
 		err := id.SelfSignature.SignUserId(id.UserId.Id, key.PrimaryKey, key.PrivateKey, &config.Config)
 		if err != nil {
