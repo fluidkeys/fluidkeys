@@ -482,7 +482,7 @@ func TestEncryptionSubkey(t *testing.T) {
 
 	for i, subkey := range pgpKey.Subkeys {
 		t.Run(fmt.Sprintf("isEncryptionSubkeyValid(subkeyConfig %d)", i), func(t *testing.T) {
-			assertSubkeyValiditity(subkey, subkeyTests[i].expectedValid, now, t)
+			assertSubkeyValidity(subkey, subkeyTests[i].expectedValid, now, t)
 		})
 	}
 
@@ -754,7 +754,7 @@ func TestUpdateSubkeyExpiryToNow(t *testing.T) {
 	}
 
 	subkey := pgpKey.encryptionSubkey(now)
-	assertSubkeyValiditity(*subkey, true, now, t)
+	assertSubkeyValidity(*subkey, true, now, t)
 
 	originalSubkeySignatureCreationTime := subkey.Sig.CreationTime
 
@@ -774,7 +774,7 @@ func TestUpdateSubkeyExpiryToNow(t *testing.T) {
 	})
 
 	t.Run("subkey is no longer valid", func(t *testing.T) {
-		assertSubkeyValiditity(*subkey, false, now, t)
+		assertSubkeyValidity(*subkey, false, now, t)
 	})
 
 	t.Run("keys expiry time is brought forward to now", func(t *testing.T) {
@@ -823,7 +823,7 @@ func TestSubkey(t *testing.T) {
 
 	for i, subkey := range pgpKey.Subkeys {
 		t.Run(fmt.Sprintf("isEncryptionSubkeyValid(subkeyConfig %d)", i), func(t *testing.T) {
-			assertSubkeyValiditity(subkey, subkeyConfigs[i].expectedValid, now, t)
+			assertSubkeyValidity(subkey, subkeyConfigs[i].expectedValid, now, t)
 		})
 	}
 
@@ -851,7 +851,7 @@ func TestSubkey(t *testing.T) {
 	})
 }
 
-func assertSubkeyValiditity(subkey openpgp.Subkey, expectedIsValid bool, now time.Time, t *testing.T) {
+func assertSubkeyValidity(subkey openpgp.Subkey, expectedIsValid bool, now time.Time, t *testing.T) {
 	t.Helper()
 	gotIsValid := isEncryptionSubkeyValid(subkey, now)
 
