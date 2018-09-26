@@ -731,6 +731,62 @@ func temporaryWorkAroundSetHashPreference(key *PgpKey) error {
 	return nil
 }
 
+func TestUpdateSubkeyExpiryToNow(t *testing.T) {
+	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
+	sixtyDaysAgo := now.Add(-time.Duration(24*60) * time.Hour)
+	thirtyDaysFromNow := now.Add(time.Duration(24*30) * time.Hour)
+
+	subkeyConfigs := []subkeyConfig{
+		{
+			keyCreationTime:       sixtyDaysAgo,
+			signatureCreationTime: sixtyDaysAgo,
+			expiryTime:            &thirtyDaysFromNow, // valid, within expiry
+			revoked:               false,
+			flagsValid:            true,
+			encryptFlags:          true,
+		},
+	}
+
+	pgpKey, err := makeKeyWithSubkeys(t, subkeyConfigs, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	subkey := pgpKey.encryptionSubkey(now)
+	assertSubkeyValiditity(*subkey, true, now, t)
+
+	originalSubkeySignatureCreationTime := subkey.Sig.CreationTime
+
+	pgpKey.updateSubkeyExpiryToNow(subkey.PublicKey.KeyId, now)
+
+	t.Run("new subkey binding signature validates", func(t *testing.T) {
+		err := pgpKey.PrimaryKey.VerifyKeySignature(subkey.PublicKey, subkey.Sig)
+		if err != nil {
+			t.Fatalf("Subkey signature is invalid: " + err.Error())
+		}
+	})
+
+	t.Run("new subkey binding certificate is more recent that existing", func(t *testing.T) {
+		if !subkey.Sig.CreationTime.After(originalSubkeySignatureCreationTime) {
+			t.Fatalf("Expected %v to be after %v", subkey.Sig.CreationTime, originalSubkeySignatureCreationTime)
+		}
+	})
+
+	t.Run("subkey is no longer valid", func(t *testing.T) {
+		assertSubkeyValiditity(*subkey, false, now, t)
+	})
+
+	t.Run("keys expiry time is brought forward to now", func(t *testing.T) {
+		hasExpiry, expiry := SubkeyExpiry(*subkey)
+		if hasExpiry != true {
+			t.Fatalf("Expected an expiry, haven't got one")
+		}
+		if *expiry != now {
+			t.Fatalf("Expected expiry to be %v, got %v", now, *expiry)
+		}
+	})
+}
+
 func assertSubkeyValiditity(subkey openpgp.Subkey, expectedIsValid bool, now time.Time, t *testing.T) {
 	t.Helper()
 	gotIsValid := isEncryptionSubkeyValid(subkey, now)
