@@ -860,6 +860,53 @@ func assertSubkeyValidity(subkey openpgp.Subkey, expectedIsValid bool, now time.
 	}
 }
 
+func TestUpdateExpiryForAllUserIds(t *testing.T) {
+	tenDaysFromNow := time.Now().Add(time.Duration(24*10) * time.Hour)
+	expiryTime := tenDaysFromNow
+
+	pgpKey, err := LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey3, "test3")
+	if err != nil {
+		t.Fatalf("Failed to load example test data: %v", err)
+	}
+
+	originalSelfSignatureCreationTime := pgpKey.Identities["<test3@example.com>"].SelfSignature.CreationTime
+
+	error := pgpKey.UpdateExpiryForAllUserIds(expiryTime)
+	if error != nil {
+		t.Fatalf("Error updating expiry for user ids: %v\n", error)
+	}
+
+	newSelfSignature := pgpKey.Identities["<test3@example.com>"].SelfSignature
+
+	t.Run("signs with a valid signature", func(t *testing.T) {
+		err := pgpKey.PrimaryKey.VerifyUserIdSignature(
+			pgpKey.Identities["<test3@example.com>"].Name,
+			pgpKey.PrimaryKey,
+			newSelfSignature,
+		)
+		if err != nil {
+			t.Fatalf("new self signature is invalid: " + err.Error())
+		}
+	})
+
+	t.Run("new self signature creation time is more recent that existing", func(t *testing.T) {
+		if !newSelfSignature.CreationTime.After(originalSelfSignatureCreationTime) {
+			t.Fatalf("Expected %v to be after %v", newSelfSignature.CreationTime, originalSelfSignatureCreationTime)
+		}
+	})
+
+	t.Run("sets all identities to expire at correct time", func(t *testing.T) {
+		expectedKeyLifetimeSeconds := uint32(expiryTime.Sub(pgpKey.PrimaryKey.CreationTime).Seconds())
+
+		for _, uid := range pgpKey.Identities {
+			got := uid.SelfSignature.KeyLifetimeSecs
+			if expectedKeyLifetimeSeconds != *uid.SelfSignature.KeyLifetimeSecs {
+				t.Fatalf("Expected %d, got %d", expectedKeyLifetimeSeconds, got)
+			}
+		}
+	})
+}
+
 const examplePublicKey string = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mI0EW358xgEEAMv+L3f9UqB6FKWamHIBLxs615iVmPZwr0MvLg2nQ8TZJHTpLyIp
