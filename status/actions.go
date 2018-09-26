@@ -1,7 +1,6 @@
 package status
 
 import (
-	//	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"fmt"
 	"time"
 )
