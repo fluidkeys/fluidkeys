@@ -108,7 +108,7 @@ func TestFingerprintMethod(t *testing.T) {
 }
 
 func TestRevocationCertificate(t *testing.T) {
-	pgpKey, err := generateInsecure("revoke.test@example.com")
+	pgpKey, err := generateInsecure("revoke.test@example.com", time.Now())
 	if err != nil {
 		t.Fatalf("failed to generate PGP key in tests")
 	}
@@ -142,7 +142,7 @@ func TestRevocationReasonSerializeParse(t *testing.T) {
 	// Note: if this testing was in crypto/openpgp itself it could just
 	// test the unexported outSubpackets field.
 
-	pgpKey, err := generateInsecure("revoke.test@example.com")
+	pgpKey, err := generateInsecure("revoke.test@example.com", time.Now())
 	if err != nil {
 		t.Fatalf("failed to generate PGP key in tests")
 	}
@@ -256,7 +256,8 @@ func getSingleUid(identities map[string]*openpgp.Identity) string {
 
 func TestGenerate(t *testing.T) {
 	janeEmail := "jane@example.com"
-	generatedKey, err := generateInsecure(janeEmail)
+	now := time.Date(2018, 6, 15, 16, 0, 0, 0, time.UTC)
+	generatedKey, err := generateInsecure(janeEmail, now)
 
 	if err != nil {
 		t.Errorf("failed to generate PGP key in tests")
@@ -278,6 +279,26 @@ func TestGenerate(t *testing.T) {
 			t.Errorf("expected UID '%s', got '%s'", expected, actual)
 		}
 	})
+
+	t.Run("PrimaryKey.CreationTime is correct", func(*testing.T) {
+		assert.AssertEqualTimes(t, now, generatedKey.PrimaryKey.CreationTime)
+	})
+
+	for name, identity := range generatedKey.Identities {
+		t.Run(fmt.Sprintf("Identity[%s].SelfSignature.CreationTime", name), func(t *testing.T) {
+			assert.AssertEqualTimes(t, now, identity.SelfSignature.CreationTime)
+		})
+	}
+
+	for i, subkey := range generatedKey.Subkeys {
+		t.Run(fmt.Sprintf("Subkeys[%d].PublicKey.CreationTime is correct", i), func(t *testing.T) {
+			assert.AssertEqualTimes(t, now, subkey.PublicKey.CreationTime)
+		})
+
+		t.Run(fmt.Sprintf("Subkeys[%d].Sig.CreationTime is correct", i), func(t *testing.T) {
+			assert.AssertEqualTimes(t, now, subkey.Sig.CreationTime)
+		})
+	}
 
 	t.Run("generate makes a key that by default expires in 60 days", func(*testing.T) {
 		identityName := getSingleUid(generatedKey.Identities)
@@ -564,7 +585,7 @@ type subkeyConfig struct {
 func makeKeyWithSubkeys(t *testing.T, subkeyConfigs []subkeyConfig, now time.Time) (*PgpKey, error) {
 	t.Helper()
 
-	pgpKey, err := generateInsecure("subkey.test@example.com")
+	pgpKey, err := generateInsecure("subkey.test@example.com", now)
 	if err != nil {
 		t.Fatalf("failed to generate PGP key in tests")
 	}
@@ -633,7 +654,7 @@ func TestCreateNewEncryptionSubkey(t *testing.T) {
 	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
 	thirtyDaysFromNow := now.Add(time.Duration(24*30) * time.Hour)
 
-	pgpKey, err := generateInsecure("subkey.test@example.com")
+	pgpKey, err := generateInsecure("subkey.test@example.com", now)
 	if err != nil {
 		t.Fatalf("failed to generate PGP key in tests")
 	}

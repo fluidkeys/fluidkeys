@@ -44,7 +44,8 @@ func (e *IncorrectPassword) Error() string {
 }
 
 func Generate(email string) (*PgpKey, error) {
-	return generateKeyOfSize(email, RsaSizeSecureKeyBits)
+	now := time.Now()
+	return generateKeyOfSize(email, RsaSizeSecureKeyBits, now)
 }
 
 // LoadFromArmoredPublicKey takes a single ascii-armored public key and
@@ -87,14 +88,15 @@ func LoadFromArmoredEncryptedPrivateKey(armoredPublicKey string, password string
 	return &pgpKey, nil
 }
 
-func generateInsecure(email string) (*PgpKey, error) {
-	return generateKeyOfSize(email, RsaSizeInsecureKeyBits)
+func generateInsecure(email string, creationTime time.Time) (*PgpKey, error) {
+	return generateKeyOfSize(email, RsaSizeInsecureKeyBits, creationTime)
 }
 
-func generateKeyOfSize(email string, rsaBits int) (*PgpKey, error) {
+func generateKeyOfSize(email string, rsaBits int, creationTime time.Time) (*PgpKey, error) {
 	config := Config{}
 	config.Config.RSABits = rsaBits
 	config.Expiry = time.Hour * 24 * 60 // 60 days
+	config.Config.Time = func() time.Time { return creationTime }
 
 	name, comment := "", ""
 	entity, err := openpgp.NewEntity(name, comment, email, &config.Config)
@@ -106,6 +108,7 @@ func generateKeyOfSize(email string, rsaBits int) (*PgpKey, error) {
 	keyLifetimeSeconds := uint32(config.Expiry.Seconds())
 
 	for _, id := range entity.Identities {
+		id.SelfSignature.CreationTime = creationTime
 		id.SelfSignature.KeyLifetimeSecs = &keyLifetimeSeconds
 		err := id.SelfSignature.SignUserId(id.UserId.Id, entity.PrimaryKey, entity.PrivateKey, &config.Config)
 		if err != nil {
