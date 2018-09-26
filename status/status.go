@@ -3,6 +3,7 @@ package status
 import (
 	"fmt"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"github.com/fluidkeys/fluidkeys/policy"
 	"time"
 )
 
@@ -31,7 +32,7 @@ func getEncryptionSubkeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning 
 	hasExpiry, expiry := pgpkey.SubkeyExpiry(*encryptionSubkey)
 
 	if hasExpiry {
-		nextRotation := calculateNextRotationTime(*expiry)
+		nextRotation := policy.NextRotation(*expiry)
 
 		if isExpired(*expiry, now) {
 			warning := KeyWarning{
@@ -39,7 +40,7 @@ func getEncryptionSubkeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning 
 			}
 			warnings = append(warnings, warning)
 
-		} else if isOverdueForRotation(nextRotation, now) {
+		} else if policy.IsOverdueForRotation(nextRotation, now) {
 			warning := KeyWarning{
 				Type:            SubkeyOverdueForRotation,
 				SubkeyId:        subkeyId,
@@ -47,7 +48,7 @@ func getEncryptionSubkeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning 
 			}
 			warnings = append(warnings, warning)
 
-		} else if isDueForRotation(nextRotation, now) {
+		} else if policy.IsDueForRotation(nextRotation, now) {
 			warning := KeyWarning{
 				Type:     SubkeyDueForRotation,
 				SubkeyId: subkeyId,
@@ -55,7 +56,7 @@ func getEncryptionSubkeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning 
 			warnings = append(warnings, warning)
 		}
 
-		if isExpiryTooLong(*expiry, now) {
+		if policy.IsExpiryTooLong(*expiry, now) {
 			warning := KeyWarning{
 				Type:     SubkeyLongExpiry,
 				SubkeyId: subkeyId,
@@ -79,7 +80,7 @@ func getPrimaryKeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning {
 	hasExpiry, expiry := getEarliestUidExpiry(key)
 
 	if hasExpiry {
-		nextRotation := calculateNextRotationTime(*expiry)
+		nextRotation := policy.NextRotation(*expiry)
 
 		if isExpired(*expiry, now) {
 			warning := KeyWarning{
@@ -88,7 +89,7 @@ func getPrimaryKeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning {
 			}
 			warnings = append(warnings, warning)
 
-		} else if isOverdueForRotation(nextRotation, now) {
+		} else if policy.IsOverdueForRotation(nextRotation, now) {
 			warning := KeyWarning{
 				Type:            PrimaryKeyOverdueForRotation,
 				DaysUntilExpiry: getDaysUntilExpiry(*expiry, now),
@@ -96,12 +97,12 @@ func getPrimaryKeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning {
 
 			warnings = append(warnings, warning)
 
-		} else if isDueForRotation(nextRotation, now) {
+		} else if policy.IsDueForRotation(nextRotation, now) {
 			warning := KeyWarning{Type: PrimaryKeyDueForRotation}
 			warnings = append(warnings, warning)
 		}
 
-		if isExpiryTooLong(*expiry, now) {
+		if policy.IsExpiryTooLong(*expiry, now) {
 			warning := KeyWarning{Type: PrimaryKeyLongExpiry}
 			warnings = append(warnings, warning)
 		}
@@ -113,43 +114,8 @@ func getPrimaryKeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning {
 	return warnings
 }
 
-const tenDays time.Duration = time.Duration(time.Hour * 24 * 10)
-const thirtyDays time.Duration = time.Duration(time.Hour * 24 * 30)
-const fortyFiveDays time.Duration = time.Duration(time.Hour * 24 * 45)
-
-// CalculateNextRotationTime returns 30 days before the earliest expiry time on
-// the key.
-// If the key doesn't expire, it returns nil.
-func calculateNextRotationTime(expiry time.Time) time.Time {
-	return expiry.Add(-thirtyDays)
-}
-
-// isExpiryTooLong returns true if the expiry is too far in the future.
-//
-// It's important not to raise this warning for expiries that we've set
-// ourselves.
-// We use `nextExpiryTime` such that when we set an expiry date it's *exactly*
-// on the cusp of being too long, and can only get shorter after that point.
-func isExpiryTooLong(expiry time.Time, now time.Time) bool {
-	latestAcceptableExpiry := nextExpiryTime(now)
-	return expiry.After(latestAcceptableExpiry)
-}
-
 func isExpired(expiry time.Time, now time.Time) bool {
 	return expiry.Before(now)
-}
-
-// isOverdueForRotation returns true if `now` is more than 10 days after
-// nextRotation
-func isOverdueForRotation(nextRotation time.Time, now time.Time) bool {
-	overdueTime := nextRotation.Add(tenDays)
-	return overdueTime.Before(now)
-}
-
-// isDueForRotation returns true if `now` is any time after the key's next
-// rotation time
-func isDueForRotation(nextRotation time.Time, now time.Time) bool {
-	return nextRotation.Before(now)
 }
 
 // getDaysSinceExpiry returns the number of whole 24-hour periods until the
@@ -273,22 +239,4 @@ func earliest(times []time.Time) time.Time {
 		}
 	}
 	return earliestSoFar
-}
-
-// nextExpiryTime returns the expiry time in UTC, according to the policy:
-//     "30 days after the 1st of the next month"
-// for example, if today is 15th September, nextExpiryTime would return
-// 1st October + 30 days
-func nextExpiryTime(now time.Time) time.Time {
-	return firstOfNextMonth(now).Add(thirtyDays).In(time.UTC)
-}
-
-func firstOfNextMonth(today time.Time) time.Time {
-	firstOfThisMonth := beginningOfMonth(today)
-	return beginningOfMonth(firstOfThisMonth.Add(fortyFiveDays))
-}
-
-func beginningOfMonth(now time.Time) time.Time {
-	y, m, _ := now.Date()
-	return time.Date(y, m, 1, 0, 0, 0, 0, now.Location()).In(time.UTC)
 }

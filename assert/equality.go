@@ -2,6 +2,7 @@ package assert
 
 import (
 	"testing"
+	"time"
 )
 
 // EqualSliceOfStrings tells whether a and b contain the same elements.
@@ -46,6 +47,17 @@ func AssertEqualSliceOfInts(t *testing.T, expected, got []int) {
 		if expected[i] != got[i] {
 			t.Fatalf("expected[%d] differs, expected '%d', got '%d'", i, expected[i], got[i])
 		}
+	}
+
+}
+
+// AssertEqualTime compares two times and calls t.Fatalf. Different timezones
+// are treated as different times, even if they correspond to the same moment
+// in time.
+func AssertEqualTimes(t *testing.T, expected time.Time, got time.Time) {
+	t.Helper()
+	if expected != got {
+		t.Fatalf("expected %v, got %v", expected, got)
 	}
 
 }
