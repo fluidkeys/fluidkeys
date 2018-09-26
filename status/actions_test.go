@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/fluidkeys/fluidkeys/policy"
 )
 
 func TestMakeActionsForSingleWarning(t *testing.T) {
 	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
-	nextExpiry := nextExpiryTime(now)
+	nextExpiry := policy.NextExpiryTime(now)
 
 	var tests = []struct {
 		warningType     WarningType
