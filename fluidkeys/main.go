@@ -148,7 +148,7 @@ func keyFromGpg() exitCode {
 
 	db.RecordFingerprintImportedIntoGnuPG(keyToImport.Fingerprint)
 	fmt.Printf("The key has been linked to Fluidkeys\n")
-	return 0
+	return keyList()
 }
 
 // keysAvailableToGetFromGpg returns a filtered slice of SecretKeyListings, removing
@@ -277,6 +277,7 @@ func keyList() exitCode {
 		panic(err)
 	}
 
+	fmt.Printf("\n")
 	keytableprinter.Print(keys)
 	return 0
 }
