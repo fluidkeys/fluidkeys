@@ -3,6 +3,8 @@ package status
 import (
 	"fmt"
 	"time"
+
+	"github.com/fluidkeys/fluidkeys/policy"
 )
 
 // MakeActionsFromWarnings returns a list of actions that can be performed on
@@ -19,7 +21,7 @@ func MakeActionsFromWarnings(warnings []KeyWarning) []KeyAction {
 }
 
 func makeActionsFromSingleWarning(warning KeyWarning, now time.Time) []KeyAction {
-	nextExpiry := nextExpiryTime(now)
+	nextExpiry := policy.NextExpiryTime(now)
 
 	switch warning.Type {
 	case PrimaryKeyDueForRotation, PrimaryKeyOverdueForRotation, PrimaryKeyNoExpiry, PrimaryKeyLongExpiry, PrimaryKeyExpired:
