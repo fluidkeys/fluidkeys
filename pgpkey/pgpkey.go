@@ -14,6 +14,7 @@ import (
 	"github.com/fluidkeys/crypto/openpgp/armor"
 	"github.com/fluidkeys/crypto/openpgp/packet"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/fluidkeys/fluidkeys/policy"
 )
 
 const (
@@ -95,7 +96,6 @@ func generateInsecure(email string, creationTime time.Time) (*PgpKey, error) {
 func generateKeyOfSize(email string, rsaBits int, creationTime time.Time) (*PgpKey, error) {
 	config := Config{}
 	config.Config.RSABits = rsaBits
-	config.Expiry = time.Hour * 24 * 60 // 60 days
 	config.Config.Time = func() time.Time { return creationTime }
 
 	name, comment := "", ""
@@ -105,7 +105,7 @@ func generateKeyOfSize(email string, rsaBits int, creationTime time.Time) (*PgpK
 		return nil, err
 	}
 
-	keyLifetimeSeconds := uint32(config.Expiry.Seconds())
+	keyLifetimeSeconds := uint32(policy.NextExpiryTime(creationTime).Sub(creationTime).Seconds())
 
 	for _, id := range entity.Identities {
 		id.SelfSignature.CreationTime = creationTime

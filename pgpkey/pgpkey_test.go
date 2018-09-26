@@ -13,6 +13,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/fluidkeys/fluidkeys/policy"
 )
 
 func TestTheTestHelperFunctions(t *testing.T) {
@@ -300,22 +301,43 @@ func TestGenerate(t *testing.T) {
 		})
 	}
 
-	t.Run("generate makes a key that by default expires in 60 days", func(*testing.T) {
-		identityName := getSingleUid(generatedKey.Identities)
-		sixtyDaysInSeconds := uint32((time.Hour * 24 * 60).Seconds())
-		actualLifetimeOfKey := generatedKey.Identities[identityName].SelfSignature.KeyLifetimeSecs
+	for name, identity := range generatedKey.Identities {
+		t.Run(fmt.Sprintf("Identity[%s] expiry matches our policy", name), func(t *testing.T) {
+			expectedExpiry := policy.NextExpiryTime(now)
 
-		if *actualLifetimeOfKey != sixtyDaysInSeconds {
-			t.Fatalf("expected KeyLifetimeSecs to be '%v', got '%v'", sixtyDaysInSeconds, *actualLifetimeOfKey)
-		}
+			expires, gotExpiry := CalculateExpiry(
+				generatedKey.PrimaryKey.CreationTime,
+				identity.SelfSignature.KeyLifetimeSecs,
+			)
 
-		for _, subkey := range generatedKey.Subkeys {
-			actualLifetimeOfSubkey := subkey.Sig.SigLifetimeSecs
-			if *actualLifetimeOfKey != sixtyDaysInSeconds {
-				t.Fatalf("expected KeyLifetimeSecs of Subkey to be '%v', got '%v'", sixtyDaysInSeconds, *actualLifetimeOfSubkey)
+			if !expires {
+				t.Fatalf("expected expiry, but key doesn't expire")
 			}
-		}
-	})
+
+			if expectedExpiry != *gotExpiry {
+				t.Fatalf("expected UID expiry %v, got %v", expectedExpiry, gotExpiry)
+			}
+		})
+	}
+
+	for i, subkey := range generatedKey.Subkeys {
+		t.Run(fmt.Sprintf("Subkeys[%d] expiry matches our policy", i), func(t *testing.T) {
+			expectedExpiry := policy.NextExpiryTime(now)
+
+			expires, gotExpiry := CalculateExpiry(
+				subkey.PublicKey.CreationTime,
+				generatedKey.Identities["<jane@example.com>"].SelfSignature.KeyLifetimeSecs,
+			)
+
+			if !expires {
+				t.Fatalf("expected expiry, but key doesn't expire")
+			}
+
+			if expectedExpiry != *gotExpiry {
+				t.Fatalf("expected UID expiry %v, got %v", expectedExpiry, gotExpiry)
+			}
+		})
+	}
 }
 
 func TestLoadFromArmoredPublicKey(t *testing.T) {
