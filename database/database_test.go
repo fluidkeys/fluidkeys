@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
@@ -13,7 +14,7 @@ func TestRecordFingerprintImportedIntoGnuPG(t *testing.T) {
 		fingerprint := exampleFingerprintA
 		database := New(makeTempDirectory(t))
 		err := database.RecordFingerprintImportedIntoGnuPG(fingerprint)
-		assertErrorIsNil(t, err)
+		assert.ErrorIsNil(t, err)
 
 		importedFingerprints, err := database.GetFingerprintsImportedIntoGnuPG()
 		assertContains(t, importedFingerprints, fingerprint)
@@ -25,9 +26,9 @@ func TestRecordFingerprintImportedIntoGnuPG(t *testing.T) {
 		database := New(makeTempDirectory(t))
 
 		err := database.RecordFingerprintImportedIntoGnuPG(existingFingerprint)
-		assertErrorIsNil(t, err)
+		assert.ErrorIsNil(t, err)
 		err = database.RecordFingerprintImportedIntoGnuPG(newFingerprint)
-		assertErrorIsNil(t, err)
+		assert.ErrorIsNil(t, err)
 
 		importedFingerprints, err := database.GetFingerprintsImportedIntoGnuPG()
 		assertContains(t, importedFingerprints, existingFingerprint)
@@ -39,9 +40,9 @@ func TestRecordFingerprintImportedIntoGnuPG(t *testing.T) {
 		database := New(makeTempDirectory(t))
 
 		err := database.RecordFingerprintImportedIntoGnuPG(fingerprint)
-		assertErrorIsNil(t, err)
+		assert.ErrorIsNil(t, err)
 		err = database.RecordFingerprintImportedIntoGnuPG(fingerprint)
-		assertErrorIsNil(t, err)
+		assert.ErrorIsNil(t, err)
 
 		importedFingerprints, err := database.GetFingerprintsImportedIntoGnuPG()
 		if len(importedFingerprints) != 1 {
@@ -56,10 +57,10 @@ func TestGetFingerprintsImportedIntoGnuPG(t *testing.T) {
 		database := New(makeTempDirectory(t))
 		fingerprint := exampleFingerprintA
 		err := database.RecordFingerprintImportedIntoGnuPG(fingerprint)
-		assertErrorIsNil(t, err)
+		assert.ErrorIsNil(t, err)
 
 		importedFingerprints, err := database.GetFingerprintsImportedIntoGnuPG()
-		assertErrorIsNil(t, err)
+		assert.ErrorIsNil(t, err)
 		assertContains(t, importedFingerprints, fingerprint)
 	})
 
@@ -99,13 +100,6 @@ func assertContains(t *testing.T, slice []fingerprint.Fingerprint, element finge
 	t.Helper()
 	if !contains(slice, element) {
 		t.Fatalf("Expected '%v' to contain '%v'", slice, element)
-	}
-}
-
-func assertErrorIsNil(t *testing.T, got error) {
-	t.Helper()
-	if got != nil {
-		t.Fatalf("got an error but didnt want one '%s'", got)
 	}
 }
 

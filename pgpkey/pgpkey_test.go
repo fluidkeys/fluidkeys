@@ -10,6 +10,7 @@ import (
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/packet"
 
+	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 )
@@ -481,12 +482,7 @@ func TestEncryptionSubkey(t *testing.T) {
 
 	for i, subkey := range pgpKey.Subkeys {
 		t.Run(fmt.Sprintf("isEncryptionSubkeyValid(subkeyConfig %d)", i), func(t *testing.T) {
-			gotIsValid := isEncryptionSubkeyValid(subkey, now)
-			expectedIsValid := subkeyTests[i].expectedValid
-
-			if expectedIsValid != gotIsValid {
-				t.Errorf("subkeyTests[%d]: expected valid=%v, got %v", i, expectedIsValid, gotIsValid)
-			}
+			assertSubkeyValidity(subkey, subkeyTests[i].expectedValid, now, t)
 		})
 	}
 
@@ -734,6 +730,134 @@ func temporaryWorkAroundSetHashPreference(key *PgpKey) error {
 		}
 	}
 	return nil
+}
+
+func TestUpdateSubkeyExpiryToNow(t *testing.T) {
+	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
+	sixtyDaysAgo := now.Add(-time.Duration(24*60) * time.Hour)
+	thirtyDaysFromNow := now.Add(time.Duration(24*30) * time.Hour)
+
+	subkeyConfigs := []subkeyConfig{
+		{
+			keyCreationTime:       sixtyDaysAgo,
+			signatureCreationTime: sixtyDaysAgo,
+			expiryTime:            &thirtyDaysFromNow, // valid, within expiry
+			revoked:               false,
+			flagsValid:            true,
+			encryptFlags:          true,
+		},
+	}
+
+	pgpKey, err := makeKeyWithSubkeys(t, subkeyConfigs, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	subkey := pgpKey.encryptionSubkey(now)
+	assertSubkeyValidity(*subkey, true, now, t)
+
+	originalSubkeySignatureCreationTime := subkey.Sig.CreationTime
+
+	pgpKey.updateSubkeyExpiryToNow(subkey.PublicKey.KeyId, now)
+
+	t.Run("new subkey binding signature validates", func(t *testing.T) {
+		err := pgpKey.PrimaryKey.VerifyKeySignature(subkey.PublicKey, subkey.Sig)
+		if err != nil {
+			t.Fatalf("Subkey signature is invalid: " + err.Error())
+		}
+	})
+
+	t.Run("new subkey binding certificate is more recent that existing", func(t *testing.T) {
+		if !subkey.Sig.CreationTime.After(originalSubkeySignatureCreationTime) {
+			t.Fatalf("Expected %v to be after %v", subkey.Sig.CreationTime, originalSubkeySignatureCreationTime)
+		}
+	})
+
+	t.Run("subkey is no longer valid", func(t *testing.T) {
+		assertSubkeyValidity(*subkey, false, now, t)
+	})
+
+	t.Run("keys expiry time is brought forward to now", func(t *testing.T) {
+		hasExpiry, expiry := SubkeyExpiry(*subkey)
+		if hasExpiry != true {
+			t.Fatalf("Expected an expiry, haven't got one")
+		}
+		if *expiry != now {
+			t.Fatalf("Expected expiry to be %v, got %v", now, *expiry)
+		}
+	})
+}
+
+func TestSubkey(t *testing.T) {
+	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
+	sixtyDaysAgo := now.Add(-time.Duration(24*60) * time.Hour)
+	thirtyDaysAgo := now.Add(-time.Duration(24*30) * time.Hour)
+	tenDaysAgo := now.Add(-time.Duration(24*10) * time.Hour)
+	thirtyDaysFromNow := now.Add(time.Duration(24*30) * time.Hour)
+
+	subkeyConfigs := []subkeyConfig{
+		{
+			expectedValid:         false,
+			keyCreationTime:       sixtyDaysAgo,
+			signatureCreationTime: thirtyDaysAgo,
+			expiryTime:            &tenDaysAgo,
+			revoked:               true,
+			flagsValid:            true,
+			encryptFlags:          true,
+		},
+		{
+			expectedValid:         true,
+			keyCreationTime:       tenDaysAgo,
+			signatureCreationTime: tenDaysAgo,
+			expiryTime:            &thirtyDaysFromNow,
+			revoked:               false,
+			flagsValid:            true,
+			encryptFlags:          true,
+		},
+	}
+
+	pgpKey, err := makeKeyWithSubkeys(t, subkeyConfigs, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i, subkey := range pgpKey.Subkeys {
+		t.Run(fmt.Sprintf("isEncryptionSubkeyValid(subkeyConfig %d)", i), func(t *testing.T) {
+			assertSubkeyValidity(subkey, subkeyConfigs[i].expectedValid, now, t)
+		})
+	}
+
+	t.Run("returns a subkey", func(t *testing.T) {
+		wantSubkey := pgpKey.Subkeys[0]
+
+		gotSubkey, error := pgpKey.Subkey(wantSubkey.PublicKey.KeyId)
+		assert.ErrorIsNil(t, error)
+
+		if *gotSubkey != wantSubkey {
+			t.Fatalf(
+				"Expected subkey %v, but got subkey %v",
+				wantSubkey.PublicKey.KeyIdString(),
+				gotSubkey.PublicKey.KeyIdString(),
+			)
+		}
+	})
+
+	t.Run("errors if passed an invalid KeyId", func(t *testing.T) {
+		gotSubkey, error := pgpKey.Subkey(uint64(0xF423F))
+		assert.ErrorIsNotNil(t, error)
+		if gotSubkey != nil {
+			t.Fatalf("expected no subkey, but got %v\n", gotSubkey.PublicKey.KeyIdString())
+		}
+	})
+}
+
+func assertSubkeyValidity(subkey openpgp.Subkey, expectedIsValid bool, now time.Time, t *testing.T) {
+	t.Helper()
+	gotIsValid := isEncryptionSubkeyValid(subkey, now)
+
+	if expectedIsValid != gotIsValid {
+		t.Errorf("Expected valid=%v, got %v", expectedIsValid, gotIsValid)
+	}
 }
 
 const examplePublicKey string = `-----BEGIN PGP PUBLIC KEY BLOCK-----
