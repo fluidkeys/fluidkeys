@@ -258,6 +258,7 @@ func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (string, er
 
 func (g *GnuPG) prependGlobalArguments(arguments ...string) []string {
 	var globalArguments = []string{
+		"-vv",
 		"--keyid-format", "0xlong",
 		"--batch",
 		"--no-tty",
