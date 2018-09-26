@@ -396,6 +396,16 @@ func TestEncryptionSubkey(t *testing.T) {
 			encryptFlags:          true,
 		},
 		{
+			// valid, key and sig created just now
+			expectedValid:         true,
+			keyCreationTime:       now,
+			signatureCreationTime: now,
+			expiryTime:            &thirtyDaysFromNow, // valid, within expiry
+			revoked:               false,
+			flagsValid:            true,
+			encryptFlags:          true,
+		},
+		{
 			// invalid, created in the future
 			expectedValid:         false,
 			keyCreationTime:       tenDaysFromNow,
@@ -505,7 +515,7 @@ func TestEncryptionSubkey(t *testing.T) {
 	})
 
 	t.Run("EncryptionSubkey selects most recent subkey", func(t *testing.T) {
-		expectedKey := pgpKey.Subkeys[1]
+		expectedKey := pgpKey.Subkeys[3]
 		gotKey := pgpKey.encryptionSubkey(now)
 
 		if gotKey == nil {
@@ -620,6 +630,110 @@ func makeKeyWithSubkeys(t *testing.T, subkeyConfigs []subkeyConfig, now time.Tim
 		pgpKey.Subkeys = append(pgpKey.Subkeys, subkey)
 	}
 	return pgpKey, nil
+}
+
+func TestCreateNewEncryptionSubkey(t *testing.T) {
+
+	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
+	thirtyDaysFromNow := now.Add(time.Duration(24*30) * time.Hour)
+
+	pgpKey, err := generateInsecure("subkey.test@example.com")
+	if err != nil {
+		t.Fatalf("failed to generate PGP key in tests")
+	}
+	pgpKey.Subkeys = []openpgp.Subkey{} // delete existing subkey
+	err = temporaryWorkAroundSetHashPreference(pgpKey)
+	if err != nil {
+		t.Fatalf("Error setting the temporary hash preferences: %v", err)
+	}
+
+	err = pgpKey.createNewEncryptionSubkey(thirtyDaysFromNow, now)
+	if err != nil {
+		t.Fatalf("Error creating subkey: %v", err)
+	}
+
+	gotSubKey := pgpKey.encryptionSubkey(now)
+
+	t.Run("creates a valid subkey", func(t *testing.T) {
+		if gotSubKey == nil {
+			t.Fatalf("Expected to be able to get a subkey, but couldn't")
+		} else {
+			t.Run("with flags set correctly", func(t *testing.T) {
+				if gotSubKey.Sig.FlagsValid != true {
+					t.Fatalf("FlagsValid is false, expected true")
+				}
+				if gotSubKey.Sig.FlagEncryptStorage != true {
+					t.Fatalf("FlagEncryptStorage is false, expected true")
+				}
+				if gotSubKey.Sig.FlagEncryptCommunications != true {
+					t.Fatalf("FlagEncryptCommunications is false, expected true")
+				}
+			})
+
+			t.Run("with correct signature creation time", func(t *testing.T) {
+				got := gotSubKey.Sig.CreationTime
+				if got != now {
+					t.Fatalf("expected %v, got %v", now, got)
+				}
+			})
+
+			t.Run("with correction public key creation time", func(t *testing.T) {
+				got := gotSubKey.PublicKey.CreationTime
+				if got != now {
+					t.Fatalf("expected %v, got %v", now, got)
+				}
+			})
+		}
+	})
+
+	t.Run("with a valid signature", func(t *testing.T) {
+		err := pgpKey.PrimaryKey.VerifyKeySignature(gotSubKey.PublicKey, gotSubKey.Sig)
+
+		if err != nil {
+			t.Fatalf("Subkey signature is invalid: " + err.Error())
+		}
+	})
+
+	t.Run("can encrypt something", func(t *testing.T) {
+		config := packet.Config{
+			Time: func() time.Time { return now },
+		}
+
+		outputCipherText := bytes.NewBuffer(nil)
+		w, err := openpgp.Encrypt(
+			outputCipherText,
+			[]*openpgp.Entity{&pgpKey.Entity},
+			&pgpKey.Entity,
+			nil,
+			&config,
+		)
+
+		if err != nil {
+			t.Fatalf("Error creating the encrypt writer: %s", err)
+		}
+
+		const message = "A test message"
+		_, err = w.Write([]byte(message))
+		if err != nil {
+			t.Fatalf("Error writing plaintext: %s", err)
+		}
+		err = w.Close()
+		if err != nil {
+			t.Fatalf("Error closing WriteCloser: %s", err)
+		}
+	})
+
+}
+
+func temporaryWorkAroundSetHashPreference(key *PgpKey) error {
+	for _, id := range key.Identities {
+		id.SelfSignature.PreferredHash = []uint8{8}
+		err := id.SelfSignature.SignUserId(id.UserId.Id, key.PrimaryKey, key.PrivateKey, nil)
+		if err != nil {
+			return fmt.Errorf("failed to make self signature: %v", err)
+		}
+	}
+	return nil
 }
 
 const examplePublicKey string = `-----BEGIN PGP PUBLIC KEY BLOCK-----

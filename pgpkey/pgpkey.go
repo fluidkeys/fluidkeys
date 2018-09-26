@@ -3,6 +3,7 @@ package pgpkey
 import (
 	"bytes"
 	"crypto"
+	"crypto/rsa"
 	"fmt"
 	"regexp"
 	"sort"
@@ -309,6 +310,50 @@ func (key *PgpKey) encryptionSubkey(now time.Time) *openpgp.Subkey {
 	return &subkeys[0]
 }
 
+// CreateNewEncryptionSubkey creaates and signs a new encryption subkey for
+// the primary key, valid until a specified time.
+func (key *PgpKey) CreateNewEncryptionSubkey(validUntil time.Time) error {
+	return key.createNewEncryptionSubkey(validUntil, time.Now())
+}
+
+func (key *PgpKey) createNewEncryptionSubkey(validUntil time.Time, now time.Time) error {
+	config := packet.Config{
+		RSABits: 2048,
+	}
+
+	encryptingPriv, err := rsa.GenerateKey(config.Random(), config.RSABits)
+	if err != nil {
+		return err
+	}
+
+	keyLifetimeSeconds := uint32(validUntil.Sub(now).Seconds())
+
+	subkey := openpgp.Subkey{
+		PublicKey:  packet.NewRSAPublicKey(now, &encryptingPriv.PublicKey),
+		PrivateKey: packet.NewRSAPrivateKey(now, encryptingPriv),
+		Sig: &packet.Signature{
+			CreationTime:              now,
+			KeyLifetimeSecs:           &keyLifetimeSeconds,
+			SigType:                   packet.SigTypeSubkeyBinding,
+			PubKeyAlgo:                packet.PubKeyAlgoRSA,
+			Hash:                      config.Hash(),
+			FlagsValid:                true,
+			FlagEncryptStorage:        true,
+			FlagEncryptCommunications: true,
+			IssuerKeyId:               &key.PrimaryKey.KeyId,
+		},
+	}
+	subkey.PublicKey.IsSubkey = true
+	subkey.PrivateKey.IsSubkey = true
+
+	err = subkey.Sig.SignKey(subkey.PublicKey, key.PrivateKey, &config)
+	if err != nil {
+		return err
+	}
+	key.Subkeys = append(key.Subkeys, subkey)
+	return nil
+}
+
 func (key *PgpKey) validEncryptionSubkeys(now time.Time) []openpgp.Subkey {
 	var subkeys []openpgp.Subkey
 
@@ -322,7 +367,7 @@ func (key *PgpKey) validEncryptionSubkeys(now time.Time) []openpgp.Subkey {
 
 func isEncryptionSubkeyValid(subkey openpgp.Subkey, now time.Time) bool {
 	isRevoked := subkey.Sig.SigType == packet.SigTypeSubkeyRevocation
-	createdInThePast := subkey.Sig.CreationTime.Before(now)
+	createdInThePast := !subkey.PublicKey.CreationTime.After(now)
 	hasEncryptionFlag := subkey.Sig.FlagEncryptCommunications || subkey.Sig.FlagEncryptStorage
 
 	hasExpiry, expiry := SubkeyExpiry(subkey)
