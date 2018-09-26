@@ -41,6 +41,12 @@ const PromptWhichKeyFromGPG string = "Which key would you like to import?"
 
 const Version = "0.1.4"
 
+var (
+	gpg                gpgwrapper.GnuPG
+	fluidkeysDirectory string
+	db                 database.Database
+)
+
 type DicewarePassword struct {
 	words     []string
 	separator string
@@ -56,6 +62,16 @@ type generatePgpKeyResult struct {
 }
 
 type exitCode = int
+
+func init() {
+	fluidkeysDirectory, err := getFluidkeysDirectory()
+	if err != nil {
+		fmt.Printf("Failed to get fluidkeys directory: %v\n", err)
+		os.Exit(1)
+	}
+	db = database.New(fluidkeysDirectory)
+	gpg = gpgwrapper.GnuPG{}
+}
 
 func main() {
 	usage := fmt.Sprintf(`Fluidkeys %s
@@ -111,15 +127,7 @@ func keySubcommand(args docopt.Opts) exitCode {
 }
 
 func keyFromGpg() exitCode {
-	fluidkeysDirectory, err := getFluidkeysDirectory()
-	if err != nil {
-		fmt.Printf("Failed to get fluidkeys directory: %v\n", err)
-		return 1
-	}
-	db := database.New(fluidkeysDirectory)
-	gpg := gpgwrapper.GnuPG{}
-
-	availableKeys, err := keysAvailableToGetFromGpg(db, gpg)
+	availableKeys, err := keysAvailableToGetFromGpg()
 	if err != nil {
 		fmt.Printf("Failed to list available keys: %v", err)
 		return 1
@@ -145,7 +153,7 @@ func keyFromGpg() exitCode {
 
 // keysAvailableToGetFromGpg returns a filtered slice of SecretKeyListings, removing
 // any keys that Fluidkeys is already managing.
-func keysAvailableToGetFromGpg(db database.Database, gpg gpgwrapper.GnuPG) ([]gpgwrapper.SecretKeyListing, error) {
+func keysAvailableToGetFromGpg() ([]gpgwrapper.SecretKeyListing, error) {
 
 	importedFingerprints, err := db.GetFingerprintsImportedIntoGnuPG()
 	if err != nil {
@@ -167,13 +175,11 @@ func keysAvailableToGetFromGpg(db database.Database, gpg gpgwrapper.GnuPG) ([]gp
 	return availableKeys, nil
 }
 
-func loadPgpKeys(db database.Database) ([]pgpkey.PgpKey, error) {
+func loadPgpKeys() ([]pgpkey.PgpKey, error) {
 	fingerprints, err := db.GetFingerprintsImportedIntoGnuPG()
 	if err != nil {
 		return nil, err
 	}
-
-	gpg := gpgwrapper.GnuPG{}
 
 	var keys []pgpkey.PgpKey
 
@@ -195,7 +201,6 @@ func loadPgpKeys(db database.Database) ([]pgpkey.PgpKey, error) {
 
 func keyCreate() exitCode {
 
-	gpg := gpgwrapper.GnuPG{}
 	if !gpg.IsWorking() {
 		fmt.Printf(colour.Warn("\n" + GPGMissing + "\n"))
 		fmt.Printf(ContinueWithoutGPG)
@@ -240,12 +245,6 @@ func keyCreate() exitCode {
 		panic(fmt.Sprint("Failed to output revocation cert: ", err))
 	}
 
-	fluidkeysDirectory, err := getFluidkeysDirectory()
-
-	if err != nil {
-		fmt.Printf("Failed to get fluidkeys directory")
-	}
-
 	keySlug, err := generateJob.pgpKey.Slug()
 	if err != nil {
 		panic(fmt.Sprintf("Failed to get slug for key to work out backup location"))
@@ -268,19 +267,12 @@ func keyCreate() exitCode {
 	fmt.Println("The new key has been imported into GnuPG, inspect it with:")
 	fmt.Printf(" > gpg --list-keys '%s'\n", email)
 
-	db := database.New(fluidkeysDirectory)
 	db.RecordFingerprintImportedIntoGnuPG(generateJob.pgpKey.Fingerprint())
 	return 0
 }
 
 func keyList() exitCode {
-	fluidkeysDirectory, err := getFluidkeysDirectory()
-	if err != nil {
-		fmt.Printf("Failed to get fluidkeys directory")
-	}
-	db := database.New(fluidkeysDirectory)
-
-	keys, err := loadPgpKeys(db)
+	keys, err := loadPgpKeys()
 	if err != nil {
 		panic(err)
 	}
