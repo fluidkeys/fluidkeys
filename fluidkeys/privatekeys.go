@@ -17,6 +17,9 @@ func loadPrivateKey(
 
 	encryptedArmored, err := exporter.ExportPrivateKey(fingerprint, password)
 	if err != nil {
+		if _, ok := err.(*gpgwrapper.BadPasswordError); ok {
+			return nil, fmt.Errorf("gpg said the password was incorrect")
+		}
 		return nil, fmt.Errorf("failed to export private key: %v", err)
 	}
 
