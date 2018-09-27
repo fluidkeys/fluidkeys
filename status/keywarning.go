@@ -90,6 +90,15 @@ func (w KeyWarning) IsAboutPrimaryKey() bool {
 	return false
 }
 
+func ContainsWarningAboutPrimaryKey(warnings []KeyWarning) bool {
+	for _, warning := range warnings {
+		if warning.IsAboutPrimaryKey() {
+			return true
+		}
+	}
+	return false
+}
+
 func addSubkeyId(warningName string, subkeyId uint64) string {
 	return fmt.Sprintf("%s [0x%X]", warningName, subkeyId)
 }
