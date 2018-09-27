@@ -19,83 +19,83 @@ func TestFormatKeyWarningLines(t *testing.T) {
 		{
 			status.KeyWarning{Type: status.PrimaryKeyDueForRotation},
 			[]string{
-				colour.Yellow("Primary key due for rotation 🔄"),
+				colour.Yellow("Primary key due for rotation"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.SubkeyDueForRotation},
 			[]string{
-				colour.Yellow(" └─ Subkey due for rotation 🔄"),
+				colour.Yellow(" └─ Subkey due for rotation"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.PrimaryKeyOverdueForRotation, DaysUntilExpiry: 5},
 			[]string{
-				colour.Red("Primary key overdue for rotation ⏰"),
+				colour.Red("Primary key overdue for rotation"),
 				colour.Red("Expires in 5 days!"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.PrimaryKeyOverdueForRotation, DaysUntilExpiry: 1},
 			[]string{
-				colour.Red("Primary key overdue for rotation ⏰"),
+				colour.Red("Primary key overdue for rotation"),
 				colour.Red("Expires tomorrow!"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.PrimaryKeyOverdueForRotation, DaysUntilExpiry: 0},
 			[]string{
-				colour.Red("Primary key overdue for rotation ⏰"),
+				colour.Red("Primary key overdue for rotation"),
 				colour.Red("Expires today!"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.SubkeyOverdueForRotation, DaysUntilExpiry: 5},
 			[]string{
-				colour.Red(" └─ Subkey overdue for rotation ⏰"),
+				colour.Red(" └─ Subkey overdue for rotation"),
 				colour.Red("    Expires in 5 days!"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.PrimaryKeyNoExpiry},
 			[]string{
-				colour.Red("Primary key never expires 📅"),
+				colour.Red("Primary key never expires"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.SubkeyNoExpiry},
 			[]string{
-				colour.Red(" └─ Subkey never expires 📅"),
+				colour.Red(" └─ Subkey never expires"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.PrimaryKeyLongExpiry},
 			[]string{
-				colour.Yellow("Primary key set to expire too far in the future 🔮"),
+				colour.Yellow("Primary key set to expire too far in the future"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.SubkeyLongExpiry},
 			[]string{
-				colour.Yellow(" └─ Subkey set to expire too far in the future 🔮"),
+				colour.Yellow(" └─ Subkey set to expire too far in the future"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.PrimaryKeyExpired, DaysSinceExpiry: 0},
 			[]string{
-				colour.Grey("Expired today ⚰️"),
+				colour.Grey("Expired today"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.PrimaryKeyExpired, DaysSinceExpiry: 1},
 			[]string{
-				colour.Grey("Expired yesterday ⚰️"),
+				colour.Grey("Expired yesterday"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.PrimaryKeyExpired, DaysSinceExpiry: 9},
 			[]string{
-				colour.Grey("Expired 9 days ago ⚰️"),
+				colour.Grey("Expired 9 days ago"),
 			},
 		},
 		{

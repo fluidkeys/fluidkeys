@@ -30,42 +30,42 @@ func formatKeyWarningLines(warning status.KeyWarning) []string {
 		return []string{colour.Yellow("Missing encryption subkey")}
 
 	case status.PrimaryKeyDueForRotation:
-		return []string{colour.Yellow("Primary key due for rotation 🔄")}
+		return []string{colour.Yellow("Primary key due for rotation")}
 
 	case status.SubkeyDueForRotation:
-		return []string{colour.Yellow(" └─ Subkey due for rotation 🔄")}
+		return []string{colour.Yellow(" └─ Subkey due for rotation")}
 
 	case status.PrimaryKeyOverdueForRotation:
-		warnings := []string{colour.Red("Primary key overdue for rotation ⏰")}
+		warnings := []string{colour.Red("Primary key overdue for rotation")}
 		return append(warnings, colour.Red(countdownUntilExpiry(warning.DaysUntilExpiry, 0)))
 
 	case status.SubkeyOverdueForRotation:
-		warnings := []string{colour.Red(" └─ Subkey overdue for rotation ⏰")}
+		warnings := []string{colour.Red(" └─ Subkey overdue for rotation")}
 		return append(warnings, colour.Red(countdownUntilExpiry(warning.DaysUntilExpiry, 4)))
 
 	case status.PrimaryKeyNoExpiry:
-		return []string{colour.Red("Primary key never expires 📅")}
+		return []string{colour.Red("Primary key never expires")}
 
 	case status.SubkeyNoExpiry:
-		return []string{colour.Red(" └─ Subkey never expires 📅")}
+		return []string{colour.Red(" └─ Subkey never expires")}
 
 	case status.PrimaryKeyLongExpiry:
-		return []string{colour.Yellow("Primary key set to expire too far in the future 🔮")}
+		return []string{colour.Yellow("Primary key set to expire too far in the future")}
 
 	case status.SubkeyLongExpiry:
 		// This message might be confusing if the primary key has a
 		// reasonable expiry, but the subkey has a long one.
-		return []string{colour.Yellow(" └─ Subkey set to expire too far in the future 🔮")}
+		return []string{colour.Yellow(" └─ Subkey set to expire too far in the future")}
 
 	case status.PrimaryKeyExpired:
 		var message string
 		switch days := warning.DaysSinceExpiry; days {
 		case 0:
-			message = "Expired today ⚰️"
+			message = "Expired today"
 		case 1:
-			message = "Expired yesterday ⚰️"
+			message = "Expired yesterday"
 		case 2, 3, 4, 5, 6, 7, 8, 9:
-			message = fmt.Sprintf("Expired %d days ago ⚰️", days)
+			message = fmt.Sprintf("Expired %d days ago", days)
 		default:
 			message = "Expired"
 		}
