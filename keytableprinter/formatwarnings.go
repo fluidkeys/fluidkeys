@@ -33,21 +33,21 @@ func formatKeyWarningLines(warning status.KeyWarning) []string {
 		return []string{colour.Yellow("Primary key due for rotation 🔄")}
 
 	case status.SubkeyDueForRotation:
-		return []string{colour.Yellow("Subkey due for rotation 🔄")}
+		return []string{colour.Yellow(" └─ Subkey due for rotation 🔄")}
 
 	case status.PrimaryKeyOverdueForRotation:
 		warnings := []string{colour.Red("Primary key overdue for rotation ⏰")}
-		return append(warnings, colour.Red(countdownUntilExpiry(warning.DaysUntilExpiry)))
+		return append(warnings, colour.Red(countdownUntilExpiry(warning.DaysUntilExpiry, 0)))
 
 	case status.SubkeyOverdueForRotation:
-		warnings := []string{colour.Red("Subkey overdue for rotation ⏰")}
-		return append(warnings, colour.Red(countdownUntilExpiry(warning.DaysUntilExpiry)))
+		warnings := []string{colour.Red(" └─ Subkey overdue for rotation ⏰")}
+		return append(warnings, colour.Red(countdownUntilExpiry(warning.DaysUntilExpiry, 4)))
 
 	case status.PrimaryKeyNoExpiry:
 		return []string{colour.Red("Primary key never expires 📅")}
 
 	case status.SubkeyNoExpiry:
-		return []string{colour.Red("Subkey never expires 📅")}
+		return []string{colour.Red(" └─ Subkey never expires 📅")}
 
 	case status.PrimaryKeyLongExpiry:
 		return []string{colour.Yellow("Primary key set to expire too far in the future 🔮")}
@@ -55,7 +55,7 @@ func formatKeyWarningLines(warning status.KeyWarning) []string {
 	case status.SubkeyLongExpiry:
 		// This message might be confusing if the primary key has a
 		// reasonable expiry, but the subkey has a long one.
-		return []string{colour.Yellow("Subkey set to expire too far in the future 🔮")}
+		return []string{colour.Yellow(" └─ Subkey set to expire too far in the future 🔮")}
 
 	case status.PrimaryKeyExpired:
 		var message string
@@ -77,13 +77,13 @@ func formatKeyWarningLines(warning status.KeyWarning) []string {
 	}
 }
 
-func countdownUntilExpiry(days uint) string {
+func countdownUntilExpiry(days uint, indent uint) string {
 	switch days {
 	case 0:
 		return "Expires today!"
 	case 1:
 		return "Expires tomorrow!"
 	default:
-		return fmt.Sprintf("Expires in %d days!", days)
+		return fmt.Sprintf("%*sExpires in %d days!", indent, "", days)
 	}
 }
