@@ -98,7 +98,7 @@ func Warn(message string) string {
 }
 
 func Error(message string) string {
-	return FgMagenta + Bright + message + Reset
+	return FgRed + message + Reset
 }
 
 func Green(message string) string {
