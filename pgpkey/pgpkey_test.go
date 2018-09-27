@@ -801,7 +801,10 @@ func TestUpdateSubkeyExpiryToNow(t *testing.T) {
 
 	originalSubkeySignatureCreationTime := subkey.Sig.CreationTime
 
-	pgpKey.updateSubkeyExpiryToNow(subkey.PublicKey.KeyId, now)
+	err = pgpKey.updateSubkeyExpiryToNow(subkey.PublicKey.KeyId, now)
+	if err != nil {
+		t.Fatalf("Error updating subkey expiry to now: " + err.Error())
+	}
 
 	t.Run("new subkey binding signature validates", func(t *testing.T) {
 		err := pgpKey.PrimaryKey.VerifyKeySignature(subkey.PublicKey, subkey.Sig)
@@ -947,6 +950,46 @@ func TestUpdateExpiryForAllUserIds(t *testing.T) {
 				t.Fatalf("Expected %d, got %d", expectedKeyLifetimeSeconds, got)
 			}
 		}
+	})
+}
+
+func TestMethodsRequiringDecryptedPrivateKey(t *testing.T) {
+	t.Run("error when passed an encrypted key", func(t *testing.T) {
+		pgpKey, err := LoadFromArmoredPublicKey(exampledata.ExamplePrivateKey3)
+		if err != nil {
+			t.Fatalf("Failed to load example test data: %v", err)
+		}
+
+		_, err = pgpKey.ArmorPrivate("password")
+		assert.ErrorIsNotNil(t, err)
+
+		err = pgpKey.UpdateExpiryForAllUserIds(time.Now())
+		assert.ErrorIsNotNil(t, err)
+
+		err = pgpKey.createNewEncryptionSubkey(time.Now(), time.Now())
+		assert.ErrorIsNotNil(t, err)
+
+		err = pgpKey.updateSubkeyExpiryToNow(999, time.Now())
+		assert.ErrorIsNotNil(t, err)
+	})
+
+	t.Run("error when passed onlt a public key", func(t *testing.T) {
+		pgpKey, err := LoadFromArmoredPublicKey(examplePublicKey)
+		if err != nil {
+			t.Fatalf("Failed to load example test data: %v", err)
+		}
+
+		_, err = pgpKey.ArmorPrivate("password")
+		assert.ErrorIsNotNil(t, err)
+
+		err = pgpKey.UpdateExpiryForAllUserIds(time.Now())
+		assert.ErrorIsNotNil(t, err)
+
+		err = pgpKey.createNewEncryptionSubkey(time.Now(), time.Now())
+		assert.ErrorIsNotNil(t, err)
+
+		err = pgpKey.updateSubkeyExpiryToNow(999, time.Now())
+		assert.ErrorIsNotNil(t, err)
 	})
 }
 
