@@ -29,34 +29,33 @@ func formatKeyWarningLines(warning status.KeyWarning) []string {
 	case status.NoValidEncryptionSubkey:
 		return []string{colour.Yellow("Missing encryption subkey")}
 
-	case status.PrimaryKeyDueForRotation, status.SubkeyDueForRotation:
-		return []string{colour.Yellow("Due for rotation 🔄")}
+	case status.PrimaryKeyDueForRotation:
+		return []string{colour.Yellow("Primary key due for rotation 🔄")}
 
-	case status.PrimaryKeyOverdueForRotation, status.SubkeyOverdueForRotation:
-		warnings := []string{
-			colour.Red("Overdue for rotation ⏰"),
-		}
-		var additionalMessage string
-		switch days := warning.DaysUntilExpiry; days {
-		case 0:
-			additionalMessage = "Expires today!"
-		case 1:
-			additionalMessage = "Expires tomorrow!"
-		default:
-			additionalMessage = fmt.Sprintf("Expires in %d days!", days)
-		}
-		return append(warnings, colour.Red(additionalMessage))
+	case status.SubkeyDueForRotation:
+		return []string{colour.Yellow("Subkey due for rotation 🔄")}
+
+	case status.PrimaryKeyOverdueForRotation:
+		warnings := []string{colour.Red("Primary key overdue for rotation ⏰")}
+		return append(warnings, colour.Red(countdownUntilExpiry(warning.DaysUntilExpiry)))
+
+	case status.SubkeyOverdueForRotation:
+		warnings := []string{colour.Red("Subkey overdue for rotation ⏰")}
+		return append(warnings, colour.Red(countdownUntilExpiry(warning.DaysUntilExpiry)))
 
 	case status.PrimaryKeyNoExpiry:
-		return []string{colour.Red("No expiry date set 📅")}
+		return []string{colour.Red("Primary key never expires 📅")}
 
 	case status.SubkeyNoExpiry:
 		return []string{colour.Red("Subkey never expires 📅")}
 
-	case status.PrimaryKeyLongExpiry, status.SubkeyLongExpiry:
+	case status.PrimaryKeyLongExpiry:
+		return []string{colour.Yellow("Primary key set to expire too far in the future 🔮")}
+
+	case status.SubkeyLongExpiry:
 		// This message might be confusing if the primary key has a
 		// reasonable expiry, but the subkey has a long one.
-		return []string{colour.Yellow("Expiry date too far off 📅")}
+		return []string{colour.Yellow("Subkey set to expire too far in the future 🔮")}
 
 	case status.PrimaryKeyExpired:
 		var message string
@@ -75,5 +74,16 @@ func formatKeyWarningLines(warning status.KeyWarning) []string {
 	default:
 		// TODO: log this but silently swallow the error
 		return []string{}
+	}
+}
+
+func countdownUntilExpiry(days uint) string {
+	switch days {
+	case 0:
+		return "Expires today!"
+	case 1:
+		return "Expires tomorrow!"
+	default:
+		return fmt.Sprintf("Expires in %d days!", days)
 	}
 }

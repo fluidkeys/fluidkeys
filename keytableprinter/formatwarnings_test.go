@@ -19,47 +19,47 @@ func TestFormatKeyWarningLines(t *testing.T) {
 		{
 			status.KeyWarning{Type: status.PrimaryKeyDueForRotation},
 			[]string{
-				colour.Yellow("Due for rotation 🔄"),
+				colour.Yellow("Primary key due for rotation 🔄"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.SubkeyDueForRotation},
 			[]string{
-				colour.Yellow("Due for rotation 🔄"),
+				colour.Yellow("Subkey due for rotation 🔄"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.PrimaryKeyOverdueForRotation, DaysUntilExpiry: 5},
 			[]string{
-				colour.Red("Overdue for rotation ⏰"),
+				colour.Red("Primary key overdue for rotation ⏰"),
 				colour.Red("Expires in 5 days!"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.PrimaryKeyOverdueForRotation, DaysUntilExpiry: 1},
 			[]string{
-				colour.Red("Overdue for rotation ⏰"),
+				colour.Red("Primary key overdue for rotation ⏰"),
 				colour.Red("Expires tomorrow!"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.PrimaryKeyOverdueForRotation, DaysUntilExpiry: 0},
 			[]string{
-				colour.Red("Overdue for rotation ⏰"),
+				colour.Red("Primary key overdue for rotation ⏰"),
 				colour.Red("Expires today!"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.SubkeyOverdueForRotation, DaysUntilExpiry: 5},
 			[]string{
-				colour.Red("Overdue for rotation ⏰"),
+				colour.Red("Subkey overdue for rotation ⏰"),
 				colour.Red("Expires in 5 days!"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.PrimaryKeyNoExpiry},
 			[]string{
-				colour.Red("No expiry date set 📅"),
+				colour.Red("Primary key never expires 📅"),
 			},
 		},
 		{
@@ -71,13 +71,13 @@ func TestFormatKeyWarningLines(t *testing.T) {
 		{
 			status.KeyWarning{Type: status.PrimaryKeyLongExpiry},
 			[]string{
-				colour.Yellow("Expiry date too far off 📅"),
+				colour.Yellow("Primary key set to expire too far in the future 🔮"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.SubkeyLongExpiry},
 			[]string{
-				colour.Yellow("Expiry date too far off 📅"),
+				colour.Yellow("Subkey set to expire too far in the future 🔮"),
 			},
 		},
 		{
