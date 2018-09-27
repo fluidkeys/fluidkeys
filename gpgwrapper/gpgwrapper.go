@@ -16,12 +16,14 @@ import (
 
 const GpgPath = "gpg2"
 
-const publicHeader = "-----BEGIN PGP PUBLIC KEY BLOCK-----"
-const publicFooter = "-----END PGP PUBLIC KEY BLOCK-----"
-const privateHeader = "-----BEGIN PGP PRIVATE KEY BLOCK-----"
-const privateFooter = "-----END PGP PRIVATE KEY BLOCK-----"
-const nothingExported = "WARNING: nothing exported"
-const invalidOptionPinentryMode = `gpg: invalid option "--pinentry-mode"`
+const (
+	publicHeader              = "-----BEGIN PGP PUBLIC KEY BLOCK-----"
+	publicFooter              = "-----END PGP PUBLIC KEY BLOCK-----"
+	privateHeader             = "-----BEGIN PGP PRIVATE KEY BLOCK-----"
+	privateFooter             = "-----END PGP PRIVATE KEY BLOCK-----"
+	nothingExported           = "WARNING: nothing exported"
+	invalidOptionPinentryMode = `gpg: invalid option "--pinentry-mode"`
+)
 
 var ErrNoVersionStringFound = errors.New("version string not found in GPG output")
 
