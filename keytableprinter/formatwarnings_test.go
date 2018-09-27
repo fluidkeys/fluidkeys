@@ -28,7 +28,7 @@ func TestFormatKeyWarningLines(t *testing.T) {
 			status.KeyWarning{Type: status.SubkeyDueForRotation},
 			true,
 			[]string{
-				colour.Yellow(" └─ Subkey due for rotation"),
+				colour.Yellow(" └─ Encryption subkey due for rotation"),
 			},
 		},
 		{
@@ -59,7 +59,7 @@ func TestFormatKeyWarningLines(t *testing.T) {
 			status.KeyWarning{Type: status.SubkeyOverdueForRotation, DaysUntilExpiry: 5},
 			true,
 			[]string{
-				colour.Red(" └─ Subkey overdue for rotation"),
+				colour.Red(" └─ Encryption subkey overdue for rotation"),
 				colour.Red("    Expires in 5 days!"),
 			},
 		},
@@ -74,7 +74,7 @@ func TestFormatKeyWarningLines(t *testing.T) {
 			status.KeyWarning{Type: status.SubkeyNoExpiry},
 			true,
 			[]string{
-				colour.Red(" └─ Subkey never expires"),
+				colour.Red(" └─ Encryption subkey never expires"),
 			},
 		},
 		{
@@ -88,14 +88,14 @@ func TestFormatKeyWarningLines(t *testing.T) {
 			status.KeyWarning{Type: status.SubkeyLongExpiry},
 			true,
 			[]string{
-				colour.Yellow(" └─ Subkey set to expire too far in the future"),
+				colour.Yellow(" └─ Encryption subkey set to expire too far in the future"),
 			},
 		},
 		{
 			status.KeyWarning{Type: status.SubkeyLongExpiry},
 			false,
 			[]string{
-				colour.Yellow("Subkey set to expire too far in the future"),
+				colour.Yellow("Encryption subkey set to expire too far in the future"),
 			},
 		},
 		{
