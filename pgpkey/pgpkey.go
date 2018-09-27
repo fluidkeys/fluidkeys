@@ -153,6 +153,11 @@ func (key *PgpKey) Armor() (string, error) {
 //
 // Adapted with thanks from https://github.com/alokmenghrajani/gpgeez/blob/master/gpgeez.go
 func (key *PgpKey) ArmorPrivate(password string) (string, error) {
+	err := key.ensureGotDecryptedPrivateKey()
+	if err != nil {
+		return "", err
+	}
+
 	buf := new(bytes.Buffer)
 	armor, err := armor.Encode(buf, openpgp.PrivateKeyType, nil)
 	if err != nil {
@@ -292,6 +297,11 @@ func (key *PgpKey) Fingerprint() fingerprint.Fingerprint {
 }
 
 func (key *PgpKey) UpdateExpiryForAllUserIds(validUntil time.Time) error {
+	err := key.ensureGotDecryptedPrivateKey()
+	if err != nil {
+		return err
+	}
+
 	config := Config{}
 
 	keyLifetimeSeconds := uint32(validUntil.Sub(key.PrimaryKey.CreationTime).Seconds())
@@ -336,6 +346,11 @@ func (key *PgpKey) CreateNewEncryptionSubkey(validUntil time.Time) error {
 }
 
 func (key *PgpKey) createNewEncryptionSubkey(validUntil time.Time, now time.Time) error {
+	err := key.ensureGotDecryptedPrivateKey()
+	if err != nil {
+		return err
+	}
+
 	config := packet.Config{
 		RSABits: 2048,
 	}
@@ -389,6 +404,10 @@ func (key *PgpKey) Subkey(subkeyId uint64) (*openpgp.Subkey, error) {
 }
 
 func (key *PgpKey) updateSubkeyExpiryToNow(subkeyId uint64, now time.Time) error {
+	err := key.ensureGotDecryptedPrivateKey()
+	if err != nil {
+		return err
+	}
 	subkey, err := key.Subkey(subkeyId)
 	if err != nil {
 		return err
@@ -417,6 +436,19 @@ func (key *PgpKey) validEncryptionSubkeys(now time.Time) []openpgp.Subkey {
 		}
 	}
 	return subkeys
+}
+
+// ensureGotDecryptedPrivateKey returns an error if the primary key's private
+// key is not present, or hasn't been decrypted
+func (key *PgpKey) ensureGotDecryptedPrivateKey() error {
+	if key.PrivateKey == nil {
+		return fmt.Errorf("no private key for primary key")
+	}
+
+	if key.PrivateKey.Encrypted {
+		return fmt.Errorf("private key for primary key is encrypted")
+	}
+	return nil
 }
 
 func isEncryptionSubkeyValid(subkey openpgp.Subkey, now time.Time) bool {
