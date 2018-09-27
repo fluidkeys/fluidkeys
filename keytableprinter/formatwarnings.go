@@ -51,7 +51,13 @@ func formatKeyWarningLines(warning status.KeyWarning, indent bool) []string {
 
 	case status.SubkeyOverdueForRotation:
 		warnings := []string{colour.Red(prefix + "Subkey overdue for rotation")}
-		return append(warnings, colour.Red(countdownUntilExpiry(warning.DaysUntilExpiry, len([]rune(prefix)))))
+		return append(
+			warnings,
+			colour.Red(countdownUntilExpiry(
+				warning.DaysUntilExpiry,
+				uint(len([]rune(prefix))),
+			)),
+		)
 
 	case status.PrimaryKeyNoExpiry:
 		return []string{colour.Red("Primary key never expires")}
@@ -87,7 +93,7 @@ func formatKeyWarningLines(warning status.KeyWarning, indent bool) []string {
 	}
 }
 
-func countdownUntilExpiry(days uint, indent int) string {
+func countdownUntilExpiry(days uint, indent uint) string {
 	switch days {
 	case 0:
 		return "Expires today!"
