@@ -16,12 +16,15 @@ import (
 
 const GpgPath = "gpg2"
 
-const publicHeader = "-----BEGIN PGP PUBLIC KEY BLOCK-----"
-const publicFooter = "-----END PGP PUBLIC KEY BLOCK-----"
-const privateHeader = "-----BEGIN PGP PRIVATE KEY BLOCK-----"
-const privateFooter = "-----END PGP PRIVATE KEY BLOCK-----"
-const nothingExported = "WARNING: nothing exported"
-const invalidOptionPinentryMode = `gpg: invalid option "--pinentry-mode"`
+const (
+	publicHeader              = "-----BEGIN PGP PUBLIC KEY BLOCK-----"
+	publicFooter              = "-----END PGP PUBLIC KEY BLOCK-----"
+	privateHeader             = "-----BEGIN PGP PRIVATE KEY BLOCK-----"
+	privateFooter             = "-----END PGP PRIVATE KEY BLOCK-----"
+	nothingExported           = "WARNING: nothing exported"
+	invalidOptionPinentryMode = `gpg: invalid option "--pinentry-mode"`
+	badPassphrase             = "Bad passphrase"
+)
 
 var ErrNoVersionStringFound = errors.New("version string not found in GPG output")
 
@@ -161,6 +164,8 @@ func (g *GnuPG) ExportPrivateKey(fingerprint fingerprint.Fingerprint, password s
 			}
 
 			return checkValidExportPrivateOutput(output)
+		} else if strings.Contains(output, badPassphrase) {
+			return output, &BadPasswordError{}
 		} else {
 			return "", err
 		}
@@ -249,7 +254,7 @@ func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (string, er
 	stdoutAndStderr, err := cmd.CombinedOutput()
 
 	if err != nil {
-		return string(stdoutAndStderr), errors.New(fmt.Sprintf("GPG failed with error '%s', stdout said '%s'", err, stdoutAndStderr))
+		return string(stdoutAndStderr), errors.New(fmt.Sprintf("gpg failed with error '%s'", err))
 	}
 
 	output := string(stdoutAndStderr)
