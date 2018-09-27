@@ -409,7 +409,7 @@ func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing
 	var selectedKey int
 	if len(secretKeyListings) == 1 {
 		onlyKey := secretKeyListings[0]
-		if promptToConfirmImportKeyFromGpg(onlyKey) {
+		if promptYesOrNo("Import key? [Y/n] ", true) {
 			return &onlyKey
 		} else {
 			return nil
@@ -434,12 +434,12 @@ func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing
 	}
 }
 
-func promptToConfirmImportKeyFromGpg(key gpgwrapper.SecretKeyListing) bool {
+func promptYesOrNo(message string, defaultResult bool) bool {
 	for {
-		input := promptForInput("Import key? [Y/n] ")
+		input := promptForInput(message)
 		switch strings.ToLower(input) {
 		case "":
-			return true
+			return defaultResult
 		case "y":
 			return true
 		case "n":
