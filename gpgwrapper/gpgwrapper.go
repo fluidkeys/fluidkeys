@@ -23,6 +23,7 @@ const (
 	privateFooter             = "-----END PGP PRIVATE KEY BLOCK-----"
 	nothingExported           = "WARNING: nothing exported"
 	invalidOptionPinentryMode = `gpg: invalid option "--pinentry-mode"`
+	badPassphrase             = "Bad passphrase"
 )
 
 var ErrNoVersionStringFound = errors.New("version string not found in GPG output")
@@ -163,6 +164,8 @@ func (g *GnuPG) ExportPrivateKey(fingerprint fingerprint.Fingerprint, password s
 			}
 
 			return checkValidExportPrivateOutput(output)
+		} else if strings.Contains(output, badPassphrase) {
+			return output, &BadPasswordError{}
 		} else {
 			return "", err
 		}

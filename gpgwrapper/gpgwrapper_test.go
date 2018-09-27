@@ -185,6 +185,10 @@ func TestExportPrivateKey(t *testing.T) {
 		if err == nil {
 			t.Errorf("ExportPrivateKey should have returned an error but didnt. output: %s", output)
 		}
+
+		if _, ok := err.(*BadPasswordError); !ok {
+			t.Errorf("ExportPrivateKey should have returned a BadPasswordError but didnt. err: %v, output: %s", err, output)
+		}
 	})
 
 	t.Run("with an invalid fingerprint", func(t *testing.T) {
