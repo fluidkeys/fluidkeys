@@ -9,6 +9,9 @@ import (
 
 // loadPrivateKey exports a private key from GnuPG and returns it as a
 // decrypted pgpkey.PgpKey
+//
+// Returns an IncorrectPassword error if either function call returns a bad
+// password error
 func loadPrivateKey(
 	fingerprint fingerprint.Fingerprint,
 	password string,
@@ -18,7 +21,10 @@ func loadPrivateKey(
 	encryptedArmored, err := exporter.ExportPrivateKey(fingerprint, password)
 	if err != nil {
 		if _, ok := err.(*gpgwrapper.BadPasswordError); ok {
-			return nil, fmt.Errorf("gpg said the password was incorrect")
+			return nil, &IncorrectPassword{
+				message:       "gpg said the password was incorrect",
+				originalError: err.Error(),
+			}
 		}
 		return nil, fmt.Errorf("failed to export private key: %v", err)
 	}
@@ -26,6 +32,12 @@ func loadPrivateKey(
 	outKey, err := loader.LoadFromArmoredEncryptedPrivateKey(encryptedArmored, password)
 
 	if err != nil {
+		if _, ok := err.(*pgpkey.IncorrectPassword); ok {
+			return nil, &IncorrectPassword{
+				message:       "the password was incorrect",
+				originalError: err.Error(),
+			}
+		}
 		return nil, fmt.Errorf("failed to load key returned by GnuPG: %v", err)
 	}
 

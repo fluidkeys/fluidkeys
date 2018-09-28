@@ -7,7 +7,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
-	// "github.com/fluidkeys/fluidkeys/gpgwrapper"
+	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
 
@@ -109,7 +109,31 @@ func TestLoadPrivateKey(t *testing.T) {
 		}
 	})
 
-	t.Run("gets a key OK from gpg.ExportPrivateKey but the password can't decrypt it", func(t *testing.T) {
+	t.Run("returns IncorrectPassword if ExportPrivateKey returns a bad password error", func(t *testing.T) {
+		mockGpg := mockExportPrivateKey{
+			returnString: exampledata.ExamplePrivateKey2,
+			returnError:  &gpgwrapper.BadPasswordError{},
+		}
+		mockLoader := mockLoadFromArmoredEncryptedPrivateKey{
+			returnKey:   nil,
+			returnError: &pgpkey.IncorrectPassword{},
+		}
+
+		_, err := loadPrivateKey(exampledata.ExampleFingerprint2, "[irrelevant for tests]", &mockGpg, &mockLoader)
+
+		incorrectPasswordError, ok := err.(*IncorrectPassword)
+		if !ok {
+			t.Fatalf("expected `IncorrectPasswordError`, got %v", err)
+		}
+
+		expectedString := "gpg said the password was incorrect"
+		gotString := incorrectPasswordError.Error()
+		if expectedString != gotString {
+			t.Fatalf("expected error string '%s', got '%s'", expectedString, gotString)
+		}
+	})
+
+	t.Run("returns IncorrectPassword if LoadFromArmoredEncryptedPrivateKey returns a bad password error", func(t *testing.T) {
 		mockGpg := mockExportPrivateKey{
 			returnString: exampledata.ExamplePrivateKey2,
 			returnError:  nil,
@@ -121,12 +145,19 @@ func TestLoadPrivateKey(t *testing.T) {
 
 		_, err := loadPrivateKey(exampledata.ExampleFingerprint2, "[irrelevant for tests]", &mockGpg, &mockLoader)
 
-		t.Run("returns an error", func(t *testing.T) {
-			assert.ErrorIsNotNil(t, err)
-		})
+		incorrectPasswordError, ok := err.(*IncorrectPassword)
+		if !ok {
+			t.Fatalf("expected `IncorrectPasswordError`, got %v", err)
+		}
+
+		expectedString := "the password was incorrect"
+		gotString := incorrectPasswordError.Error()
+		if expectedString != gotString {
+			t.Fatalf("expected error string '%s', got '%s'", expectedString, gotString)
+		}
 	})
 
-	t.Run("passes up error if ExportPrivateKey returning some other GnuPG error", func(t *testing.T) {
+	t.Run("returns an error if ExportPrivateKey returns some other GnuPG error", func(t *testing.T) {
 		mockGpg := mockExportPrivateKey{
 			returnString: "",
 			returnError:  fmt.Errorf("some error"),
