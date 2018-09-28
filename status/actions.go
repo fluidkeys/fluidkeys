@@ -25,8 +25,9 @@ func makeActionsFromSingleWarning(warning KeyWarning, now time.Time) []KeyAction
 
 	switch warning.Type {
 	case PrimaryKeyDueForRotation, PrimaryKeyOverdueForRotation, PrimaryKeyNoExpiry, PrimaryKeyLongExpiry, PrimaryKeyExpired:
+
 		return []KeyAction{
-			ModifyPrimaryKeyExpiry{ValidUntil: nextExpiry},
+			ModifyPrimaryKeyExpiry{ValidUntil: nextExpiry, PreviouslyValidUntil: warning.CurrentValidUntil},
 		}
 
 	case SubkeyDueForRotation, SubkeyOverdueForRotation, SubkeyLongExpiry, SubkeyNoExpiry:

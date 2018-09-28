@@ -2,6 +2,7 @@ package status
 
 import (
 	"fmt"
+	"time"
 )
 
 type WarningType int
@@ -24,9 +25,10 @@ const (
 type KeyWarning struct {
 	Type WarningType
 
-	SubkeyId        uint64
-	DaysUntilExpiry uint
-	DaysSinceExpiry uint
+	SubkeyId          uint64
+	DaysUntilExpiry   uint
+	DaysSinceExpiry   uint
+	CurrentValidUntil *time.Time
 }
 
 func (w KeyWarning) String() string {

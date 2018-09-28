@@ -2,8 +2,9 @@ package status
 
 import (
 	"fmt"
-	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"time"
+
+	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
 
 // ModifyPrimaryKeyExpiry means the self signature of the key will be refreshed
@@ -11,7 +12,8 @@ import (
 type ModifyPrimaryKeyExpiry struct {
 	KeyAction
 
-	ValidUntil time.Time
+	ValidUntil           time.Time
+	PreviouslyValidUntil *time.Time
 }
 
 // ModifyPrimaryKeyExpiry creates a new self signature on each user ID with
@@ -21,7 +23,11 @@ func (a ModifyPrimaryKeyExpiry) Enact(key *pgpkey.PgpKey) error {
 }
 
 func (a ModifyPrimaryKeyExpiry) String() string {
-	return fmt.Sprintf("ModifyPrimaryKeyExpiry [to %v]", a.ValidUntil)
+	if a.PreviouslyValidUntil == nil || a.PreviouslyValidUntil.After(a.ValidUntil) {
+		return fmt.Sprintf("Shorten the primary key expiry to %s", a.ValidUntil.Format("2 Jan 06"))
+	} else {
+		return fmt.Sprintf("Extend the primary key expiry to %s", a.ValidUntil.Format("2 Jan 06"))
+	}
 }
 
 // CreateNewEncryptionSubkey describes creating a new subkey with the given
@@ -38,7 +44,7 @@ func (a CreateNewEncryptionSubkey) Enact(key *pgpkey.PgpKey) error {
 }
 
 func (a CreateNewEncryptionSubkey) String() string {
-	return fmt.Sprintf("CreateNewEncryptionSubkey[expires %s]", a.ValidUntil.Format("2006-01-02"))
+	return fmt.Sprintf("Create a new encryption subkey valid until %s", a.ValidUntil.Format("2 Jan 06"))
 }
 
 // RevokeSubkey indicates that the given SubkeyId will be revoked
@@ -52,7 +58,9 @@ type RevokeSubkey struct {
 func (a RevokeSubkey) Enact(key *pgpkey.PgpKey) error {
 	return key.RevokeSubkey(a.SubkeyId)
 }
-func (a RevokeSubkey) String() string { return fmt.Sprintf("RevokeSubkey[0x%X]", a.SubkeyId) }
+func (a RevokeSubkey) String() string {
+	return fmt.Sprintf("Expire the encryption subkey now (0x%X)", a.SubkeyId)
+}
 
 type KeyAction interface {
 	String() string
