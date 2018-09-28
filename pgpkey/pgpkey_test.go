@@ -372,6 +372,14 @@ func TestLoadFromArmoredEncryptedPrivateKey(t *testing.T) {
 		}
 	})
 
+	for i, subkey := range pgpKey.Subkeys {
+		t.Run(fmt.Sprintf("loaded key.Subkeys[%d] has been decrypted", i), func(t *testing.T) {
+			if subkey.PrivateKey.Encrypted == true {
+				t.Fatalf("subkey still encrypted")
+			}
+		})
+	}
+
 	t.Run("bad password returns IncorrectPassword error type", func(t *testing.T) {
 		_, err := LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey2, "badpassword")
 		if err == nil {

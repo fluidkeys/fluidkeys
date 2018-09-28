@@ -66,7 +66,10 @@ func LoadFromArmoredPublicKey(armoredPublicKey string) (*PgpKey, error) {
 }
 
 // LoadFromArmoredEncryptedPrivateKey takes a single ascii-armored, encrypted
-// private key and returns PgpKey with a decrypted PrivateKey.
+// private key and returns PgpKey with:
+//
+// * a decrypted PrivateKey.
+// * all subkeys decrypted
 //
 // If the password is wrong (at least, if .PrivateKey.Decrypt(password) returns
 // an error), this function returns an error of type `IncorrectPassword`.
@@ -83,6 +86,15 @@ func LoadFromArmoredEncryptedPrivateKey(armoredPublicKey string, password string
 	err = entity.PrivateKey.Decrypt([]byte(password))
 	if err != nil {
 		return nil, &IncorrectPassword{decryptErrorMessage: err.Error()}
+	}
+
+	for _, subkey := range entity.Subkeys {
+		if subkey.PrivateKey.Encrypted {
+			err := subkey.PrivateKey.Decrypt([]byte(password))
+			if err != nil {
+				return nil, &IncorrectPassword{decryptErrorMessage: err.Error()}
+			}
+		}
 	}
 
 	pgpKey := PgpKey{*entity}
