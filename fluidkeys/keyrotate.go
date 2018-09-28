@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/keytableprinter"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/status"
@@ -107,7 +108,7 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 	}
 
 	if numErrorsEncountered > 0 {
-		message := fmt.Sprintf("%d error(s) while running rotate.", numErrorsEncountered)
+		message := fmt.Sprintf("%s while running rotate.", humanize.Pluralize(numErrorsEncountered, "error", "errors"))
 		fmt.Printf("\n%s\n", colour.Error(message))
 		return 1
 	} else {
