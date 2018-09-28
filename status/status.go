@@ -2,9 +2,10 @@ package status
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/policy"
-	"time"
 )
 
 // GetKeyWarnings returns a slice of KeyWarnings indicating problems found
@@ -36,30 +37,34 @@ func getEncryptionSubkeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning 
 
 		if isExpired(*expiry, now) {
 			warning := KeyWarning{
-				Type: NoValidEncryptionSubkey,
+				Type:              NoValidEncryptionSubkey,
+				CurrentValidUntil: expiry,
 			}
 			warnings = append(warnings, warning)
 
 		} else if policy.IsOverdueForRotation(nextRotation, now) {
 			warning := KeyWarning{
-				Type:            SubkeyOverdueForRotation,
-				SubkeyId:        subkeyId,
-				DaysUntilExpiry: getDaysUntilExpiry(*expiry, now),
+				Type:              SubkeyOverdueForRotation,
+				SubkeyId:          subkeyId,
+				DaysUntilExpiry:   getDaysUntilExpiry(*expiry, now),
+				CurrentValidUntil: expiry,
 			}
 			warnings = append(warnings, warning)
 
 		} else if policy.IsDueForRotation(nextRotation, now) {
 			warning := KeyWarning{
-				Type:     SubkeyDueForRotation,
-				SubkeyId: subkeyId,
+				Type:              SubkeyDueForRotation,
+				SubkeyId:          subkeyId,
+				CurrentValidUntil: expiry,
 			}
 			warnings = append(warnings, warning)
 		}
 
 		if policy.IsExpiryTooLong(*expiry, now) {
 			warning := KeyWarning{
-				Type:     SubkeyLongExpiry,
-				SubkeyId: subkeyId,
+				Type:              SubkeyLongExpiry,
+				SubkeyId:          subkeyId,
+				CurrentValidUntil: expiry,
 			}
 			warnings = append(warnings, warning)
 		}
@@ -84,26 +89,34 @@ func getPrimaryKeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning {
 
 		if isExpired(*expiry, now) {
 			warning := KeyWarning{
-				Type:            PrimaryKeyExpired,
-				DaysSinceExpiry: getDaysSinceExpiry(*expiry, now),
+				Type:              PrimaryKeyExpired,
+				DaysSinceExpiry:   getDaysSinceExpiry(*expiry, now),
+				CurrentValidUntil: expiry,
 			}
 			warnings = append(warnings, warning)
 
 		} else if policy.IsOverdueForRotation(nextRotation, now) {
 			warning := KeyWarning{
-				Type:            PrimaryKeyOverdueForRotation,
-				DaysUntilExpiry: getDaysUntilExpiry(*expiry, now),
+				Type:              PrimaryKeyOverdueForRotation,
+				DaysUntilExpiry:   getDaysUntilExpiry(*expiry, now),
+				CurrentValidUntil: expiry,
 			}
 
 			warnings = append(warnings, warning)
 
 		} else if policy.IsDueForRotation(nextRotation, now) {
-			warning := KeyWarning{Type: PrimaryKeyDueForRotation}
+			warning := KeyWarning{
+				Type:              PrimaryKeyDueForRotation,
+				CurrentValidUntil: expiry,
+			}
 			warnings = append(warnings, warning)
 		}
 
 		if policy.IsExpiryTooLong(*expiry, now) {
-			warning := KeyWarning{Type: PrimaryKeyLongExpiry}
+			warning := KeyWarning{
+				Type:              PrimaryKeyLongExpiry,
+				CurrentValidUntil: expiry,
+			}
 			warnings = append(warnings, warning)
 		}
 	} else { // no expiry
