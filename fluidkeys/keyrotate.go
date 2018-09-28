@@ -80,6 +80,7 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 		action := "Load private key from GnuPG" // TODO: factor into func
 		if err != nil {
 			printCheckboxFailure(action, err)
+			numErrorsEncountered += 1
 			continue
 		} else {
 			printCheckboxSuccess(action)
