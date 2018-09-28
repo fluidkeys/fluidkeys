@@ -169,7 +169,7 @@ func runImportBackIntoGnupg(keys []*pgpkey.PgpKey, passwords map[fingerprint.Fin
 		action := fmt.Sprintf("Import %s back into GnuPG", displayName(key))
 		printCheckboxPending(action)
 
-		err := pushPrivateKeyBackToGpg(key, passwords[key.Fingerprint()])
+		err := pushPrivateKeyBackToGpg(key, passwords[key.Fingerprint()], &gpg)
 
 		if err != nil {
 			printCheckboxFailure(action, err)
