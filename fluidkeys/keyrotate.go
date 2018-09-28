@@ -200,7 +200,8 @@ func printImportBackIntoGnupg(keys []*pgpkey.PgpKey) {
 }
 
 func printCheckboxPending(actionText string) {
-	fmt.Printf("    [.] %s\r", actionText)
+	fmt.Printf("    [.] %s\n", actionText)
+	moveCursorUpLines(1)
 }
 
 func printCheckboxSuccess(actionText string) {
