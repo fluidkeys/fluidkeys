@@ -12,7 +12,13 @@ func keyWarningLines(key pgpkey.PgpKey, keyWarnings []status.KeyWarning) []strin
 	keyWarningLines := []string{}
 	if len(keyWarnings) > 0 {
 		for _, keyWarning := range keyWarnings {
-			keyWarningLines = append(keyWarningLines, formatKeyWarningLines(keyWarning)...)
+			keyWarningLines = append(
+				keyWarningLines,
+				formatKeyWarningLines(
+					keyWarning,
+					status.ContainsWarningAboutPrimaryKey(keyWarnings),
+				)...,
+			)
 		}
 	} else {
 		keyWarningLines = append(keyWarningLines, colour.Green("Good ✔"))
@@ -23,50 +29,59 @@ func keyWarningLines(key pgpkey.PgpKey, keyWarnings []status.KeyWarning) []strin
 // FormatKeyWarningLines takes a status.KeyWarning and returns an array of
 // human friendly messages coloured appropriately for printing to the
 // terminal.
-func formatKeyWarningLines(warning status.KeyWarning) []string {
-	switch warning.Type {
+func formatKeyWarningLines(warning status.KeyWarning, indent bool) []string {
+	var prefix string
+	if indent && warning.IsAboutSubkey() {
+		prefix = " └─ "
+	}
 
+	switch warning.Type {
 	case status.NoValidEncryptionSubkey:
 		return []string{colour.Yellow("Missing encryption subkey")}
 
-	case status.PrimaryKeyDueForRotation, status.SubkeyDueForRotation:
-		return []string{colour.Yellow("Due for rotation 🔄")}
+	case status.PrimaryKeyDueForRotation:
+		return []string{colour.Yellow("Primary key due for rotation")}
 
-	case status.PrimaryKeyOverdueForRotation, status.SubkeyOverdueForRotation:
-		warnings := []string{
-			colour.Red("Overdue for rotation ⏰"),
-		}
-		var additionalMessage string
-		switch days := warning.DaysUntilExpiry; days {
-		case 0:
-			additionalMessage = "Expires today!"
-		case 1:
-			additionalMessage = "Expires tomorrow!"
-		default:
-			additionalMessage = fmt.Sprintf("Expires in %d days!", days)
-		}
-		return append(warnings, colour.Red(additionalMessage))
+	case status.SubkeyDueForRotation:
+		return []string{colour.Yellow(prefix + "Encryption subkey due for rotation")}
+
+	case status.PrimaryKeyOverdueForRotation:
+		warnings := []string{colour.Red("Primary key overdue for rotation")}
+		return append(warnings, colour.Red(countdownUntilExpiry(warning.DaysUntilExpiry, 0)))
+
+	case status.SubkeyOverdueForRotation:
+		warnings := []string{colour.Red(prefix + "Encryption subkey overdue for rotation")}
+		return append(
+			warnings,
+			colour.Red(countdownUntilExpiry(
+				warning.DaysUntilExpiry,
+				uint(len([]rune(prefix))),
+			)),
+		)
 
 	case status.PrimaryKeyNoExpiry:
-		return []string{colour.Red("No expiry date set 📅")}
+		return []string{colour.Red("Primary key never expires")}
 
 	case status.SubkeyNoExpiry:
-		return []string{colour.Red("Subkey never expires 📅")}
+		return []string{colour.Red(prefix + "Encryption subkey never expires")}
 
-	case status.PrimaryKeyLongExpiry, status.SubkeyLongExpiry:
+	case status.PrimaryKeyLongExpiry:
+		return []string{colour.Yellow("Primary key set to expire too far in the future")}
+
+	case status.SubkeyLongExpiry:
 		// This message might be confusing if the primary key has a
 		// reasonable expiry, but the subkey has a long one.
-		return []string{colour.Yellow("Expiry date too far off 📅")}
+		return []string{colour.Yellow(prefix + "Encryption subkey set to expire too far in the future")}
 
 	case status.PrimaryKeyExpired:
 		var message string
 		switch days := warning.DaysSinceExpiry; days {
 		case 0:
-			message = "Expired today ⚰️"
+			message = "Expired today"
 		case 1:
-			message = "Expired yesterday ⚰️"
+			message = "Expired yesterday"
 		case 2, 3, 4, 5, 6, 7, 8, 9:
-			message = fmt.Sprintf("Expired %d days ago ⚰️", days)
+			message = fmt.Sprintf("Expired %d days ago", days)
 		default:
 			message = "Expired"
 		}
@@ -75,5 +90,16 @@ func formatKeyWarningLines(warning status.KeyWarning) []string {
 	default:
 		// TODO: log this but silently swallow the error
 		return []string{}
+	}
+}
+
+func countdownUntilExpiry(days uint, indent uint) string {
+	switch days {
+	case 0:
+		return "Expires today!"
+	case 1:
+		return "Expires tomorrow!"
+	default:
+		return fmt.Sprintf("%*sExpires in %d days!", indent, "", days)
 	}
 }

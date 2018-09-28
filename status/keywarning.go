@@ -7,6 +7,7 @@ import (
 type WarningType int
 
 const (
+	// If you add a type, remember to handle it in all the switch statements.
 	PrimaryKeyDueForRotation     WarningType = 1
 	PrimaryKeyOverdueForRotation WarningType = 2
 	PrimaryKeyExpired            WarningType = 3
@@ -62,6 +63,40 @@ func (w KeyWarning) String() string {
 	}
 
 	return "KeyWarning[unknown]"
+}
+
+func (w KeyWarning) IsAboutSubkey() bool {
+	switch w.Type {
+	case
+		SubkeyDueForRotation,
+		SubkeyOverdueForRotation,
+		SubkeyNoExpiry,
+		SubkeyLongExpiry:
+		return true
+	}
+	return false
+}
+
+func (w KeyWarning) IsAboutPrimaryKey() bool {
+	switch w.Type {
+	case
+		PrimaryKeyDueForRotation,
+		PrimaryKeyOverdueForRotation,
+		PrimaryKeyExpired,
+		PrimaryKeyNoExpiry,
+		PrimaryKeyLongExpiry:
+		return true
+	}
+	return false
+}
+
+func ContainsWarningAboutPrimaryKey(warnings []KeyWarning) bool {
+	for _, warning := range warnings {
+		if warning.IsAboutPrimaryKey() {
+			return true
+		}
+	}
+	return false
 }
 
 func addSubkeyId(warningName string, subkeyId uint64) string {
