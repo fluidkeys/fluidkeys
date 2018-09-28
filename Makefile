@@ -7,7 +7,7 @@ endif
 
 DEB=pkg/debian
 SECRETS_ID_RSA=.secret/download-fluidkeys-com.id_rsa
-MAIN_GO_FILES=fluidkeys/main.go fluidkeys/keyrotate.go fluidkeys/password.go fluidkeys/privatekeys.go
+MAIN_GO_FILES=fluidkeys/main.go fluidkeys/errors.go fluidkeys/keyrotate.go fluidkeys/password.go fluidkeys/privatekeys.go
 
 # `make compile` should populate build/ with all files that will
 # ultimately be installed to PREFIX (/usr/local), for example
