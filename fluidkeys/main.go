@@ -22,7 +22,6 @@ import (
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/keytableprinter"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
-	"github.com/fluidkeys/fluidkeys/status"
 
 	"github.com/sethvargo/go-diceware/diceware"
 )
@@ -294,68 +293,12 @@ func keyList() exitCode {
 	return 0
 }
 
-func keyRotate(dryRun bool) exitCode {
-	keys, err := loadPgpKeys()
-	if err != nil {
-		panic(err)
-	}
-
-	keytableprinter.Print(keys)
-
-	var numKeysWithWarnings int = 0
-	var numErrorsEncountered int = 0
-
-	for _, key := range keys {
-		warnings := status.GetKeyWarnings(key)
-		if len(warnings) > 0 {
-			numKeysWithWarnings += 1
-			err := showWarningsAndRunActions(&key, warnings, dryRun)
-			if err != nil {
-				numErrorsEncountered += 1
-				fmt.Printf("Error: %v\n", err)
-			}
-		}
-	}
-	if numKeysWithWarnings == 0 {
-		fmt.Printf("\n%s\n", colour.Green("✔ All keys look good — nothing to do."))
-	} else if !dryRun {
-		keyList()
-	}
-
-	if numErrorsEncountered > 0 {
-		message := fmt.Sprintf("%d error(s) while running rotate.", numErrorsEncountered)
-		fmt.Printf("\n%s\n", colour.Error(message))
-		return 1
-	} else {
-		return 0
-	}
-}
-
-func showWarningsAndRunActions(key *pgpkey.PgpKey, warnings []status.KeyWarning, dryRun bool) error {
+func displayName(key *pgpkey.PgpKey) string {
 	displayName, err := key.Email()
 	if err != nil {
 		displayName = fmt.Sprintf("%s", key.Fingerprint())
 	}
-	fmt.Printf("\n%s\n", colour.Warn(displayName))
-	for _, warning := range warnings {
-		fmt.Printf("  ! warning: %s\n", warning)
-	}
-
-	actions := status.MakeActionsFromWarnings(warnings)
-	if len(actions) == 0 {
-		return nil // nothing more to do
-	}
-
-	for _, action := range actions {
-		fmt.Printf("  * action: %v\n", action)
-	}
-
-	if dryRun {
-		fmt.Printf("\n%s\n", colour.Info("Stopping due to dry-run flag."))
-		return nil
-	} else {
-		return fmt.Errorf("Only --dry-run currently implemented.")
-	}
+	return displayName
 }
 
 func getFluidkeysDirectory() (string, error) {
