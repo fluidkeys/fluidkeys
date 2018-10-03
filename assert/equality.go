@@ -1,9 +1,20 @@
 package assert
 
 import (
+	"reflect"
 	"testing"
 	"time"
 )
+
+// assert.Equal aims to test equality of any two objects, and call t.Fatalf
+// if they're not equal
+func Equal(t *testing.T, expected interface{}, got interface{}) {
+	t.Helper()
+
+	if !reflect.DeepEqual(expected, got) {
+		t.Fatalf("expected %v got %v", expected, got)
+	}
+}
 
 // EqualSliceOfStrings tells whether a and b contain the same elements.
 // A nil argument is equivalent to an empty slice.

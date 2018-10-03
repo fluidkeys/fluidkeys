@@ -289,6 +289,30 @@ func TestGenerate(t *testing.T) {
 		t.Run(fmt.Sprintf("Identity[%s].SelfSignature.CreationTime", name), func(t *testing.T) {
 			assert.AssertEqualTimes(t, now, identity.SelfSignature.CreationTime)
 		})
+
+		t.Run(fmt.Sprintf("UserID[%s].SelfSignature.PreferredSymmetric matches policy", name), func(t *testing.T) {
+			assert.Equal(
+				t,
+				policy.AdvertiseCipherPreferences,
+				identity.SelfSignature.PreferredSymmetric,
+			)
+		})
+
+		t.Run(fmt.Sprintf("UserID[%s].SelfSignature.PreferredHash matches policy", name), func(t *testing.T) {
+			assert.Equal(
+				t,
+				policy.AdvertiseHashPreferences,
+				identity.SelfSignature.PreferredHash,
+			)
+		})
+
+		t.Run(fmt.Sprintf("UserID[%s].SelfSignature.PreferredCompression matches policy", name), func(t *testing.T) {
+			assert.Equal(
+				t,
+				policy.AdvertiseCompressionPreferences,
+				identity.SelfSignature.PreferredCompression,
+			)
+		})
 	}
 
 	for i, subkey := range generatedKey.Subkeys {
