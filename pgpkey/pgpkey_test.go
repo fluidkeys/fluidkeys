@@ -723,10 +723,6 @@ func TestCreateNewEncryptionSubkey(t *testing.T) {
 		t.Fatalf("failed to generate PGP key in tests")
 	}
 	pgpKey.Subkeys = []openpgp.Subkey{} // delete existing subkey
-	err = temporaryWorkAroundSetHashPreference(pgpKey)
-	if err != nil {
-		t.Fatalf("Error setting the temporary hash preferences: %v", err)
-	}
 
 	err = pgpKey.createNewEncryptionSubkey(thirtyDaysFromNow, now)
 	if err != nil {
@@ -804,17 +800,6 @@ func TestCreateNewEncryptionSubkey(t *testing.T) {
 		}
 	})
 
-}
-
-func temporaryWorkAroundSetHashPreference(key *PgpKey) error {
-	for _, id := range key.Identities {
-		id.SelfSignature.PreferredHash = []uint8{8}
-		err := id.SelfSignature.SignUserId(id.UserId.Id, key.PrimaryKey, key.PrivateKey, nil)
-		if err != nil {
-			return fmt.Errorf("failed to make self signature: %v", err)
-		}
-	}
-	return nil
 }
 
 func TestUpdateSubkeyValidUntil(t *testing.T) {
