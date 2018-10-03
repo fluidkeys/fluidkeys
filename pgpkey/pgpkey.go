@@ -335,9 +335,20 @@ func (key *PgpKey) UpdateExpiryForAllUserIds(validUntil time.Time) error {
 // * has one or both of the capability flags: encrypt communications and encrypt storage
 // * has a valid, in-date signature
 // * has the latest CreationTime (e.g. most recent)
+//
+// Takes a single optional argument `now` of type time.Time. If omitted,
+// time.Now() will be used.
 
-func (key *PgpKey) EncryptionSubkey() *openpgp.Subkey {
-	return key.encryptionSubkey(time.Now())
+func (key *PgpKey) EncryptionSubkey(args ...time.Time) *openpgp.Subkey {
+	var now time.Time
+
+	if len(args) > 0 {
+		now = args[0]
+	} else {
+		now = time.Now()
+	}
+
+	return key.encryptionSubkey(now)
 }
 
 func (key *PgpKey) encryptionSubkey(now time.Time) *openpgp.Subkey {

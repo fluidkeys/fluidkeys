@@ -561,7 +561,17 @@ func TestEncryptionSubkey(t *testing.T) {
 
 	})
 
-	t.Run("EncryptionSubkey selects most recent subkey", func(t *testing.T) {
+	t.Run("EncryptionSubkey() compiles with optional argument", func(t *testing.T) {
+		pgpKey.EncryptionSubkey(now)
+		// don't assert, just ensure we can compile like this
+	})
+
+	t.Run("EncryptionSubkey compiles with no argument", func(t *testing.T) {
+		pgpKey.EncryptionSubkey()
+		// don't assert, just ensure we can compile like this
+	})
+
+	t.Run("encryptionSubkey selects most recent subkey", func(t *testing.T) {
 		expectedKey := pgpKey.Subkeys[3]
 		gotKey := pgpKey.encryptionSubkey(now)
 

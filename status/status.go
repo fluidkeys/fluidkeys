@@ -20,7 +20,7 @@ func GetKeyWarnings(key pgpkey.PgpKey) []KeyWarning {
 }
 
 func getEncryptionSubkeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning {
-	encryptionSubkey := key.EncryptionSubkey()
+	encryptionSubkey := key.EncryptionSubkey(now)
 
 	if encryptionSubkey == nil {
 		return []KeyWarning{KeyWarning{Type: NoValidEncryptionSubkey}}
