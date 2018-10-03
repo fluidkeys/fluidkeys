@@ -335,9 +335,20 @@ func (key *PgpKey) UpdateExpiryForAllUserIds(validUntil time.Time) error {
 // * has one or both of the capability flags: encrypt communications and encrypt storage
 // * has a valid, in-date signature
 // * has the latest CreationTime (e.g. most recent)
+//
+// Takes a single optional argument `now` of type time.Time. If omitted,
+// time.Now() will be used.
 
-func (key *PgpKey) EncryptionSubkey() *openpgp.Subkey {
-	return key.encryptionSubkey(time.Now())
+func (key *PgpKey) EncryptionSubkey(args ...time.Time) *openpgp.Subkey {
+	var now time.Time
+
+	if len(args) > 0 {
+		now = args[0]
+	} else {
+		now = time.Now()
+	}
+
+	return key.encryptionSubkey(now)
 }
 
 func (key *PgpKey) encryptionSubkey(now time.Time) *openpgp.Subkey {
@@ -402,7 +413,7 @@ func (key *PgpKey) createNewEncryptionSubkey(validUntil time.Time, now time.Time
 
 // RevokeSubkey prevents the given subkey from being usable.
 func (key *PgpKey) RevokeSubkey(subkeyId uint64) error {
-	return key.updateSubkeyExpiryToNow(subkeyId, time.Now())
+	return key.UpdateSubkeyValidUntil(subkeyId, time.Now())
 }
 
 func (key *PgpKey) Subkey(subkeyId uint64) (*openpgp.Subkey, error) {
@@ -415,7 +426,7 @@ func (key *PgpKey) Subkey(subkeyId uint64) (*openpgp.Subkey, error) {
 	return nil, fmt.Errorf("no subkey with subkeyID 0x%X", subkeyId)
 }
 
-func (key *PgpKey) updateSubkeyExpiryToNow(subkeyId uint64, now time.Time) error {
+func (key *PgpKey) UpdateSubkeyValidUntil(subkeyId uint64, validUntil time.Time) error {
 	err := key.ensureGotDecryptedPrivateKey()
 	if err != nil {
 		return err
@@ -425,10 +436,10 @@ func (key *PgpKey) updateSubkeyExpiryToNow(subkeyId uint64, now time.Time) error
 		return err
 	}
 
-	keyLifetimeSeconds := uint32(now.Sub(subkey.PublicKey.CreationTime).Seconds())
+	keyLifetimeSeconds := uint32(validUntil.Sub(subkey.PublicKey.CreationTime).Seconds())
 
 	subkey.Sig.SigType = packet.SigTypeSubkeyBinding
-	subkey.Sig.CreationTime = now // essential that this sig is the most recent
+	subkey.Sig.CreationTime = validUntil // essential that this sig is the most recent
 	subkey.Sig.KeyLifetimeSecs = &keyLifetimeSeconds
 
 	err = subkey.Sig.SignKey(subkey.PublicKey, key.PrivateKey, nil)

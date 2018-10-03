@@ -561,7 +561,17 @@ func TestEncryptionSubkey(t *testing.T) {
 
 	})
 
-	t.Run("EncryptionSubkey selects most recent subkey", func(t *testing.T) {
+	t.Run("EncryptionSubkey() compiles with optional argument", func(t *testing.T) {
+		pgpKey.EncryptionSubkey(now)
+		// don't assert, just ensure we can compile like this
+	})
+
+	t.Run("EncryptionSubkey compiles with no argument", func(t *testing.T) {
+		pgpKey.EncryptionSubkey()
+		// don't assert, just ensure we can compile like this
+	})
+
+	t.Run("encryptionSubkey selects most recent subkey", func(t *testing.T) {
 		expectedKey := pgpKey.Subkeys[3]
 		gotKey := pgpKey.encryptionSubkey(now)
 
@@ -783,7 +793,7 @@ func temporaryWorkAroundSetHashPreference(key *PgpKey) error {
 	return nil
 }
 
-func TestUpdateSubkeyExpiryToNow(t *testing.T) {
+func TestUpdateSubkeyValidUntil(t *testing.T) {
 	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
 	sixtyDaysAgo := now.Add(-time.Duration(24*60) * time.Hour)
 	thirtyDaysFromNow := now.Add(time.Duration(24*30) * time.Hour)
@@ -809,7 +819,7 @@ func TestUpdateSubkeyExpiryToNow(t *testing.T) {
 
 	originalSubkeySignatureCreationTime := subkey.Sig.CreationTime
 
-	err = pgpKey.updateSubkeyExpiryToNow(subkey.PublicKey.KeyId, now)
+	err = pgpKey.UpdateSubkeyValidUntil(subkey.PublicKey.KeyId, now)
 	if err != nil {
 		t.Fatalf("Error updating subkey expiry to now: " + err.Error())
 	}
@@ -977,7 +987,7 @@ func TestMethodsRequiringDecryptedPrivateKey(t *testing.T) {
 		err = pgpKey.createNewEncryptionSubkey(time.Now(), time.Now())
 		assert.ErrorIsNotNil(t, err)
 
-		err = pgpKey.updateSubkeyExpiryToNow(999, time.Now())
+		err = pgpKey.UpdateSubkeyValidUntil(999, time.Now())
 		assert.ErrorIsNotNil(t, err)
 	})
 
@@ -996,7 +1006,7 @@ func TestMethodsRequiringDecryptedPrivateKey(t *testing.T) {
 		err = pgpKey.createNewEncryptionSubkey(time.Now(), time.Now())
 		assert.ErrorIsNotNil(t, err)
 
-		err = pgpKey.updateSubkeyExpiryToNow(999, time.Now())
+		err = pgpKey.UpdateSubkeyValidUntil(999, time.Now())
 		assert.ErrorIsNotNil(t, err)
 	})
 }
