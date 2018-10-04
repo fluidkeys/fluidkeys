@@ -122,6 +122,9 @@ func generateKeyOfSize(email string, rsaBits int, creationTime time.Time) (*PgpK
 	for _, id := range entity.Identities {
 		id.SelfSignature.CreationTime = creationTime
 		id.SelfSignature.KeyLifetimeSecs = &keyLifetimeSeconds
+
+		setSelfSignaturePreferences(id.SelfSignature)
+
 		err := id.SelfSignature.SignUserId(id.UserId.Id, entity.PrimaryKey, entity.PrivateKey, &config.Config)
 		if err != nil {
 			return nil, err
@@ -489,6 +492,12 @@ func isEncryptionSubkeyValid(subkey openpgp.Subkey, now time.Time) bool {
 
 	valid := !isRevoked && createdInThePast && subkey.Sig.FlagsValid && hasEncryptionFlag && inDate
 	return valid
+}
+
+func setSelfSignaturePreferences(selfSignature *packet.Signature) {
+	selfSignature.PreferredSymmetric = policy.AdvertiseCipherPreferences
+	selfSignature.PreferredHash = policy.AdvertiseHashPreferences
+	selfSignature.PreferredCompression = policy.AdvertiseCompressionPreferences
 }
 
 func slugify(textToSlugify string) (slugified string) {

@@ -289,6 +289,30 @@ func TestGenerate(t *testing.T) {
 		t.Run(fmt.Sprintf("Identity[%s].SelfSignature.CreationTime", name), func(t *testing.T) {
 			assert.AssertEqualTimes(t, now, identity.SelfSignature.CreationTime)
 		})
+
+		t.Run(fmt.Sprintf("UserID[%s].SelfSignature.PreferredSymmetric matches policy", name), func(t *testing.T) {
+			assert.Equal(
+				t,
+				policy.AdvertiseCipherPreferences,
+				identity.SelfSignature.PreferredSymmetric,
+			)
+		})
+
+		t.Run(fmt.Sprintf("UserID[%s].SelfSignature.PreferredHash matches policy", name), func(t *testing.T) {
+			assert.Equal(
+				t,
+				policy.AdvertiseHashPreferences,
+				identity.SelfSignature.PreferredHash,
+			)
+		})
+
+		t.Run(fmt.Sprintf("UserID[%s].SelfSignature.PreferredCompression matches policy", name), func(t *testing.T) {
+			assert.Equal(
+				t,
+				policy.AdvertiseCompressionPreferences,
+				identity.SelfSignature.PreferredCompression,
+			)
+		})
 	}
 
 	for i, subkey := range generatedKey.Subkeys {
@@ -699,10 +723,6 @@ func TestCreateNewEncryptionSubkey(t *testing.T) {
 		t.Fatalf("failed to generate PGP key in tests")
 	}
 	pgpKey.Subkeys = []openpgp.Subkey{} // delete existing subkey
-	err = temporaryWorkAroundSetHashPreference(pgpKey)
-	if err != nil {
-		t.Fatalf("Error setting the temporary hash preferences: %v", err)
-	}
 
 	err = pgpKey.createNewEncryptionSubkey(thirtyDaysFromNow, now)
 	if err != nil {
@@ -780,17 +800,6 @@ func TestCreateNewEncryptionSubkey(t *testing.T) {
 		}
 	})
 
-}
-
-func temporaryWorkAroundSetHashPreference(key *PgpKey) error {
-	for _, id := range key.Identities {
-		id.SelfSignature.PreferredHash = []uint8{8}
-		err := id.SelfSignature.SignUserId(id.UserId.Id, key.PrimaryKey, key.PrivateKey, nil)
-		if err != nil {
-			return fmt.Errorf("failed to make self signature: %v", err)
-		}
-	}
-	return nil
 }
 
 func TestUpdateSubkeyValidUntil(t *testing.T) {
