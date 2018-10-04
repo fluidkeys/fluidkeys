@@ -10,16 +10,31 @@ type WarningType int
 const (
 	// If you add a type, remember to handle it in all the switch statements.
 	PrimaryKeyDueForRotation     WarningType = 1
-	PrimaryKeyOverdueForRotation WarningType = 2
-	PrimaryKeyExpired            WarningType = 3
-	PrimaryKeyNoExpiry           WarningType = 4
-	PrimaryKeyLongExpiry         WarningType = 5
+	PrimaryKeyOverdueForRotation             = 2
+	PrimaryKeyExpired                        = 3
+	PrimaryKeyNoExpiry                       = 4
+	PrimaryKeyLongExpiry                     = 5
 
-	NoValidEncryptionSubkey  WarningType = 6
-	SubkeyDueForRotation     WarningType = 7
-	SubkeyOverdueForRotation WarningType = 8
-	SubkeyNoExpiry           WarningType = 9
-	SubkeyLongExpiry         WarningType = 10
+	NoValidEncryptionSubkey  = 6
+	SubkeyDueForRotation     = 7
+	SubkeyOverdueForRotation = 8
+	SubkeyNoExpiry           = 9
+	SubkeyLongExpiry         = 10
+
+	MissingPreferredSymmetricAlgorithms    = 11
+	WeakPreferredSymmetricAlgorithms       = 12
+	UnsupportedPreferredSymmetricAlgorithm = 13
+
+	MissingPreferredHashAlgorithms    = 14
+	WeakPreferredHashAlgorithms       = 15
+	UnsupportedPreferredHashAlgorithm = 16
+
+	MissingPreferredCompressionAlgorithms    = 17
+	UnsupportedPreferredCompressionAlgorithm = 18
+	MissingUncompressedPreference            = 19 // Implementations MUST implement uncompressed data.
+
+	WeakSelfSignatureHash          = 20
+	WeakSubkeyBindingSignatureHash = 21
 )
 
 type KeyWarning struct {
@@ -29,6 +44,7 @@ type KeyWarning struct {
 	DaysUntilExpiry   uint
 	DaysSinceExpiry   uint
 	CurrentValidUntil *time.Time
+	Detail            string
 }
 
 func (w KeyWarning) String() string {
@@ -62,6 +78,39 @@ func (w KeyWarning) String() string {
 
 	case SubkeyLongExpiry:
 		return addSubkeyId("SubkeyLongExpiry", w.SubkeyId)
+
+	case MissingPreferredSymmetricAlgorithms:
+		return "MissingPreferredSymmetricAlgorithms"
+
+	case WeakPreferredSymmetricAlgorithms:
+		return fmt.Sprintf("WeakPreferredSymmetricAlgorithms (%s)", w.Detail)
+
+	case UnsupportedPreferredSymmetricAlgorithm:
+		return fmt.Sprintf("UnsupportedPreferredSymmetricAlgorithm (%s)", w.Detail)
+
+	case MissingPreferredHashAlgorithms:
+		return "MissingPreferredHashAlgorithms"
+
+	case WeakPreferredHashAlgorithms:
+		return fmt.Sprintf("WeakPreferredHashAlgorithms (%s)", w.Detail)
+
+	case UnsupportedPreferredHashAlgorithm:
+		return fmt.Sprintf("UnsupportedPreferredHashAlgorithm (%s)", w.Detail)
+
+	case MissingPreferredCompressionAlgorithms:
+		return "MissingPreferredCompressionAlgorithms"
+
+	case MissingUncompressedPreference:
+		return "MissingUncompressedPreference"
+
+	case UnsupportedPreferredCompressionAlgorithm:
+		return fmt.Sprintf("UnsupportedPreferredCompressionAlgorithm (%s)", w.Detail)
+
+	case WeakSelfSignatureHash:
+		return fmt.Sprintf("WeakSelfSignatureHash (%s)", w.Detail)
+
+	case WeakSubkeyBindingSignatureHash:
+		return addSubkeyId("WeakSubkeyBindingSignatureHash", w.SubkeyId)
 	}
 
 	return "KeyWarning[unknown]"
@@ -73,7 +122,8 @@ func (w KeyWarning) IsAboutSubkey() bool {
 		SubkeyDueForRotation,
 		SubkeyOverdueForRotation,
 		SubkeyNoExpiry,
-		SubkeyLongExpiry:
+		SubkeyLongExpiry,
+		WeakSubkeyBindingSignatureHash:
 		return true
 	}
 	return false
@@ -86,7 +136,16 @@ func (w KeyWarning) IsAboutPrimaryKey() bool {
 		PrimaryKeyOverdueForRotation,
 		PrimaryKeyExpired,
 		PrimaryKeyNoExpiry,
-		PrimaryKeyLongExpiry:
+		PrimaryKeyLongExpiry,
+		MissingPreferredSymmetricAlgorithms,
+		WeakPreferredSymmetricAlgorithms,
+		UnsupportedPreferredSymmetricAlgorithm,
+		MissingPreferredHashAlgorithms,
+		WeakPreferredHashAlgorithms,
+		UnsupportedPreferredHashAlgorithm,
+		MissingPreferredCompressionAlgorithms,
+		UnsupportedPreferredCompressionAlgorithm,
+		WeakSelfSignatureHash:
 		return true
 	}
 	return false
