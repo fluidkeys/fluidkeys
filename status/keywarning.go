@@ -118,7 +118,7 @@ func (w KeyWarning) String() string {
 		return addSubkeyId("WeakSubkeyBindingSignatureHash", w.SubkeyId)
 	}
 
-	return "KeyWarning[unknown]"
+	return fmt.Sprintf("KeyWarning{Type=%d}", w.Type)
 }
 
 func (w KeyWarning) IsAboutSubkey() bool {
