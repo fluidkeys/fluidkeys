@@ -1,9 +1,15 @@
 package status
 
 import (
+	"crypto"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/fluidkeys/crypto/openpgp/packet"
+	"github.com/fluidkeys/fluidkeys/openpgpdefs/compression"
+	"github.com/fluidkeys/fluidkeys/openpgpdefs/hash"
+	"github.com/fluidkeys/fluidkeys/openpgpdefs/symmetric"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/policy"
 )
@@ -16,6 +22,19 @@ func GetKeyWarnings(key pgpkey.PgpKey) []KeyWarning {
 
 	warnings = append(warnings, getPrimaryKeyWarnings(key, now)...)
 	warnings = append(warnings, getEncryptionSubkeyWarnings(key, now)...)
+
+	for _, selfSignature := range getIdentitySelfSignatures(&key) {
+		warnings = append(warnings, getSelfSignatureHashWarnings(selfSignature)...)
+		warnings = append(warnings, getCipherPreferenceWarnings(selfSignature.PreferredSymmetric)...)
+		warnings = append(warnings, getHashPreferenceWarnings(selfSignature.PreferredHash)...)
+		warnings = append(warnings, getCompressionPreferenceWarnings(selfSignature.PreferredHash)...)
+	}
+
+	for _, bindingSignature := range getSubkeyBindingSignatures(&key) {
+		warnings = append(warnings, getSelfSignatureHashWarnings(bindingSignature)...)
+		// TODO: check preferences (tho if missing, it's acceptable)
+	}
+
 	return warnings
 }
 
@@ -127,6 +146,190 @@ func getPrimaryKeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning {
 	return warnings
 }
 
+func getIdentitySelfSignatures(key *pgpkey.PgpKey) []*packet.Signature {
+	var selfSigs []*packet.Signature
+	for name, _ := range key.Identities {
+		identity := key.Identities[name]
+		selfSigs = append(selfSigs, identity.SelfSignature)
+	}
+	return selfSigs
+}
+
+func getSubkeyBindingSignatures(key *pgpkey.PgpKey) []*packet.Signature {
+	var sigs []*packet.Signature
+	for _, subkey := range key.Subkeys {
+		sigs = append(sigs, subkey.Sig)
+	}
+
+	return sigs
+}
+
+func getCipherPreferenceWarnings(prefs []uint8) []KeyWarning {
+	if len(prefs) == 0 {
+		return []KeyWarning{KeyWarning{Type: MissingPreferredSymmetricAlgorithms}}
+	}
+
+	var warnings []KeyWarning
+
+	for _, cipherByte := range prefs {
+		if !contains(policy.SupportedSymmetricKeyAlgorithms, cipherByte) {
+			warning := KeyWarning{
+				Type:   UnsupportedPreferredSymmetricAlgorithm,
+				Detail: symmetric.Name(cipherByte),
+			}
+			warnings = append(warnings, warning)
+		}
+	}
+
+	var preferencesAreAcceptable = false
+
+	for _, acceptableCombination := range policy.AcceptablePreferredSymmetricAlgorithms {
+		if equal(prefs, acceptableCombination) {
+			preferencesAreAcceptable = true
+		}
+	}
+
+	if !preferencesAreAcceptable {
+		warnings = append(warnings, KeyWarning{
+			Type:   WeakPreferredSymmetricAlgorithms,
+			Detail: joinCipherNames(prefs),
+		})
+	}
+
+	return warnings
+}
+
+func getHashPreferenceWarnings(prefs []uint8) []KeyWarning {
+	if len(prefs) == 0 {
+		return []KeyWarning{
+			KeyWarning{Type: MissingPreferredHashAlgorithms},
+		}
+	}
+
+	var warnings []KeyWarning
+
+	for _, hashByte := range prefs {
+		if !contains(policy.SupportedHashAlgorithms, hashByte) {
+			warning := KeyWarning{
+				Type:   UnsupportedPreferredHashAlgorithm,
+				Detail: hash.Name(hashByte),
+			}
+			warnings = append(warnings, warning)
+		}
+	}
+
+	var preferencesAreAcceptable = false
+
+	for _, acceptableCombination := range policy.AcceptablePreferredHashAlgorithms {
+		if equal(prefs, acceptableCombination) {
+			preferencesAreAcceptable = true
+		}
+	}
+
+	if !preferencesAreAcceptable {
+		warnings = append(warnings, KeyWarning{
+			Type:   WeakPreferredHashAlgorithms,
+			Detail: joinHashNames(prefs),
+		})
+	}
+
+	return warnings
+}
+
+func joinHashNames(hashes []uint8) string {
+	var hashNames []string
+	for _, hashByte := range hashes {
+		hashNames = append(hashNames, hash.Name(hashByte))
+	}
+	return strings.Join(hashNames, " ")
+}
+
+func joinCipherNames(cipheres []uint8) string {
+	var cipherNames []string
+	for _, cipherByte := range cipheres {
+		cipherNames = append(cipherNames, symmetric.Name(cipherByte))
+	}
+	return strings.Join(cipherNames, " ")
+}
+
+func getCompressionPreferenceWarnings(prefs []uint8) []KeyWarning {
+	if len(prefs) == 0 {
+		return []KeyWarning{
+			KeyWarning{Type: MissingPreferredCompressionAlgorithms},
+		}
+	}
+
+	warnings := []KeyWarning{}
+
+	if !contains(prefs, compression.Uncompressed) {
+		warnings = append(warnings, KeyWarning{Type: MissingUncompressedPreference})
+	}
+
+	if contains(prefs, compression.BZIP2) {
+		warnings = append(warnings, KeyWarning{Type: UnsupportedPreferredCompressionAlgorithm, Detail: "BZIP2"})
+	}
+
+	return warnings
+
+}
+func getSelfSignatureHashWarnings(signature *packet.Signature) []KeyWarning {
+	if !acceptableSignatureHash(&signature.Hash) {
+		return []KeyWarning{
+			KeyWarning{
+				Type:   WeakSelfSignatureHash,
+				Detail: nameOfHash(signature.Hash),
+			},
+		}
+	} else {
+		return []KeyWarning{}
+	}
+}
+
+func getSubkeyBindingSignatureHashWarnings(signature *packet.Signature) []KeyWarning {
+	if !acceptableSignatureHash(&signature.Hash) {
+		return []KeyWarning{
+			KeyWarning{
+				Type:   WeakSubkeyBindingSignatureHash,
+				Detail: nameOfHash(signature.Hash),
+			},
+		}
+	} else {
+		return []KeyWarning{}
+	}
+}
+
+func acceptableSignatureHash(hash *crypto.Hash) bool {
+	hasAcceptableHash := false
+	for _, acceptableHash := range policy.AcceptableSignatureHashes {
+		if *hash == acceptableHash {
+			hasAcceptableHash = true
+		}
+	}
+
+	return hasAcceptableHash
+}
+
+func contains(haystack []uint8, needle uint8) bool {
+	for _, thing := range haystack {
+		if thing == needle {
+			return true
+		}
+	}
+	return false
+}
+
+func equal(left []uint8, right []uint8) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for i := range left {
+		if left[i] != right[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func isExpired(expiry time.Time, now time.Time) bool {
 	return expiry.Before(now)
 }
@@ -235,6 +438,28 @@ func getEarliestExpiryTime(key pgpkey.PgpKey) (bool, *time.Time) {
 	} else {
 		return false, nil
 	}
+}
+
+// nameOfHash returns the OpenPGP name for the given hash, or the empty string
+// if the name isn't known. See RFC 4880, section 9.4.
+func nameOfHash(h crypto.Hash) string {
+	switch h {
+	case crypto.MD5:
+		return "MD5"
+	case crypto.SHA1:
+		return "SHA1"
+	case crypto.RIPEMD160:
+		return "RIPEMD160"
+	case crypto.SHA224:
+		return "SHA224"
+	case crypto.SHA256:
+		return "SHA256"
+	case crypto.SHA384:
+		return "SHA384"
+	case crypto.SHA512:
+		return "SHA512"
+	}
+	return ""
 }
 
 func earliest(times []time.Time) time.Time {
