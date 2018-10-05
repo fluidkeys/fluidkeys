@@ -93,8 +93,9 @@ func formatKeyWarningLines(warning status.KeyWarning, indent bool) []string {
 		return []string{colour.Grey(message)}
 
 	default:
-		// TODO: log this but silently swallow the error
-		return []string{}
+		// TODO: log that we're falling back to a default description
+		// for the KeyWarning
+		return []string{fmt.Sprintf("[%s]", warning.String())}
 	}
 }
 
