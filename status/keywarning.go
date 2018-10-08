@@ -9,11 +9,13 @@ type WarningType int
 
 const (
 	// If you add a type, remember to handle it in all the switch statements.
-	PrimaryKeyDueForRotation     WarningType = 1
-	PrimaryKeyOverdueForRotation             = 2
-	PrimaryKeyExpired                        = 3
-	PrimaryKeyNoExpiry                       = 4
-	PrimaryKeyLongExpiry                     = 5
+	UnsetType WarningType = 0
+
+	PrimaryKeyDueForRotation     = 1
+	PrimaryKeyOverdueForRotation = 2
+	PrimaryKeyExpired            = 3
+	PrimaryKeyNoExpiry           = 4
+	PrimaryKeyLongExpiry         = 5
 
 	NoValidEncryptionSubkey  = 6
 	SubkeyDueForRotation     = 7
@@ -49,6 +51,9 @@ type KeyWarning struct {
 
 func (w KeyWarning) String() string {
 	switch w.Type {
+	case UnsetType:
+		return ""
+
 	case PrimaryKeyDueForRotation:
 		return "PrimaryKeyDueForRotation"
 
