@@ -36,7 +36,8 @@ var (
 
 	// AcceptablePreferredSymmetricAlgorithms defines what combinations of
 	// symmetric key ciphers we consider OK (e.g. we don't warn about).
-	// Note that order matters.
+	// Note that the order of algorithms matters, e.g. {AES256, CAST5} is
+	// different from {CAST5, AES256}
 	AcceptablePreferredSymmetricAlgorithms = [][]uint8{
 		[]uint8{symmetric.AES256, symmetric.AES192, symmetric.AES128, symmetric.CAST5},
 		[]uint8{symmetric.AES256, symmetric.AES192, symmetric.AES128},
@@ -88,7 +89,8 @@ var (
 
 	// AcceptablePreferredHashAlgorithms defines what combinations of
 	// hash algorithms we consider OK (e.g. we don't warn about).
-	// Note that order matters.
+	// Note that the order of algorithms matters, e.g. {SHA256, RIPEMD160}
+	// is different from {CAST5, RIPEMD160}
 	AcceptablePreferredHashAlgorithms = [][]uint8{
 		[]uint8{hash.Sha512, hash.Sha384, hash.Sha256, hash.Sha224},
 		[]uint8{hash.Sha512, hash.Sha384, hash.Sha256, hash.Sha224, hash.Ripemd160},
