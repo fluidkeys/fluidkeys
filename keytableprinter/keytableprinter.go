@@ -31,7 +31,7 @@ func Print(keys []pgpkey.PgpKey) {
 		fmt.Println(rowString)
 	}
 
-	printTopLevelHint(keys)
+	fmt.Print(makePrimaryInstruction(keys))
 }
 
 func makeTableRows(keys []pgpkey.PgpKey) []row {
@@ -185,25 +185,27 @@ func max(x int, y int) int {
 	}
 }
 
-// printTopLevelHint prints single hint to suggest the user should run fk key
-// rotate if any of their keys are overdue for rotation or due for rotation.
-func printTopLevelHint(keys []pgpkey.PgpKey) {
+// makePrimaryInstruction prints single instruction to the user to run fk key
+// rotate if they have any issues with their keys. The severity of the message
+// depends on if they have any urgent issues.
+func makePrimaryInstruction(keys []pgpkey.PgpKey) string {
 	var warnings []status.KeyWarning
 	for _, key := range keys {
 		warnings = append(warnings, status.GetKeyWarnings(key)...)
 	}
-	if warningsSliceContainsType(warnings, status.PrimaryKeyOverdueForRotation) ||
-		warningsSliceContainsType(warnings, status.SubkeyOverdueForRotation) {
-		fmt.Println(colour.Danger(`[!] Your key(s) are overdue for rotation.
-They will expire unless you rotate them by running:
-    fk key rotate`))
-		return
+	if len(warnings) > 0 {
+		instuction := " >  " + colour.CommandLineCode("fk key rotate\n")
+		if warningsSliceContainsType(warnings, status.PrimaryKeyOverdueForRotation) ||
+			warningsSliceContainsType(warnings, status.SubkeyOverdueForRotation) {
+			return "\nPrevent your key(s) from becoming unusable by running:\n" + instuction
+		}
+		if warningsSliceContainsType(warnings, status.PrimaryKeyExpired) ||
+			warningsSliceContainsType(warnings, status.NoValidEncryptionSubkey) {
+			return "\nMake your key(s) usable again by running:\n" + instuction
+		}
+		return "\nFix these issues by running:\n" + instuction
 	}
-	if warningsSliceContainsType(warnings, status.PrimaryKeyDueForRotation) ||
-		warningsSliceContainsType(warnings, status.SubkeyDueForRotation) {
-		fmt.Println(colour.Warning(`[!] Rotate your key(s) by running: fk key rotate`))
-		return
-	}
+	return ""
 }
 
 // contains returns true if the given needle (Warning) is present in the
