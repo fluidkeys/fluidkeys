@@ -36,6 +36,11 @@ func formatKeyWarningLines(warning status.KeyWarning, indent bool) []string {
 	}
 
 	switch warning.Type {
+	case status.UnsetType:
+		// TODO: log that we got an invalid KeyWarning as it shouldn't
+		// ever happen.
+		return []string{}
+
 	case status.NoValidEncryptionSubkey:
 		return []string{colour.Yellow("Missing encryption subkey")}
 
@@ -88,8 +93,9 @@ func formatKeyWarningLines(warning status.KeyWarning, indent bool) []string {
 		return []string{colour.Grey(message)}
 
 	default:
-		// TODO: log this but silently swallow the error
-		return []string{}
+		// TODO: log that we're falling back to a default description
+		// for the KeyWarning
+		return []string{fmt.Sprintf("[%s]", warning.String())}
 	}
 }
 

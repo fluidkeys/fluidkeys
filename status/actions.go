@@ -1,7 +1,6 @@
 package status
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/fluidkeys/fluidkeys/policy"
@@ -40,6 +39,10 @@ func makeActionsFromSingleWarning(warning KeyWarning, now time.Time) []KeyAction
 		return []KeyAction{
 			CreateNewEncryptionSubkey{ValidUntil: nextExpiry},
 		}
+
+	default: // don't know how to remedy this KeyWarning
+		// TODO: log that we don't know how to remedy this type of
+		// KeyWarning
+		return []KeyAction{}
 	}
-	panic(fmt.Errorf("Unhandled KeyWarning.Type: %v", warning.Type))
 }
