@@ -19,26 +19,29 @@ const (
 
 func Name(hashByte uint8) string {
 	switch hashByte {
-	case 1:
+	case Md5:
 		return "MD5"
-	case 2:
-		return "SHA1"
-	case 3:
-		return "RIPEMD160"
-	case 4, 5, 6, 7:
-		return fmt.Sprintf("Reserved (%d)", hashByte)
 
-	case 8:
+	case Sha1:
+		return "SHA1"
+
+	case Ripemd160:
+		return "RIPEMD160"
+
+	case Sha256:
 		return "SHA256"
 
-	case 9:
+	case Sha384:
 		return "SHA384"
 
-	case 10:
+	case Sha512:
 		return "SHA512"
 
-	case 11:
+	case Sha224:
 		return "SHA224"
+
+	case 4, 5, 6, 7:
+		return fmt.Sprintf("Reserved (%d)", hashByte)
 
 	case 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110:
 		return fmt.Sprintf("Private/experimental (%d)", hashByte)

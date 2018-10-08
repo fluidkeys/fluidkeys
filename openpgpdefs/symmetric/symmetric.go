@@ -25,37 +25,41 @@ const (
 
 func Name(symmetricAlgorithm SymmetricAlgorithm) string {
 	switch symmetricAlgorithm {
-	case 1:
+	case IDEA:
 		return "IDEA"
-	case 2:
-		return "TripleDES"
-	case 3:
-		return "CAST5"
-	case 4:
-		return "Blowfish"
-	case 5, 6:
-		return fmt.Sprintf("Reserved (%d)", symmetricAlgorithm)
 
-	case 7:
+	case TripleDES:
+		return "TripleDES"
+
+	case CAST5:
+		return "CAST5"
+
+	case Blowfish:
+		return "Blowfish"
+
+	case AES128:
 		return "AES128"
 
-	case 8:
+	case AES192:
 		return "AES192"
 
-	case 9:
+	case AES256:
 		return "AES256"
 
-	case 10:
+	case Twofish256:
 		return "Twofish"
 
-	case 11:
+	case Camellia128:
 		return "Camellia128"
 
-	case 12:
+	case Camellia192:
 		return "Camellia192"
 
-	case 13:
+	case Camellia256:
 		return "Camellia256"
+
+	case 5, 6:
+		return fmt.Sprintf("Reserved (%d)", symmetricAlgorithm)
 
 	case 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110:
 		return fmt.Sprintf("Private/experimental (%d)", symmetricAlgorithm)
