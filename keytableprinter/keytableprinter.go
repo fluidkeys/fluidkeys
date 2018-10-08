@@ -32,6 +32,7 @@ func Print(keys []pgpkey.PgpKey) {
 	}
 
 	fmt.Print(makePrimaryInstruction(keys))
+	fmt.Println()
 }
 
 func makeTableRows(keys []pgpkey.PgpKey) []row {
