@@ -27,7 +27,7 @@ func GetKeyWarnings(key pgpkey.PgpKey) []KeyWarning {
 		warnings = append(warnings, getSelfSignatureHashWarnings(selfSignature)...)
 		warnings = append(warnings, getCipherPreferenceWarnings(selfSignature.PreferredSymmetric)...)
 		warnings = append(warnings, getHashPreferenceWarnings(selfSignature.PreferredHash)...)
-		warnings = append(warnings, getCompressionPreferenceWarnings(selfSignature.PreferredHash)...)
+		warnings = append(warnings, getCompressionPreferenceWarnings(selfSignature.PreferredCompression)...)
 	}
 
 	for _, bindingSignature := range getSubkeyBindingSignatures(&key) {
