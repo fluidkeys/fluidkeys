@@ -54,7 +54,7 @@ func makeRowsForKeys(keys []pgpkey.PgpKey) []row {
 		columns := []column{
 			key.Emails(true),
 			[]string{key.PrimaryKey.CreationTime.Format("2 Jan 2006")},
-			keyWarningLines(key, status.GetKeyWarnings(key)),
+			keyStatus(key, status.GetKeyWarnings(key)),
 		}
 		keyRows := makeRowsFromColumns(columns)
 		allRows = append(allRows, keyRows...)
@@ -215,4 +215,22 @@ func warningsSliceContainsType(haystack []status.KeyWarning, needle status.Warni
 		}
 	}
 	return false
+}
+
+// keyStatus takes a key and slice of warnings and returns a slice of coloured
+// strings for printing in the table. If no warnings, the status is reported as
+// Good
+func keyStatus(key pgpkey.PgpKey, keyWarnings []status.KeyWarning) []string {
+	keyWarningLines := []string{}
+	if len(keyWarnings) > 0 {
+		for _, keyWarning := range keyWarnings {
+			keyWarningLines = append(
+				keyWarningLines,
+				keyWarning.String(),
+			)
+		}
+	} else {
+		keyWarningLines = append(keyWarningLines, colour.Success("Good ✔"))
+	}
+	return keyWarningLines
 }
