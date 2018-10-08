@@ -90,7 +90,7 @@ var (
 	// AcceptablePreferredHashAlgorithms defines what combinations of
 	// hash algorithms we consider OK (e.g. we don't warn about).
 	// Note that the order of algorithms matters, e.g. {SHA256, RIPEMD160}
-	// is different from {CAST5, RIPEMD160}
+	// is different from {RIPEMD160, SHA256}
 	AcceptablePreferredHashAlgorithms = [][]uint8{
 		[]uint8{hash.Sha512, hash.Sha384, hash.Sha256, hash.Sha224},
 		[]uint8{hash.Sha512, hash.Sha384, hash.Sha256, hash.Sha224, hash.Ripemd160},
