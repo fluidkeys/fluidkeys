@@ -1,7 +1,9 @@
 package policy
 
 import (
-	"github.com/fluidkeys/crypto/openpgp/packet"
+	"github.com/fluidkeys/fluidkeys/openpgpdefs/compression"
+	"github.com/fluidkeys/fluidkeys/openpgpdefs/hash"
+	"github.com/fluidkeys/fluidkeys/openpgpdefs/symmetric"
 	"time"
 )
 
@@ -22,10 +24,10 @@ var (
 	// https://help.riseup.net/en/security/message-security/openpgp/best-practices
 
 	AdvertiseCipherPreferences = []uint8{
-		uint8(packet.CipherAES256),
-		uint8(packet.CipherAES192),
-		uint8(packet.CipherAES128),
-		uint8(packet.CipherCAST5),
+		symmetric.AES256,
+		symmetric.AES192,
+		symmetric.AES128,
+		symmetric.CAST5,
 		// TripleDES is *implicitly* supported but don't advertise
 		// it explicity in the hope that future versions ofthe spec
 		// deprecate it.
@@ -41,9 +43,9 @@ var (
 	//
 	// https://tools.ietf.org/html/rfc4880#section-9.3
 	AdvertiseCompressionPreferences = []uint8{
-		uint8(packet.CompressionZLIB),
-		uint8(packet.CompressionZIP),
-		uint8(packet.CompressionNone),
+		compression.ZLIB,
+		compression.ZIP,
+		compression.Uncompressed,
 		// No Bzip as Go doesn't support it.
 	}
 
@@ -59,10 +61,10 @@ var (
 	//
 	// https://tools.ietf.org/html/rfc4880#section-9.4
 	AdvertiseHashPreferences = []uint8{
-		sha512,
-		sha384,
-		sha256,
-		sha224,
+		hash.Sha512,
+		hash.Sha384,
+		hash.Sha256,
+		hash.Sha224,
 	}
 )
 
@@ -119,12 +121,4 @@ const (
 	tenDays       time.Duration = time.Duration(time.Hour * 24 * 10)
 	thirtyDays    time.Duration = time.Duration(time.Hour * 24 * 30)
 	fortyFiveDays time.Duration = time.Duration(time.Hour * 24 * 45)
-)
-
-const (
-	// https://tools.ietf.org/html/rfc4880#section-9.4
-	sha256 uint8 = 8
-	sha384 uint8 = 9
-	sha512 uint8 = 10
-	sha224 uint8 = 11
 )
