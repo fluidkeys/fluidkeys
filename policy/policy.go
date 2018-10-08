@@ -1,6 +1,7 @@
 package policy
 
 import (
+	"crypto"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/compression"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/hash"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/symmetric"
@@ -31,6 +32,25 @@ var (
 		// TripleDES is *implicitly* supported but don't advertise
 		// it explicity in the hope that future versions ofthe spec
 		// deprecate it.
+	}
+
+	// AcceptablePreferredSymmetricAlgorithms defines what combinations of
+	// symmetric key ciphers we consider OK (e.g. we don't warn about).
+	// Note that the order of algorithms matters, e.g. {AES256, CAST5} is
+	// different from {CAST5, AES256}
+	AcceptablePreferredSymmetricAlgorithms = [][]uint8{
+		[]uint8{symmetric.AES256, symmetric.AES192, symmetric.AES128, symmetric.CAST5},
+		[]uint8{symmetric.AES256, symmetric.AES192, symmetric.AES128},
+	}
+
+	// SupportedSymmetricKeyAlgorithms defines what algorithms we can
+	// technically decrypt (but doesn't mean they're encouraged.)
+	SupportedSymmetricKeyAlgorithms = []uint8{
+		symmetric.AES128,
+		symmetric.AES192,
+		symmetric.AES256,
+		symmetric.CAST5,
+		symmetric.TripleDES,
 	}
 
 	// AdvertiseCompressionPreferences is added to the self signature to tell others
@@ -65,6 +85,37 @@ var (
 		hash.Sha384,
 		hash.Sha256,
 		hash.Sha224,
+	}
+
+	// AcceptablePreferredHashAlgorithms defines what combinations of
+	// hash algorithms we consider OK (e.g. we don't warn about).
+	// Note that the order of algorithms matters, e.g. {SHA256, RIPEMD160}
+	// is different from {CAST5, RIPEMD160}
+	AcceptablePreferredHashAlgorithms = [][]uint8{
+		[]uint8{hash.Sha512, hash.Sha384, hash.Sha256, hash.Sha224},
+		[]uint8{hash.Sha512, hash.Sha384, hash.Sha256, hash.Sha224, hash.Ripemd160},
+	}
+
+	// SupportedHashAlgorithms defines what hash algorithms we can
+	// technically support (but doesn't mean they're encouraged.)
+	SupportedHashAlgorithms = []uint8{
+		hash.Md5,
+		hash.Sha1,
+		hash.Ripemd160,
+		hash.Sha224,
+		hash.Sha256,
+		hash.Sha384,
+		hash.Sha512,
+	}
+
+	// AcceptableSignatureHashes defines the hash functions we consider
+	// acceptable for self signatures (on UIDs) and subkey binding
+	// signatures.
+	AcceptableSignatureHashes = []crypto.Hash{
+		crypto.SHA512,
+		crypto.SHA256,
+		crypto.SHA384,
+		crypto.SHA224,
 	}
 )
 
