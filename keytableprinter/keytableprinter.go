@@ -17,9 +17,9 @@ const gutter = "  "
 const divider = "---"
 
 var header = row{
-	colour.Info("Email address"),
-	colour.Info("Created"),
-	colour.Info("Status"),
+	colour.TableHeader("Email address"),
+	colour.TableHeader("Created"),
+	colour.TableHeader("Status"),
 }
 
 var placeholderDividerRow = row{divider, divider, divider}
@@ -194,14 +194,14 @@ func printTopLevelHint(keys []pgpkey.PgpKey) {
 	}
 	if warningsSliceContainsType(warnings, status.PrimaryKeyOverdueForRotation) ||
 		warningsSliceContainsType(warnings, status.SubkeyOverdueForRotation) {
-		fmt.Println(colour.Red(`[!] Your key(s) are overdue for rotation.
+		fmt.Println(colour.Danger(`[!] Your key(s) are overdue for rotation.
 They will expire unless you rotate them by running:
     fk key rotate`))
 		return
 	}
 	if warningsSliceContainsType(warnings, status.PrimaryKeyDueForRotation) ||
 		warningsSliceContainsType(warnings, status.SubkeyDueForRotation) {
-		fmt.Println(colour.Yellow(`[!] Rotate your key(s) by running: fk key rotate`))
+		fmt.Println(colour.Warning(`[!] Rotate your key(s) by running: fk key rotate`))
 		return
 	}
 }

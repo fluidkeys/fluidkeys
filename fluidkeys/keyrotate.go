@@ -50,7 +50,7 @@ func runKeyRotateDryRun(keys []pgpkey.PgpKey) exitCode {
 
 func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 	fmt.Printf("\nFluidkeys will perform the following actions.\n")
-	fmt.Printf("\n%s\n", colour.Warn("Take time to review these actions."))
+	fmt.Printf("\n%s\n", colour.Warning("Take time to review these actions."))
 
 	var anyKeysHadActions = false
 	var keysModifiedSuccessfully []*pgpkey.PgpKey
@@ -100,7 +100,7 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 	}
 
 	if !anyKeysHadActions {
-		fmt.Printf("\n%s\n", colour.Green("✔ All keys look good — nothing to do."))
+		fmt.Printf("\n%s\n", colour.Success("✔ All keys look good — nothing to do."))
 		return 0 // success! nothing to do
 	}
 
@@ -113,7 +113,7 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 		fmt.Printf("\n%s\n", colour.Error(message))
 		return 1
 	} else {
-		fmt.Printf("\n%s\n", colour.Green("Rotate complete"))
+		fmt.Printf("\n%s\n", colour.Success("Rotate complete"))
 		return 0
 	}
 }

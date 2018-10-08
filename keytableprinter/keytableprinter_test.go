@@ -73,14 +73,14 @@ func TestMakeStringsFromRows(t *testing.T) {
 
 	t.Run("with coloured strings", func(t *testing.T) {
 		rows := []row{
-			row{colour.LightBlue("Name"), colour.LightBlue("Age")},
+			row{colour.TableHeader("Name"), colour.TableHeader("Age")},
 			row{divider, divider},
 			row{"Gillian", "45"},
 		}
 
 		got := makeStringsFromRows(rows)
 		want := []string{
-			colour.LightBlue("Name") + "     " + colour.LightBlue("Age"),
+			colour.TableHeader("Name") + "     " + colour.TableHeader("Age"),
 			"───────  ───",
 			"Gillian  45 ",
 		}

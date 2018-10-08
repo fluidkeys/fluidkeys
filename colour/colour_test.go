@@ -19,7 +19,7 @@ func TestStripAllColourCodes(t *testing.T) {
 			"Hello",
 		},
 		{
-			LightBlue("Hello"),
+			green("Hello"),
 			"Hello",
 		},
 	}

@@ -6,140 +6,132 @@ import (
 
 func Custom(fgColor string, bgColor string, message string) string {
 
-	var FgColorCode string
-	var BgColorCode string
+	var fgColorCode string
+	var bgColorCode string
 
 	fgColor = strings.ToLower(fgColor)
 	bgColor = strings.ToLower(bgColor)
 
 	switch fgColor {
 	case "red":
-		FgColorCode = FgRed
+		fgColorCode = fgRed
 	case "black":
-		FgColorCode = FgBlack
+		fgColorCode = fgBlack
 	case "blue":
-		FgColorCode = FgBlue
+		fgColorCode = fgBlue
 	case "cyan":
-		FgColorCode = FgCyan
+		fgColorCode = fgCyan
 	case "magenta":
-		FgColorCode = FgMagenta
+		fgColorCode = fgMagenta
 	case "green":
-		FgColorCode = FgGreen
+		fgColorCode = fgGreen
 	case "white":
-		FgColorCode = FgWhite
+		fgColorCode = fgWhite
 	case "yellow":
-		FgColorCode = FgYellow
+		fgColorCode = fgYellow
 	default:
-		FgColorCode = FgWhite
+		fgColorCode = fgWhite
 	}
 
 	switch bgColor {
 	case "red":
-		BgColorCode = BgRed
+		bgColorCode = bgRed
 	case "black":
-		BgColorCode = BgBlack
+		bgColorCode = bgBlack
 	case "blue":
-		BgColorCode = BgBlue
+		bgColorCode = bgBlue
 	case "cyan":
-		BgColorCode = BgCyan
+		bgColorCode = bgCyan
 	case "magenta":
-		BgColorCode = BgMagenta
+		bgColorCode = bgMagenta
 	case "green":
-		BgColorCode = BgGreen
+		bgColorCode = bgGreen
 	case "white":
-		BgColorCode = BgWhite
+		bgColorCode = bgWhite
 	case "yellow":
-		BgColorCode = BgYellow
+		bgColorCode = bgYellow
 	default:
-		BgColorCode = BgBlack
+		bgColorCode = bgBlack
 	}
 
-	return BgColorCode + FgColorCode + message + Reset
-}
-
-func LightBlue(message string) string {
-	return Bright + FgBlue + message + Reset
-}
-
-func Underline(message string) string {
-	return Underscore + message + Reset
-}
-
-func Bold(message string) string {
-	return Bright + message + Reset
-}
-
-func Flash(message string) string {
-	return Blink + message + Reset
-}
-
-func Inverse(message string) string {
-	return Reverse + message + Reset
-}
-
-func Highlight(message string) string {
-	return BgYellow + FgRed + message + Reset
-}
-
-func Important(message string) string {
-	return BgRed + FgWhite + message + Reset
+	return bgColorCode + fgColorCode + message + reset
 }
 
 func Success(message string) string {
-	return FgGreen + message + Reset
+	return green(message)
 }
 
 func Info(message string) string {
-	return FgBlue + message + Reset
+	return bright + blue(message)
 }
 
-func Warn(message string) string {
-	return FgYellow + message + Reset
+func Warning(message string) string {
+	return yellow(message)
+}
+
+func Danger(message string) string {
+	return red(message)
 }
 
 func Error(message string) string {
-	return FgRed + message + Reset
+	return red(message)
 }
 
-func Green(message string) string {
-	return FgGreen + message + Reset
+func TableHeader(message string) string {
+	return bright + blue(message)
 }
 
-func Blue(message string) string {
-	return FgBlue + message + Reset
+func CommandLineCode(message string) string {
+	return bright + blue(message)
 }
 
-func Magenta(message string) string {
-	return FgMagenta + message + Reset
+func underline(message string) string {
+	return underscore + message + reset
 }
 
-func Red(message string) string {
-	return FgRed + message + Reset
+func bold(message string) string {
+	return bright + message + reset
 }
 
-func Black(message string) string {
-	return BgWhite + FgBlack + message + Reset
+func green(message string) string {
+	return fgGreen + message + reset
 }
 
-func Cyan(message string) string {
-	return FgCyan + message + Reset
+func blue(message string) string {
+	return fgBlue + message + reset
 }
 
-func White(message string) string {
-	return BgBlack + FgWhite + message + Reset
+func magenta(message string) string {
+	return fgMagenta + message + reset
 }
 
-func Yellow(message string) string {
-	return FgYellow + message + Reset
+func red(message string) string {
+	return fgRed + message + reset
 }
 
-func Grey(message string) string {
-	return Bright + FgBlack + message + Reset
+func black(message string) string {
+	return bgWhite + fgBlack + message + reset
+}
+
+func cyan(message string) string {
+	return fgCyan + message + reset
+}
+
+func white(message string) string {
+	return bgBlack + fgWhite + message + reset
+}
+
+func yellow(message string) string {
+	return fgYellow + message + reset
+}
+
+func grey(message string) string {
+	return bright + fgBlack + message + reset
 }
 
 // StripAllColourCodes strips all the ANSI colour codes from a string
 func StripAllColourCodes(message string) string {
-	for _, colourCode := range AllColourCodes {
+	for _, colourCode := range allColourCodes {
 		message = strings.Replace(message, colourCode, "", -1)
 	}
 
