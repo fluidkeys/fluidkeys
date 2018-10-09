@@ -298,7 +298,7 @@ func displayName(key *pgpkey.PgpKey) string {
 	if err != nil {
 		displayName = fmt.Sprintf("%s", key.Fingerprint())
 	}
-	return displayName
+	return colour.Info(displayName)
 }
 
 func getFluidkeysDirectory() (string, error) {
