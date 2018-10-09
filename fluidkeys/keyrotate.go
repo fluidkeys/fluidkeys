@@ -62,13 +62,22 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 		actions := status.MakeActionsFromWarnings(warnings, time.Now())
 		fmt.Printf(makeKeyWarningsAndActions(key, warnings, actions))
 
-		if len(actions) > 0 {
+		numberOfActions := len(actions)
+		if numberOfActions > 0 {
 			anyKeysHadActions = true
 		} else {
 			continue // nothing to do. next key.
 		}
 
-		if promptYesOrNo("     Run these actions? [Y/n] ", true) == false {
+		var prompt string
+		switch numberOfActions {
+		case 1:
+			prompt = "     Run this action? [Y/n] "
+		default:
+			prompt = fmt.Sprintf("     Run these %d actions? [Y/n] ", numberOfActions)
+		}
+
+		if promptYesOrNo(prompt, true) == false {
 			fmt.Printf(colour.Disabled(" ▸   OK, skipped.\n"))
 			continue // next key
 		}
