@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/humanize"
-	"github.com/fluidkeys/fluidkeys/keytableprinter"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/status"
 	"time"
@@ -16,8 +16,6 @@ func keyRotate(dryRun bool) exitCode {
 	if err != nil {
 		panic(err)
 	}
-
-	keytableprinter.Print(keys)
 
 	if dryRun {
 		return runKeyRotateDryRun(keys)
