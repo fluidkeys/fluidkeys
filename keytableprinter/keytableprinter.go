@@ -25,14 +25,17 @@ var header = row{
 var placeholderDividerRow = row{divider, divider, divider}
 
 func Print(keys []pgpkey.PgpKey) {
+	fmt.Print(makeTable(keys))
+	fmt.Print(makePrimaryInstruction(keys))
+}
+
+func makeTable(keys []pgpkey.PgpKey) (output string) {
 	rows := makeTableRows(keys)
 	rowStrings := makeStringsFromRows(rows)
 	for _, rowString := range rowStrings {
-		fmt.Println(rowString)
+		output += rowString + "\n"
 	}
-
-	fmt.Print(makePrimaryInstruction(keys))
-	fmt.Println()
+	return output + "\n"
 }
 
 func makeTableRows(keys []pgpkey.PgpKey) []row {
@@ -194,19 +197,21 @@ func makePrimaryInstruction(keys []pgpkey.PgpKey) string {
 	for _, key := range keys {
 		warnings = append(warnings, status.GetKeyWarnings(key)...)
 	}
+	var output string
 	if len(warnings) > 0 {
-		instuction := " >  " + colour.CommandLineCode("fk key rotate\n")
 		if warningsSliceContainsType(warnings, status.PrimaryKeyOverdueForRotation) ||
 			warningsSliceContainsType(warnings, status.SubkeyOverdueForRotation) {
-			return "\nPrevent your key(s) from becoming unusable by running:\n" + instuction
+			output = "Prevent your key(s) from becoming unusable by running:\n"
 		}
 		if warningsSliceContainsType(warnings, status.PrimaryKeyExpired) ||
 			warningsSliceContainsType(warnings, status.NoValidEncryptionSubkey) {
-			return "\nMake your key(s) usable again by running:\n" + instuction
+			output = "Make your key(s) usable again by running:\n"
+		} else { // These aren't urgent issues
+			output = "Fix these issues by running:\n"
 		}
-		return "\nFix these issues by running:\n" + instuction
+		output += " >  " + colour.CommandLineCode("fk key rotate\n\n")
 	}
-	return ""
+	return output
 }
 
 // contains returns true if the given needle (Warning) is present in the
