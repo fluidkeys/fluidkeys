@@ -247,17 +247,7 @@ func keyCreate() exitCode {
 	}
 	fmt.Printf("Full key backup saved to %s\n", fluidkeysDirectory)
 
-	publicKey, err := generateJob.pgpKey.Armor()
-	if err != nil {
-		panic(fmt.Sprint("Failed to output public key: ", err))
-	}
-	privateKey, err := generateJob.pgpKey.ArmorPrivate(password.AsString())
-	if err != nil {
-		panic(fmt.Sprint("Failed to output private key: ", err))
-	}
-
-	gpg.ImportArmoredKey(publicKey)
-	gpg.ImportArmoredKey(privateKey)
+	pushPrivateKeyBackToGpg(generateJob.pgpKey, password.AsString(), &gpg)
 	fmt.Println("The new key has been imported into GnuPG, inspect it with:")
 	fmt.Printf(" > gpg --list-keys '%s'\n", email)
 
