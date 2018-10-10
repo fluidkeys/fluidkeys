@@ -342,19 +342,7 @@ func (key *PgpKey) UpdateExpiryForAllUserIds(validUntil time.Time) error {
 // Takes a single optional argument `now` of type time.Time. If omitted,
 // time.Now() will be used.
 
-func (key *PgpKey) EncryptionSubkey(args ...time.Time) *openpgp.Subkey {
-	var now time.Time
-
-	if len(args) > 0 {
-		now = args[0]
-	} else {
-		now = time.Now()
-	}
-
-	return key.encryptionSubkey(now)
-}
-
-func (key *PgpKey) encryptionSubkey(now time.Time) *openpgp.Subkey {
+func (key *PgpKey) EncryptionSubkey(now time.Time) *openpgp.Subkey {
 	subkeys := key.validEncryptionSubkeys(now)
 
 	if len(subkeys) == 0 {
