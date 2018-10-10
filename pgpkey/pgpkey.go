@@ -410,19 +410,13 @@ func (key *PgpKey) UpdateExpiryForAllUserIds(validUntil time.Time) error {
 		return err
 	}
 
-	config := Config{}
-
 	keyLifetimeSeconds := uint32(validUntil.Sub(key.PrimaryKey.CreationTime).Seconds())
 
-	for _, id := range key.Identities {
-		id.SelfSignature.CreationTime = time.Now()
-		id.SelfSignature.KeyLifetimeSecs = &keyLifetimeSeconds
-		err := id.SelfSignature.SignUserId(id.UserId.Id, key.PrimaryKey, key.PrivateKey, &config.Config)
-		if err != nil {
-			return fmt.Errorf("failed to make self signature: %v", err)
-		}
+	for _, selfSig := range key.getIdentitySelfSignatures() {
+		selfSig.KeyLifetimeSecs = &keyLifetimeSeconds
 	}
-	return nil
+
+	return key.RefreshUserIdSelfSignatures(time.Now())
 }
 
 // EncryptionSubkey returns either nil or a single openpgp.Subkey which:
