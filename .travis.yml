@@ -5,7 +5,6 @@ go:
   - master
 
 before_install:
-  - sudo apt install tree
   - go get -u github.com/golang/dep/cmd/dep
 
 script: make test
