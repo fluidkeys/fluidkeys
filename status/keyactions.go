@@ -137,6 +137,9 @@ func (a SetPreferredCompressionAlgorithms) String() string {
 func (a SetPreferredCompressionAlgorithms) SortOrder() int {
 	return sortOrderPreferencesCompression
 }
+
+// RefreshUserIdSelfSignatures iterates over user ids and re-signs the self
+// signatures. This is useful if the old signature uses a weak hash.
 type RefreshUserIdSelfSignatures struct {
 	KeyAction
 }
@@ -151,6 +154,8 @@ func (a RefreshUserIdSelfSignatures) SortOrder() int {
 	return sortOrderRefreshSignature
 }
 
+// RefreshSubkeyBindingSignature re-signs the subkey binding signature for
+// the given SubkeyId. This is useful if the old signature uses a weak hash.
 type RefreshSubkeyBindingSignature struct {
 	KeyAction
 	SubkeyId uint64
