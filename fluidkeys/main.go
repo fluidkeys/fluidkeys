@@ -65,7 +65,8 @@ type generatePgpKeyResult struct {
 type exitCode = int
 
 func init() {
-	fluidkeysDirectory, err := getFluidkeysDirectory()
+	var err error
+	fluidkeysDirectory, err = getFluidkeysDirectory()
 	if err != nil {
 		fmt.Printf("Failed to get fluidkeys directory: %v\n", err)
 		os.Exit(1)
