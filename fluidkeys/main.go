@@ -213,8 +213,8 @@ func loadPgpKeys() ([]pgpkey.PgpKey, error) {
 func keyCreate() exitCode {
 
 	if !gpg.IsWorking() {
-		fmt.Printf(colour.Warning("\n" + GPGMissing + "\n"))
-		fmt.Printf(ContinueWithoutGPG)
+		fmt.Print(colour.Warning("\n" + GPGMissing + "\n"))
+		fmt.Print(ContinueWithoutGPG + "\n")
 		promptForInput("Press enter to continue. ")
 	}
 	email := promptForEmail()
@@ -232,8 +232,7 @@ func keyCreate() exitCode {
 		}
 	}
 
-	fmt.Println("Generating key for", email)
-	fmt.Println()
+	fmt.Print("Generating key for " + email + "\n\n")
 
 	generateJob := <-channel
 
@@ -394,7 +393,7 @@ func promptYesOrNo(message string, defaultResult bool) bool {
 }
 
 func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
-	fmt.Printf("\n" + prompt)
+	fmt.Print(prompt)
 	response, err := reader.ReadString('\n')
 	if err != nil {
 		panic(err)
@@ -408,7 +407,7 @@ func promptForInput(prompt string) string {
 }
 
 func promptForEmail() string {
-	fmt.Print(PromptEmail)
+	fmt.Print(PromptEmail + "\n")
 	return promptForInput("[email] : ")
 }
 
@@ -420,8 +419,8 @@ func generatePassword(numberOfWords int, separator string) DicewarePassword {
 }
 
 func displayPassword(message string, password DicewarePassword) {
-	fmt.Printf(message)
-	fmt.Printf("\n  %v\n", colour.Info(password.AsString()))
+	fmt.Print(message + "\n")
+	fmt.Print("  " + colour.Info(password.AsString()) + "\n\n")
 
 	promptForInput("Press enter when you've written it down. ")
 }
@@ -433,7 +432,7 @@ func userConfirmedRandomWord(password DicewarePassword) bool {
 	correctWord := password.words[randomIndex]
 	wordOrdinal := humanize.Ordinal(randomIndex + 1)
 
-	fmt.Printf("Enter the %s word from your password\n", wordOrdinal)
+	fmt.Printf("Enter the %s word from your password\n\n", wordOrdinal)
 	givenWord := promptForInput("[" + wordOrdinal + " word] : ")
 	return givenWord == correctWord
 }
