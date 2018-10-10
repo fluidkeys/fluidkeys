@@ -14,6 +14,9 @@ import (
 	"github.com/fluidkeys/crypto/openpgp/armor"
 	"github.com/fluidkeys/crypto/openpgp/packet"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/fluidkeys/fluidkeys/openpgpdefs/compression"
+	"github.com/fluidkeys/fluidkeys/openpgpdefs/hash"
+	"github.com/fluidkeys/fluidkeys/openpgpdefs/symmetric"
 	"github.com/fluidkeys/fluidkeys/policy"
 )
 
@@ -230,6 +233,94 @@ func (key *PgpKey) GetRevocationSignature(reason uint8, reasonText string) (*pac
 
 	sig.Sign(h, key.PrivateKey, &config)
 	return sig, nil
+}
+
+func (key *PgpKey) SetPreferredSymmetricAlgorithms(algos []symmetric.SymmetricAlgorithm, now time.Time) error {
+	err := key.ensureGotDecryptedPrivateKey()
+	if err != nil {
+		return err
+	}
+
+	for _, selfSig := range key.getIdentitySelfSignatures() {
+		selfSig.PreferredSymmetric = algos
+	}
+	return key.RefreshUserIdSelfSignatures(now)
+}
+
+func (key *PgpKey) SetPreferredHashAlgorithms(algos []hash.HashAlgorithm, now time.Time) error {
+	err := key.ensureGotDecryptedPrivateKey()
+	if err != nil {
+		return err
+	}
+
+	for _, selfSig := range key.getIdentitySelfSignatures() {
+		selfSig.PreferredHash = algos
+	}
+	return key.RefreshUserIdSelfSignatures(now)
+}
+
+func (key *PgpKey) SetPreferredCompressionAlgorithms(algos []compression.CompressionAlgorithm, now time.Time) error {
+	err := key.ensureGotDecryptedPrivateKey()
+	if err != nil {
+		return err
+	}
+
+	for _, selfSig := range key.getIdentitySelfSignatures() {
+		selfSig.PreferredCompression = algos
+	}
+	return key.RefreshUserIdSelfSignatures(now)
+}
+
+func (key *PgpKey) getIdentitySelfSignatures() []*packet.Signature {
+	var selfSigs []*packet.Signature
+	for name, _ := range key.Identities {
+		identity := key.Identities[name]
+		selfSigs = append(selfSigs, identity.SelfSignature)
+	}
+	return selfSigs
+}
+
+func (key *PgpKey) RefreshUserIdSelfSignatures(now time.Time) error {
+	err := key.ensureGotDecryptedPrivateKey()
+	if err != nil {
+		return err
+	}
+
+	hashFunc := policy.SignatureHashFunction
+
+	for name, id := range key.Identities {
+		id.SelfSignature.CreationTime = now
+		id.SelfSignature.Hash = hashFunc
+
+		config := packet.Config{DefaultHash: hashFunc}
+
+		err := id.SelfSignature.SignUserId(id.UserId.Id, key.PrimaryKey, key.PrivateKey, &config)
+		if err != nil {
+			return fmt.Errorf("error calling SignUserId(%s, ...): %v", name, err)
+		}
+	}
+	return nil
+}
+
+func (key *PgpKey) RefreshSubkeyBindingSignature(subkeyId uint64, now time.Time) error {
+	err := key.ensureGotDecryptedPrivateKey()
+	if err != nil {
+		return err
+	}
+
+	subkey, err := key.Subkey(subkeyId)
+	if err != nil {
+		return err
+	}
+
+	config := packet.Config{
+		DefaultHash: policy.SignatureHashFunction,
+	}
+
+	subkey.Sig.CreationTime = now
+	subkey.Sig.Hash = config.Hash()
+
+	return subkey.Sig.SignKey(subkey.PublicKey, key.PrivateKey, &config)
 }
 
 // Return a unique but friendlyish name for the key including the

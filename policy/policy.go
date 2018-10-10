@@ -117,6 +117,10 @@ var (
 		crypto.SHA384,
 		crypto.SHA224,
 	}
+
+	// SignatureHashFunction is the hash algorithm used for generating
+	// subkey binding signatures and self signatures.
+	SignatureHashFunction = crypto.SHA512
 )
 
 // NextExpiryTime returns the expiry time in UTC, according to the policy:

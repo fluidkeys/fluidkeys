@@ -2,6 +2,7 @@ package pgpkey
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/rsa"
 	"fmt"
 	"testing"
@@ -848,6 +849,183 @@ func TestUpdateSubkeyValidUntil(t *testing.T) {
 		if *expiry != now {
 			t.Fatalf("Expected expiry to be %v, got %v", now, *expiry)
 		}
+	})
+}
+
+func TestSetPreferredMethods(t *testing.T) {
+	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
+
+	key, err := LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey3, "test3")
+	if err != nil {
+		t.Fatalf("failed to load example key")
+	}
+	publicKeyOnly, err := LoadFromArmoredPublicKey(exampledata.ExamplePrivateKey3)
+	if err != nil {
+		t.Fatalf("failed to load example key")
+	}
+
+	var methods = []struct {
+		name                    string
+		setter                  func([]uint8, time.Time) error // the function we're testing
+		setterWithoutPrivateKey func([]uint8, time.Time) error
+		getter                  func(*openpgp.Identity) []uint8 // a lambda func to read back the preferences
+	}{
+		{
+			name:                    "SetPreferredSymmetricAlgorithms",
+			setter:                  key.SetPreferredSymmetricAlgorithms,
+			setterWithoutPrivateKey: publicKeyOnly.SetPreferredSymmetricAlgorithms,
+			getter:                  func(identity *openpgp.Identity) []uint8 { return identity.SelfSignature.PreferredSymmetric },
+		},
+		{
+			name:                    "SetPreferredHashAlgorithms",
+			setter:                  key.SetPreferredHashAlgorithms,
+			setterWithoutPrivateKey: publicKeyOnly.SetPreferredHashAlgorithms,
+			getter:                  func(identity *openpgp.Identity) []uint8 { return identity.SelfSignature.PreferredHash },
+		},
+		{
+			name:                    "SetPreferredCompressionAlgorithms",
+			setter:                  key.SetPreferredCompressionAlgorithms,
+			setterWithoutPrivateKey: publicKeyOnly.SetPreferredCompressionAlgorithms,
+			getter:                  func(identity *openpgp.Identity) []uint8 { return identity.SelfSignature.PreferredCompression },
+		},
+	}
+
+	for _, method := range methods {
+		t.Run(method.name, func(t *testing.T) {
+			newPreferredAlgos := []uint8{1, 2, 3}
+
+			err := method.setter(newPreferredAlgos, now)
+			if err != nil {
+				t.Fatalf("%s gave error: %v", method.name, err)
+			}
+
+			for name, identity := range key.Identities {
+				t.Run(fmt.Sprintf("%s: preferences read back correctly", name), func(t *testing.T) {
+					gotPreferredAlgos := method.getter(identity)
+
+					if fmt.Sprintf("%#v", gotPreferredAlgos) != fmt.Sprintf("%#v", newPreferredAlgos) {
+						t.Fatalf("Expected to read back prefs %v but got %v", newPreferredAlgos, gotPreferredAlgos)
+					}
+				})
+
+				t.Run(fmt.Sprintf("%s: self signature creation time is `now`", name), func(t *testing.T) {
+					if identity.SelfSignature.CreationTime != now {
+						t.Fatalf("Expected identity.SelfSignature.CreationTime to be now (%v), got %v", now, identity.SelfSignature.CreationTime)
+					}
+				})
+
+				t.Run(fmt.Sprintf("%s: self signature validates", name), func(t *testing.T) {
+					err := key.PrimaryKey.VerifyUserIdSignature(name, key.PrimaryKey, identity.SelfSignature)
+					if err != nil {
+						t.Fatalf("user id self signature is invalid: %v,", err)
+					}
+				})
+
+			}
+			t.Run(fmt.Sprintf("%s fails if private key isn't present", method.name), func(t *testing.T) {
+				err := method.setterWithoutPrivateKey(newPreferredAlgos, now)
+				if err == nil {
+					t.Fatalf("expected error if private key is missing")
+				}
+			})
+		})
+	}
+
+}
+
+func TestRefreshUserIdSelfSignatures(t *testing.T) {
+	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
+	key, err := LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey3, "test3")
+	if err != nil {
+		t.Fatalf("failed to load example key")
+	}
+
+	err = key.RefreshUserIdSelfSignatures(now)
+	if err != nil {
+		t.Fatalf("got error: %v", err)
+	}
+
+	for name, identity := range key.Identities {
+		t.Run(fmt.Sprintf("%s: self signature creation time is `now`", name), func(t *testing.T) {
+			if identity.SelfSignature.CreationTime != now {
+				t.Fatalf("Expected identity.SelfSignature.Creation to be now (%v), got %v", now, identity.SelfSignature.CreationTime)
+			}
+		})
+
+		t.Run(fmt.Sprintf("%s: self signature validates", name), func(t *testing.T) {
+			err := key.PrimaryKey.VerifyUserIdSignature(name, key.PrimaryKey, identity.SelfSignature)
+			if err != nil {
+				t.Fatalf("user id self signature is invalid: %v,", err)
+			}
+		})
+
+		t.Run(fmt.Sprintf("%s: self signature uses SHA512", name), func(t *testing.T) {
+			if identity.SelfSignature.Hash != crypto.SHA512 {
+				t.Fatalf("expected signature to use SHA512, got %v", identity.SelfSignature.Hash)
+			}
+		})
+	}
+
+	publicKeyOnly, err := LoadFromArmoredPublicKey(exampledata.ExamplePrivateKey3)
+	if err != nil {
+		t.Fatalf("failed to load example key")
+	}
+
+	t.Run("fails if private key isn't present", func(t *testing.T) {
+		err := publicKeyOnly.RefreshUserIdSelfSignatures(now)
+		assert.ErrorIsNotNil(t, err)
+	})
+}
+
+func TestRefreshSubkeyBindingSignature(t *testing.T) {
+	key, err := LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey3, "test3")
+	if err != nil {
+		t.Fatalf("failed to load example key")
+	}
+
+	publicKeyOnly, err := LoadFromArmoredPublicKey(exampledata.ExamplePrivateKey3)
+	if err != nil {
+		t.Fatalf("failed to load example key")
+	}
+
+	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
+
+	err = key.RefreshSubkeyBindingSignature(0x409F66EB6D1336A7, now)
+	if err != nil {
+		t.Fatalf("got error: %v", err)
+	}
+
+	for _, subkey := range key.Subkeys {
+		keyid := subkey.PublicKey.KeyId
+
+		t.Run(fmt.Sprintf("Subkey[0x%X]: self signature creation time is `now`", keyid), func(t *testing.T) {
+			if subkey.Sig.CreationTime != now {
+				t.Fatalf("Expected subkey.Sig.Creation to be now (%v), got %v", now, subkey.Sig.CreationTime)
+			}
+		})
+
+		t.Run(fmt.Sprintf("Subkey[0x%X]: self signature validates", keyid), func(t *testing.T) {
+			err := key.PrimaryKey.VerifyKeySignature(subkey.PublicKey, subkey.Sig)
+			if err != nil {
+				t.Fatalf("subkey binding signature is invalid: %v,", err)
+			}
+		})
+
+		t.Run(fmt.Sprintf("Subkey[0x%X]: hash function is SHA512", keyid), func(t *testing.T) {
+			if subkey.Sig.Hash != crypto.SHA512 {
+				t.Fatalf("subkey binding signature isn't SHA512: %v", subkey.Sig.Hash)
+			}
+		})
+	}
+
+	t.Run("fails with invalid Subkeyid", func(t *testing.T) {
+		err := publicKeyOnly.RefreshSubkeyBindingSignature(0x0000000000000000, now)
+		assert.ErrorIsNotNil(t, err)
+	})
+
+	t.Run("fails if private key isn't present", func(t *testing.T) {
+		err := publicKeyOnly.RefreshSubkeyBindingSignature(0x409F66EB6D1336A7, now)
+		assert.ErrorIsNotNil(t, err)
 	})
 }
 
