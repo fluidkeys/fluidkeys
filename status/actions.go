@@ -11,14 +11,7 @@ import (
 // MakeActionsFromWarnings returns a list of actions that can be performed on
 // the key to fix the warning.
 // Call `KeyAction.Enact(key)` to actually carry out the action.
-func MakeActionsFromWarnings(warnings []KeyWarning, args ...time.Time) []KeyAction {
-	var now time.Time
-	if len(args) > 0 {
-		now = args[0]
-	} else {
-		now = time.Now()
-	}
-
+func MakeActionsFromWarnings(warnings []KeyWarning, now time.Time) []KeyAction {
 	var actions []KeyAction
 	for _, warning := range warnings {
 		actions = append(actions, makeActionsFromSingleWarning(warning, now)...)
