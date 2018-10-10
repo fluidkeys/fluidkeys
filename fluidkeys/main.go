@@ -246,7 +246,8 @@ func keyCreate() exitCode {
 	if err != nil {
 		fmt.Printf("Failed to create backup ZIP file: %s", err)
 	}
-	fmt.Printf("Full key backup saved to %s\n", filename)
+	directory, _ := filepath.Split(filename)
+	fmt.Printf("Full key backup saved in %s\n" directory)
 
 	pushPrivateKeyBackToGpg(generateJob.pgpKey, password.AsString(), &gpg)
 	fmt.Println("The new key has been imported into GnuPG, inspect it with:")
