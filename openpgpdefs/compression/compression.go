@@ -23,7 +23,7 @@ func Name(compressionAlgorithm CompressionAlgorithm) string {
 		return "ZIP"
 
 	case ZLIB:
-		return "ZLIP"
+		return "ZLIB"
 
 	case BZIP2:
 		return "BZIP2"
