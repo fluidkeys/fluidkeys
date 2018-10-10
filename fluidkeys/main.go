@@ -241,42 +241,16 @@ func keyCreate() exitCode {
 		panic(fmt.Sprint("Failed to generate key: ", generateJob.err))
 	}
 
-	publicKey, err := generateJob.pgpKey.Armor()
-	if err != nil {
-		panic(fmt.Sprint("Failed to output public key: ", err))
-	}
-
-	privateKey, err := generateJob.pgpKey.ArmorPrivate(password.AsString())
-	if err != nil {
-		panic(fmt.Sprint("Failed to output private key: ", err))
-	}
-
-	revocationCert, err := generateJob.pgpKey.ArmorRevocationCertificate()
-	if err != nil {
-		panic(fmt.Sprint("Failed to output revocation cert: ", err))
-	}
-
-	keySlug, err := generateJob.pgpKey.Slug()
-	if err != nil {
-		panic(fmt.Sprintf("Failed to get slug for key to work out backup location"))
-	}
-
-	_, err = backupzip.OutputZipBackupFile(
-		fluidkeysDirectory,
-		keySlug,
-		publicKey,
-		privateKey,
-		revocationCert,
-	)
+	_, err := backupzip.OutputZipBackupFile(fluidkeysDirectory, generateJob.pgpKey, password.AsString())
 	if err != nil {
 		fmt.Printf("Failed to create backup ZIP file: %s", err)
 	}
 	fmt.Printf("Full key backup saved to %s\n", fluidkeysDirectory)
 
-	gpg.ImportArmoredKey(publicKey)
-	gpg.ImportArmoredKey(privateKey)
-	fmt.Println("The new key has been imported into GnuPG, inspect it with:")
-	fmt.Printf(" > gpg --list-keys '%s'\n", email)
+	// gpg.ImportArmoredKey(publicKey)
+	// gpg.ImportArmoredKey(privateKey)
+	// fmt.Println("The new key has been imported into GnuPG, inspect it with:")
+	// fmt.Printf(" > gpg --list-keys '%s'\n", email)
 
 	db.RecordFingerprintImportedIntoGnuPG(generateJob.pgpKey.Fingerprint())
 	return 0
