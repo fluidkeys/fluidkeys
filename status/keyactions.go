@@ -85,7 +85,7 @@ type SetPreferredSymmetricAlgorithms struct {
 }
 
 func (a SetPreferredSymmetricAlgorithms) Enact(key *pgpkey.PgpKey) error {
-	return fmt.Errorf("not implemented")
+	return key.SetPreferredSymmetricAlgorithms(a.NewPreferences, time.Now())
 }
 
 func (a SetPreferredSymmetricAlgorithms) String() string {
@@ -106,7 +106,7 @@ type SetPreferredHashAlgorithms struct {
 }
 
 func (a SetPreferredHashAlgorithms) Enact(key *pgpkey.PgpKey) error {
-	return fmt.Errorf("not implemented")
+	return key.SetPreferredHashAlgorithms(a.NewPreferences, time.Now())
 }
 
 func (a SetPreferredHashAlgorithms) String() string {
@@ -127,7 +127,7 @@ type SetPreferredCompressionAlgorithms struct {
 }
 
 func (a SetPreferredCompressionAlgorithms) Enact(key *pgpkey.PgpKey) error {
-	return fmt.Errorf("not implemented")
+	return key.SetPreferredCompressionAlgorithms(a.NewPreferences, time.Now())
 }
 
 func (a SetPreferredCompressionAlgorithms) String() string {
@@ -145,8 +145,9 @@ type RefreshUserIdSelfSignatures struct {
 }
 
 func (a RefreshUserIdSelfSignatures) Enact(key *pgpkey.PgpKey) error {
-	return fmt.Errorf("not implemented")
+	return key.RefreshUserIdSelfSignatures(time.Now())
 }
+
 func (a RefreshUserIdSelfSignatures) String() string {
 	return "Create new self signatures"
 }
@@ -162,7 +163,7 @@ type RefreshSubkeyBindingSignature struct {
 }
 
 func (a RefreshSubkeyBindingSignature) Enact(key *pgpkey.PgpKey) error {
-	return fmt.Errorf("not implemented")
+	return key.RefreshSubkeyBindingSignature(a.SubkeyId, time.Now())
 }
 func (a RefreshSubkeyBindingSignature) String() string {
 	return fmt.Sprintf("Create new signature for subkey 0x%X", a.SubkeyId)
