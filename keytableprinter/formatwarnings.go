@@ -21,7 +21,7 @@ func keyWarningLines(key pgpkey.PgpKey, keyWarnings []status.KeyWarning) []strin
 			)
 		}
 	} else {
-		keyWarningLines = append(keyWarningLines, colour.Green("Good ✔"))
+		keyWarningLines = append(keyWarningLines, colour.Success("Good ✔"))
 	}
 	return keyWarningLines
 }
@@ -42,41 +42,41 @@ func formatKeyWarningLines(warning status.KeyWarning, indent bool) []string {
 		return []string{}
 
 	case status.NoValidEncryptionSubkey:
-		return []string{colour.Yellow("Missing encryption subkey")}
+		return []string{colour.Warning("Missing encryption subkey")}
 
 	case status.PrimaryKeyDueForRotation:
-		return []string{colour.Yellow("Primary key due for rotation")}
+		return []string{colour.Warning("Primary key due for rotation")}
 
 	case status.SubkeyDueForRotation:
-		return []string{colour.Yellow(prefix + "Encryption subkey due for rotation")}
+		return []string{colour.Warning(prefix + "Encryption subkey due for rotation")}
 
 	case status.PrimaryKeyOverdueForRotation:
-		warnings := []string{colour.Red("Primary key overdue for rotation")}
-		return append(warnings, colour.Red(countdownUntilExpiry(warning.DaysUntilExpiry, 0)))
+		warnings := []string{colour.Danger("Primary key overdue for rotation")}
+		return append(warnings, colour.Danger(countdownUntilExpiry(warning.DaysUntilExpiry, 0)))
 
 	case status.SubkeyOverdueForRotation:
-		warnings := []string{colour.Red(prefix + "Encryption subkey overdue for rotation")}
+		warnings := []string{colour.Danger(prefix + "Encryption subkey overdue for rotation")}
 		return append(
 			warnings,
-			colour.Red(countdownUntilExpiry(
+			colour.Danger(countdownUntilExpiry(
 				warning.DaysUntilExpiry,
 				uint(len([]rune(prefix))),
 			)),
 		)
 
 	case status.PrimaryKeyNoExpiry:
-		return []string{colour.Red("Primary key never expires")}
+		return []string{colour.Danger("Primary key never expires")}
 
 	case status.SubkeyNoExpiry:
-		return []string{colour.Red(prefix + "Encryption subkey never expires")}
+		return []string{colour.Danger(prefix + "Encryption subkey never expires")}
 
 	case status.PrimaryKeyLongExpiry:
-		return []string{colour.Yellow("Primary key set to expire too far in the future")}
+		return []string{colour.Warning("Primary key set to expire too far in the future")}
 
 	case status.SubkeyLongExpiry:
 		// This message might be confusing if the primary key has a
 		// reasonable expiry, but the subkey has a long one.
-		return []string{colour.Yellow(prefix + "Encryption subkey set to expire too far in the future")}
+		return []string{colour.Warning(prefix + "Encryption subkey set to expire too far in the future")}
 
 	case status.PrimaryKeyExpired:
 		var message string
@@ -90,7 +90,7 @@ func formatKeyWarningLines(warning status.KeyWarning, indent bool) []string {
 		default:
 			message = "Expired"
 		}
-		return []string{colour.Grey(message)}
+		return []string{message}
 
 	default:
 		// TODO: log that we're falling back to a default description

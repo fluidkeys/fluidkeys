@@ -213,7 +213,7 @@ func loadPgpKeys() ([]pgpkey.PgpKey, error) {
 func keyCreate() exitCode {
 
 	if !gpg.IsWorking() {
-		fmt.Printf(colour.Warn("\n" + GPGMissing + "\n"))
+		fmt.Printf(colour.Warning("\n" + GPGMissing + "\n"))
 		fmt.Printf(ContinueWithoutGPG)
 		promptForInput("Press enter to continue. ")
 	}
@@ -338,7 +338,7 @@ func formatListedKeysForImportingFromGpg(secretKeyListings []gpgwrapper.SecretKe
 }
 
 func printSecretKeyListing(listNumber int, key gpgwrapper.SecretKeyListing) string {
-	formattedListNumber := colour.LightBlue(fmt.Sprintf("%-4s", (strconv.Itoa(listNumber) + ".")))
+	formattedListNumber := colour.Info(fmt.Sprintf("%-4s", (strconv.Itoa(listNumber) + ".")))
 	output := fmt.Sprintf("%s%s\n", formattedListNumber, key.Fingerprint)
 	output += fmt.Sprintf("    Created on %s\n", key.Created.Format("2 January 2006"))
 	for _, uid := range key.Uids {
@@ -360,7 +360,7 @@ func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing
 	} else {
 		invalidEntry := fmt.Sprintf("Please select between 1 and %v.\n", len(secretKeyListings))
 		for validInput := false; !validInput; {
-			rangePrompt := colour.LightBlue(fmt.Sprintf("[1-%v]", len(secretKeyListings)))
+			rangePrompt := colour.Info(fmt.Sprintf("[1-%v]", len(secretKeyListings)))
 			input := promptForInput(fmt.Sprintf(PromptWhichKeyFromGPG + " " + rangePrompt + " "))
 			if integerSelected, err := strconv.Atoi(input); err != nil {
 				fmt.Print(invalidEntry)
@@ -421,7 +421,7 @@ func generatePassword(numberOfWords int, separator string) DicewarePassword {
 
 func displayPassword(message string, password DicewarePassword) {
 	fmt.Printf(message)
-	fmt.Printf("\n  %v\n", colour.LightBlue(password.AsString()))
+	fmt.Printf("\n  %v\n", colour.Info(password.AsString()))
 
 	promptForInput("Press enter when you've written it down. ")
 }
