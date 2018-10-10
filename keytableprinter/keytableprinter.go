@@ -25,13 +25,17 @@ var header = row{
 var placeholderDividerRow = row{divider, divider, divider}
 
 func Print(keys []pgpkey.PgpKey) {
+	fmt.Print(makeTable(keys))
+	fmt.Print(makePrimaryInstruction(keys))
+}
+
+func makeTable(keys []pgpkey.PgpKey) (output string) {
 	rows := makeTableRows(keys)
 	rowStrings := makeStringsFromRows(rows)
 	for _, rowString := range rowStrings {
-		fmt.Println(rowString)
+		output += rowString + "\n"
 	}
-
-	printTopLevelHint(keys)
+	return output + "\n"
 }
 
 func makeTableRows(keys []pgpkey.PgpKey) []row {
@@ -54,7 +58,7 @@ func makeRowsForKeys(keys []pgpkey.PgpKey) []row {
 		columns := []column{
 			key.Emails(true),
 			[]string{key.PrimaryKey.CreationTime.Format("2 Jan 2006")},
-			keyWarningLines(key, status.GetKeyWarnings(key)),
+			keyStatus(key, status.GetKeyWarnings(key)),
 		}
 		keyRows := makeRowsFromColumns(columns)
 		allRows = append(allRows, keyRows...)
@@ -185,25 +189,29 @@ func max(x int, y int) int {
 	}
 }
 
-// printTopLevelHint prints single hint to suggest the user should run fk key
-// rotate if any of their keys are overdue for rotation or due for rotation.
-func printTopLevelHint(keys []pgpkey.PgpKey) {
+// makePrimaryInstruction prints single instruction to the user to run fk key
+// rotate if they have any issues with their keys. The severity of the message
+// depends on if they have any urgent issues.
+func makePrimaryInstruction(keys []pgpkey.PgpKey) string {
 	var warnings []status.KeyWarning
 	for _, key := range keys {
 		warnings = append(warnings, status.GetKeyWarnings(key)...)
 	}
-	if warningsSliceContainsType(warnings, status.PrimaryKeyOverdueForRotation) ||
-		warningsSliceContainsType(warnings, status.SubkeyOverdueForRotation) {
-		fmt.Println(colour.Danger(`[!] Your key(s) are overdue for rotation.
-They will expire unless you rotate them by running:
-    fk key rotate`))
-		return
+	var output string
+	if len(warnings) > 0 {
+		if warningsSliceContainsType(warnings, status.PrimaryKeyOverdueForRotation) ||
+			warningsSliceContainsType(warnings, status.SubkeyOverdueForRotation) {
+			output = "Prevent your key(s) from becoming unusable by running:\n"
+		}
+		if warningsSliceContainsType(warnings, status.PrimaryKeyExpired) ||
+			warningsSliceContainsType(warnings, status.NoValidEncryptionSubkey) {
+			output = "Make your key(s) usable again by running:\n"
+		} else { // These aren't urgent issues
+			output = "Fix these issues by running:\n"
+		}
+		output += " >  " + colour.CommandLineCode("fk key rotate\n\n")
 	}
-	if warningsSliceContainsType(warnings, status.PrimaryKeyDueForRotation) ||
-		warningsSliceContainsType(warnings, status.SubkeyDueForRotation) {
-		fmt.Println(colour.Warning(`[!] Rotate your key(s) by running: fk key rotate`))
-		return
-	}
+	return output
 }
 
 // contains returns true if the given needle (Warning) is present in the
@@ -215,4 +223,22 @@ func warningsSliceContainsType(haystack []status.KeyWarning, needle status.Warni
 		}
 	}
 	return false
+}
+
+// keyStatus takes a key and slice of warnings and returns a slice of coloured
+// strings for printing in the table. If no warnings, the status is reported as
+// Good
+func keyStatus(key pgpkey.PgpKey, keyWarnings []status.KeyWarning) []string {
+	keyWarningLines := []string{}
+	if len(keyWarnings) > 0 {
+		for _, keyWarning := range keyWarnings {
+			keyWarningLines = append(
+				keyWarningLines,
+				keyWarning.String(),
+			)
+		}
+	} else {
+		keyWarningLines = append(keyWarningLines, colour.Success("Good ✔"))
+	}
+	return keyWarningLines
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"github.com/fluidkeys/fluidkeys/status"
 )
 
 func TestMakeTableRows(t *testing.T) {
@@ -122,6 +123,19 @@ func TestMaxInSlice(t *testing.T) {
 	if got != want {
 		t.Fatalf("Expected '%v', got '%v'", want, got)
 	}
+}
+
+func TestKeyStatus(t *testing.T) {
+
+	pgpKey, err := pgpkey.LoadFromArmoredPublicKey(exampledata.ExamplePublicKey2)
+	if err != nil {
+		t.Fatalf("failed to load example PgpKey: %v", err)
+	}
+
+	want := []string{colour.Success("Good ✔")}
+	got := keyStatus(*pgpKey, []status.KeyWarning{})
+
+	assert.AssertEqualSliceOfStrings(t, want, got)
 }
 
 // AssertEqualCells compares two string slices and calls t.Fatalf

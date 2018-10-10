@@ -3,6 +3,8 @@ package status
 import (
 	"fmt"
 	"time"
+
+	"github.com/fluidkeys/fluidkeys/colour"
 )
 
 type WarningType int
@@ -55,67 +57,67 @@ func (w KeyWarning) String() string {
 		return ""
 
 	case PrimaryKeyDueForRotation:
-		return "PrimaryKeyDueForRotation"
+		return "Primary key due for rotation"
 
 	case PrimaryKeyOverdueForRotation:
-		return "PrimaryKeyOverdueForRotation"
+		return colour.Danger("Primary key overdue for rotation, " + countdownUntilExpiry(w.DaysUntilExpiry))
 
 	case PrimaryKeyExpired:
-		return "PrimaryKeyExpired"
+		return colour.Danger("Primary key " + relativeExpiryDate(w.DaysSinceExpiry))
 
 	case PrimaryKeyNoExpiry:
-		return "PrimaryKeyNoExpiry"
+		return "Primary key never expires"
 
 	case PrimaryKeyLongExpiry:
-		return "PrimaryKeyLongExpiry"
+		return "Primary key set to expire too far in the future"
 
 	case NoValidEncryptionSubkey:
-		return "NoValidEncryptionSubkey"
+		return colour.Danger("Missing encryption subkey")
 
 	case SubkeyDueForRotation:
-		return addSubkeyId("SubkeyDueForRotation", w.SubkeyId)
+		return "Encryption subkey due for rotation"
 
 	case SubkeyOverdueForRotation:
-		return addSubkeyId("SubkeyOverdueForRotation", w.SubkeyId)
+		return colour.Danger("Encryption subkey overdue for rotation, " + countdownUntilExpiry(w.DaysUntilExpiry))
 
 	case SubkeyNoExpiry:
-		return addSubkeyId("SubkeyNoExpiry", w.SubkeyId)
+		return "Encryption subkey never expires"
 
 	case SubkeyLongExpiry:
-		return addSubkeyId("SubkeyLongExpiry", w.SubkeyId)
+		return "Encryption subkey set to expire too far in the future"
 
 	case MissingPreferredSymmetricAlgorithms:
-		return "MissingPreferredSymmetricAlgorithms"
+		return "Primary key missing preferred symmetric algorithms"
 
 	case WeakPreferredSymmetricAlgorithms:
-		return fmt.Sprintf("WeakPreferredSymmetricAlgorithms (%s)", w.Detail)
+		return fmt.Sprintf("Primary key has weak preferred symmetric algorithms (%s)", w.Detail)
 
 	case UnsupportedPreferredSymmetricAlgorithm:
-		return fmt.Sprintf("UnsupportedPreferredSymmetricAlgorithm (%s)", w.Detail)
+		return fmt.Sprintf("Primary key has unsupported preferred symmetric algorithm (%s)", w.Detail)
 
 	case MissingPreferredHashAlgorithms:
-		return "MissingPreferredHashAlgorithms"
+		return "Primary key missing preferred hash algorithms"
 
 	case WeakPreferredHashAlgorithms:
-		return fmt.Sprintf("WeakPreferredHashAlgorithms (%s)", w.Detail)
+		return fmt.Sprintf("Primary key has weak preferred hash algorithms (%s)", w.Detail)
 
 	case UnsupportedPreferredHashAlgorithm:
-		return fmt.Sprintf("UnsupportedPreferredHashAlgorithm (%s)", w.Detail)
+		return fmt.Sprintf("Primary key has unsupported preferred hash algorithm (%s)", w.Detail)
 
 	case MissingPreferredCompressionAlgorithms:
-		return "MissingPreferredCompressionAlgorithms"
+		return "Primary key missing preferred compression algorithms"
 
 	case MissingUncompressedPreference:
-		return "MissingUncompressedPreference"
+		return "Primary key missing uncompressed preference"
 
 	case UnsupportedPreferredCompressionAlgorithm:
-		return fmt.Sprintf("UnsupportedPreferredCompressionAlgorithm (%s)", w.Detail)
+		return fmt.Sprintf("Primary key has unsupported preferred compression algorithm (%s)", w.Detail)
 
 	case WeakSelfSignatureHash:
-		return fmt.Sprintf("WeakSelfSignatureHash (%s)", w.Detail)
+		return fmt.Sprintf("Primary key has weak self signature hash (%s)", w.Detail)
 
 	case WeakSubkeyBindingSignatureHash:
-		return addSubkeyId("WeakSubkeyBindingSignatureHash", w.SubkeyId)
+		return "Weak encryption subkey binding signature hash"
 	}
 
 	return fmt.Sprintf("KeyWarning{Type=%d}", w.Type)
@@ -165,6 +167,26 @@ func ContainsWarningAboutPrimaryKey(warnings []KeyWarning) bool {
 	return false
 }
 
-func addSubkeyId(warningName string, subkeyId uint64) string {
-	return fmt.Sprintf("%s [0x%X]", warningName, subkeyId)
+func countdownUntilExpiry(days uint) string {
+	switch days {
+	case 0:
+		return "expires today!"
+	case 1:
+		return "expires tomorrow!"
+	default:
+		return fmt.Sprintf("expires in %d days", days)
+	}
+}
+
+func relativeExpiryDate(days uint) string {
+	switch days {
+	case 0:
+		return "expired today"
+	case 1:
+		return "expired yesterday"
+	case 2, 3, 4, 5, 6, 7, 8, 9:
+		return fmt.Sprintf("expired %d days ago", days)
+	default:
+		return "has expired"
+	}
 }
