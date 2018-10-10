@@ -107,43 +107,50 @@ func generateInsecure(email string, creationTime time.Time) (*PgpKey, error) {
 	return generateKeyOfSize(email, RsaSizeInsecureKeyBits, creationTime)
 }
 
-func generateKeyOfSize(email string, rsaBits int, creationTime time.Time) (*PgpKey, error) {
+func generateKeyOfSize(email string, rsaBits int, creationTime time.Time) (key *PgpKey, err error) {
 	config := Config{}
 	config.Config.RSABits = rsaBits
 	config.Config.Time = func() time.Time { return creationTime }
 	config.Config.DefaultHash = policy.SignatureHashFunction
 
 	name, comment := "", ""
+
 	entity, err := openpgp.NewEntity(name, comment, email, &config.Config)
-
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	keyLifetimeSeconds := uint32(policy.NextExpiryTime(creationTime).Sub(creationTime).Seconds())
+	key = &PgpKey{*entity}
 
-	for _, id := range entity.Identities {
-		id.SelfSignature.CreationTime = creationTime
-		id.SelfSignature.KeyLifetimeSecs = &keyLifetimeSeconds
+	err = key.SetPreferredSymmetricAlgorithms(policy.AdvertiseCipherPreferences, creationTime)
+	if err != nil {
+		return
+	}
 
-		setSelfSignaturePreferences(id.SelfSignature)
+	err = key.SetPreferredHashAlgorithms(policy.AdvertiseHashPreferences, creationTime)
+	if err != nil {
+		return
+	}
 
-		err := id.SelfSignature.SignUserId(id.UserId.Id, entity.PrimaryKey, entity.PrivateKey, &config.Config)
+	err = key.SetPreferredCompressionAlgorithms(policy.AdvertiseCompressionPreferences, creationTime)
+	if err != nil {
+		return
+	}
+
+	validUntil := policy.NextExpiryTime(creationTime)
+	err = key.UpdateExpiryForAllUserIds(validUntil, creationTime)
+	if err != nil {
+		return
+	}
+
+	for _, subkey := range key.Subkeys {
+		err = key.UpdateSubkeyValidUntil(subkey.PublicKey.KeyId, validUntil, creationTime)
 		if err != nil {
-			return nil, err
+			return
 		}
 	}
 
-	for _, subkey := range entity.Subkeys {
-		subkey.Sig.KeyLifetimeSecs = &keyLifetimeSeconds
-		err := subkey.Sig.SignKey(subkey.PublicKey, entity.PrivateKey, &config.Config)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	pgpKey := PgpKey{*entity}
-	return &pgpKey, nil
+	return
 }
 
 // Armor returns the public part of a key in armored format.
@@ -566,12 +573,6 @@ func isEncryptionSubkeyValid(subkey openpgp.Subkey, now time.Time) bool {
 
 	valid := !isRevoked && createdInThePast && subkey.Sig.FlagsValid && hasEncryptionFlag && inDate
 	return valid
-}
-
-func setSelfSignaturePreferences(selfSignature *packet.Signature) {
-	selfSignature.PreferredSymmetric = policy.AdvertiseCipherPreferences
-	selfSignature.PreferredHash = policy.AdvertiseHashPreferences
-	selfSignature.PreferredCompression = policy.AdvertiseCompressionPreferences
 }
 
 func slugify(textToSlugify string) (slugified string) {
