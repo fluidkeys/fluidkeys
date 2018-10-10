@@ -414,8 +414,8 @@ func (key *PgpKey) createNewEncryptionSubkey(validUntil time.Time, now time.Time
 	return nil
 }
 
-// RevokeSubkey prevents the given subkey from being usable.
-func (key *PgpKey) RevokeSubkey(subkeyId uint64) error {
+// ExpireSubkey prevents the given subkey from being usable.
+func (key *PgpKey) ExpireSubkey(subkeyId uint64) error {
 	return key.UpdateSubkeyValidUntil(subkeyId, time.Now())
 }
 

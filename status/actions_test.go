@@ -71,7 +71,7 @@ func TestMakeActionsForSingleWarning(t *testing.T) {
 			9999,
 			[]KeyAction{
 				CreateNewEncryptionSubkey{ValidUntil: nextExpiry},
-				RevokeSubkey{SubkeyId: 9999},
+				ExpireSubkey{SubkeyId: 9999},
 			},
 		},
 		{
@@ -79,7 +79,7 @@ func TestMakeActionsForSingleWarning(t *testing.T) {
 			9999,
 			[]KeyAction{
 				CreateNewEncryptionSubkey{ValidUntil: nextExpiry},
-				RevokeSubkey{SubkeyId: 9999},
+				ExpireSubkey{SubkeyId: 9999},
 			},
 		},
 		{
@@ -87,7 +87,7 @@ func TestMakeActionsForSingleWarning(t *testing.T) {
 			9999,
 			[]KeyAction{
 				CreateNewEncryptionSubkey{ValidUntil: nextExpiry},
-				RevokeSubkey{SubkeyId: 9999},
+				ExpireSubkey{SubkeyId: 9999},
 			},
 		},
 		{
@@ -95,7 +95,7 @@ func TestMakeActionsForSingleWarning(t *testing.T) {
 			9999,
 			[]KeyAction{
 				CreateNewEncryptionSubkey{ValidUntil: nextExpiry},
-				RevokeSubkey{SubkeyId: 9999},
+				ExpireSubkey{SubkeyId: 9999},
 			},
 		},
 	}
@@ -113,6 +113,7 @@ func TestMakeActionsForSingleWarning(t *testing.T) {
 		})
 	}
 }
+
 
 func assertActionsEqual(t *testing.T, expected []KeyAction, got []KeyAction) {
 	t.Helper()
