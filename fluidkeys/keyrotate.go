@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/humanize"
-	"github.com/fluidkeys/fluidkeys/keytableprinter"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/status"
-	"time"
 )
 
 func keyRotate(dryRun bool) exitCode {
@@ -17,8 +17,7 @@ func keyRotate(dryRun bool) exitCode {
 		panic(err)
 	}
 
-	keytableprinter.Print(keys)
-
+	fmt.Printf("\n")
 	if dryRun {
 		return runKeyRotateDryRun(keys)
 	} else {
@@ -27,16 +26,13 @@ func keyRotate(dryRun bool) exitCode {
 }
 
 func runKeyRotateDryRun(keys []pgpkey.PgpKey) exitCode {
-	fmt.Printf("\nFluidkeys will perform the following actions.\n")
-	fmt.Printf("\nYou'll be asked to confirm before making any changes.\n")
-
 	var keysWithActions []*pgpkey.PgpKey
 
 	for i := range keys {
 		key := &keys[i]
 		warnings := status.GetKeyWarnings(*key)
 		actions := status.MakeActionsFromWarnings(warnings, time.Now())
-		printKeyHeaderAndActions(key, actions)
+		fmt.Printf(makeKeyWarningsAndActions(key, warnings, actions))
 
 		if len(actions) > 0 {
 			keysWithActions = append(keysWithActions, key)
@@ -45,13 +41,15 @@ func runKeyRotateDryRun(keys []pgpkey.PgpKey) exitCode {
 
 	printImportBackIntoGnupg(keysWithActions)
 
-	fmt.Printf("\nTo start, run `fk key rotate`\n")
+	fmt.Print("To start run\n")
+	fmt.Print(" >   " + colour.CommandLineCode("fk key rotate") + "\n\n")
+	fmt.Print("You’ll be asked at each stage to confirm before making any changes.\n\n")
 	return 0
 }
 
 func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
-	fmt.Printf("\nFluidkeys will perform the following actions.\n")
-	fmt.Printf("\n%s\n", colour.Warning("Take time to review these actions."))
+	fmt.Print("Fluidkeys will perform the following actions.\n\n")
+	fmt.Print(colour.Warning("Take time to review these actions.") + "\n\n")
 
 	var anyKeysHadActions = false
 	var keysModifiedSuccessfully []*pgpkey.PgpKey
@@ -63,16 +61,25 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 		key := &keys[i] // get a pointer here, not in the `for` expression
 		warnings := status.GetKeyWarnings(*key)
 		actions := status.MakeActionsFromWarnings(warnings, time.Now())
-		printKeyHeaderAndActions(key, actions)
+		fmt.Printf(makeKeyWarningsAndActions(key, warnings, actions))
 
-		if len(actions) > 0 {
+		numberOfActions := len(actions)
+		if numberOfActions > 0 {
 			anyKeysHadActions = true
 		} else {
 			continue // nothing to do. next key.
 		}
 
-		if promptYesOrNo("    Run these actions? [Y/n] ", true) == false {
-			fmt.Printf("    OK, skipped.\n")
+		var prompt string
+		switch numberOfActions {
+		case 1:
+			prompt = "     Run this action? [Y/n] "
+		default:
+			prompt = fmt.Sprintf("     Run these %d actions? [Y/n] ", numberOfActions)
+		}
+
+		if promptYesOrNo(prompt, true) == false {
+			fmt.Print(colour.Disabled(" ▸   OK, skipped.\n\n"))
 			continue // next key
 		}
 
@@ -81,6 +88,7 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 		action := "Load private key from GnuPG" // TODO: factor into func
 		if err != nil {
 			printCheckboxFailure(action, err)
+			fmt.Printf("\n")
 			numErrorsEncountered += 1
 			continue
 		} else {
@@ -90,18 +98,18 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 		err = runActions(key, actions)
 		if err != nil {
 			numErrorsEncountered += 1
-			fmt.Printf("\n    Skipping remaining actions for %s\n", displayName(key))
+			fmt.Print("\n")
+			fmt.Print("     " + colour.Warning("Skipping remaining actions for") + " " + displayName(key) + "\n\n")
 			continue // Don't run any more actions
 		} else {
-			message := fmt.Sprintf("Successfully updated keys for %s", displayName(key))
-			fmt.Printf("\n    %s\n", colour.Info(message))
+			fmt.Printf(colour.Success(" ▸   Successfully updated keys for " + displayName(key) + "\n\n"))
 			keysModifiedSuccessfully = append(keysModifiedSuccessfully, key)
 			passwords[key.Fingerprint()] = password
 		}
 	}
 
 	if !anyKeysHadActions {
-		fmt.Printf("\n%s\n", colour.Success("✔ All keys look good — nothing to do."))
+		fmt.Print(colour.Success("✔ All keys look good — nothing to do.\n"))
 		return 0 // success! nothing to do
 	}
 
@@ -111,17 +119,15 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 
 	if numErrorsEncountered > 0 {
 		message := fmt.Sprintf("%s while running rotate.", humanize.Pluralize(numErrorsEncountered, "error", "errors"))
-		fmt.Printf("\n%s\n", colour.Error(message))
+		fmt.Print(colour.Error(message) + "\n")
 		return 1
 	} else {
-		fmt.Printf("\n%s\n", colour.Success("Rotate complete"))
+		fmt.Print(colour.Success("Rotate complete") + "\n")
 		return 0
 	}
 }
 
 func runActions(privateKey *pgpkey.PgpKey, actions []status.KeyAction) error {
-	// fmt.Printf("\nRotate %s:\n\n", colour.Info(displayName(privateKey)))
-
 	for _, action := range actions {
 		printCheckboxPending(action.String())
 
@@ -135,6 +141,7 @@ func runActions(privateKey *pgpkey.PgpKey, actions []status.KeyAction) error {
 			printCheckboxSuccess(action.String())
 		}
 	}
+	fmt.Print("\n")
 	return nil
 }
 
@@ -146,11 +153,11 @@ func runImportBackIntoGnupg(keys []*pgpkey.PgpKey, passwords map[fingerprint.Fin
 
 	printImportBackIntoGnupg(keys)
 
-	fmt.Printf("\nWhile fluidkeys is in alpha, it backs up GnuPG (~/.gnupg) each time.")
+	fmt.Print("While fluidkeys is in alpha, it backs up GnuPG (~/.gnupg) each time.\n")
 
 	action := "Backup GnuPG directory (~/.gnupg)"
 
-	if promptYesOrNo("\nAutomatically create backup now? [Y/n] ", true) == true {
+	if promptYesOrNo("Automatically create backup now? [Y/n] ", true) == true {
 		printCheckboxPending(action)
 		err := makeGnupgBackup()
 		if err != nil {
@@ -182,6 +189,7 @@ func runImportBackIntoGnupg(keys []*pgpkey.PgpKey, passwords map[fingerprint.Fin
 			printCheckboxSuccess(action)
 		}
 	}
+	fmt.Print("\n")
 	return
 }
 
@@ -193,50 +201,67 @@ func printImportBackIntoGnupg(keys []*pgpkey.PgpKey) {
 	if len(keys) == 0 {
 		return
 	}
-	fmt.Printf("\nImport updated keys back into GnuPG:\n\n")
-	fmt.Printf("    [ ] Backup GnuPG directory (~/.gnupg)\n")
+	fmt.Print("Import updated keys back into GnuPG:\n\n")
+	fmt.Print("     [ ] Backup GnuPG directory (~/.gnupg)\n")
 
 	for _, key := range keys {
-		fmt.Printf("    [ ] Import %s back into GnuPG\n", displayName(key))
+		fmt.Printf("     [ ] Import %s back into GnuPG\n", displayName(key))
 	}
+	fmt.Print("\n")
 }
 
 func printCheckboxPending(actionText string) {
-	fmt.Printf("    [.] %s\n", actionText)
+	fmt.Printf("     [.] %s\n", actionText)
 	moveCursorUpLines(1)
 }
 
 func printCheckboxSuccess(actionText string) {
-	fmt.Printf("    [%s] %s\n", colour.Success("✔"), actionText)
+	fmt.Printf("     [%s] %s\n", colour.Success("✔"), actionText)
 }
 
 func printCheckboxSkipped(actionText string) {
-	fmt.Printf("    [%s] %s\n", colour.Info("-"), actionText)
+	fmt.Printf("     [%s] %s\n", colour.Info("-"), actionText)
 }
 
 func printCheckboxFailure(actionText string, err error) {
-	fmt.Printf("\r    %s %s\n", colour.Error("[!]"), actionText)
-	fmt.Printf("\r        %s\n", colour.Error(fmt.Sprintf("%s", err)))
+	fmt.Printf("     %s %s\n", colour.Error("[!]"), actionText)
+	fmt.Printf("         %s\n", colour.Error(fmt.Sprintf("%s", err)))
 }
 
-// printKeyHeaderAndActions outputs a list of actions like this:
+// makeKeyWarningsAndActions outputs a header for each key as follows:
 //
-// Rotate foo@example.com:
+// 2 issues for foo@example.com:
 //
-//   [ ] Shorten the primary key expiry to 31 Oct 18
-//   [ ] Expire the encryption subkey now (ID: 0xC52C5BD9719C9F00)
-//   [ ] Create a new encryption subkey valid until 31 Oct 18
+// ▸   Encryption subkey overdue for rotation, expires in 5 days
+// ▸   Primary key set to expire too far in the future
+//
+//    [ ] Shorten the primary key expiry to 31 Oct 18
+//    [ ] Expire the encryption subkey now (ID: 0xC52C5BD9719C9F00)
+//    [ ] Create a new encryption subkey valid until 31 Oct 18
 
-func printKeyHeaderAndActions(key *pgpkey.PgpKey, actions []status.KeyAction) {
+func makeKeyWarningsAndActions(
+	key *pgpkey.PgpKey,
+	warnings []status.KeyWarning,
+	actions []status.KeyAction,
+) (header string) {
 	if len(actions) == 0 {
 		return
 	}
 
-	fmt.Printf("\nRotate %s:\n\n", colour.Info(displayName(key)))
+	header += humanize.Pluralize(len(warnings), "warning", "warnings") + " for " +
+		colour.Info(displayName(key)) + "\n\n"
+
+	for _, warning := range warnings {
+		header += fmt.Sprintf(" "+colour.Warning("▸")+"   %s\n", warning)
+	}
+	header += fmt.Sprintln()
 
 	for _, action := range actions {
-		fmt.Printf("    [ ] %s\n", action)
+		header += fmt.Sprintf("     [ ] %s\n", action)
 	}
+	header += "\n"
+
+	return
 }
 
 func moveCursorUpLines(numLines int) {

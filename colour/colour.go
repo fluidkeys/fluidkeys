@@ -85,6 +85,10 @@ func CommandLineCode(message string) string {
 	return bright + blue(message)
 }
 
+func Disabled(message string) string {
+	return grey(message)
+}
+
 func underline(message string) string {
 	return underscore + message + reset
 }
