@@ -585,19 +585,9 @@ func TestEncryptionSubkey(t *testing.T) {
 
 	})
 
-	t.Run("EncryptionSubkey() compiles with optional argument", func(t *testing.T) {
-		pgpKey.EncryptionSubkey(now)
-		// don't assert, just ensure we can compile like this
-	})
-
-	t.Run("EncryptionSubkey compiles with no argument", func(t *testing.T) {
-		pgpKey.EncryptionSubkey()
-		// don't assert, just ensure we can compile like this
-	})
-
-	t.Run("encryptionSubkey selects most recent subkey", func(t *testing.T) {
+	t.Run("EncryptionSubkey selects most recent subkey", func(t *testing.T) {
 		expectedKey := pgpKey.Subkeys[3]
-		gotKey := pgpKey.encryptionSubkey(now)
+		gotKey := pgpKey.EncryptionSubkey(now)
 
 		if gotKey == nil {
 			t.Fatalf("expected a subkey, got nil")
@@ -624,7 +614,7 @@ func TestEncryptionSubkey(t *testing.T) {
 		})
 
 		t.Run("EncryptionSubkey() returns nil", func(t *testing.T) {
-			gotKey := pgpKey.encryptionSubkey(now)
+			gotKey := pgpKey.EncryptionSubkey(now)
 
 			if gotKey != nil {
 				t.Fatalf("expected nil for no valid keys, got %v", gotKey)
@@ -729,7 +719,7 @@ func TestCreateNewEncryptionSubkey(t *testing.T) {
 		t.Fatalf("Error creating subkey: %v", err)
 	}
 
-	gotSubKey := pgpKey.encryptionSubkey(now)
+	gotSubKey := pgpKey.EncryptionSubkey(now)
 
 	t.Run("creates a valid subkey", func(t *testing.T) {
 		if gotSubKey == nil {
@@ -823,7 +813,7 @@ func TestUpdateSubkeyValidUntil(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	subkey := pgpKey.encryptionSubkey(now)
+	subkey := pgpKey.EncryptionSubkey(now)
 	assertSubkeyValidity(*subkey, true, now, t)
 
 	originalSubkeySignatureCreationTime := subkey.Sig.CreationTime
