@@ -1,6 +1,8 @@
 package status
 
 import (
+	"fmt"
+	"sort"
 	"time"
 
 	"github.com/fluidkeys/fluidkeys/policy"
@@ -9,14 +11,35 @@ import (
 // MakeActionsFromWarnings returns a list of actions that can be performed on
 // the key to fix the warning.
 // Call `KeyAction.Enact(key)` to actually carry out the action.
-func MakeActionsFromWarnings(warnings []KeyWarning) []KeyAction {
-	now := time.Now()
-
+func MakeActionsFromWarnings(warnings []KeyWarning, now time.Time) []KeyAction {
 	var actions []KeyAction
 	for _, warning := range warnings {
 		actions = append(actions, makeActionsFromSingleWarning(warning, now)...)
 	}
-	return actions
+	return deduplicateAndOrder(actions)
+}
+
+func deduplicateAndOrder(actions []KeyAction) []KeyAction {
+	actionsSeen := make(map[string]bool)
+	var deduped []KeyAction
+
+	for _, action := range actions {
+		actionAsString := getUniqueStringForAction(action)
+
+		if _, inMap := actionsSeen[actionAsString]; !inMap {
+			deduped = append(deduped, action)
+			actionsSeen[actionAsString] = true
+		}
+	}
+	sort.Sort(ByActionType(deduped))
+	return deduped
+}
+
+// getUniqueStringForAction returns a string that can be used to disambiguate
+// between two actions, for example:
+// "SetPreferredCompressionAlgorithms{NewPreferences: []uint8{0x01}}"
+func getUniqueStringForAction(action KeyAction) string {
+	return fmt.Sprintf("%#v", action)
 }
 
 func makeActionsFromSingleWarning(warning KeyWarning, now time.Time) []KeyAction {
@@ -38,6 +61,42 @@ func makeActionsFromSingleWarning(warning KeyWarning, now time.Time) []KeyAction
 	case NoValidEncryptionSubkey:
 		return []KeyAction{
 			CreateNewEncryptionSubkey{ValidUntil: nextExpiry},
+		}
+
+	case MissingPreferredSymmetricAlgorithms,
+		WeakPreferredSymmetricAlgorithms,
+		UnsupportedPreferredSymmetricAlgorithm:
+
+		return []KeyAction{
+			SetPreferredSymmetricAlgorithms{NewPreferences: policy.AdvertiseCipherPreferences},
+		}
+
+	case MissingPreferredHashAlgorithms,
+		WeakPreferredHashAlgorithms,
+		UnsupportedPreferredHashAlgorithm:
+
+		return []KeyAction{
+			SetPreferredHashAlgorithms{NewPreferences: policy.AdvertiseHashPreferences},
+		}
+
+	case MissingPreferredCompressionAlgorithms,
+		UnsupportedPreferredCompressionAlgorithm,
+		MissingUncompressedPreference:
+
+		return []KeyAction{
+			SetPreferredCompressionAlgorithms{NewPreferences: policy.AdvertiseCompressionPreferences},
+		}
+
+	case WeakSelfSignatureHash:
+		return []KeyAction{
+			RefreshUserIdSelfSignatures{},
+		}
+
+	case WeakSubkeyBindingSignatureHash:
+		return []KeyAction{
+			RefreshSubkeyBindingSignature{
+				SubkeyId: warning.SubkeyId,
+			},
 		}
 
 	default: // don't know how to remedy this KeyWarning

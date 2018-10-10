@@ -10,8 +10,9 @@ import (
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
 
-// ModifyPrimaryKeyExpiry means the self signature of the key will be refreshed
-// with a future expiry date
+// ModifyPrimaryKeyExpiry iterates over all user IDs. For each UID, it updates
+// the expiry date on the *self signature*.
+// It re-signs the self signature.
 type ModifyPrimaryKeyExpiry struct {
 	KeyAction
 
@@ -19,8 +20,6 @@ type ModifyPrimaryKeyExpiry struct {
 	PreviouslyValidUntil *time.Time
 }
 
-// ModifyPrimaryKeyExpiry creates a new self signature on each user ID with
-// ValidUntil
 func (a ModifyPrimaryKeyExpiry) Enact(key *pgpkey.PgpKey) error {
 	return key.UpdateExpiryForAllUserIds(a.ValidUntil)
 }
@@ -32,22 +31,28 @@ func (a ModifyPrimaryKeyExpiry) String() string {
 		return fmt.Sprintf("Extend the primary key expiry to %s", a.ValidUntil.Format("2 Jan 06"))
 	}
 }
+func (a ModifyPrimaryKeyExpiry) SortOrder() int {
+	return sortOrderPrimaryKey
+}
 
-// CreateNewEncryptionSubkey describes creating a new subkey with the given
-// ValidUntil expiry time.
+// CreateNewEncryptionSubkey creates a new subkey with the given
+// ValidUntil expiry time and a subkey binding signature.
 type CreateNewEncryptionSubkey struct {
 	KeyAction
 
 	ValidUntil time.Time
 }
 
-// Enact calls PgpKey.CreateNewEncryptionSubkey()
 func (a CreateNewEncryptionSubkey) Enact(key *pgpkey.PgpKey) error {
 	return key.CreateNewEncryptionSubkey(a.ValidUntil)
 }
 
 func (a CreateNewEncryptionSubkey) String() string {
 	return fmt.Sprintf("Create a new encryption subkey valid until %s", a.ValidUntil.Format("2 Jan 06"))
+}
+
+func (a CreateNewEncryptionSubkey) SortOrder() int {
+	return sortOrderCreateSubkey
 }
 
 // ExpireSubkey updates and re-signs the self signature on the given subkey to
@@ -65,6 +70,9 @@ func (a ExpireSubkey) Enact(key *pgpkey.PgpKey) error {
 }
 func (a ExpireSubkey) String() string {
 	return fmt.Sprintf("Expire the encryption subkey now (0x%X)", a.SubkeyId)
+}
+func (a ExpireSubkey) SortOrder() int {
+	return sortOrderModifySubkey
 }
 
 // SetPreferredSymmetricAlgorithms iterates over all user IDs, setting the preferred
@@ -84,6 +92,10 @@ func (a SetPreferredSymmetricAlgorithms) String() string {
 	return fmt.Sprintf("Set preferred encryption algorithms to %s", joinCipherNames(a.NewPreferences))
 }
 
+func (a SetPreferredSymmetricAlgorithms) SortOrder() int {
+	return sortOrderPreferencesSymmetric
+}
+
 // SetPreferredHashAlgorithms iterates over all user IDs, setting the preferred
 // hash algorithm preferences from NewPreferences
 // It re-signs the self signature on each user ID.
@@ -99,6 +111,10 @@ func (a SetPreferredHashAlgorithms) Enact(key *pgpkey.PgpKey) error {
 
 func (a SetPreferredHashAlgorithms) String() string {
 	return fmt.Sprintf("Set preferred hash algorithms to %s", joinHashNames(a.NewPreferences))
+}
+
+func (a SetPreferredHashAlgorithms) SortOrder() int {
+	return sortOrderPreferencesHash
 }
 
 // SetPreferredCompressionAlgorithms iterates over all user IDs, setting the preferred
@@ -118,6 +134,12 @@ func (a SetPreferredCompressionAlgorithms) String() string {
 	return fmt.Sprintf("Set preferred compression algorithms to %s", joinCompressionNames(a.NewPreferences))
 }
 
+func (a SetPreferredCompressionAlgorithms) SortOrder() int {
+	return sortOrderPreferencesCompression
+}
+
+// RefreshUserIdSelfSignatures iterates over user ids and re-signs the self
+// signatures. This is useful if the old signature uses a weak hash.
 type RefreshUserIdSelfSignatures struct {
 	KeyAction
 }
@@ -128,7 +150,12 @@ func (a RefreshUserIdSelfSignatures) Enact(key *pgpkey.PgpKey) error {
 func (a RefreshUserIdSelfSignatures) String() string {
 	return "Create new self signatures"
 }
+func (a RefreshUserIdSelfSignatures) SortOrder() int {
+	return sortOrderRefreshSignature
+}
 
+// RefreshSubkeyBindingSignature re-signs the subkey binding signature for
+// the given SubkeyId. This is useful if the old signature uses a weak hash.
 type RefreshSubkeyBindingSignature struct {
 	KeyAction
 	SubkeyId uint64
@@ -141,7 +168,22 @@ func (a RefreshSubkeyBindingSignature) String() string {
 	return fmt.Sprintf("Create new signature for subkey 0x%X", a.SubkeyId)
 }
 
+func (a RefreshSubkeyBindingSignature) SortOrder() int {
+	return sortOrderRefreshSignature
+}
+
+const (
+	sortOrderPrimaryKey = iota
+	sortOrderPreferencesSymmetric
+	sortOrderPreferencesHash
+	sortOrderPreferencesCompression
+	sortOrderCreateSubkey
+	sortOrderModifySubkey
+	sortOrderRefreshSignature
+)
+
 type KeyAction interface {
 	String() string
 	Enact(*pgpkey.PgpKey) error
+	SortOrder() int
 }

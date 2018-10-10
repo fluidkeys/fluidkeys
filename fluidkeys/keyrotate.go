@@ -8,6 +8,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/keytableprinter"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/status"
+	"time"
 )
 
 func keyRotate(dryRun bool) exitCode {
@@ -34,7 +35,7 @@ func runKeyRotateDryRun(keys []pgpkey.PgpKey) exitCode {
 	for i := range keys {
 		key := &keys[i]
 		warnings := status.GetKeyWarnings(*key)
-		actions := status.MakeActionsFromWarnings(warnings)
+		actions := status.MakeActionsFromWarnings(warnings, time.Now())
 		printKeyHeaderAndActions(key, actions)
 
 		if len(actions) > 0 {
@@ -61,7 +62,7 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 	for i := range keys {
 		key := &keys[i] // get a pointer here, not in the `for` expression
 		warnings := status.GetKeyWarnings(*key)
-		actions := status.MakeActionsFromWarnings(warnings)
+		actions := status.MakeActionsFromWarnings(warnings, time.Now())
 		printKeyHeaderAndActions(key, actions)
 
 		if len(actions) > 0 {
