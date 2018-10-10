@@ -47,20 +47,23 @@ func (a CreateNewEncryptionSubkey) String() string {
 	return fmt.Sprintf("Create a new encryption subkey valid until %s", a.ValidUntil.Format("2 Jan 06"))
 }
 
-// RevokeSubkey indicates that the given SubkeyId will be revoked
-type RevokeSubkey struct {
+// ExpireSubkey updates and re-signs the self signature on the given subkey to
+// now, in order that the subkey becomes effectively unusable (although it
+// could be updated again to bring the subkey back to life, unlike it it were
+// revoked)
+type ExpireSubkey struct {
 	KeyAction
 
 	SubkeyId uint64
 }
 
-// Enact calls PgpKey.RevokeSubkey, passing in SubkeyId
-func (a RevokeSubkey) Enact(key *pgpkey.PgpKey) error {
-	return key.RevokeSubkey(a.SubkeyId)
+func (a ExpireSubkey) Enact(key *pgpkey.PgpKey) error {
+	return key.ExpireSubkey(a.SubkeyId)
 }
-func (a RevokeSubkey) String() string {
+func (a ExpireSubkey) String() string {
 	return fmt.Sprintf("Expire the encryption subkey now (0x%X)", a.SubkeyId)
 }
+
 
 type KeyAction interface {
 	String() string
