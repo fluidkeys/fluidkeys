@@ -7,14 +7,41 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
 
 // Writes a ZIP file containing text files with ASCII-armored backups of the
-// given public and private key.
+// given public and private key. The private key is encrypted with the
+// password passed to this function
 //
 // Returns: the full filename of the ZIP file that was written
-func OutputZipBackupFile(fluidkeysDir, uniqueSlug string, armoredPublicKey string, armoredPrivateKey string, armoredRevocationCert string) (filename string, err error) {
-	filename = getZipFilename(fluidkeysDir, uniqueSlug)
+func OutputZipBackupFile(
+	fluidkeysDir string,
+	pgpKey *pgpkey.PgpKey,
+	password string,
+) (filename string, err error) {
+	publicKey, err := pgpKey.Armor()
+	if err != nil {
+		panic(fmt.Sprint("Failed to output public key: ", err))
+	}
+
+	privateKey, err := pgpKey.ArmorPrivate(password)
+	if err != nil {
+		panic(fmt.Sprint("Failed to output private key: ", err))
+	}
+
+	revocationCert, err := pgpKey.ArmorRevocationCertificate()
+	if err != nil {
+		panic(fmt.Sprint("Failed to output revocation cert: ", err))
+	}
+
+	keySlug, err := pgpKey.Slug()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to get slug for key to work out backup location"))
+	}
+
+	filename = getZipFilename(fluidkeysDir, keySlug)
 
 	backupZipFile, err := os.Create(filename)
 	if err != nil {
@@ -22,7 +49,7 @@ func OutputZipBackupFile(fluidkeysDir, uniqueSlug string, armoredPublicKey strin
 	}
 	defer backupZipFile.Close()
 
-	err = WriteZipData(backupZipFile, uniqueSlug, armoredPublicKey, armoredPrivateKey, armoredRevocationCert)
+	err = WriteZipData(backupZipFile, keySlug, publicKey, privateKey, revocationCert)
 	if err != nil {
 		return "", fmt.Errorf("WriteZipData failed: %v", err)
 	}

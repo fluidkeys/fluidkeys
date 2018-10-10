@@ -167,7 +167,7 @@ func (key *PgpKey) Armor() (string, error) {
 // https://github.com/worr/secstring and then re-implement this function.
 //
 // Adapted with thanks from https://github.com/alokmenghrajani/gpgeez/blob/master/gpgeez.go
-func (key *PgpKey) ArmorPrivate(password string) (string, error) {
+func (key *PgpKey) ArmorPrivate(passwordToEncryptWith string) (string, error) {
 	err := key.ensureGotDecryptedPrivateKey()
 	if err != nil {
 		return "", err
@@ -178,7 +178,7 @@ func (key *PgpKey) ArmorPrivate(password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	config := packet.Config{SerializePrivatePassword: password}
+	config := packet.Config{SerializePrivatePassword: passwordToEncryptWith}
 
 	err = key.SerializePrivate(armor, &config)
 	if err != nil {
