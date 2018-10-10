@@ -112,6 +112,7 @@ func generateKeyOfSize(email string, rsaBits int, creationTime time.Time) (*PgpK
 	config := Config{}
 	config.Config.RSABits = rsaBits
 	config.Config.Time = func() time.Time { return creationTime }
+	config.Config.DefaultHash = policy.SignatureHashFunction
 
 	name, comment := "", ""
 	entity, err := openpgp.NewEntity(name, comment, email, &config.Config)
@@ -213,20 +214,21 @@ func (key *PgpKey) ArmorRevocationCertificate() (string, error) {
 }
 
 func (key *PgpKey) GetRevocationSignature(reason uint8, reasonText string) (*packet.Signature, error) {
-	hashFunc := crypto.SHA512
-	config := packet.Config{}
+	config := packet.Config{
+		DefaultHash: crypto.SHA512,
+	}
 
 	sig := &packet.Signature{
 		CreationTime:         time.Now(),
 		SigType:              packet.SigTypeKeyRevocation,
 		PubKeyAlgo:           key.PrimaryKey.PubKeyAlgo,
-		Hash:                 hashFunc,
+		Hash:                 config.Hash(),
 		IssuerKeyId:          &key.PrimaryKey.KeyId,
 		RevocationReason:     &reason,
 		RevocationReasonText: reasonText,
 	}
 
-	h, err := packet.KeyRevocationHash(key.PrimaryKey, hashFunc)
+	h, err := packet.KeyRevocationHash(key.PrimaryKey, config.Hash())
 	if err != nil {
 		return nil, fmt.Errorf("failed to make key revocation hash: %v", err)
 	}
@@ -286,13 +288,13 @@ func (key *PgpKey) RefreshUserIdSelfSignatures(now time.Time) error {
 		return err
 	}
 
-	hashFunc := policy.SignatureHashFunction
+	config := packet.Config{
+		DefaultHash: policy.SignatureHashFunction,
+	}
 
 	for name, id := range key.Identities {
 		id.SelfSignature.CreationTime = now
-		id.SelfSignature.Hash = hashFunc
-
-		config := packet.Config{DefaultHash: hashFunc}
+		id.SelfSignature.Hash = config.Hash()
 
 		err := id.SelfSignature.SignUserId(id.UserId.Id, key.PrimaryKey, key.PrivateKey, &config)
 		if err != nil {
@@ -457,7 +459,8 @@ func (key *PgpKey) createNewEncryptionSubkey(validUntil time.Time, now time.Time
 	}
 
 	config := packet.Config{
-		RSABits: 2048,
+		RSABits:     2048,
+		DefaultHash: policy.SignatureHashFunction,
 	}
 
 	encryptingPriv, err := rsa.GenerateKey(config.Random(), config.RSABits)
@@ -518,13 +521,18 @@ func (key *PgpKey) UpdateSubkeyValidUntil(subkeyId uint64, validUntil time.Time)
 		return err
 	}
 
+	config := packet.Config{
+		DefaultHash: policy.SignatureHashFunction,
+	}
+
 	keyLifetimeSeconds := uint32(validUntil.Sub(subkey.PublicKey.CreationTime).Seconds())
 
 	subkey.Sig.SigType = packet.SigTypeSubkeyBinding
+	subkey.Sig.Hash = config.Hash()
 	subkey.Sig.CreationTime = validUntil // essential that this sig is the most recent
 	subkey.Sig.KeyLifetimeSecs = &keyLifetimeSeconds
 
-	err = subkey.Sig.SignKey(subkey.PublicKey, key.PrivateKey, nil)
+	err = subkey.Sig.SignKey(subkey.PublicKey, key.PrivateKey, &config)
 	if err != nil {
 		return err
 	}
