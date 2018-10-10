@@ -41,7 +41,7 @@ func OutputZipBackupFile(
 		panic(fmt.Sprintf("Failed to get slug for key to work out backup location"))
 	}
 
-	filename = getZipFilename(fluidkeysDir, keySlug)
+	filename = getZipFilename(fluidkeysDir, keySlug, time.Now())
 
 	backupZipFile, err := os.Create(filename)
 	if err != nil {
@@ -105,8 +105,9 @@ func makeFileWriter(zipWriter *zip.Writer, filename string) (io.Writer, error) {
 	return writer, nil
 }
 
-func getZipFilename(fluidkeysDir string, slug string) string {
-	backupDirectory := filepath.Join(fluidkeysDir, "backups")
+func getZipFilename(fluidkeysDir string, slug string, now time.Time) string {
+	dateSubdirectory := now.Format("2006-01-02")
+	backupDirectory := filepath.Join(fluidkeysDir, "backups", dateSubdirectory)
 	os.MkdirAll(backupDirectory, 0700)
 	return filepath.Join(backupDirectory, slug+".zip")
 }

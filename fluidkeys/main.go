@@ -242,11 +242,11 @@ func keyCreate() exitCode {
 		panic(fmt.Sprint("Failed to generate key: ", generateJob.err))
 	}
 
-	_, err := backupzip.OutputZipBackupFile(fluidkeysDirectory, generateJob.pgpKey, password.AsString())
+	filename, err := backupzip.OutputZipBackupFile(fluidkeysDirectory, generateJob.pgpKey, password.AsString())
 	if err != nil {
 		fmt.Printf("Failed to create backup ZIP file: %s", err)
 	}
-	fmt.Printf("Full key backup saved to %s\n", fluidkeysDirectory)
+	fmt.Printf("Full key backup saved to %s\n", filename)
 
 	pushPrivateKeyBackToGpg(generateJob.pgpKey, password.AsString(), &gpg)
 	fmt.Println("The new key has been imported into GnuPG, inspect it with:")

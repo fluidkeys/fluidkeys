@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/fluidkeys/fluidkeys/assert"
 )
@@ -55,8 +56,9 @@ func TestMakeBackupFile(t *testing.T) {
 	})
 
 	t.Run("getZipFilename returns correct location", func(t *testing.T) {
-		assertEqual(t, "/tmp/fluidkeys/backups/2018-01-15-test-example-com-FAKEFINGERPRINT.zip", getZipFilename("/tmp/fluidkeys", exampleSlug))
-		assertEqual(t, "/tmp/.foo/backups/2018-01-15-test-example-com-FAKEFINGERPRINT.zip", getZipFilename("/tmp/.foo", exampleSlug))
+		now := time.Date(2018, 6, 15, 16, 0, 0, 0, time.UTC)
+		assertEqual(t, "/tmp/fluidkeys/backups/2018-06-15/2018-01-15-test-example-com-FAKEFINGERPRINT.zip", getZipFilename("/tmp/fluidkeys", exampleSlug, now))
+		assertEqual(t, "/tmp/.foo/backups/2018-06-15/2018-01-15-test-example-com-FAKEFINGERPRINT.zip", getZipFilename("/tmp/.foo", exampleSlug, now))
 	})
 
 }
