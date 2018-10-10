@@ -252,6 +252,14 @@ func joinCipherNames(cipheres []uint8) string {
 	return strings.Join(cipherNames, " ")
 }
 
+func joinCompressionNames(compressiones []uint8) string {
+	var compressionNames []string
+	for _, compressionByte := range compressiones {
+		compressionNames = append(compressionNames, compression.Name(compressionByte))
+	}
+	return strings.Join(compressionNames, " ")
+}
+
 func getCompressionPreferenceWarnings(prefs []uint8) []KeyWarning {
 	if len(prefs) == 0 {
 		return []KeyWarning{
