@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fluidkeys/fluidkeys/openpgpdefs/compression"
 	"github.com/fluidkeys/fluidkeys/policy"
 )
 
@@ -240,26 +239,6 @@ func TestDeduplicateAndOrder(t *testing.T) {
 			ModifyPrimaryKeyExpiry{},
 			SetPreferredCompressionAlgorithms{},
 			ExpireSubkey{SubkeyId: 9999},
-		}
-		gotActions := deduplicateAndOrder(inputActions)
-		assertActionsEqual(t, expectedActions, gotActions)
-	})
-
-	t.Run("should take the most recent from conflicting actions", func(t *testing.T) {
-		t.Skip()
-		inputActions := []KeyAction{
-			SetPreferredCompressionAlgorithms{
-				NewPreferences: []compression.CompressionAlgorithm{compression.ZLIB},
-			},
-			SetPreferredCompressionAlgorithms{
-				NewPreferences: []compression.CompressionAlgorithm{compression.ZIP},
-			},
-		}
-
-		expectedActions := []KeyAction{
-			SetPreferredCompressionAlgorithms{
-				NewPreferences: []compression.CompressionAlgorithm{compression.ZIP},
-			},
 		}
 		gotActions := deduplicateAndOrder(inputActions)
 		assertActionsEqual(t, expectedActions, gotActions)
