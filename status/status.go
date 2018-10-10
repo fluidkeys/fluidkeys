@@ -241,7 +241,7 @@ func joinHashNames(hashes []uint8) string {
 	for _, hashByte := range hashes {
 		hashNames = append(hashNames, hash.Name(hashByte))
 	}
-	return strings.Join(hashNames, " ")
+	return strings.Join(hashNames, ", ")
 }
 
 func joinCipherNames(cipheres []uint8) string {
@@ -249,7 +249,7 @@ func joinCipherNames(cipheres []uint8) string {
 	for _, cipherByte := range cipheres {
 		cipherNames = append(cipherNames, symmetric.Name(cipherByte))
 	}
-	return strings.Join(cipherNames, " ")
+	return strings.Join(cipherNames, ", ")
 }
 
 func joinCompressionNames(compressiones []uint8) string {
@@ -257,7 +257,7 @@ func joinCompressionNames(compressiones []uint8) string {
 	for _, compressionByte := range compressiones {
 		compressionNames = append(compressionNames, compression.Name(compressionByte))
 	}
-	return strings.Join(compressionNames, " ")
+	return strings.Join(compressionNames, ", ")
 }
 
 func getCompressionPreferenceWarnings(prefs []uint8) []KeyWarning {
