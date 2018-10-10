@@ -223,9 +223,9 @@ func printCheckboxFailure(actionText string, err error) {
 	fmt.Printf("\r        %s\n", colour.Error(fmt.Sprintf("%s", err)))
 }
 
-// printKeyWarningsAndActions outputs a header for each key as follows:
+// makeKeyWarningsAndActions outputs a header for each key as follows:
 //
-// Two issues for foo@example.com:
+// 2 issues for foo@example.com:
 //
 // ▸   Encryption subkey overdue for rotation, expires in 5 days
 // ▸   Primary key set to expire too far in the future
