@@ -113,7 +113,7 @@ func TestRevocationCertificate(t *testing.T) {
 	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
 	revokeTime := now.Add(time.Duration(24) * time.Hour)
 
-	pgpKey, err := generateInsecure("revoke.test@example.com", now)
+	pgpKey, err := LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey3, "test3")
 	if err != nil {
 		t.Fatalf("failed to generate PGP key in tests")
 	}
@@ -158,7 +158,7 @@ func TestRevocationReasonSerializeParse(t *testing.T) {
 	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
 	revokeTime := now.Add(time.Duration(24) * time.Hour)
 
-	pgpKey, err := generateInsecure("revoke.test@example.com", now)
+	pgpKey, err := LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey3, "test3")
 	if err != nil {
 		t.Fatalf("failed to generate PGP key in tests")
 	}
@@ -662,7 +662,7 @@ type subkeyConfig struct {
 func makeKeyWithSubkeys(t *testing.T, subkeyConfigs []subkeyConfig, now time.Time) (*PgpKey, error) {
 	t.Helper()
 
-	pgpKey, err := generateInsecure("subkey.test@example.com", now)
+	pgpKey, err := LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey3, "test3")
 	if err != nil {
 		t.Fatalf("failed to generate PGP key in tests")
 	}
@@ -728,13 +728,19 @@ func makeKeyWithSubkeys(t *testing.T, subkeyConfigs []subkeyConfig, now time.Tim
 
 func TestCreateNewEncryptionSubkey(t *testing.T) {
 
-	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
-	thirtyDaysFromNow := now.Add(time.Duration(24*30) * time.Hour)
-
-	pgpKey, err := generateInsecure("subkey.test@example.com", now)
+	pgpKey, err := LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey3, "test3")
 	if err != nil {
 		t.Fatalf("failed to generate PGP key in tests")
 	}
+
+	now := pgpKey.PrimaryKey.CreationTime.Add(time.Duration(1) * time.Hour)
+	thirtyDaysFromNow := now.Add(time.Duration(24*30) * time.Hour)
+
+	err = pgpKey.SetPreferredHashAlgorithms(policy.AdvertiseHashPreferences, now) // workaround as example private key doesn't have hash prefs
+	if err != nil {
+		t.Fatalf("failed to refresh self sigs: %v", err)
+	}
+
 	pgpKey.Subkeys = []openpgp.Subkey{} // delete existing subkey
 
 	err = pgpKey.CreateNewEncryptionSubkey(thirtyDaysFromNow, now)
