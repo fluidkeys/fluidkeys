@@ -452,7 +452,7 @@ func (key *PgpKey) CreateNewEncryptionSubkey(validUntil time.Time, now time.Time
 	}
 
 	config := packet.Config{
-		RSABits:     2048,
+		RSABits:     policy.EncryptionSubkeyRsaKeyBits,
 		DefaultHash: policy.SignatureHashFunction,
 	}
 
