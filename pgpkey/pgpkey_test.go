@@ -810,8 +810,35 @@ func TestCreateNewEncryptionSubkey(t *testing.T) {
 
 }
 
+func TestExpireSubkey(t *testing.T) {
+	key, err := LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey3, "test3")
+	if err != nil {
+		t.Fatalf("failed to load key for testing: %v", err)
+	}
+
+	now := time.Date(2018, 10, 15, 0, 0, 0, 0, time.UTC)
+	subkey := key.EncryptionSubkey(now)
+	if subkey == nil {
+		t.Fatalf("failed to get valid subkey for testing")
+	}
+
+	originalSubkeySignatureCreationTime := subkey.Sig.CreationTime
+	assertSubkeyValidity(*subkey, true, now, t)
+
+	key.ExpireSubkey(subkey.PublicKey.KeyId)
+
+	t.Run("new subkey binding signature CreationTime is more recent that existing", func(t *testing.T) {
+		if !subkey.Sig.CreationTime.After(originalSubkeySignatureCreationTime) {
+			t.Fatalf("Expected %v to be after %v", subkey.Sig.CreationTime, originalSubkeySignatureCreationTime)
+		}
+	})
+
+	assertSubkeyValidity(*subkey, false, now, t)
+}
+
 func TestUpdateSubkeyValidUntil(t *testing.T) {
 	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
+	validUntil := now.Add(-time.Duration(10) * time.Second)
 	sixtyDaysAgo := now.Add(-time.Duration(24*60) * time.Hour)
 	thirtyDaysFromNow := now.Add(time.Duration(24*30) * time.Hour)
 
@@ -834,13 +861,24 @@ func TestUpdateSubkeyValidUntil(t *testing.T) {
 	subkey := pgpKey.EncryptionSubkey(now)
 	assertSubkeyValidity(*subkey, true, now, t)
 
-	originalSubkeySignatureCreationTime := subkey.Sig.CreationTime
-
-	err = pgpKey.UpdateSubkeyValidUntil(subkey.PublicKey.KeyId, now)
+	err = pgpKey.UpdateSubkeyValidUntil(subkey.PublicKey.KeyId, validUntil, now)
 	if err != nil {
 		t.Fatalf("Error updating subkey expiry to now: " + err.Error())
 	}
 
+	t.Run("new subkey binding signature CreationTime is `now`", func(t *testing.T) {
+		assert.Equal(t, now, subkey.Sig.CreationTime)
+	})
+
+	t.Run("subkey expiry time is now `validUntil`", func(t *testing.T) {
+		hasExpiry, expiry := SubkeyExpiry(*subkey)
+		if hasExpiry != true {
+			t.Fatalf("Expected an expiry, haven't got one")
+		}
+		if *expiry != validUntil {
+			t.Fatalf("Expected expiry to be %v, got %v", validUntil, *expiry)
+		}
+	})
 	t.Run("new subkey binding signature validates", func(t *testing.T) {
 		err := pgpKey.PrimaryKey.VerifyKeySignature(subkey.PublicKey, subkey.Sig)
 		if err != nil {
@@ -851,26 +889,6 @@ func TestUpdateSubkeyValidUntil(t *testing.T) {
 	t.Run("new subkey binding signature uses hash algorithm from our policy", func(t *testing.T) {
 		got := subkey.Sig.Hash
 		assert.Equal(t, got, policy.SignatureHashFunction)
-	})
-
-	t.Run("new subkey binding certificate is more recent that existing", func(t *testing.T) {
-		if !subkey.Sig.CreationTime.After(originalSubkeySignatureCreationTime) {
-			t.Fatalf("Expected %v to be after %v", subkey.Sig.CreationTime, originalSubkeySignatureCreationTime)
-		}
-	})
-
-	t.Run("subkey is no longer valid", func(t *testing.T) {
-		assertSubkeyValidity(*subkey, false, now, t)
-	})
-
-	t.Run("keys expiry time is brought forward to now", func(t *testing.T) {
-		hasExpiry, expiry := SubkeyExpiry(*subkey)
-		if hasExpiry != true {
-			t.Fatalf("Expected an expiry, haven't got one")
-		}
-		if *expiry != now {
-			t.Fatalf("Expected expiry to be %v, got %v", now, *expiry)
-		}
 	})
 }
 
@@ -1190,7 +1208,7 @@ func TestMethodsRequiringDecryptedPrivateKey(t *testing.T) {
 		err = pgpKey.createNewEncryptionSubkey(time.Now(), time.Now())
 		assert.ErrorIsNotNil(t, err)
 
-		err = pgpKey.UpdateSubkeyValidUntil(999, time.Now())
+		err = pgpKey.UpdateSubkeyValidUntil(999, time.Now(), time.Now())
 		assert.ErrorIsNotNil(t, err)
 	})
 
@@ -1209,7 +1227,7 @@ func TestMethodsRequiringDecryptedPrivateKey(t *testing.T) {
 		err = pgpKey.createNewEncryptionSubkey(time.Now(), time.Now())
 		assert.ErrorIsNotNil(t, err)
 
-		err = pgpKey.UpdateSubkeyValidUntil(999, time.Now())
+		err = pgpKey.UpdateSubkeyValidUntil(999, time.Now(), time.Now())
 		assert.ErrorIsNotNil(t, err)
 	})
 }

@@ -492,7 +492,9 @@ func (key *PgpKey) createNewEncryptionSubkey(validUntil time.Time, now time.Time
 
 // ExpireSubkey prevents the given subkey from being usable.
 func (key *PgpKey) ExpireSubkey(subkeyId uint64) error {
-	return key.UpdateSubkeyValidUntil(subkeyId, time.Now())
+	now := time.Now()
+	validUntil := now
+	return key.UpdateSubkeyValidUntil(subkeyId, validUntil, now)
 }
 
 func (key *PgpKey) Subkey(subkeyId uint64) (*openpgp.Subkey, error) {
@@ -505,7 +507,7 @@ func (key *PgpKey) Subkey(subkeyId uint64) (*openpgp.Subkey, error) {
 	return nil, fmt.Errorf("no subkey with subkeyID 0x%X", subkeyId)
 }
 
-func (key *PgpKey) UpdateSubkeyValidUntil(subkeyId uint64, validUntil time.Time) error {
+func (key *PgpKey) UpdateSubkeyValidUntil(subkeyId uint64, validUntil time.Time, now time.Time) error {
 	err := key.ensureGotDecryptedPrivateKey()
 	if err != nil {
 		return err
@@ -523,7 +525,7 @@ func (key *PgpKey) UpdateSubkeyValidUntil(subkeyId uint64, validUntil time.Time)
 
 	subkey.Sig.SigType = packet.SigTypeSubkeyBinding
 	subkey.Sig.Hash = config.Hash()
-	subkey.Sig.CreationTime = validUntil // essential that this sig is the most recent
+	subkey.Sig.CreationTime = now // essential that this sig is the most recent
 	subkey.Sig.KeyLifetimeSecs = &keyLifetimeSeconds
 
 	err = subkey.Sig.SignKey(subkey.PublicKey, key.PrivateKey, &config)
