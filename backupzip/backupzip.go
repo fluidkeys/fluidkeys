@@ -31,7 +31,7 @@ func OutputZipBackupFile(
 		panic(fmt.Sprint("Failed to output private key: ", err))
 	}
 
-	revocationCert, err := pgpKey.ArmorRevocationCertificate()
+	revocationCert, err := pgpKey.ArmorRevocationCertificate(time.Now())
 	if err != nil {
 		panic(fmt.Sprint("Failed to output revocation cert: ", err))
 	}

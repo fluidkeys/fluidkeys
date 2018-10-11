@@ -132,7 +132,7 @@ func runActions(privateKey *pgpkey.PgpKey, actions []status.KeyAction) error {
 		printCheckboxPending(action.String())
 
 		var err error
-		err = action.Enact(privateKey)
+		err = action.Enact(privateKey, time.Now())
 		if err != nil {
 			printCheckboxFailure(action.String(), err)
 			return err // don't run any more actions
