@@ -28,13 +28,6 @@ const (
 	RsaSizeInsecureKeyBits = 1024
 )
 
-// Config for generating keys.
-type Config struct {
-	packet.Config
-	// Expiry is the duration that the generated key will be valid for.
-	Expiry time.Duration
-}
-
 type PgpKey struct {
 	openpgp.Entity
 }
@@ -108,14 +101,16 @@ func generateInsecure(email string, creationTime time.Time) (*PgpKey, error) {
 }
 
 func generateKeyOfSize(email string, rsaBits int, creationTime time.Time) (key *PgpKey, err error) {
-	config := Config{}
-	config.Config.RSABits = rsaBits
-	config.Config.Time = func() time.Time { return creationTime }
-	config.Config.DefaultHash = policy.SignatureHashFunction
+	config := packet.Config{
+		RSABits:     policy.PrimaryKeyRsaKeyBits,
+		Time:        func() time.Time { return creationTime },
+		DefaultHash: policy.SignatureHashFunction,
+		Rand:        randomNumberGenerator,
+	}
 
 	name, comment := "", ""
 
-	entity, err := openpgp.NewEntity(name, comment, email, &config.Config)
+	entity, err := openpgp.NewEntity(name, comment, email, &config)
 	if err != nil {
 		return
 	}
