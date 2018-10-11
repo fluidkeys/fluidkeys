@@ -39,7 +39,7 @@ func runKeyRotateDryRun(keys []pgpkey.PgpKey) exitCode {
 		}
 	}
 
-	printImportBackIntoGnupg(keysWithActions)
+	printImportBackIntoGnupgAndBackup(keysWithActions)
 
 	fmt.Print("To start run\n")
 	fmt.Print(" >   " + colour.CommandLineCode("fk key rotate") + "\n\n")
@@ -151,7 +151,7 @@ func runImportBackIntoGnupg(keys []*pgpkey.PgpKey, passwords map[fingerprint.Fin
 		return
 	}
 
-	printImportBackIntoGnupg(keys)
+	printImportBackIntoGnupgAndBackup(keys)
 
 	fmt.Print("While fluidkeys is in alpha, it backs up GnuPG (~/.gnupg) each time.\n")
 
@@ -197,7 +197,7 @@ func makeGnupgBackup() error {
 	return fmt.Errorf("not implemented")
 }
 
-func printImportBackIntoGnupg(keys []*pgpkey.PgpKey) {
+func printImportBackIntoGnupgAndBackup(keys []*pgpkey.PgpKey) {
 	if len(keys) == 0 {
 		return
 	}
@@ -206,6 +206,7 @@ func printImportBackIntoGnupg(keys []*pgpkey.PgpKey) {
 
 	for _, key := range keys {
 		fmt.Printf("     [ ] Import %s back into GnuPG\n", displayName(key))
+		fmt.Printf("     [ ] Backup %s\n", displayName(key))
 	}
 	fmt.Print("\n")
 }
