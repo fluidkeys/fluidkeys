@@ -110,12 +110,15 @@ func TestFingerprintMethod(t *testing.T) {
 }
 
 func TestRevocationCertificate(t *testing.T) {
-	pgpKey, err := generateInsecure("revoke.test@example.com", time.Now())
+	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
+	revokeTime := now.Add(time.Duration(24) * time.Hour)
+
+	pgpKey, err := generateInsecure("revoke.test@example.com", now)
 	if err != nil {
 		t.Fatalf("failed to generate PGP key in tests")
 	}
 
-	revocation, err := pgpKey.GetRevocationSignature(0, "no reason")
+	revocation, err := pgpKey.GetRevocationSignature(0, "no reason", revokeTime)
 	if err != nil {
 		t.Fatalf("Failed to call PgpKey.SerializeRevocation(): %v", err)
 	}
@@ -127,6 +130,10 @@ func TestRevocationCertificate(t *testing.T) {
 		if expectedSignatureType != gotSignatureType {
 			t.Fatalf("expected signature type %v, got %v", expectedSignatureType, gotSignatureType)
 		}
+	})
+
+	t.Run("revocation signature CreationTime is `revokeTime`", func(t *testing.T) {
+		assert.Equal(t, revokeTime, revocation.CreationTime)
 	})
 
 	t.Run("revocation signature uses hash algorithm from our policy", func(t *testing.T) {
@@ -148,7 +155,10 @@ func TestRevocationReasonSerializeParse(t *testing.T) {
 	// Note: if this testing was in crypto/openpgp itself it could just
 	// test the unexported outSubpackets field.
 
-	pgpKey, err := generateInsecure("revoke.test@example.com", time.Now())
+	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
+	revokeTime := now.Add(time.Duration(24) * time.Hour)
+
+	pgpKey, err := generateInsecure("revoke.test@example.com", now)
 	if err != nil {
 		t.Fatalf("failed to generate PGP key in tests")
 	}
@@ -166,7 +176,7 @@ func TestRevocationReasonSerializeParse(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("revocation reason #%d (%s) is serialized and deserialized correctly", test.reason, test.reasonText), func(t *testing.T) {
-			revocation, err := pgpKey.GetRevocationSignature(test.reason, test.reasonText)
+			revocation, err := pgpKey.GetRevocationSignature(test.reason, test.reasonText, revokeTime)
 			if err != nil {
 				t.Fatalf("Failed to call PgpKey.SerializeRevocation(): %v", err)
 			}
@@ -200,7 +210,7 @@ func TestRevocationReasonSerializeParse(t *testing.T) {
 	}
 
 	t.Run("PgpKey.ArmorRevocationCertificate returns an ascii armored public key containing a revocation signature", func(t *testing.T) {
-		_, err := pgpKey.ArmorRevocationCertificate()
+		_, err := pgpKey.ArmorRevocationCertificate(revokeTime)
 		if err != nil {
 			t.Fatalf("error calling ArmorRevocationCertificate(): %v", err)
 		}
@@ -320,7 +330,7 @@ func TestGenerate(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("UserID[%s].SelfSignature.Hash matches policy", name), func(t *testing.T) {
-			assert.Equal(t,	policy.SignatureHashFunction, identity.SelfSignature.Hash)
+			assert.Equal(t, policy.SignatureHashFunction, identity.SelfSignature.Hash)
 		})
 	}
 
@@ -727,7 +737,7 @@ func TestCreateNewEncryptionSubkey(t *testing.T) {
 	}
 	pgpKey.Subkeys = []openpgp.Subkey{} // delete existing subkey
 
-	err = pgpKey.createNewEncryptionSubkey(thirtyDaysFromNow, now)
+	err = pgpKey.CreateNewEncryptionSubkey(thirtyDaysFromNow, now)
 	if err != nil {
 		t.Fatalf("Error creating subkey: %v", err)
 	}
@@ -825,7 +835,7 @@ func TestExpireSubkey(t *testing.T) {
 	originalSubkeySignatureCreationTime := subkey.Sig.CreationTime
 	assertSubkeyValidity(*subkey, true, now, t)
 
-	key.ExpireSubkey(subkey.PublicKey.KeyId)
+	key.ExpireSubkey(subkey.PublicKey.KeyId, now)
 
 	t.Run("new subkey binding signature CreationTime is more recent that existing", func(t *testing.T) {
 		if !subkey.Sig.CreationTime.After(originalSubkeySignatureCreationTime) {
@@ -1142,8 +1152,6 @@ func assertSubkeyValidity(subkey openpgp.Subkey, expectedIsValid bool, now time.
 }
 
 func TestUpdateExpiryForAllUserIds(t *testing.T) {
-	tenDaysFromNow := time.Now().Add(time.Duration(24*10) * time.Hour)
-	expiryTime := tenDaysFromNow
 
 	pgpKey, err := LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey3, "test3")
 	if err != nil {
@@ -1152,9 +1160,12 @@ func TestUpdateExpiryForAllUserIds(t *testing.T) {
 
 	originalSelfSignatureCreationTime := pgpKey.Identities["<test3@example.com>"].SelfSignature.CreationTime
 
-	error := pgpKey.UpdateExpiryForAllUserIds(expiryTime)
-	if error != nil {
-		t.Fatalf("Error updating expiry for user ids: %v\n", error)
+	now := originalSelfSignatureCreationTime.Add(time.Duration(24) * time.Hour)
+	newValidUntil := now.Add(time.Duration(24) * time.Hour)
+
+	err = pgpKey.UpdateExpiryForAllUserIds(newValidUntil, now)
+	if err != nil {
+		t.Fatalf("Error updating expiry for user ids: %v\n", err)
 	}
 
 	newSelfSignature := pgpKey.Identities["<test3@example.com>"].SelfSignature
@@ -1170,6 +1181,10 @@ func TestUpdateExpiryForAllUserIds(t *testing.T) {
 		}
 	})
 
+	t.Run("new self signature creation time is `now`", func(t *testing.T) {
+		assert.Equal(t, now, newSelfSignature.CreationTime)
+	})
+
 	t.Run("new self signature creation time is more recent that existing", func(t *testing.T) {
 		if !newSelfSignature.CreationTime.After(originalSelfSignatureCreationTime) {
 			t.Fatalf("Expected %v to be after %v", newSelfSignature.CreationTime, originalSelfSignatureCreationTime)
@@ -1181,7 +1196,7 @@ func TestUpdateExpiryForAllUserIds(t *testing.T) {
 	})
 
 	t.Run("sets all identities to expire at correct time", func(t *testing.T) {
-		expectedKeyLifetimeSeconds := uint32(expiryTime.Sub(pgpKey.PrimaryKey.CreationTime).Seconds())
+		expectedKeyLifetimeSeconds := uint32(newValidUntil.Sub(pgpKey.PrimaryKey.CreationTime).Seconds())
 
 		for _, uid := range pgpKey.Identities {
 			got := uid.SelfSignature.KeyLifetimeSecs
@@ -1202,10 +1217,10 @@ func TestMethodsRequiringDecryptedPrivateKey(t *testing.T) {
 		_, err = pgpKey.ArmorPrivate("password")
 		assert.ErrorIsNotNil(t, err)
 
-		err = pgpKey.UpdateExpiryForAllUserIds(time.Now())
+		err = pgpKey.UpdateExpiryForAllUserIds(time.Now(), time.Now())
 		assert.ErrorIsNotNil(t, err)
 
-		err = pgpKey.createNewEncryptionSubkey(time.Now(), time.Now())
+		err = pgpKey.CreateNewEncryptionSubkey(time.Now(), time.Now())
 		assert.ErrorIsNotNil(t, err)
 
 		err = pgpKey.UpdateSubkeyValidUntil(999, time.Now(), time.Now())
@@ -1221,10 +1236,10 @@ func TestMethodsRequiringDecryptedPrivateKey(t *testing.T) {
 		_, err = pgpKey.ArmorPrivate("password")
 		assert.ErrorIsNotNil(t, err)
 
-		err = pgpKey.UpdateExpiryForAllUserIds(time.Now())
+		err = pgpKey.UpdateExpiryForAllUserIds(time.Now(), time.Now())
 		assert.ErrorIsNotNil(t, err)
 
-		err = pgpKey.createNewEncryptionSubkey(time.Now(), time.Now())
+		err = pgpKey.CreateNewEncryptionSubkey(time.Now(), time.Now())
 		assert.ErrorIsNotNil(t, err)
 
 		err = pgpKey.UpdateSubkeyValidUntil(999, time.Now(), time.Now())

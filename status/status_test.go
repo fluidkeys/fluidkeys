@@ -122,7 +122,7 @@ func TestGetEncryptionSubkeyWarnings(t *testing.T) {
 			t.Fatalf("failed to update expiry on test subkey")
 		}
 
-		err = pgpKey.UpdateExpiryForAllUserIds(veryFarAway)
+		err = pgpKey.UpdateExpiryForAllUserIds(veryFarAway, now)
 		if err != nil {
 			t.Fatalf("failed to update expiry on test key")
 		}

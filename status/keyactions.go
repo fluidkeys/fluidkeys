@@ -20,8 +20,8 @@ type ModifyPrimaryKeyExpiry struct {
 	PreviouslyValidUntil *time.Time
 }
 
-func (a ModifyPrimaryKeyExpiry) Enact(key *pgpkey.PgpKey) error {
-	return key.UpdateExpiryForAllUserIds(a.ValidUntil)
+func (a ModifyPrimaryKeyExpiry) Enact(key *pgpkey.PgpKey, now time.Time) error {
+	return key.UpdateExpiryForAllUserIds(a.ValidUntil, now)
 }
 
 func (a ModifyPrimaryKeyExpiry) String() string {
@@ -43,8 +43,8 @@ type CreateNewEncryptionSubkey struct {
 	ValidUntil time.Time
 }
 
-func (a CreateNewEncryptionSubkey) Enact(key *pgpkey.PgpKey) error {
-	return key.CreateNewEncryptionSubkey(a.ValidUntil)
+func (a CreateNewEncryptionSubkey) Enact(key *pgpkey.PgpKey, now time.Time) error {
+	return key.CreateNewEncryptionSubkey(a.ValidUntil, now)
 }
 
 func (a CreateNewEncryptionSubkey) String() string {
@@ -65,8 +65,8 @@ type ExpireSubkey struct {
 	SubkeyId uint64
 }
 
-func (a ExpireSubkey) Enact(key *pgpkey.PgpKey) error {
-	return key.ExpireSubkey(a.SubkeyId)
+func (a ExpireSubkey) Enact(key *pgpkey.PgpKey, now time.Time) error {
+	return key.ExpireSubkey(a.SubkeyId, now)
 }
 func (a ExpireSubkey) String() string {
 	return fmt.Sprintf("Expire the encryption subkey now (0x%X)", a.SubkeyId)
@@ -84,8 +84,8 @@ type SetPreferredSymmetricAlgorithms struct {
 	NewPreferences []symmetric.SymmetricAlgorithm
 }
 
-func (a SetPreferredSymmetricAlgorithms) Enact(key *pgpkey.PgpKey) error {
-	return key.SetPreferredSymmetricAlgorithms(a.NewPreferences, time.Now())
+func (a SetPreferredSymmetricAlgorithms) Enact(key *pgpkey.PgpKey, now time.Time) error {
+	return key.SetPreferredSymmetricAlgorithms(a.NewPreferences, now)
 }
 
 func (a SetPreferredSymmetricAlgorithms) String() string {
@@ -105,8 +105,8 @@ type SetPreferredHashAlgorithms struct {
 	NewPreferences []hash.HashAlgorithm
 }
 
-func (a SetPreferredHashAlgorithms) Enact(key *pgpkey.PgpKey) error {
-	return key.SetPreferredHashAlgorithms(a.NewPreferences, time.Now())
+func (a SetPreferredHashAlgorithms) Enact(key *pgpkey.PgpKey, now time.Time) error {
+	return key.SetPreferredHashAlgorithms(a.NewPreferences, now)
 }
 
 func (a SetPreferredHashAlgorithms) String() string {
@@ -126,8 +126,8 @@ type SetPreferredCompressionAlgorithms struct {
 	NewPreferences []compression.CompressionAlgorithm
 }
 
-func (a SetPreferredCompressionAlgorithms) Enact(key *pgpkey.PgpKey) error {
-	return key.SetPreferredCompressionAlgorithms(a.NewPreferences, time.Now())
+func (a SetPreferredCompressionAlgorithms) Enact(key *pgpkey.PgpKey, now time.Time) error {
+	return key.SetPreferredCompressionAlgorithms(a.NewPreferences, now)
 }
 
 func (a SetPreferredCompressionAlgorithms) String() string {
@@ -144,8 +144,8 @@ type RefreshUserIdSelfSignatures struct {
 	KeyAction
 }
 
-func (a RefreshUserIdSelfSignatures) Enact(key *pgpkey.PgpKey) error {
-	return key.RefreshUserIdSelfSignatures(time.Now())
+func (a RefreshUserIdSelfSignatures) Enact(key *pgpkey.PgpKey, now time.Time) error {
+	return key.RefreshUserIdSelfSignatures(now)
 }
 
 func (a RefreshUserIdSelfSignatures) String() string {
@@ -162,8 +162,8 @@ type RefreshSubkeyBindingSignature struct {
 	SubkeyId uint64
 }
 
-func (a RefreshSubkeyBindingSignature) Enact(key *pgpkey.PgpKey) error {
-	return key.RefreshSubkeyBindingSignature(a.SubkeyId, time.Now())
+func (a RefreshSubkeyBindingSignature) Enact(key *pgpkey.PgpKey, now time.Time) error {
+	return key.RefreshSubkeyBindingSignature(a.SubkeyId, now)
 }
 func (a RefreshSubkeyBindingSignature) String() string {
 	return fmt.Sprintf("Create new signature for subkey 0x%X", a.SubkeyId)
@@ -185,6 +185,6 @@ const (
 
 type KeyAction interface {
 	String() string
-	Enact(*pgpkey.PgpKey) error
+	Enact(*pgpkey.PgpKey, time.Time) error
 	SortOrder() int
 }
