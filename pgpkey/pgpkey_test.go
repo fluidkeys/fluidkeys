@@ -129,6 +129,10 @@ func TestRevocationCertificate(t *testing.T) {
 		}
 	})
 
+	t.Run("revocation signature uses hash algorithm from our policy", func(t *testing.T) {
+		assert.Equal(t, policy.SignatureHashFunction, revocation.Hash)
+	})
+
 	t.Run("revocation signature validates with PublicKey.VerifyRevocationSignature(..)", func(t *testing.T) {
 		err = pgpKey.PrimaryKey.VerifyRevocationSignature(revocation)
 		if err != nil {
@@ -314,6 +318,10 @@ func TestGenerate(t *testing.T) {
 				identity.SelfSignature.PreferredCompression,
 			)
 		})
+
+		t.Run(fmt.Sprintf("UserID[%s].SelfSignature.Hash matches policy", name), func(t *testing.T) {
+			assert.Equal(t,	policy.SignatureHashFunction, identity.SelfSignature.Hash)
+		})
 	}
 
 	for i, subkey := range generatedKey.Subkeys {
@@ -323,6 +331,10 @@ func TestGenerate(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Subkeys[%d].Sig.CreationTime is correct", i), func(t *testing.T) {
 			assert.AssertEqualTimes(t, now, subkey.Sig.CreationTime)
+		})
+
+		t.Run(fmt.Sprintf("Subkeys[%d].Sig.Hash matches the policy", i), func(t *testing.T) {
+			assert.Equal(t, policy.SignatureHashFunction, subkey.Sig.Hash)
 		})
 	}
 
@@ -745,6 +757,11 @@ func TestCreateNewEncryptionSubkey(t *testing.T) {
 				}
 			})
 
+			t.Run("with subkey binding signature hash matching our policy", func(t *testing.T) {
+				got := gotSubKey.Sig.Hash
+				assert.Equal(t, got, policy.SignatureHashFunction)
+			})
+
 			t.Run("with correction public key creation time", func(t *testing.T) {
 				got := gotSubKey.PublicKey.CreationTime
 				if got != now {
@@ -829,6 +846,11 @@ func TestUpdateSubkeyValidUntil(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Subkey signature is invalid: " + err.Error())
 		}
+	})
+
+	t.Run("new subkey binding signature uses hash algorithm from our policy", func(t *testing.T) {
+		got := subkey.Sig.Hash
+		assert.Equal(t, got, policy.SignatureHashFunction)
 	})
 
 	t.Run("new subkey binding certificate is more recent that existing", func(t *testing.T) {
@@ -1134,6 +1156,10 @@ func TestUpdateExpiryForAllUserIds(t *testing.T) {
 		if !newSelfSignature.CreationTime.After(originalSelfSignatureCreationTime) {
 			t.Fatalf("Expected %v to be after %v", newSelfSignature.CreationTime, originalSelfSignatureCreationTime)
 		}
+	})
+
+	t.Run("new self signature uses hash according to our policy", func(t *testing.T) {
+		assert.Equal(t, policy.SignatureHashFunction, newSelfSignature.Hash)
 	})
 
 	t.Run("sets all identities to expire at correct time", func(t *testing.T) {
