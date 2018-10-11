@@ -117,7 +117,7 @@ func TestGetEncryptionSubkeyWarnings(t *testing.T) {
 		verySoon := now.Add(time.Duration(6) * time.Hour)
 		veryFarAway := now.Add(time.Duration(100*24) * time.Hour)
 
-		err = pgpKey.UpdateSubkeyValidUntil(pgpKey.EncryptionSubkey(now).PublicKey.KeyId, verySoon)
+		err = pgpKey.UpdateSubkeyValidUntil(pgpKey.EncryptionSubkey(now).PublicKey.KeyId, verySoon, now)
 		if err != nil {
 			t.Fatalf("failed to update expiry on test subkey")
 		}
