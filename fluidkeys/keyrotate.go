@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
+	"github.com/fluidkeys/fluidkeys/backupzip"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/humanize"
@@ -172,21 +174,35 @@ func runImportBackIntoGnupg(keys []*pgpkey.PgpKey, passwords map[fingerprint.Fin
 	if promptYesOrNo("Push all updated keys to GnuPG? [Y/n] ", true) == false {
 		printCheckboxSkipped("Imported keys back into GnuPG")
 		success = true
-		return
+	} else {
+
+		for _, key := range keys {
+			action := fmt.Sprintf("Import %s back into GnuPG", displayName(key))
+			printCheckboxPending(action)
+
+			err := pushPrivateKeyBackToGpg(key, passwords[key.Fingerprint()], &gpg)
+
+			if err != nil {
+				printCheckboxFailure(action, err)
+				success = false
+			} else {
+				printCheckboxSuccess(action)
+			}
+		}
 	}
 
 	for _, key := range keys {
-		action := fmt.Sprintf("Import %s back into GnuPG", displayName(key))
+		action := fmt.Sprintf("Backup %s", displayName(key))
 		printCheckboxPending(action)
 
-		err := pushPrivateKeyBackToGpg(key, passwords[key.Fingerprint()], &gpg)
+		filename, err := backupzip.OutputZipBackupFile(fluidkeysDirectory, key, passwords[key.Fingerprint()])
 
 		if err != nil {
 			printCheckboxFailure(action, err)
 			success = false
-
 		} else {
-			printCheckboxSuccess(action)
+			directory, _ := filepath.Split(filename)
+			printCheckboxSuccess("Full key backup saved in " + directory)
 		}
 	}
 	fmt.Print("\n")
