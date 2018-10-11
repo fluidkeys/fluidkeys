@@ -672,7 +672,9 @@ func makeKeyWithSubkeys(t *testing.T, subkeyConfigs []subkeyConfig, now time.Tim
 	}
 	pgpKey.Subkeys = []openpgp.Subkey{} // delete existing subkey
 
-	config := packet.Config{}
+	config := packet.Config{
+		Rand: mockRandom,
+	}
 
 	for i, subkeyConfig := range subkeyConfigs {
 		privateKey, err := rsa.GenerateKey(config.Random(), 1024)
