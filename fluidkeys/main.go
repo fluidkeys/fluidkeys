@@ -298,7 +298,7 @@ func makeFluidkeysHomeDirectory() (string, error) {
 }
 
 func generatePgpKey(email string, channel chan generatePgpKeyResult) {
-	key, err := pgpkey.Generate(email, time.Now())
+	key, err := pgpkey.Generate(email, time.Now(), nil)
 
 	channel <- generatePgpKeyResult{key, err}
 }

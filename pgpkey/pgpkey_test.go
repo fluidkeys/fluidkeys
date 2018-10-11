@@ -277,7 +277,7 @@ func getSingleUid(identities map[string]*openpgp.Identity) string {
 func TestGenerate(t *testing.T) {
 	janeEmail := "jane@example.com"
 	now := time.Date(2018, 6, 15, 16, 0, 0, 0, time.UTC)
-	generatedKey, err := generateInsecure(janeEmail, now)
+	generatedKey, err := Generate(janeEmail, now, mockRandom)
 
 	if err != nil {
 		t.Errorf("failed to generate PGP key in tests")

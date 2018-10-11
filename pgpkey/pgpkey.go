@@ -3,8 +3,10 @@ package pgpkey
 import (
 	"bytes"
 	"crypto"
+	cryptorand "crypto/rand"
 	"crypto/rsa"
 	"fmt"
+	"io"
 	"regexp"
 	"sort"
 	"strings"
@@ -12,20 +14,13 @@ import (
 
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/armor"
+	"github.com/fluidkeys/crypto/openpgp/errors"
 	"github.com/fluidkeys/crypto/openpgp/packet"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/compression"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/hash"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/symmetric"
 	"github.com/fluidkeys/fluidkeys/policy"
-)
-
-const (
-	// Use Mozilla infosec team's recommendation: https://infosec.mozilla.org/guidelines/key_management#recommended---generally-valid-for-up-to-10-years-default
-	RsaSizeSecureKeyBits = 4096
-
-	// Use a small key insecure key for fast testing
-	RsaSizeInsecureKeyBits = 1024
 )
 
 type PgpKey struct {
@@ -40,8 +35,11 @@ func (e *IncorrectPassword) Error() string {
 	return fmt.Sprintf("incorrect password: %s", e.decryptErrorMessage)
 }
 
-func Generate(email string, now time.Time) (*PgpKey, error) {
-	return generateKeyOfSize(email, RsaSizeSecureKeyBits, now)
+func Generate(email string, now time.Time, random io.Reader) (*PgpKey, error) {
+	if random == nil {
+		random = cryptorand.Reader
+	}
+	return generateKey(email, random, now)
 }
 
 // LoadFromArmoredPublicKey takes a single ascii-armored public key and
@@ -96,11 +94,7 @@ func LoadFromArmoredEncryptedPrivateKey(armoredPublicKey string, password string
 	return &pgpKey, nil
 }
 
-func generateInsecure(email string, creationTime time.Time) (*PgpKey, error) {
-	return generateKeyOfSize(email, RsaSizeInsecureKeyBits, creationTime)
-}
-
-func generateKeyOfSize(email string, rsaBits int, creationTime time.Time) (key *PgpKey, err error) {
+func generateKey(email string, randomNumberGenerator io.Reader, creationTime time.Time) (key *PgpKey, err error) {
 	config := packet.Config{
 		RSABits:     policy.PrimaryKeyRsaKeyBits,
 		Time:        func() time.Time { return creationTime },
@@ -108,14 +102,20 @@ func generateKeyOfSize(email string, rsaBits int, creationTime time.Time) (key *
 		Rand:        randomNumberGenerator,
 	}
 
-	name, comment := "", ""
-
-	entity, err := openpgp.NewEntity(name, comment, email, &config)
+	key, err = generateMakePrimaryKey(creationTime, &config)
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	key = &PgpKey{*entity}
+	err = generateAddOneIdentity(key, email, creationTime, &config)
+	if err != nil {
+		return nil, err
+	}
+
+	err = generateAddOneEncryptionSubkey(key, creationTime, &config)
+	if err != nil {
+		return nil, err
+	}
 
 	err = key.SetPreferredSymmetricAlgorithms(policy.AdvertiseCipherPreferences, creationTime)
 	if err != nil {
@@ -146,6 +146,56 @@ func generateKeyOfSize(email string, rsaBits int, creationTime time.Time) (key *
 	}
 
 	return
+}
+
+func generateMakePrimaryKey(creationTime time.Time, config *packet.Config) (key *PgpKey, err error) {
+
+	primaryKey, err := rsa.GenerateKey(config.Random(), policy.PrimaryKeyRsaKeyBits)
+	if err != nil {
+		return
+	}
+
+	e := openpgp.Entity{
+		PrimaryKey: packet.NewRSAPublicKey(creationTime, &primaryKey.PublicKey),
+		PrivateKey: packet.NewRSAPrivateKey(creationTime, primaryKey),
+		Identities: make(map[string]*openpgp.Identity),
+		Subkeys:    make([]openpgp.Subkey, 0),
+	}
+
+	key = &PgpKey{e}
+	return
+}
+
+func generateAddOneIdentity(key *PgpKey, email string, creationTime time.Time, config *packet.Config) error {
+	name, comment := "", ""
+
+	uid := packet.NewUserId(name, comment, email)
+	if uid == nil {
+		return errors.InvalidArgumentError("user id field contained invalid characters")
+	}
+
+	trueValue := true
+
+	key.Identities[uid.Id] = &openpgp.Identity{
+		Name:   uid.Id,
+		UserId: uid,
+		SelfSignature: &packet.Signature{
+			CreationTime: creationTime,
+			SigType:      packet.SigTypePositiveCert,
+			PubKeyAlgo:   packet.PubKeyAlgoRSA,
+			Hash:         config.Hash(),
+			IsPrimaryId:  &trueValue,
+			FlagsValid:   true,
+			FlagSign:     true,
+			FlagCertify:  true,
+			IssuerKeyId:  &key.PrimaryKey.KeyId,
+		},
+	}
+	return nil
+}
+
+func generateAddOneEncryptionSubkey(key *PgpKey, creationTime time.Time, config *packet.Config) error {
+	return key.CreateNewEncryptionSubkey(policy.NextExpiryTime(creationTime), creationTime, config.Random())
 }
 
 // Armor returns the public part of a key in armored format.
