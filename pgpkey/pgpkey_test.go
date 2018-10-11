@@ -5,6 +5,8 @@ import (
 	"crypto"
 	"crypto/rsa"
 	"fmt"
+	"io"
+	insecurerand "math/rand"
 	"testing"
 	"time"
 
@@ -16,6 +18,8 @@ import (
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/policy"
 )
+
+var mockRandom io.Reader = insecurerand.New(insecurerand.NewSource(0))
 
 func TestTheTestHelperFunctions(t *testing.T) {
 	pgpKey := loadExamplePgpKey(t)
