@@ -300,6 +300,19 @@ func TestGenerate(t *testing.T) {
 		}
 	})
 
+	t.Run(fmt.Sprintf("PrimaryKey RSA key has %d bits", policy.PrimaryKeyRsaKeyBits), func(t *testing.T) {
+		var bitLength uint16
+		bitLength, err = generatedKey.PrimaryKey.BitLength()
+		if err != nil {
+			t.Fatalf("failed to get primary key BitLength: %v", err)
+		}
+
+		fmt.Printf("bitLength: %d\n", bitLength)
+		if policy.PrimaryKeyRsaKeyBits != bitLength {
+			t.Fatalf("bitlength expected %d, got %d", policy.PrimaryKeyRsaKeyBits, bitLength)
+		}
+	})
+
 	t.Run("PrimaryKey.CreationTime is correct", func(t *testing.T) {
 		assert.AssertEqualTimes(t, now, generatedKey.PrimaryKey.CreationTime)
 	})
@@ -349,6 +362,18 @@ func TestGenerate(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Subkeys[%d].Sig.Hash matches the policy", i), func(t *testing.T) {
 			assert.Equal(t, policy.SignatureHashFunction, subkey.Sig.Hash)
+		})
+
+		t.Run(fmt.Sprintf("Subkeys[%d] RSA key size is %d", i, policy.EncryptionSubkeyRsaKeyBits), func(t *testing.T) {
+			var bitLength uint16
+			bitLength, err = subkey.PublicKey.BitLength()
+			if err != nil {
+				t.Fatalf("failed to get subkey BitLength: %v", err)
+			}
+
+			if policy.EncryptionSubkeyRsaKeyBits != bitLength {
+				t.Fatalf("bitlength expected %d, got %d", policy.EncryptionSubkeyRsaKeyBits, bitLength)
+			}
 		})
 	}
 
