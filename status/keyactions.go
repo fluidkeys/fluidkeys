@@ -44,7 +44,7 @@ type CreateNewEncryptionSubkey struct {
 }
 
 func (a CreateNewEncryptionSubkey) Enact(key *pgpkey.PgpKey, now time.Time) error {
-	return key.CreateNewEncryptionSubkey(a.ValidUntil, now)
+	return key.CreateNewEncryptionSubkey(a.ValidUntil, now, nil)
 }
 
 func (a CreateNewEncryptionSubkey) String() string {

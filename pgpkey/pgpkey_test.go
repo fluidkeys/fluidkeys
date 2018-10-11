@@ -749,7 +749,7 @@ func TestCreateNewEncryptionSubkey(t *testing.T) {
 
 	pgpKey.Subkeys = []openpgp.Subkey{} // delete existing subkey
 
-	err = pgpKey.CreateNewEncryptionSubkey(thirtyDaysFromNow, now)
+	err = pgpKey.CreateNewEncryptionSubkey(thirtyDaysFromNow, now, mockRandom)
 	if err != nil {
 		t.Fatalf("Error creating subkey: %v", err)
 	}
@@ -1232,7 +1232,7 @@ func TestMethodsRequiringDecryptedPrivateKey(t *testing.T) {
 		err = pgpKey.UpdateExpiryForAllUserIds(time.Now(), time.Now())
 		assert.ErrorIsNotNil(t, err)
 
-		err = pgpKey.CreateNewEncryptionSubkey(time.Now(), time.Now())
+		err = pgpKey.CreateNewEncryptionSubkey(time.Now(), time.Now(), mockRandom)
 		assert.ErrorIsNotNil(t, err)
 
 		err = pgpKey.UpdateSubkeyValidUntil(999, time.Now(), time.Now())
@@ -1251,7 +1251,7 @@ func TestMethodsRequiringDecryptedPrivateKey(t *testing.T) {
 		err = pgpKey.UpdateExpiryForAllUserIds(time.Now(), time.Now())
 		assert.ErrorIsNotNil(t, err)
 
-		err = pgpKey.CreateNewEncryptionSubkey(time.Now(), time.Now())
+		err = pgpKey.CreateNewEncryptionSubkey(time.Now(), time.Now(), mockRandom)
 		assert.ErrorIsNotNil(t, err)
 
 		err = pgpKey.UpdateSubkeyValidUntil(999, time.Now(), time.Now())
