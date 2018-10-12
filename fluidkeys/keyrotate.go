@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/fluidkeys/fluidkeys/archiver"
 	"github.com/fluidkeys/fluidkeys/backupzip"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
@@ -212,7 +213,9 @@ func runImportBackIntoGnupg(keys []*pgpkey.PgpKey, passwords map[fingerprint.Fin
 }
 
 func makeGnupgBackup() (string, error) {
-	filename, err := gpg.BackupHomeDir(fluidkeysDirectory, time.Now())
+	directory := archiver.DateStampedDirectory(fluidkeysDirectory, time.Now())
+	filepath := filepath.Join(directory, "gpghome.tgz")
+	filename, err := gpg.BackupHomeDir(filepath, time.Now())
 	return filename, err
 }
 
