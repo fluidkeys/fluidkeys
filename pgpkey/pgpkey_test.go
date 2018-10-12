@@ -5,6 +5,8 @@ import (
 	"crypto"
 	"crypto/rsa"
 	"fmt"
+	"io"
+	insecurerand "math/rand"
 	"testing"
 	"time"
 
@@ -16,6 +18,8 @@ import (
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/policy"
 )
+
+var mockRandom io.Reader = insecurerand.New(insecurerand.NewSource(0))
 
 func TestTheTestHelperFunctions(t *testing.T) {
 	pgpKey := loadExamplePgpKey(t)
@@ -113,7 +117,7 @@ func TestRevocationCertificate(t *testing.T) {
 	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
 	revokeTime := now.Add(time.Duration(24) * time.Hour)
 
-	pgpKey, err := generateInsecure("revoke.test@example.com", now)
+	pgpKey, err := LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey3, "test3")
 	if err != nil {
 		t.Fatalf("failed to generate PGP key in tests")
 	}
@@ -158,7 +162,7 @@ func TestRevocationReasonSerializeParse(t *testing.T) {
 	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
 	revokeTime := now.Add(time.Duration(24) * time.Hour)
 
-	pgpKey, err := generateInsecure("revoke.test@example.com", now)
+	pgpKey, err := LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey3, "test3")
 	if err != nil {
 		t.Fatalf("failed to generate PGP key in tests")
 	}
@@ -268,123 +272,6 @@ func getSingleUid(identities map[string]*openpgp.Identity) string {
 	}
 
 	return uids[0]
-}
-
-func TestGenerate(t *testing.T) {
-	janeEmail := "jane@example.com"
-	now := time.Date(2018, 6, 15, 16, 0, 0, 0, time.UTC)
-	generatedKey, err := generateInsecure(janeEmail, now)
-
-	if err != nil {
-		t.Errorf("failed to generate PGP key in tests")
-	}
-
-	t.Run("generate makes a UID with just an email and no brackets", func(t *testing.T) {
-		armored, err := generatedKey.Armor()
-		if err != nil {
-			t.Errorf("failed to ascii armor key: %v", err)
-		}
-		entity, err := LoadFromArmoredPublicKey(armored)
-		if err != nil {
-			t.Errorf("failed to load example PGP key: %v", err)
-		}
-		expected := "<" + janeEmail + ">"
-		actual := getSingleUid(entity.Identities)
-
-		if expected != actual {
-			t.Errorf("expected UID '%s', got '%s'", expected, actual)
-		}
-	})
-
-	t.Run("PrimaryKey.CreationTime is correct", func(t *testing.T) {
-		assert.AssertEqualTimes(t, now, generatedKey.PrimaryKey.CreationTime)
-	})
-
-	for name, identity := range generatedKey.Identities {
-		t.Run(fmt.Sprintf("Identity[%s].SelfSignature.CreationTime", name), func(t *testing.T) {
-			assert.AssertEqualTimes(t, now, identity.SelfSignature.CreationTime)
-		})
-
-		t.Run(fmt.Sprintf("UserID[%s].SelfSignature.PreferredSymmetric matches policy", name), func(t *testing.T) {
-			assert.Equal(
-				t,
-				policy.AdvertiseCipherPreferences,
-				identity.SelfSignature.PreferredSymmetric,
-			)
-		})
-
-		t.Run(fmt.Sprintf("UserID[%s].SelfSignature.PreferredHash matches policy", name), func(t *testing.T) {
-			assert.Equal(
-				t,
-				policy.AdvertiseHashPreferences,
-				identity.SelfSignature.PreferredHash,
-			)
-		})
-
-		t.Run(fmt.Sprintf("UserID[%s].SelfSignature.PreferredCompression matches policy", name), func(t *testing.T) {
-			assert.Equal(
-				t,
-				policy.AdvertiseCompressionPreferences,
-				identity.SelfSignature.PreferredCompression,
-			)
-		})
-
-		t.Run(fmt.Sprintf("UserID[%s].SelfSignature.Hash matches policy", name), func(t *testing.T) {
-			assert.Equal(t, policy.SignatureHashFunction, identity.SelfSignature.Hash)
-		})
-	}
-
-	for i, subkey := range generatedKey.Subkeys {
-		t.Run(fmt.Sprintf("Subkeys[%d].PublicKey.CreationTime is correct", i), func(t *testing.T) {
-			assert.AssertEqualTimes(t, now, subkey.PublicKey.CreationTime)
-		})
-
-		t.Run(fmt.Sprintf("Subkeys[%d].Sig.CreationTime is correct", i), func(t *testing.T) {
-			assert.AssertEqualTimes(t, now, subkey.Sig.CreationTime)
-		})
-
-		t.Run(fmt.Sprintf("Subkeys[%d].Sig.Hash matches the policy", i), func(t *testing.T) {
-			assert.Equal(t, policy.SignatureHashFunction, subkey.Sig.Hash)
-		})
-	}
-
-	for name, identity := range generatedKey.Identities {
-		t.Run(fmt.Sprintf("Identity[%s] expiry matches our policy", name), func(t *testing.T) {
-			expectedExpiry := policy.NextExpiryTime(now)
-
-			expires, gotExpiry := CalculateExpiry(
-				generatedKey.PrimaryKey.CreationTime,
-				identity.SelfSignature.KeyLifetimeSecs,
-			)
-
-			if !expires {
-				t.Fatalf("expected expiry, but key doesn't expire")
-			}
-
-			if expectedExpiry != *gotExpiry {
-				t.Fatalf("expected UID expiry %v, got %v", expectedExpiry, gotExpiry)
-			}
-		})
-	}
-
-	for i, subkey := range generatedKey.Subkeys {
-		t.Run(fmt.Sprintf("Subkeys[%d] expiry matches our policy", i), func(t *testing.T) {
-			expectedExpiry := policy.NextExpiryTime(now)
-
-			expires, gotExpiry := CalculateExpiry(
-				subkey.PublicKey.CreationTime,
-				generatedKey.Identities["<jane@example.com>"].SelfSignature.KeyLifetimeSecs,
-			)
-
-			if !expires {
-				t.Fatalf("expected expiry, but key doesn't expire")
-			}
-
-			if expectedExpiry != *gotExpiry {
-				t.Fatalf("expected UID expiry %v, got %v", expectedExpiry, gotExpiry)
-			}
-		})
-	}
 }
 
 func TestLoadFromArmoredPublicKey(t *testing.T) {
@@ -662,13 +549,15 @@ type subkeyConfig struct {
 func makeKeyWithSubkeys(t *testing.T, subkeyConfigs []subkeyConfig, now time.Time) (*PgpKey, error) {
 	t.Helper()
 
-	pgpKey, err := generateInsecure("subkey.test@example.com", now)
+	pgpKey, err := LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey3, "test3")
 	if err != nil {
 		t.Fatalf("failed to generate PGP key in tests")
 	}
 	pgpKey.Subkeys = []openpgp.Subkey{} // delete existing subkey
 
-	config := packet.Config{}
+	config := packet.Config{
+		Rand: mockRandom,
+	}
 
 	for i, subkeyConfig := range subkeyConfigs {
 		privateKey, err := rsa.GenerateKey(config.Random(), 1024)
@@ -728,16 +617,22 @@ func makeKeyWithSubkeys(t *testing.T, subkeyConfigs []subkeyConfig, now time.Tim
 
 func TestCreateNewEncryptionSubkey(t *testing.T) {
 
-	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
-	thirtyDaysFromNow := now.Add(time.Duration(24*30) * time.Hour)
-
-	pgpKey, err := generateInsecure("subkey.test@example.com", now)
+	pgpKey, err := LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey3, "test3")
 	if err != nil {
 		t.Fatalf("failed to generate PGP key in tests")
 	}
+
+	now := pgpKey.PrimaryKey.CreationTime.Add(time.Duration(1) * time.Hour)
+	thirtyDaysFromNow := now.Add(time.Duration(24*30) * time.Hour)
+
+	err = pgpKey.SetPreferredHashAlgorithms(policy.AdvertiseHashPreferences, now) // workaround as example private key doesn't have hash prefs
+	if err != nil {
+		t.Fatalf("failed to refresh self sigs: %v", err)
+	}
+
 	pgpKey.Subkeys = []openpgp.Subkey{} // delete existing subkey
 
-	err = pgpKey.CreateNewEncryptionSubkey(thirtyDaysFromNow, now)
+	err = pgpKey.CreateNewEncryptionSubkey(thirtyDaysFromNow, now, mockRandom)
 	if err != nil {
 		t.Fatalf("Error creating subkey: %v", err)
 	}
@@ -1220,7 +1115,7 @@ func TestMethodsRequiringDecryptedPrivateKey(t *testing.T) {
 		err = pgpKey.UpdateExpiryForAllUserIds(time.Now(), time.Now())
 		assert.ErrorIsNotNil(t, err)
 
-		err = pgpKey.CreateNewEncryptionSubkey(time.Now(), time.Now())
+		err = pgpKey.CreateNewEncryptionSubkey(time.Now(), time.Now(), mockRandom)
 		assert.ErrorIsNotNil(t, err)
 
 		err = pgpKey.UpdateSubkeyValidUntil(999, time.Now(), time.Now())
@@ -1239,7 +1134,7 @@ func TestMethodsRequiringDecryptedPrivateKey(t *testing.T) {
 		err = pgpKey.UpdateExpiryForAllUserIds(time.Now(), time.Now())
 		assert.ErrorIsNotNil(t, err)
 
-		err = pgpKey.CreateNewEncryptionSubkey(time.Now(), time.Now())
+		err = pgpKey.CreateNewEncryptionSubkey(time.Now(), time.Now(), mockRandom)
 		assert.ErrorIsNotNil(t, err)
 
 		err = pgpKey.UpdateSubkeyValidUntil(999, time.Now(), time.Now())

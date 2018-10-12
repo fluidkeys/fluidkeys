@@ -3,8 +3,10 @@ package pgpkey
 import (
 	"bytes"
 	"crypto"
+	cryptorand "crypto/rand"
 	"crypto/rsa"
 	"fmt"
+	"io"
 	"regexp"
 	"sort"
 	"strings"
@@ -20,21 +22,6 @@ import (
 	"github.com/fluidkeys/fluidkeys/policy"
 )
 
-const (
-	// Use Mozilla infosec team's recommendation: https://infosec.mozilla.org/guidelines/key_management#recommended---generally-valid-for-up-to-10-years-default
-	RsaSizeSecureKeyBits = 4096
-
-	// Use a small key insecure key for fast testing
-	RsaSizeInsecureKeyBits = 1024
-)
-
-// Config for generating keys.
-type Config struct {
-	packet.Config
-	// Expiry is the duration that the generated key will be valid for.
-	Expiry time.Duration
-}
-
 type PgpKey struct {
 	openpgp.Entity
 }
@@ -47,8 +34,11 @@ func (e *IncorrectPassword) Error() string {
 	return fmt.Sprintf("incorrect password: %s", e.decryptErrorMessage)
 }
 
-func Generate(email string, now time.Time) (*PgpKey, error) {
-	return generateKeyOfSize(email, RsaSizeSecureKeyBits, now)
+func Generate(email string, now time.Time, random io.Reader) (*PgpKey, error) {
+	if random == nil {
+		random = cryptorand.Reader
+	}
+	return generateKey(email, random, now)
 }
 
 // LoadFromArmoredPublicKey takes a single ascii-armored public key and
@@ -101,56 +91,6 @@ func LoadFromArmoredEncryptedPrivateKey(armoredPublicKey string, password string
 
 	pgpKey := PgpKey{*entity}
 	return &pgpKey, nil
-}
-
-func generateInsecure(email string, creationTime time.Time) (*PgpKey, error) {
-	return generateKeyOfSize(email, RsaSizeInsecureKeyBits, creationTime)
-}
-
-func generateKeyOfSize(email string, rsaBits int, creationTime time.Time) (key *PgpKey, err error) {
-	config := Config{}
-	config.Config.RSABits = rsaBits
-	config.Config.Time = func() time.Time { return creationTime }
-	config.Config.DefaultHash = policy.SignatureHashFunction
-
-	name, comment := "", ""
-
-	entity, err := openpgp.NewEntity(name, comment, email, &config.Config)
-	if err != nil {
-		return
-	}
-
-	key = &PgpKey{*entity}
-
-	err = key.SetPreferredSymmetricAlgorithms(policy.AdvertiseCipherPreferences, creationTime)
-	if err != nil {
-		return
-	}
-
-	err = key.SetPreferredHashAlgorithms(policy.AdvertiseHashPreferences, creationTime)
-	if err != nil {
-		return
-	}
-
-	err = key.SetPreferredCompressionAlgorithms(policy.AdvertiseCompressionPreferences, creationTime)
-	if err != nil {
-		return
-	}
-
-	validUntil := policy.NextExpiryTime(creationTime)
-	err = key.UpdateExpiryForAllUserIds(validUntil, creationTime)
-	if err != nil {
-		return
-	}
-
-	for _, subkey := range key.Subkeys {
-		err = key.UpdateSubkeyValidUntil(subkey.PublicKey.KeyId, validUntil, creationTime)
-		if err != nil {
-			return
-		}
-	}
-
-	return
 }
 
 // Armor returns the public part of a key in armored format.
@@ -445,15 +385,19 @@ func (key *PgpKey) EncryptionSubkey(now time.Time) *openpgp.Subkey {
 
 // CreateNewEncryptionSubkey creaates and signs a new encryption subkey for
 // the primary key, valid until a specified time.
-func (key *PgpKey) CreateNewEncryptionSubkey(validUntil time.Time, now time.Time) error {
+//
+// The `random` parameter provides a source of entropy. If `nil`, a
+// cryptographically secure source is used.
+func (key *PgpKey) CreateNewEncryptionSubkey(validUntil time.Time, now time.Time, random io.Reader) error {
 	err := key.ensureGotDecryptedPrivateKey()
 	if err != nil {
 		return err
 	}
 
 	config := packet.Config{
-		RSABits:     2048,
+		RSABits:     policy.EncryptionSubkeyRsaKeyBits,
 		DefaultHash: policy.SignatureHashFunction,
+		Rand:        random,
 	}
 
 	encryptingPriv, err := rsa.GenerateKey(config.Random(), config.RSABits)

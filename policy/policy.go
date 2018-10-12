@@ -123,6 +123,17 @@ var (
 	SignatureHashFunction = crypto.SHA512
 )
 
+const (
+	// Use Mozilla infosec team's recommendation for long lived keys:
+	// https://infosec.mozilla.org/guidelines/key_management#recommended---generally-valid-for-up-to-10-years-default
+	PrimaryKeyRsaKeyBits = 4096
+
+	// EncryptionSubkeyRsaKeyBits is the number of bits to use for an
+	// encryption subkey. These are short-lived so don't need to be as
+	// large as the primary key.
+	EncryptionSubkeyRsaKeyBits = 2048
+)
+
 // NextExpiryTime returns the expiry time in UTC, according to the policy:
 //     "30 days after the 1st of the next month"
 // for example, if today is 15th September, nextExpiryTime would return
