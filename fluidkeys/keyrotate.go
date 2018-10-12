@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
+	"github.com/fluidkeys/fluidkeys/backupzip"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/humanize"
@@ -39,7 +41,7 @@ func runKeyRotateDryRun(keys []pgpkey.PgpKey) exitCode {
 		}
 	}
 
-	printImportBackIntoGnupg(keysWithActions)
+	printImportBackIntoGnupgAndBackup(keysWithActions)
 
 	fmt.Print("To start run\n")
 	fmt.Print(" >   " + colour.CommandLineCode("fk key rotate") + "\n\n")
@@ -151,7 +153,7 @@ func runImportBackIntoGnupg(keys []*pgpkey.PgpKey, passwords map[fingerprint.Fin
 		return
 	}
 
-	printImportBackIntoGnupg(keys)
+	printImportBackIntoGnupgAndBackup(keys)
 
 	fmt.Print("While fluidkeys is in alpha, it backs up GnuPG (~/.gnupg) each time.\n")
 
@@ -172,21 +174,35 @@ func runImportBackIntoGnupg(keys []*pgpkey.PgpKey, passwords map[fingerprint.Fin
 	if promptYesOrNo("Push all updated keys to GnuPG? [Y/n] ", true) == false {
 		printCheckboxSkipped("Imported keys back into GnuPG")
 		success = true
-		return
+	} else {
+
+		for _, key := range keys {
+			action := fmt.Sprintf("Import %s back into GnuPG", displayName(key))
+			printCheckboxPending(action)
+
+			err := pushPrivateKeyBackToGpg(key, passwords[key.Fingerprint()], &gpg)
+
+			if err != nil {
+				printCheckboxFailure(action, err)
+				success = false
+			} else {
+				printCheckboxSuccess(action)
+			}
+		}
 	}
 
 	for _, key := range keys {
-		action := fmt.Sprintf("Import %s back into GnuPG", displayName(key))
+		action := fmt.Sprintf("Backup %s", displayName(key))
 		printCheckboxPending(action)
 
-		err := pushPrivateKeyBackToGpg(key, passwords[key.Fingerprint()], &gpg)
+		filename, err := backupzip.OutputZipBackupFile(fluidkeysDirectory, key, passwords[key.Fingerprint()])
 
 		if err != nil {
 			printCheckboxFailure(action, err)
 			success = false
-
 		} else {
-			printCheckboxSuccess(action)
+			directory, _ := filepath.Split(filename)
+			printCheckboxSuccess("Full key backup saved in " + directory)
 		}
 	}
 	fmt.Print("\n")
@@ -197,7 +213,7 @@ func makeGnupgBackup() error {
 	return fmt.Errorf("not implemented")
 }
 
-func printImportBackIntoGnupg(keys []*pgpkey.PgpKey) {
+func printImportBackIntoGnupgAndBackup(keys []*pgpkey.PgpKey) {
 	if len(keys) == 0 {
 		return
 	}
@@ -206,6 +222,7 @@ func printImportBackIntoGnupg(keys []*pgpkey.PgpKey) {
 
 	for _, key := range keys {
 		fmt.Printf("     [ ] Import %s back into GnuPG\n", displayName(key))
+		fmt.Printf("     [ ] Backup %s\n", displayName(key))
 	}
 	fmt.Print("\n")
 }
