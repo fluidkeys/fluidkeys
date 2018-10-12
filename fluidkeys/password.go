@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // getDecryptedPrivateKeyAndPassword prompts the user for a password, tests it
@@ -30,5 +32,12 @@ func getDecryptedPrivateKeyAndPassword(publicKey *pgpkey.PgpKey) (*pgpkey.PgpKey
 
 // getPassword asks the user for a password and returns the result
 func getPassword(key *pgpkey.PgpKey) string {
-	return promptForInput(fmt.Sprintf("Enter password for %s:\n -> ", displayName(key)))
+	fmt.Printf("Enter password for %s: ", displayName(key))
+	password, err := terminal.ReadPassword(0)
+	if err != nil {
+		panic(fmt.Sprintf("Error reading password: %v\n", err))
+	} else {
+		fmt.Print("\n\n")
+	}
+	return string(password)
 }
