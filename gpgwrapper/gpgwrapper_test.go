@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
@@ -30,6 +31,20 @@ func TestParseGPGOutputVersion(t *testing.T) {
 		gpgOutput := "foo\ngpg\nbar"
 		_, err := parseVersionString(gpgOutput)
 		assertError(t, err, ErrNoVersionStringFound)
+	})
+}
+
+func TestHomeDir(t *testing.T) {
+	t.Run("test default home directory", func(t *testing.T) {
+		expectedDirectory := makeTempGnupgHome(t)
+		gpg := GnuPG{homeDir: expectedDirectory}
+
+		gotDirectory, err := gpg.HomeDir()
+		if err != nil {
+			t.Fatalf("error getting HomeDirectory: %v", err)
+		}
+
+		assert.Equal(t, expectedDirectory, gotDirectory)
 	})
 }
 
