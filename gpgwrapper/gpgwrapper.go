@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -72,6 +74,23 @@ func (g *GnuPG) Version() (string, error) {
 	}
 
 	return version, nil
+}
+
+// Returns the GnuPG version string, e.g. "1.2.3"git
+func (g *GnuPG) HomeDir() (gpgHomeDir string) {
+	gpgHomeDir = os.Getenv("GNUPGHOME")
+
+	if gpgHomeDir == "" {
+		homeDir := os.Getenv("HOME")
+		gpgHomeDir = filepath.Join(homeDir, ".gnupg")
+	}
+
+	// In testing, we don't set an environment variable, but we always append
+	// --homedir g.homeDir to the args.
+	if g.homeDir != "" {
+		gpgHomeDir = g.homeDir
+	}
+	return
 }
 
 // Checks whether GPG is working
