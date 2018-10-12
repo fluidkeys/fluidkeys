@@ -44,18 +44,6 @@ func loadPrivateKey(
 	return outKey, nil
 }
 
-type decryptError struct {
-	err string
-}
-
-func (e decryptError) Error() string {
-	if e.err == "" {
-		return "failed to decrypt"
-	} else {
-		return e.err
-	}
-}
-
 // pushPrivateKeyBackToGpg takes a PgpKey with a decrypted PrivateKey and
 // loads it back into GnuPG
 func pushPrivateKeyBackToGpg(
