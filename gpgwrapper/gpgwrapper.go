@@ -76,7 +76,7 @@ func (g *GnuPG) Version() (string, error) {
 	return version, nil
 }
 
-// Returns the GnuPG version string, e.g. "1.2.3"git
+// Returns the GnuPG home directory, e.g. "/Users/jane/.gnupg"
 func (g *GnuPG) HomeDir() (string, error) {
 	outString, err := g.run("--version")
 	if err != nil {
