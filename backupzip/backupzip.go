@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/fluidkeys/fluidkeys/archiver"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
 
@@ -106,8 +107,6 @@ func makeFileWriter(zipWriter *zip.Writer, filename string) (io.Writer, error) {
 }
 
 func getZipFilename(fluidkeysDir string, slug string, now time.Time) string {
-	dateSubdirectory := now.Format("2006-01-02")
-	backupDirectory := filepath.Join(fluidkeysDir, "backups", dateSubdirectory)
-	os.MkdirAll(backupDirectory, 0700)
-	return filepath.Join(backupDirectory, slug+".zip")
+	directory := archiver.DateStampedDirectory(fluidkeysDir, now)
+	return filepath.Join(directory, slug+".zip")
 }
