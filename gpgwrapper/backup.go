@@ -12,9 +12,13 @@ func (g *GnuPG) BackupHomeDir(fluidkeysDir string, now time.Time) (string, error
 	cmd := "tar"
 	directory := archiver.DateStampedDirectory(fluidkeysDir, now)
 	filename := filepath.Join(directory, "gpghome.tgz")
-	args := []string{"-czf", filename, "-C", g.HomeDir(), "."}
+	gpgHomeDir, err := g.HomeDir()
+	if err != nil {
+		return "Error findings GPG home directory: %v", err
+	}
+	args := []string{"-czf", filename, "-C", gpgHomeDir, "."}
 	if err := exec.Command(cmd, args...).Run(); err != nil {
-		return "", err
+		return "Error executing tar -czf (...): %v", err
 	}
 	return filename, nil
 }

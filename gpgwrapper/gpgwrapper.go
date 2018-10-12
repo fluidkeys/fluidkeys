@@ -6,9 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -29,12 +27,14 @@ const (
 )
 
 var ErrNoVersionStringFound = errors.New("version string not found in GPG output")
+var ErrNoHomeDirectoryStringFound = errors.New("home directory string not found in GPG output")
 
 func ErrProblemExecutingGPG(gpgStdout string, arguments ...string) error {
 	return fmt.Errorf("error executing GPG with %s: %s", arguments, gpgStdout)
 }
 
 var VersionRegexp = regexp.MustCompile(`gpg \(GnuPG.*\) (\d+\.\d+\.\d+)`)
+var HomeRegexp = regexp.MustCompile(`Home: +([^\r\n]+)`)
 
 type GnuPG struct {
 	homeDir string
@@ -77,20 +77,19 @@ func (g *GnuPG) Version() (string, error) {
 }
 
 // Returns the GnuPG version string, e.g. "1.2.3"git
-func (g *GnuPG) HomeDir() (gpgHomeDir string) {
-	gpgHomeDir = os.Getenv("GNUPGHOME")
-
-	if gpgHomeDir == "" {
-		homeDir := os.Getenv("HOME")
-		gpgHomeDir = filepath.Join(homeDir, ".gnupg")
+func (g *GnuPG) HomeDir() (string, error) {
+	outString, err := g.run("--version")
+	if err != nil {
+		err = fmt.Errorf("problem running GPG, %v", err)
+		return "", err
 	}
 
-	// In testing, we don't set an environment variable, but we always append
-	// --homedir g.homeDir to the args.
-	if g.homeDir != "" {
-		gpgHomeDir = g.homeDir
+	match := HomeRegexp.FindStringSubmatch(outString)
+	if match == nil {
+		return "", ErrNoHomeDirectoryStringFound
 	}
-	return
+
+	return match[1], nil
 }
 
 // Checks whether GPG is working

@@ -39,7 +39,11 @@ func TestHomeDir(t *testing.T) {
 		expectedDirectory := makeTempGnupgHome(t)
 		gpg := GnuPG{homeDir: expectedDirectory}
 
-		gotDirectory := gpg.HomeDir()
+		gotDirectory, err := gpg.HomeDir()
+		if err != nil {
+			t.Fatalf("error getting HomeDirectory: %v", err)
+		}
+
 		assert.Equal(t, expectedDirectory, gotDirectory)
 	})
 }
