@@ -16,6 +16,7 @@ import (
 	"github.com/docopt/docopt-go"
 	"github.com/fluidkeys/fluidkeys/backupzip"
 	"github.com/fluidkeys/fluidkeys/colour"
+	"github.com/fluidkeys/fluidkeys/config"
 	"github.com/fluidkeys/fluidkeys/database"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/gpgwrapper"
@@ -46,6 +47,7 @@ var (
 	gpg                gpgwrapper.GnuPG
 	fluidkeysDirectory string
 	db                 database.Database
+	Config             config.Config
 )
 
 type DicewarePassword struct {
@@ -71,6 +73,15 @@ func init() {
 		fmt.Printf("Failed to get fluidkeys directory: %v\n", err)
 		os.Exit(1)
 	}
+
+	configPointer, err := config.Load(fluidkeysDirectory)
+	if err != nil {
+		fmt.Printf("Failed to open config file: %v\n", err)
+		os.Exit(2)
+	} else {
+		Config = *configPointer
+	}
+
 	db = database.New(fluidkeysDirectory)
 	gpg = gpgwrapper.GnuPG{}
 }
