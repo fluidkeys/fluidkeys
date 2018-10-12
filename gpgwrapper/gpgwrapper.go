@@ -54,9 +54,8 @@ type SecretKeyListing struct {
 	Created time.Time
 }
 
+// Returns the GnuPG version string, e.g. "1.2.3"
 func (g *GnuPG) Version() (string, error) {
-	// Returns the GnuPG version string, e.g. "1.2.3"
-
 	outString, err := g.run("--version")
 
 	if err != nil {
