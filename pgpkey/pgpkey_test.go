@@ -20,7 +20,7 @@ import (
 func TestTheTestHelperFunctions(t *testing.T) {
 	pgpKey := loadExamplePgpKey(t)
 
-	t.Run("example PGP key expected UID", func(*testing.T) {
+	t.Run("example PGP key expected UID", func(t *testing.T) {
 		expectedUid := exampleUid
 
 		_, ok := pgpKey.Identities[expectedUid]
@@ -34,7 +34,7 @@ func TestTheTestHelperFunctions(t *testing.T) {
 func TestSlugMethod(t *testing.T) {
 	pgpKey := loadExamplePgpKey(t)
 
-	t.Run("test slug method", func(*testing.T) {
+	t.Run("test slug method", func(t *testing.T) {
 		slug, err := pgpKey.Slug()
 		if err != nil {
 			t.Fatal(err)
@@ -44,7 +44,7 @@ func TestSlugMethod(t *testing.T) {
 }
 
 func TestEmailMethod(t *testing.T) {
-	t.Run("returns only an email, stripping the '<' and '>'", func(*testing.T) {
+	t.Run("returns only an email, stripping the '<' and '>'", func(t *testing.T) {
 		pgpKey := loadExamplePgpKey(t)
 
 		want := "test@example.com"
@@ -233,7 +233,7 @@ func TestSlugify(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("slugify(%s)", test.email), func(*testing.T) {
+		t.Run(fmt.Sprintf("slugify(%s)", test.email), func(t *testing.T) {
 			assertEqual(t, test.wantSlug, slugify(test.email))
 		})
 
@@ -279,7 +279,7 @@ func TestGenerate(t *testing.T) {
 		t.Errorf("failed to generate PGP key in tests")
 	}
 
-	t.Run("generate makes a UID with just an email and no brackets", func(*testing.T) {
+	t.Run("generate makes a UID with just an email and no brackets", func(t *testing.T) {
 		armored, err := generatedKey.Armor()
 		if err != nil {
 			t.Errorf("failed to ascii armor key: %v", err)
@@ -296,7 +296,7 @@ func TestGenerate(t *testing.T) {
 		}
 	})
 
-	t.Run("PrimaryKey.CreationTime is correct", func(*testing.T) {
+	t.Run("PrimaryKey.CreationTime is correct", func(t *testing.T) {
 		assert.AssertEqualTimes(t, now, generatedKey.PrimaryKey.CreationTime)
 	})
 
