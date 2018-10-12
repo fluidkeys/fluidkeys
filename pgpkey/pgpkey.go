@@ -386,6 +386,8 @@ func (key *PgpKey) EncryptionSubkey(now time.Time) *openpgp.Subkey {
 // CreateNewEncryptionSubkey creaates and signs a new encryption subkey for
 // the primary key, valid until a specified time.
 //
+// The `random` parameter provides a source of entropy. If `nil`, a
+// cryptographically secure source is used.
 func (key *PgpKey) CreateNewEncryptionSubkey(validUntil time.Time, now time.Time, random io.Reader) error {
 	err := key.ensureGotDecryptedPrivateKey()
 	if err != nil {
