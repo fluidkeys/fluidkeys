@@ -3,30 +3,73 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:20da7140359cab99772431cbeb195bd8cbe76312fcf6509fd8125cf91ab2847b"
   name = "github.com/docopt/docopt-go"
   packages = ["."]
+  pruneopts = ""
   revision = "ee0de3bc6815ee19d4a46c7eb90f829db0e014b1"
 
 [[projects]]
+  digest = "1:26e46fdf6cb8b18f2c81f9451823e5d3c0e6483ef5ccf894600ab8f72610a3fe"
   name = "github.com/fluidkeys/crypto"
-  packages = ["cast5","openpgp","openpgp/armor","openpgp/elgamal","openpgp/errors","openpgp/packet","openpgp/s2k"]
+  packages = [
+    "cast5",
+    "openpgp",
+    "openpgp/armor",
+    "openpgp/elgamal",
+    "openpgp/errors",
+    "openpgp/packet",
+    "openpgp/s2k",
+  ]
+  pruneopts = ""
   revision = "2018-09-13"
 
 [[projects]]
   branch = "master"
+  digest = "1:83854f6b1d2ce047b69657e3a87ba7602f4c5505e8bdfd02ab857db8e983bde1"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
+  pruneopts = ""
   revision = "58046073cbffe2f25d425fe1331102f55cf719de"
 
 [[projects]]
   branch = "master"
+  digest = "1:cbf98c3b2c6382b31a34b356e02ade0c8a42d7cd93109c65d2d192152a71d59c"
   name = "github.com/sethvargo/go-diceware"
   packages = ["diceware"]
+  pruneopts = ""
   revision = "2cc4e45af027798e625c3256fc10925eb3f1e5c0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:d263c39e9144265037f7473751f48b4193df3efe4763cc72e925c13d5bdbe551"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  pruneopts = ""
+  revision = "7c1a557ab941a71c619514f229f0b27ccb0c27cf"
+
+[[projects]]
+  branch = "master"
+  digest = "1:a4bda6e065eb3ccf1e6adeaa863cb416e0ae6b43e613f20a8931d52d19dc20e2"
+  name = "golang.org/x/sys"
+  packages = [
+    "unix",
+    "windows",
+  ]
+  pruneopts = ""
+  revision = "4497e2df6f9e69048a54498c7affbbec3294ad47"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ce3fd75f59fd0d58c0a50ca4f9a8a583879a47d818b3d23630e55f2f0d5c579e"
+  input-imports = [
+    "github.com/docopt/docopt-go",
+    "github.com/fluidkeys/crypto/openpgp",
+    "github.com/fluidkeys/crypto/openpgp/armor",
+    "github.com/fluidkeys/crypto/openpgp/packet",
+    "github.com/mitchellh/go-homedir",
+    "github.com/sethvargo/go-diceware/diceware",
+    "golang.org/x/crypto/ssh/terminal",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
