@@ -161,11 +161,13 @@ func runImportBackIntoGnupg(keys []*pgpkey.PgpKey, passwords map[fingerprint.Fin
 
 	if promptYesOrNo("Automatically create backup now? [Y/n] ", true) == true {
 		printCheckboxPending(action)
-		err := makeGnupgBackup()
+		filename, err := makeGnupgBackup()
 		if err != nil {
 			printCheckboxFailure(action, err)
+			fmt.Printf("\n")
 		} else {
-			printCheckboxSuccess(action)
+			printCheckboxSuccess(fmt.Sprintf("GnuPG backed up to %v", filename))
+			fmt.Printf("\n")
 		}
 	} else {
 		printCheckboxSkipped(action)
@@ -209,8 +211,9 @@ func runImportBackIntoGnupg(keys []*pgpkey.PgpKey, passwords map[fingerprint.Fin
 	return
 }
 
-func makeGnupgBackup() error {
-	return fmt.Errorf("not implemented")
+func makeGnupgBackup() (string, error) {
+	filename, err := gpg.BackupHomeDir(fluidkeysDirectory, time.Now())
+	return filename, err
 }
 
 func printImportBackIntoGnupgAndBackup(keys []*pgpkey.PgpKey) {
