@@ -20,6 +20,30 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/fluidkeys/keyring"
+  packages = ["."]
+  revision = "b7a88d2e1e256dcbc200690189c829aabaff5c29"
+
+[[projects]]
+  name = "github.com/godbus/dbus"
+  packages = ["."]
+  revision = "a389bdde4dd695d414e47b755e95e72b7826432c"
+  version = "v4.1.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/gsterjov/go-libsecret"
+  packages = ["."]
+  revision = "a6f4afe4910cad8688db3e0e9b9ac92ad22d54e1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/keybase/go-keychain"
+  packages = ["."]
+  revision = "f1daa725cce4049b1715f1e97d6a51880e401e70"
+
+[[projects]]
+  branch = "master"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
   revision = "58046073cbffe2f25d425fe1331102f55cf719de"
@@ -45,6 +69,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "efe99b52f65c970b08f432fb82d970ef18f81f82f3761391db26056c1f1be40a"
+  inputs-digest = "a39968febe236884b8c2a3e42f02333d33faa77e314923b207e14407e70cd69a"
   solver-name = "gps-cdcl"
   solver-version = 1
