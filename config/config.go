@@ -85,6 +85,6 @@ const defaultConfigFile string = `# Fluidkeys default configuration file.
 # To prevent the password being saved in the keyring for one of your PGP keys,
 # add the following configuration lines using the key's fingerprint:
 #
-#     [pgpkeys."AAAA 1111 AAAA 1111 AAAA  1111 AAAA 1111 AAAA 1111"]
-#     store_password: false
+#     [pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
+#     store_password = false
 `

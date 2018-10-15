@@ -23,6 +23,11 @@ func TestLoad(t *testing.T) {
 		assert.Equal(t, 0, len(config.parsedMetadata.Undecoded()))
 	})
 
+	t.Run("default config file actually parses", func(t *testing.T) {
+		_, err := parse(strings.NewReader(defaultConfigFile))
+		assert.ErrorIsNil(t, err)
+	})
+
 	t.Run("load successfully if file is present and reads OK", func(t *testing.T) {
 		mockFileHelper := mockFileFunctions{
 			OsStatReturnError: nil,
