@@ -1,6 +1,8 @@
 package config
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"io"
@@ -92,7 +94,7 @@ func TestLoad(t *testing.T) {
 		}
 		_, err := load("/tmp/", &mockFileHelper)
 		assert.ErrorIsNotNil(t, err)
-		assert.Equal(t, "error in toml.DecodeReader: Near line 1 (last key parsed 'invalid'): expected key separator '=', but got 't' instead", err.Error())
+		assert.Equal(t, "error parsing /tmp/config.toml: error in toml.DecodeReader: Near line 1 (last key parsed 'invalid'): expected key separator '=', but got 't' instead", err.Error())
 	})
 }
 
@@ -159,34 +161,89 @@ func TestParse(t *testing.T) {
 	})
 }
 
+func TestSerialize(t *testing.T) {
+	testFingerprint := fingerprint.MustParse("AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111")
+
+	t.Run("from an empty config file", func(t *testing.T) {
+		emptyConfig, err := parse(strings.NewReader(""))
+		assert.ErrorIsNil(t, err)
+
+		emptyConfig.SetStorePassword(testFingerprint, true)
+
+		output := bytes.NewBuffer(nil)
+		err = emptyConfig.serialize(output)
+		assert.ErrorIsNil(t, err)
+
+		expected := defaultConfigFile + "[pgpkeys]\n" +
+			"  [pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]\n" +
+			"    store_password = true\n" +
+			"    rotate_automatically = false\n"
+		assertEqualStrings(t, expected, output.String())
+	})
+}
+
 func TestGetConfig(t *testing.T) {
 	fingerprint := fingerprint.MustParse("AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111")
 
-	t.Run("getConfig recognises 0xAAAA... fingerprint format", func(t *testing.T) {
+	t.Run("getConfig recognises 0xAAAA... fingerprint format rather than returning default config", func(t *testing.T) {
 		config, err := parse(strings.NewReader(`
 		[pgpkeys]
 		[pgpkeys.0xAAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
-		store_password = false
+		store_password = true  # use a non-default value to test this
 		`))
 		assert.ErrorIsNil(t, err)
 
-		_, gotConfig := config.getConfig(fingerprint)
-
-		assert.ErrorIsNil(t, err)
-		assert.Equal(t, true, gotConfig)
+		keyConfig := config.getConfig(fingerprint)
+		// store_password = true would show that it hasn't returned the default value
+		assert.Equal(t, true, keyConfig.StorePassword)
 	})
 	t.Run("getConfig recognises 'AAAA 1111...' fingerprint format", func(t *testing.T) {
 		config, err := parse(strings.NewReader(`
 		[pgpkeys]
 		[pgpkeys."AAAA 1111 AAAA 1111 AAAA 1111 AAAA 1111 AAAA 1111"]
-		store_password = false
+		store_password = true  # use a non-default value to test this
 		`))
 		assert.ErrorIsNil(t, err)
 
-		_, gotConfig := config.getConfig(fingerprint)
+		keyConfig := config.getConfig(fingerprint)
+		// store_password = true would show that it hasn't returned the default value
+		assert.Equal(t, true, keyConfig.StorePassword)
+	})
+}
 
-		assert.ErrorIsNil(t, err)
-		assert.Equal(t, true, gotConfig)
+func TestSettersAndGetters(t *testing.T) {
+	testFingerprint := fingerprint.MustParse("AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111")
+
+	t.Run("RotateAutomatically", func(t *testing.T) {
+		config := Config{filename: "/tmp/config.toml"}
+
+		t.Run("true", func(t *testing.T) {
+			err := config.SetRotateAutomatically(testFingerprint, true)
+			assert.ErrorIsNil(t, err)
+			assert.Equal(t, true, config.ShouldRotateAutomaticallyForKey(testFingerprint))
+		})
+
+		t.Run("false", func(t *testing.T) {
+			err := config.SetRotateAutomatically(testFingerprint, false)
+			assert.ErrorIsNil(t, err)
+			assert.Equal(t, false, config.ShouldRotateAutomaticallyForKey(testFingerprint))
+		})
+	})
+
+	t.Run("StorePassword", func(t *testing.T) {
+		config := Config{filename: "/tmp/config.toml"}
+
+		t.Run("true", func(t *testing.T) {
+			err := config.SetStorePassword(testFingerprint, true)
+			assert.ErrorIsNil(t, err)
+			assert.Equal(t, true, config.ShouldStorePasswordForKey(testFingerprint))
+		})
+
+		t.Run("false", func(t *testing.T) {
+			err := config.SetStorePassword(testFingerprint, false)
+			assert.ErrorIsNil(t, err)
+			assert.Equal(t, false, config.ShouldStorePasswordForKey(testFingerprint))
+		})
 	})
 }
 
@@ -342,6 +399,14 @@ func makeTempDir(t *testing.T) string {
 		t.Fatalf("Failed to create temp GnuPG dir: %v", err)
 	}
 	return dir
+}
+
+func assertEqualStrings(t *testing.T, expected string, got string) {
+	t.Helper()
+	if expected != got {
+		fmt.Printf("expected:\n----\n%s\n----\ngot:\n----\n%s\n----\n", expected, got)
+		t.Fatalf("strings weren't equal")
+	}
 }
 
 const exampleTomlDocument string = `

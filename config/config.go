@@ -1,9 +1,11 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/natefinch/atomic"
 	"io"
 	"os"
 	"path"
@@ -46,7 +48,9 @@ func load(fluidkeysDirectory string, helper fileFunctionsInterface) (*Config, er
 type Config struct {
 	parsedConfig   tomlConfig
 	parsedMetadata toml.MetaData
-	filename       string
+
+	// keyConfigs map[fingerprint.Fingerprint]key
+	filename string
 }
 
 // ShouldStorePasswordForKey returns whether the given key's password should
@@ -54,25 +58,67 @@ type Config struct {
 // password prompts).
 // The default is false.
 func (c *Config) ShouldStorePasswordForKey(fingerprint fingerprint.Fingerprint) bool {
-	if keyConfig, gotConfig := c.getConfig(fingerprint); gotConfig {
-		return keyConfig.StorePassword
-	} else {
-		return defaultStorePassword
-	}
+	return c.getConfig(fingerprint).StorePassword
+}
+
+func (c *Config) SetStorePassword(fingerprint fingerprint.Fingerprint, value bool) error {
+	return c.setProperty(fingerprint, storePassword, value)
 }
 
 // ShouldRotateAutomaticallyForKey returns whether the given key should be
 // rotated in the background. The default is false.
 func (c *Config) ShouldRotateAutomaticallyForKey(fingerprint fingerprint.Fingerprint) bool {
-	if keyConfig, gotConfig := c.getConfig(fingerprint); gotConfig {
-		return keyConfig.RotateAutomatically
-	} else {
-		return defaultRotateAutomatically
+	return c.getConfig(fingerprint).RotateAutomatically
+}
+
+// SetRotateAutomatically sets whether the given key should be rotated in the
+// background.
+func (c *Config) SetRotateAutomatically(fingerprint fingerprint.Fingerprint, value bool) error {
+	return c.setProperty(fingerprint, rotateAutomatically, value)
+}
+
+func (c *Config) setProperty(fingerprint fingerprint.Fingerprint, property keyConfigProperty, value interface{}) error {
+	if c.parsedConfig.PgpKeys == nil { // initialize the map if empty
+		c.parsedConfig.PgpKeys = make(map[string]key)
 	}
+
+	var keyConfig key
+	var inMap bool
+
+	if keyConfig, inMap = c.parsedConfig.PgpKeys[fingerprint.Hex()]; !inMap {
+		keyConfig = defaultKeyConfig()
+	}
+
+	switch property {
+	case storePassword:
+		keyConfig.StorePassword = value.(bool)
+
+	case rotateAutomatically:
+		keyConfig.RotateAutomatically = value.(bool)
+
+	default:
+		return fmt.Errorf("invalid property: %v", property)
+	}
+
+	c.parsedConfig.PgpKeys[fingerprint.Hex()] = keyConfig
+	return c.save()
+}
+
+func (c *Config) save() error {
+	if c.filename == "" {
+		return fmt.Errorf("can't save, empty config filename")
+	}
+	configContent := bytes.NewBuffer(nil)
+	err := c.serialize(configContent)
+	if err != nil {
+		return err
+	}
+	return atomic.WriteFile(c.filename, configContent)
 }
 
 // getConfig returns a `key` struct for the given Fingerprint
-func (c *Config) getConfig(fp fingerprint.Fingerprint) (*key, bool) {
+// If no config is found for the fingerprint, return the default config
+func (c *Config) getConfig(fp fingerprint.Fingerprint) key {
 	keyConfigs := make(map[fingerprint.Fingerprint]key)
 
 	for configFingerprint, keyConfig := range c.parsedConfig.PgpKeys {
@@ -84,8 +130,11 @@ func (c *Config) getConfig(fp fingerprint.Fingerprint) (*key, bool) {
 		keyConfigs[parsedFingerprint] = keyConfig
 	}
 
-	keyConfig, inMap := keyConfigs[fp]
-	return &keyConfig, inMap
+	if keyConfig, inMap := keyConfigs[fp]; inMap {
+		return keyConfig
+	} else {
+		return defaultKeyConfig()
+	}
 }
 
 func parse(r io.Reader) (*Config, error) {
@@ -117,8 +166,28 @@ func parse(r io.Reader) (*Config, error) {
 	return &config, nil
 }
 
+func (c *Config) serialize(w io.Writer) error {
+	w.Write([]byte(defaultConfigFile))
+	encoder := toml.NewEncoder(w)
+	return encoder.Encode(c.parsedConfig)
+}
+
+func defaultKeyConfig() key {
+	return key{
+		StorePassword:       false,
+		RotateAutomatically: false,
+	}
+}
+
+type keyConfigProperty int
+
+const (
+	storePassword keyConfigProperty = iota
+	rotateAutomatically
+)
+
 type tomlConfig struct {
-	PgpKeys map[string]key
+	PgpKeys map[string]key `toml:"pgpkeys"`
 }
 
 type key struct {
@@ -126,16 +195,14 @@ type key struct {
 	RotateAutomatically bool `toml:"rotate_automatically"`
 }
 
-const defaultStorePassword bool = false
-const defaultRotateAutomatically bool = false
 const defaultConfigFile string = `# Fluidkeys default configuration file.
-
-[pgpkeys]
 
 # To prevent the password being saved in the keyring for one of your PGP keys,
 # add the following configuration lines using the key's fingerprint:
 #
-#     [pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
+# [pgpkeys]
+#   [pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
 #     store_password = true
 #     rotate_automatically = true
+
 `
