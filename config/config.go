@@ -43,11 +43,25 @@ type Config struct {
 	parsedMetadata toml.MetaData
 }
 
+// ShouldStorePasswordForKey returns whether the given key's password should
+// be stored in the system keyring when successfully entered (avoiding future
+// password prompts).
+// The default is false.
 func (c *Config) ShouldStorePasswordForKey(fingerprint fingerprint.Fingerprint) bool {
 	if keyConfig, gotConfig := c.getConfig(fingerprint); gotConfig {
 		return keyConfig.StorePassword
 	} else {
 		return defaultStorePassword
+	}
+}
+
+// ShouldRotateAutomaticallyForKey returns whether the given key should be
+// rotated in the background. The default is false.
+func (c *Config) ShouldRotateAutomaticallyForKey(fingerprint fingerprint.Fingerprint) bool {
+	if keyConfig, gotConfig := c.getConfig(fingerprint); gotConfig {
+		return keyConfig.RotateAutomatically
+	} else {
+		return defaultRotateAutomatically
 	}
 }
 
@@ -102,10 +116,12 @@ type tomlConfig struct {
 }
 
 type key struct {
-	StorePassword bool `toml:"store_password"`
+	StorePassword       bool `toml:"store_password"`
+	RotateAutomatically bool `toml:"rotate_automatically"`
 }
 
 const defaultStorePassword bool = false
+const defaultRotateAutomatically bool = false
 const defaultConfigFile string = `# Fluidkeys default configuration file.
 
 [pgpkeys]
@@ -114,5 +130,6 @@ const defaultConfigFile string = `# Fluidkeys default configuration file.
 # add the following configuration lines using the key's fingerprint:
 #
 #     [pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
-#     store_password = false
+#     store_password = true
+#     rotate_automatically = true
 `
