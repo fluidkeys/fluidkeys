@@ -76,9 +76,9 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 		var prompt string
 		switch numberOfActions {
 		case 1:
-			prompt = "     Run this action? [Y/n] "
+			prompt = "     Run this action?"
 		default:
-			prompt = fmt.Sprintf("     Run these %d actions? [Y/n] ", numberOfActions)
+			prompt = fmt.Sprintf("     Run these %d actions?", numberOfActions)
 		}
 
 		if promptYesOrNo(prompt, "y") == false {
@@ -160,7 +160,7 @@ func runImportBackIntoGnupg(keys []*pgpkey.PgpKey, passwords map[fingerprint.Fin
 
 	action := "Backup GnuPG directory (~/.gnupg)"
 
-	if promptYesOrNo("Automatically create backup now? [Y/n] ", "y") == true {
+	if promptYesOrNo("Automatically create backup now?", "y") == true {
 		printCheckboxPending(action)
 		filename, err := makeGnupgBackup()
 		if err != nil {
@@ -174,7 +174,7 @@ func runImportBackIntoGnupg(keys []*pgpkey.PgpKey, passwords map[fingerprint.Fin
 		printCheckboxSkipped(action)
 	}
 
-	if promptYesOrNo("Push all updated keys to GnuPG? [Y/n] ", "y") == false {
+	if promptYesOrNo("Push all updated keys to GnuPG?", "y") == false {
 		printCheckboxSkipped("Imported keys back into GnuPG")
 		success = true
 	} else {
