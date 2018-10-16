@@ -180,6 +180,8 @@ func keyFromGpg() exitCode {
 	}
 
 	db.RecordFingerprintImportedIntoGnuPG(keyToImport.Fingerprint)
+	Config.SetStorePassword(keyToImport.Fingerprint, false)
+	Config.SetRotateAutomatically(keyToImport.Fingerprint, false)
 	fmt.Printf("The key has been linked to Fluidkeys\n")
 	return keyList()
 }
@@ -273,7 +275,11 @@ func keyCreate() exitCode {
 	fmt.Println("The new key has been imported into GnuPG, inspect it with:")
 	fmt.Printf(" > gpg --list-keys '%s'\n", email)
 
-	db.RecordFingerprintImportedIntoGnuPG(generateJob.pgpKey.Fingerprint())
+	fingerprint := generateJob.pgpKey.Fingerprint()
+	db.RecordFingerprintImportedIntoGnuPG(fingerprint)
+	Keyring.SavePassword(fingerprint, password.AsString())
+	Config.SetStorePassword(fingerprint, true)
+	Config.SetRotateAutomatically(fingerprint, true)
 	return 0
 }
 

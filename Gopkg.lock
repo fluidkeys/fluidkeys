@@ -50,6 +50,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/natefinch/atomic"
+  packages = ["."]
+  revision = "a62ce929ffcc871a51e98c6eba7b20321e3ed62d"
+
+[[projects]]
+  branch = "master"
   name = "github.com/sethvargo/go-diceware"
   packages = ["diceware"]
   revision = "2cc4e45af027798e625c3256fc10925eb3f1e5c0"
@@ -69,6 +75,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a39968febe236884b8c2a3e42f02333d33faa77e314923b207e14407e70cd69a"
+  inputs-digest = "82d736b2950dd1c85d3d6c625300124503303d41cb80ec058dc3b287446f506c"
   solver-name = "gps-cdcl"
   solver-version = 1
