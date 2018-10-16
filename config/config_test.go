@@ -93,50 +93,110 @@ func TestLoad(t *testing.T) {
 }
 
 func TestParse(t *testing.T) {
-	str := strings.NewReader(exampleTomlDocument)
-	config, err := parse(str)
-	assert.ErrorIsNil(t, err)
 
-	t.Run("parsedMetadata.IsDefined('keys') should be true", func(t *testing.T) {
-		assert.Equal(t, true, config.parsedMetadata.IsDefined("pgpkeys"))
+	t.Run("with valid example config.toml", func(t *testing.T) {
+		str := strings.NewReader(exampleTomlDocument)
+		config, err := parse(str)
+		assert.ErrorIsNil(t, err)
+		t.Run("parsedMetadata.IsDefined('keys') should be true", func(t *testing.T) {
+			assert.Equal(t, true, config.parsedMetadata.IsDefined("pgpkeys"))
+		})
+
+		t.Run("parsedMetadata.IsDefined('keys', '<fingerprint>') should be true", func(t *testing.T) {
+			assert.Equal(t, true, config.parsedMetadata.IsDefined(
+				"pgpkeys", "AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111",
+			))
+		})
+
+		t.Run("metadata.Undecoded() should be empty", func(t *testing.T) {
+			assert.Equal(t, 0, len(config.parsedMetadata.Undecoded()))
+		})
+
+		t.Run("parsedConfig has 2 PgpKeys", func(t *testing.T) {
+			assert.Equal(t, 2, len(config.parsedConfig.PgpKeys))
+		})
+
+		t.Run("first PgpKey should have store_password=true", func(t *testing.T) {
+			firstKey, inMap := config.parsedConfig.PgpKeys["AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111"]
+
+			if !inMap {
+				t.Fatalf("key wasn't in the map")
+			}
+			assert.Equal(t, true, firstKey.StorePassword)
+		})
+
+		t.Run("first PgpKey should have rotate_automatically=false", func(t *testing.T) {
+			firstKey, inMap := config.parsedConfig.PgpKeys["AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111"]
+
+			if !inMap {
+				t.Fatalf("key wasn't in the map")
+			}
+			assert.Equal(t, false, firstKey.RotateAutomatically)
+		})
 	})
 
-	t.Run("parsedMetadata.IsDefined('keys', '<fingerprint>') should be true", func(t *testing.T) {
-		assert.Equal(t, true, config.parsedMetadata.IsDefined(
-			"pgpkeys", "AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111",
-		))
+	t.Run("return an error if an invalid fingerprint is encountered", func(t *testing.T) {
+		_, err := parse(strings.NewReader(`
+		[pgpkeys]
+		[pgpkeys.invalid-fingerprint]
+		store_password = false
+		`))
+		assert.ErrorIsNotNil(t, err)
 	})
 
-	t.Run("metadata.Undecoded() should be empty", func(t *testing.T) {
-		assert.Equal(t, 0, len(config.parsedMetadata.Undecoded()))
+	t.Run("return an error if an unrecognised config variable is encountered", func(t *testing.T) {
+		_, err := parse(strings.NewReader(`
+		[pgpkeys]
+		[pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
+		unrecognised_option = false
+		`))
+		assert.ErrorIsNotNil(t, err)
+		assert.Equal(t, "encountered unrecognised config keys: [pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111.unrecognised_option]", err.Error())
 	})
+}
 
-	t.Run("parsedConfig has 2 PgpKeys", func(t *testing.T) {
-		assert.Equal(t, 2, len(config.parsedConfig.PgpKeys))
+func TestGetConfig(t *testing.T) {
+	fingerprint := fingerprint.MustParse("AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111")
+
+	t.Run("getConfig recognises 0xAAAA... fingerprint format", func(t *testing.T) {
+		config, err := parse(strings.NewReader(`
+		[pgpkeys]
+		[pgpkeys.0xAAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
+		store_password = false
+		`))
+		assert.ErrorIsNil(t, err)
+
+		_, gotConfig := config.getConfig(fingerprint)
+
+		assert.ErrorIsNil(t, err)
+		assert.Equal(t, true, gotConfig)
 	})
+	t.Run("getConfig recognises 'AAAA 1111...' fingerprint format", func(t *testing.T) {
+		config, err := parse(strings.NewReader(`
+		[pgpkeys]
+		[pgpkeys."AAAA 1111 AAAA 1111 AAAA 1111 AAAA 1111 AAAA 1111"]
+		store_password = false
+		`))
+		assert.ErrorIsNil(t, err)
 
-	t.Run("first PgpKey should have store_password=true", func(t *testing.T) {
-		firstKey, inMap := config.parsedConfig.PgpKeys["AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111"]
+		_, gotConfig := config.getConfig(fingerprint)
 
-		if !inMap {
-			t.Fatalf("key wasn't in the map")
-		}
-		assert.Equal(t, true, firstKey.StorePassword)
+		assert.ErrorIsNil(t, err)
+		assert.Equal(t, true, gotConfig)
 	})
-
 }
 
 func TestShouldStorePasswordInKeyring(t *testing.T) {
-	fingerprint := fingerprint.MustParse("AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111")
+	testFingerprint := fingerprint.MustParse("AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111")
 
-	t.Run("default to true for missing whole [keys] table", func(t *testing.T) {
+	t.Run("default to false for missing whole [pgpkeys] table", func(t *testing.T) {
 		config, err := parse(strings.NewReader(""))
 		assert.ErrorIsNil(t, err)
 
-		got := config.ShouldStorePasswordForKey(fingerprint)
-		assert.Equal(t, true, got)
+		got := config.ShouldStorePasswordForKey(testFingerprint)
+		assert.Equal(t, false, got)
 	})
-	t.Run("default to true for missing key fingerprint", func(t *testing.T) {
+	t.Run("default to false for missing key fingerprint", func(t *testing.T) {
 		config, err := parse(strings.NewReader(`
 		[pgpkeys]
 		[pgpkeys.0000000000000000000000000000000000000000]
@@ -144,19 +204,19 @@ func TestShouldStorePasswordInKeyring(t *testing.T) {
 		`))
 		assert.ErrorIsNil(t, err)
 
-		got := config.ShouldStorePasswordForKey(fingerprint)
-		assert.Equal(t, true, got)
+		got := config.ShouldStorePasswordForKey(testFingerprint)
+		assert.Equal(t, false, got)
 	})
 
-	t.Run("default to true for missing store_password key", func(t *testing.T) {
+	t.Run("default to false for missing store_password key", func(t *testing.T) {
 		config, err := parse(strings.NewReader(`
 		[pgpkeys]
 		[pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
 		`))
 		assert.ErrorIsNil(t, err)
 
-		got := config.ShouldStorePasswordForKey(fingerprint)
-		assert.Equal(t, true, got)
+		got := config.ShouldStorePasswordForKey(testFingerprint)
+		assert.Equal(t, false, got)
 	})
 
 	t.Run("return false if store_password key is false", func(t *testing.T) {
@@ -167,7 +227,7 @@ func TestShouldStorePasswordInKeyring(t *testing.T) {
 		`))
 		assert.ErrorIsNil(t, err)
 
-		got := config.ShouldStorePasswordForKey(fingerprint)
+		got := config.ShouldStorePasswordForKey(testFingerprint)
 		assert.Equal(t, false, got)
 	})
 
@@ -179,7 +239,65 @@ func TestShouldStorePasswordInKeyring(t *testing.T) {
 		`))
 		assert.ErrorIsNil(t, err)
 
-		got := config.ShouldStorePasswordForKey(fingerprint)
+		got := config.ShouldStorePasswordForKey(testFingerprint)
+		assert.Equal(t, true, got)
+	})
+}
+
+func TestShouldRotateAutomaticallyInKeyring(t *testing.T) {
+	testFingerprint := fingerprint.MustParse("AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111")
+
+	t.Run("default to false for missing whole [pgpkeys] table", func(t *testing.T) {
+		config, err := parse(strings.NewReader(""))
+		assert.ErrorIsNil(t, err)
+
+		got := config.ShouldRotateAutomaticallyForKey(testFingerprint)
+		assert.Equal(t, false, got)
+	})
+	t.Run("default to false for missing key fingerprint", func(t *testing.T) {
+		config, err := parse(strings.NewReader(`
+		[pgpkeys]
+		[pgpkeys.0000000000000000000000000000000000000000]
+		rotate_automatically = false
+		`))
+		assert.ErrorIsNil(t, err)
+
+		got := config.ShouldRotateAutomaticallyForKey(testFingerprint)
+		assert.Equal(t, false, got)
+	})
+
+	t.Run("default to false for missing rotate_automatically key", func(t *testing.T) {
+		config, err := parse(strings.NewReader(`
+		[pgpkeys]
+		[pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
+		`))
+		assert.ErrorIsNil(t, err)
+
+		got := config.ShouldRotateAutomaticallyForKey(testFingerprint)
+		assert.Equal(t, false, got)
+	})
+
+	t.Run("return false if rotate_automatically key is false", func(t *testing.T) {
+		config, err := parse(strings.NewReader(`
+		[pgpkeys]
+		[pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
+		rotate_automatically = false
+		`))
+		assert.ErrorIsNil(t, err)
+
+		got := config.ShouldRotateAutomaticallyForKey(testFingerprint)
+		assert.Equal(t, false, got)
+	})
+
+	t.Run("return true if rotate_automatically key is true", func(t *testing.T) {
+		config, err := parse(strings.NewReader(`
+		[pgpkeys]
+		[pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
+		rotate_automatically = true
+		`))
+		assert.ErrorIsNil(t, err)
+
+		got := config.ShouldRotateAutomaticallyForKey(testFingerprint)
 		assert.Equal(t, true, got)
 	})
 }
@@ -228,7 +346,9 @@ const exampleTomlDocument string = `
 [pgpkeys]
     [pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
     store_password = true
+    rotate_automatically = false
     
     [pgpkeys.BBBB2222BBBB2222BBBB2222BBBB2222BBBB2222]
     store_password = false
+    rotate_automatically = false
 `
