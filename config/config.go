@@ -44,15 +44,28 @@ type Config struct {
 }
 
 func (c *Config) ShouldStorePasswordForKey(fingerprint fingerprint.Fingerprint) bool {
-	fp := fingerprint.Hex()
-
-	if c.parsedMetadata.IsDefined("pgpkeys", fp, "store_password") {
-		return c.parsedConfig.PgpKeys[fp].StorePassword
+	if keyConfig, gotConfig := c.getConfig(fingerprint); gotConfig {
+		return keyConfig.StorePassword
 	} else {
-		// fmt.Printf("slug '%s' *not* defined: %v\n", fp, c.parsedConfig)
-		// PgpKey's fingerprint wasn't in the config file
-		return true
+		return defaultStorePassword
 	}
+}
+
+// getConfig returns a `key` struct for the given Fingerprint
+func (c *Config) getConfig(fp fingerprint.Fingerprint) (*key, bool) {
+	keyConfigs := make(map[fingerprint.Fingerprint]key)
+
+	for configFingerprint, keyConfig := range c.parsedConfig.PgpKeys {
+		parsedFingerprint, err := fingerprint.Parse(configFingerprint)
+		if err != nil {
+			panic(fmt.Errorf("got invalid openpgp fingerprint: '%s'", configFingerprint))
+		}
+
+		keyConfigs[parsedFingerprint] = keyConfig
+	}
+
+	keyConfig, inMap := keyConfigs[fp]
+	return &keyConfig, inMap
 }
 
 func parse(r io.Reader) (*Config, error) {
@@ -61,6 +74,20 @@ func parse(r io.Reader) (*Config, error) {
 
 	if err != nil {
 		return nil, fmt.Errorf("error in toml.DecodeReader: %v", err)
+	}
+
+	// validate fingerprints
+	for configFingerprint, _ := range parsedConfig.PgpKeys {
+		_, err := fingerprint.Parse(configFingerprint)
+		if err != nil {
+			return nil, fmt.Errorf("got invalid openpgp fingerprint: '%s'", configFingerprint)
+		}
+	}
+
+	if len(metadata.Undecoded()) > 0 {
+		// found config variables that we don't know how to match to
+		// the tomlConfig structure
+		return nil, fmt.Errorf("encountered unrecognised config keys: %v", metadata.Undecoded())
 	}
 
 	config := Config{
@@ -78,6 +105,7 @@ type key struct {
 	StorePassword bool `toml:"store_password"`
 }
 
+const defaultStorePassword bool = false
 const defaultConfigFile string = `# Fluidkeys default configuration file.
 
 [pgpkeys]
