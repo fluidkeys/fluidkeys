@@ -249,8 +249,8 @@ func (g *GnuPG) run(arguments ...string) (string, error) {
 	out, err := exec.Command(GpgPath, fullArguments...).CombinedOutput()
 
 	if err != nil {
-		error := ErrProblemExecutingGPG(string(out), fullArguments...)
-		return "", error
+		err := ErrProblemExecutingGPG(string(out), fullArguments...)
+		return "", err
 	}
 	outString := string(out)
 	return outString, nil
