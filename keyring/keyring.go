@@ -2,7 +2,7 @@ package keyring
 
 import (
 	"fmt"
-	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"github.com/fluidkeys/fluidkeys/fingerprint"
 	externalkeyring "github.com/fluidkeys/keyring"
 )
 
@@ -32,15 +32,15 @@ type Keyring struct {
 
 // SavePassword stores the given password in the keyring against the key and
 // returns any error encountered in the underlying keyring.
-func (k *Keyring) SavePassword(key *pgpkey.PgpKey, password string) error {
+func (k *Keyring) SavePassword(fp fingerprint.Fingerprint, password string) error {
 	if k.noBackend {
 		return nil
 	}
 
 	return k.realKeyring.Set(
 		externalkeyring.Item{
-			Key:   makeKeyringKey(key),
-			Label: makeKeyringLabel(key),
+			Key:   makeKeyringKey(fp),
+			Label: makeKeyringLabel(fp),
 			Data:  []byte(password),
 		},
 	)
@@ -48,12 +48,12 @@ func (k *Keyring) SavePassword(key *pgpkey.PgpKey, password string) error {
 
 // LoadPassword attempts to load a password from the keyring for the given key
 // and returns (password, gotPassword).
-func (k *Keyring) LoadPassword(key *pgpkey.PgpKey) (password string, gotPassword bool) {
+func (k *Keyring) LoadPassword(fp fingerprint.Fingerprint) (password string, gotPassword bool) {
 	if k.noBackend {
 		return "", false
 	}
 
-	item, err := k.realKeyring.Get(makeKeyringKey(key))
+	item, err := k.realKeyring.Get(makeKeyringKey(fp))
 	if err != nil {
 		if isNotFoundError(err) {
 			return "", false
@@ -71,12 +71,12 @@ func (k *Keyring) LoadPassword(key *pgpkey.PgpKey) (password string, gotPassword
 // encounters one with the underlying keyring.
 // If the keyring announces the key wasn't found, PurgePassword swallows
 // that particular error.
-func (k *Keyring) PurgePassword(key *pgpkey.PgpKey) error {
+func (k *Keyring) PurgePassword(fp fingerprint.Fingerprint) error {
 	if k.noBackend {
 		return nil
 	}
 
-	err := k.realKeyring.Remove(makeKeyringKey(key))
+	err := k.realKeyring.Remove(makeKeyringKey(fp))
 	if err != nil && !isNotFoundError(err) {
 		// ignore the is-not-found error since it means the password
 		// is already purged
@@ -89,12 +89,12 @@ func isNotFoundError(err error) bool {
 	return err == externalkeyring.ErrKeyNotFound
 }
 
-func makeKeyringKey(key *pgpkey.PgpKey) string {
-	return fmt.Sprintf("fluidkeys.pgpkey.%s", key.Fingerprint().Hex())
+func makeKeyringKey(fp fingerprint.Fingerprint) string {
+	return fmt.Sprintf("fluidkeys.pgpkey.%s", fp.Hex())
 }
 
-func makeKeyringLabel(key *pgpkey.PgpKey) string {
-	return fmt.Sprintf("Fluidkeys password for PGP key %s", key.Fingerprint().Hex())
+func makeKeyringLabel(fp fingerprint.Fingerprint) string {
+	return fmt.Sprintf("Fluidkeys password for PGP key %s", fp.Hex())
 }
 
 const keyringServiceName string = "login"

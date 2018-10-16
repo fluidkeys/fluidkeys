@@ -15,11 +15,11 @@ func getDecryptedPrivateKeyAndPassword(publicKey *pgpkey.PgpKey) (*pgpkey.PgpKey
 	shouldStore := Config.ShouldStorePasswordForKey(publicKey.Fingerprint())
 
 	if shouldStore {
-		if loadedPassword, gotPassword := Keyring.LoadPassword(publicKey); gotPassword == true {
+		if loadedPassword, gotPassword := Keyring.LoadPassword(publicKey.Fingerprint()); gotPassword == true {
 			return tryPassword(loadedPassword, publicKey, shouldStore, 0)
 		} // else fall-through to prompting
 	} else {
-		Keyring.PurgePassword(publicKey)
+		Keyring.PurgePassword(publicKey.Fingerprint())
 	}
 
 	return tryPassword(getPassword(publicKey), publicKey, shouldStore, 0)
@@ -28,7 +28,7 @@ func getDecryptedPrivateKeyAndPassword(publicKey *pgpkey.PgpKey) (*pgpkey.PgpKey
 func tryPassword(password string, publicKey *pgpkey.PgpKey, shouldStore bool, attempt int) (*pgpkey.PgpKey, string, error) {
 	if privateKey, err := loadPrivateKey(publicKey.Fingerprint(), password, &gpg, &pgpkey.Loader{}); err == nil {
 		if shouldStore {
-			Keyring.SavePassword(publicKey, password)
+			Keyring.SavePassword(publicKey.Fingerprint(), password)
 		}
 		return privateKey, password, nil
 
