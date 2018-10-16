@@ -35,12 +35,18 @@ func load(fluidkeysDirectory string, helper fileFunctionsInterface) (*Config, er
 	if err != nil {
 		return nil, fmt.Errorf("error reading %s: %v", configFilename, err)
 	}
-	return parse(f)
+	config, err := parse(f)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing %s: %v", configFilename, err)
+	}
+	config.filename = configFilename
+	return config, nil
 }
 
 type Config struct {
 	parsedConfig   tomlConfig
 	parsedMetadata toml.MetaData
+	filename       string
 }
 
 // ShouldStorePasswordForKey returns whether the given key's password should

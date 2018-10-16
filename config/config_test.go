@@ -34,8 +34,12 @@ func TestLoad(t *testing.T) {
 			OsOpenReturnError: nil,
 			TomlContents:      exampleTomlDocument,
 		}
-		_, err := load("/tmp/", &mockFileHelper)
+		config, err := load("/tmp/", &mockFileHelper)
 		assert.ErrorIsNil(t, err)
+
+		t.Run("Config has filename set correctly", func(t *testing.T) {
+			assert.Equal(t, "/tmp/config.toml", config.filename)
+		})
 	})
 
 	t.Run("load successfully if file is missing but was created OK", func(t *testing.T) {
