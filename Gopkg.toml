@@ -48,3 +48,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/fluidkeys/keyring"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/natefinch/atomic"
