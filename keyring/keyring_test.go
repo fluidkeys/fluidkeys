@@ -9,12 +9,41 @@ import (
 )
 
 func TestLoad(t *testing.T) {
+	exampleKey, err := pgpkey.LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey3, "test3")
+	assert.ErrorIsNil(t, err)
+
 	t.Run("Load returns a keyring", func(t *testing.T) {
 		keyring, err := Load()
 		assert.ErrorIsNil(t, err)
 		if keyring == nil {
 			t.Fatalf("Load returned a nil Keyring")
 		}
+	})
+
+	t.Run("if there are no underlying backends, load returns a dummy keyring", func(t *testing.T) {
+		noBackends := []externalkeyring.BackendType{}
+		keyring, err := load(noBackends)
+
+		assert.ErrorIsNil(t, err)
+		if keyring == nil {
+			t.Fatalf("Load returned a nil Keyring")
+		}
+
+		t.Run("dummy SavePassword returns nil error", func(t *testing.T) {
+			err := keyring.SavePassword(exampleKey, "foo")
+			assert.ErrorIsNil(t, err)
+		})
+
+		t.Run("dummy LoadPassword returns nil error", func(t *testing.T) {
+			_, gotPassword := keyring.LoadPassword(exampleKey)
+			assert.Equal(t, false, gotPassword)
+		})
+
+		t.Run("dummy PurgePassword returns nil error", func(t *testing.T) {
+			err := keyring.PurgePassword(exampleKey)
+			assert.ErrorIsNil(t, err)
+		})
+
 	})
 }
 

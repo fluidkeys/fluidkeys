@@ -9,28 +9,34 @@ import (
 // Load initialises the underlying keyring and returns a Keyring which provides
 // accessor methods.
 func Load() (*Keyring, error) {
+	return load(externalkeyring.AvailableBackends())
+}
+
+func load(allowedBackends []externalkeyring.BackendType) (*Keyring, error) {
 	ring, err := externalkeyring.Open(externalkeyring.Config{
-		ServiceName: keyringServiceName,
+		ServiceName:     keyringServiceName,
+		AllowedBackends: allowedBackends,
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to open keyring: %v", err)
+		return &Keyring{noBackend: true}, nil
 	}
 
-	keyring := Keyring{
-		realKeyring: ring,
-	}
-
-	return &keyring, nil
+	return &Keyring{realKeyring: ring, noBackend: false}, nil
 }
 
 type Keyring struct {
 	realKeyring externalkeyring.Keyring
+	noBackend   bool // if true, all calls just return nothing
 }
 
 // SavePassword stores the given password in the keyring against the key and
 // returns any error encountered in the underlying keyring.
 func (k *Keyring) SavePassword(key *pgpkey.PgpKey, password string) error {
+	if k.noBackend {
+		return nil
+	}
+
 	return k.realKeyring.Set(
 		externalkeyring.Item{
 			Key:   makeKeyringKey(key),
@@ -43,6 +49,10 @@ func (k *Keyring) SavePassword(key *pgpkey.PgpKey, password string) error {
 // LoadPassword attempts to load a password from the keyring for the given key
 // and returns (password, gotPassword).
 func (k *Keyring) LoadPassword(key *pgpkey.PgpKey) (password string, gotPassword bool) {
+	if k.noBackend {
+		return "", false
+	}
+
 	item, err := k.realKeyring.Get(makeKeyringKey(key))
 	if err != nil {
 		if isNotFoundError(err) {
@@ -62,6 +72,10 @@ func (k *Keyring) LoadPassword(key *pgpkey.PgpKey) (password string, gotPassword
 // If the keyring announces the key wasn't found, PurgePassword swallows
 // that particular error.
 func (k *Keyring) PurgePassword(key *pgpkey.PgpKey) error {
+	if k.noBackend {
+		return nil
+	}
+
 	err := k.realKeyring.Remove(makeKeyringKey(key))
 	if err != nil && !isNotFoundError(err) {
 		// ignore the is-not-found error since it means the password
