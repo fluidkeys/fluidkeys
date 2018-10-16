@@ -21,6 +21,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 	"github.com/fluidkeys/fluidkeys/humanize"
+	"github.com/fluidkeys/fluidkeys/keyring"
 	"github.com/fluidkeys/fluidkeys/keytableprinter"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 
@@ -48,6 +49,7 @@ var (
 	fluidkeysDirectory string
 	db                 database.Database
 	Config             config.Config
+	Keyring            keyring.Keyring
 )
 
 type DicewarePassword struct {
@@ -80,6 +82,14 @@ func init() {
 		os.Exit(2)
 	} else {
 		Config = *configPointer
+	}
+
+	keyringPointer, err := keyring.Load()
+	if err != nil {
+		fmt.Printf("Failed to load keyring: %v\n", err)
+		os.Exit(3)
+	} else {
+		Keyring = *keyringPointer
 	}
 
 	db = database.New(fluidkeysDirectory)

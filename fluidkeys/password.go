@@ -12,22 +12,46 @@ import (
 // provided.
 // If the password is incorrect, it loops until they get it right.
 func getDecryptedPrivateKeyAndPassword(publicKey *pgpkey.PgpKey) (*pgpkey.PgpKey, string, error) {
-	for {
-		password := getPassword(publicKey)
-		privateKey, err := loadPrivateKey(publicKey.Fingerprint(), password, &gpg, &pgpkey.Loader{})
+	shouldStore := Config.ShouldStorePasswordForKey(publicKey.Fingerprint())
 
-		if err != nil {
-			if _, ok := err.(*decryptError); ok {
-				fmt.Printf("Password appeared to be incorrect.\n")
-				continue
-			} else {
-				// different type of error
-				return nil, "", fmt.Errorf("error loading private key: %v", err)
-			}
-		}
-
-		return privateKey, password, nil
+	if shouldStore {
+		if loadedPassword, gotPassword := Keyring.LoadPassword(publicKey.Fingerprint()); gotPassword == true {
+			return tryPassword(loadedPassword, publicKey, shouldStore, 0)
+		} // else fall-through to prompting
+	} else {
+		Keyring.PurgePassword(publicKey.Fingerprint())
 	}
+
+	return tryPassword(getPassword(publicKey), publicKey, shouldStore, 0)
+}
+
+func tryPassword(password string, publicKey *pgpkey.PgpKey, shouldStore bool, attempt int) (*pgpkey.PgpKey, string, error) {
+	if privateKey, err := loadPrivateKey(publicKey.Fingerprint(), password, &gpg, &pgpkey.Loader{}); err == nil {
+		if shouldStore {
+			Keyring.SavePassword(publicKey.Fingerprint(), password)
+		}
+		return privateKey, password, nil
+
+	} else if isBadPasswordError(err) {
+		fmt.Printf("Password appeared to be incorrect.\n")
+
+		if attempt < 5 {
+			return tryPassword(getPassword(publicKey), publicKey, shouldStore, attempt+1)
+		} else {
+			return nil, "", fmt.Errorf("Giving up.")
+		}
+	} else {
+		// different type of error
+		return nil, "", fmt.Errorf("error loading private key: %v", err)
+	}
+}
+
+func isBadPasswordError(err error) bool {
+	switch err {
+	case err.(*IncorrectPassword):
+		return true
+	}
+	return false
 }
 
 // getPassword asks the user for a password and returns the result
