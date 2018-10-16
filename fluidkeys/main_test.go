@@ -58,7 +58,7 @@ func TestPromptForInput(t *testing.T) {
 
 		fakeStdin := bufio.NewReader(strings.NewReader(typedInput))
 
-		actualReturn := promptForInputWithPipes(" [name] : ", fakeStdin)
+		actualReturn := promptForInputWithPipes(" [name] : ", fakeStdin, "")
 
 		if actualReturn != expectedReturn {
 			t.Errorf("expected '%s', got '%s'", expectedReturn, actualReturn)

@@ -76,12 +76,12 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 		var prompt string
 		switch numberOfActions {
 		case 1:
-			prompt = "     Run this action? [Y/n] "
+			prompt = "     Run this action?"
 		default:
-			prompt = fmt.Sprintf("     Run these %d actions? [Y/n] ", numberOfActions)
+			prompt = fmt.Sprintf("     Run these %d actions?", numberOfActions)
 		}
 
-		if promptYesOrNo(prompt, true) == false {
+		if promptYesOrNo(prompt, "y") == false {
 			fmt.Print(colour.Disabled(" ▸   OK, skipped.\n\n"))
 			continue // next key
 		}
@@ -107,6 +107,13 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 		} else {
 			fmt.Printf(colour.Success(" ▸   Successfully updated keys for " + displayName(key) + "\n\n"))
 			keysModifiedSuccessfully = append(keysModifiedSuccessfully, key)
+			if promptYesOrNo("Automatically rotate this key from now on?", "") == true {
+				Config.SetStorePassword(key.Fingerprint(), true)
+				Config.SetRotateAutomatically(key.Fingerprint(), true)
+				fmt.Print(colour.Success(" ▸   Successfully configured key to automatically rotate\n\n"))
+			} else {
+				fmt.Print(colour.Disabled(" ▸   OK, skipped.\n\n"))
+			}
 			passwords[key.Fingerprint()] = password
 		}
 	}
@@ -160,7 +167,7 @@ func runImportBackIntoGnupg(keys []*pgpkey.PgpKey, passwords map[fingerprint.Fin
 
 	action := "Backup GnuPG directory (~/.gnupg)"
 
-	if promptYesOrNo("Automatically create backup now? [Y/n] ", true) == true {
+	if promptYesOrNo("Automatically create backup now?", "y") == true {
 		printCheckboxPending(action)
 		filename, err := makeGnupgBackup()
 		if err != nil {
@@ -174,7 +181,7 @@ func runImportBackIntoGnupg(keys []*pgpkey.PgpKey, passwords map[fingerprint.Fin
 		printCheckboxSkipped(action)
 	}
 
-	if promptYesOrNo("Push all updated keys to GnuPG? [Y/n] ", true) == false {
+	if promptYesOrNo("Push all updated keys to GnuPG?", "y") == false {
 		printCheckboxSkipped("Imported keys back into GnuPG")
 		success = true
 	} else {
