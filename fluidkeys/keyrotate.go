@@ -113,11 +113,11 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 				fmt.Print("Fluidkeys can configure a " + colour.CommandLineCode("cron") + " task to automatically rotate this key for you from now on ♻️\n")
 				fmt.Print("To do this requires storing the key's password in your operating system's keyring.\n\n")
 				if promptYesOrNo("Automatically rotate this key from now on?", "") == true {
-					Keyring.SavePassword(key.Fingerprint(), password)
-					Config.SetStorePassword(key.Fingerprint(), true)
-					Config.SetRotateAutomatically(key.Fingerprint(), true)
-					scheduler.Enable()
-					fmt.Print(colour.Success(" ▸   Successfully configured key to automatically rotate\n\n"))
+					if err := tryEnableRotateAutomatically(key, password); err == nil {
+						fmt.Print(colour.Success(" ▸   Successfully configured key to automatically rotate\n\n"))
+					} else {
+						fmt.Print(colour.Warning(" ▸   Failed to configure key to automatically rotate\n\n"))
+					}
 				} else {
 					fmt.Print(colour.Disabled(" ▸   OK, skipped.\n\n"))
 				}
@@ -300,6 +300,24 @@ func makeKeyWarningsAndActions(
 	header += "\n"
 
 	return
+}
+
+func tryEnableRotateAutomatically(key *pgpkey.PgpKey, password string) (err error) {
+	if err = Keyring.SavePassword(key.Fingerprint(), password); err != nil {
+		return
+	}
+
+	if err = Config.SetStorePassword(key.Fingerprint(), true); err != nil {
+		return
+	}
+	if err = Config.SetRotateAutomatically(key.Fingerprint(), true); err != nil {
+		return
+	}
+
+	if _, err = scheduler.Enable(); err != nil {
+		return
+	}
+	return nil
 }
 
 func moveCursorUpLines(numLines int) {
