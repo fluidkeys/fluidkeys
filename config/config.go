@@ -53,6 +53,10 @@ type Config struct {
 	filename string
 }
 
+func (c *Config) GetFilename() string {
+	return c.filename
+}
+
 // ShouldStorePasswordForKey returns whether the given key's password should
 // be stored in the system keyring when successfully entered (avoiding future
 // password prompts).
