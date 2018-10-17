@@ -11,6 +11,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"github.com/fluidkeys/fluidkeys/scheduler"
 	"github.com/fluidkeys/fluidkeys/status"
 )
 
@@ -115,6 +116,7 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 					Keyring.SavePassword(key.Fingerprint(), password)
 					Config.SetStorePassword(key.Fingerprint(), true)
 					Config.SetRotateAutomatically(key.Fingerprint(), true)
+					scheduler.Enable()
 					fmt.Print(colour.Success(" ▸   Successfully configured key to automatically rotate\n\n"))
 				} else {
 					fmt.Print(colour.Disabled(" ▸   OK, skipped.\n\n"))
