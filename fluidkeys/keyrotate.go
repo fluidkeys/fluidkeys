@@ -107,6 +107,19 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 		} else {
 			fmt.Printf(colour.Success(" ▸   Successfully updated keys for " + displayName(key) + "\n\n"))
 			keysModifiedSuccessfully = append(keysModifiedSuccessfully, key)
+
+			if Config.ShouldRotateAutomaticallyForKey(key.Fingerprint()) == false {
+				fmt.Print("Fluidkeys can configure a " + colour.CommandLineCode("cron") + " task to automatically rotate this key for you from now on ♻️\n")
+				fmt.Print("To do this requires storing the key's password in your operating system's keyring.\n\n")
+				if promptYesOrNo("Automatically rotate this key from now on?", "") == true {
+					Keyring.SavePassword(key.Fingerprint(), password)
+					Config.SetStorePassword(key.Fingerprint(), true)
+					Config.SetRotateAutomatically(key.Fingerprint(), true)
+					fmt.Print(colour.Success(" ▸   Successfully configured key to automatically rotate\n\n"))
+				} else {
+					fmt.Print(colour.Disabled(" ▸   OK, skipped.\n\n"))
+				}
+			}
 			passwords[key.Fingerprint()] = password
 		}
 	}
