@@ -57,6 +57,18 @@ func (c *Config) GetFilename() string {
 	return c.filename
 }
 
+func (c *Config) RunFromCron() bool {
+	if !c.parsedMetadata.IsDefined("run_from_cron") {
+		c.parsedConfig.RunFromCron = defaultRunFromCron
+		err := c.save()
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return c.parsedConfig.RunFromCron
+}
+
 // ShouldStorePasswordForKey returns whether the given key's password should
 // be stored in the system keyring when successfully entered (avoiding future
 // password prompts).
@@ -191,7 +203,8 @@ const (
 )
 
 type tomlConfig struct {
-	PgpKeys map[string]key `toml:"pgpkeys"`
+	RunFromCron bool           `toml:"run_from_cron"`
+	PgpKeys     map[string]key `toml:"pgpkeys"`
 }
 
 type key struct {
@@ -199,6 +212,7 @@ type key struct {
 	RotateAutomatically bool `toml:"rotate_automatically"`
 }
 
+const defaultRunFromCron = true
 const defaultConfigFile string = `# Fluidkeys default configuration file.
 
 # To prevent the password being saved in the keyring for one of your PGP keys,
