@@ -24,6 +24,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/keyring"
 	"github.com/fluidkeys/fluidkeys/keytableprinter"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"github.com/fluidkeys/fluidkeys/scheduler"
 
 	"github.com/sethvargo/go-diceware/diceware"
 )
@@ -83,6 +84,7 @@ func init() {
 	} else {
 		Config = *configPointer
 	}
+	initScheduler()
 
 	keyringPointer, err := keyring.Load()
 	if err != nil {
@@ -94,6 +96,28 @@ func init() {
 
 	db = database.New(fluidkeysDirectory)
 	gpg = gpgwrapper.GnuPG{}
+}
+
+func initScheduler() {
+	if Config.RunFromCron() {
+		crontabWasAdded, err := scheduler.Enable()
+		if err != nil {
+			panic(err)
+		}
+
+		if crontabWasAdded {
+			printInfo(fmt.Sprintf("Added Fluidkeys to crontab.  Edit %s to remove.", Config.GetFilename()))
+		}
+	} else {
+		crontabWasRemoved, err := scheduler.Disable()
+		if err != nil {
+			panic(err)
+		}
+
+		if crontabWasRemoved {
+			printInfo(fmt.Sprintf("Removed Fluidkeys from crontab.  Edit %s to add again.", Config.GetFilename()))
+		}
+	}
 }
 
 func main() {
