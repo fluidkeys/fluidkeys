@@ -239,7 +239,7 @@ func keyCreate() exitCode {
 	if !gpg.IsWorking() {
 		fmt.Print(colour.Warning("\n" + GPGMissing + "\n"))
 		fmt.Print(ContinueWithoutGPG + "\n")
-		promptForInput("Press enter to continue. ", "")
+		promptForInput("Press enter to continue. ")
 	}
 	email := promptForEmail()
 	channel := make(chan generatePgpKeyResult)
@@ -362,7 +362,7 @@ func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing
 		invalidEntry := fmt.Sprintf("Please select between 1 and %v.\n", len(secretKeyListings))
 		for validInput := false; !validInput; {
 			rangePrompt := colour.Info(fmt.Sprintf("[1-%v]", len(secretKeyListings)))
-			input := promptForInput(fmt.Sprintf(PromptWhichKeyFromGPG+" "+rangePrompt+" "), "")
+			input := promptForInput(fmt.Sprintf(PromptWhichKeyFromGPG + " " + rangePrompt + " "))
 			if integerSelected, err := strconv.Atoi(input); err != nil {
 				fmt.Print(invalidEntry)
 			} else {
@@ -378,18 +378,28 @@ func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing
 	}
 }
 
+// promptYesOrNo displays the `message` prompt followed by an options string,
+// e.g. [Y/n] based on defaultInput.
+// defaultInput must be one of "y", "n" or ""
 func promptYesOrNo(message string, defaultInput string) bool {
+	var options string
+	switch strings.ToLower(defaultInput) {
+	case "y":
+		options = "[Y/n]"
+	case "n":
+		options = "[y/N]"
+	default:
+		options = "[y/n]"
+	}
+
+	messageWithOptions := message + " " + options + " "
+
 	for {
-		var options string
-		switch strings.ToLower(defaultInput) {
-		case "y":
-			options = "[Y/n]"
-		case "n":
-			options = "[y/N]"
-		default:
-			options = "[y/n]"
+		input := promptForInput(messageWithOptions)
+		if input == "" {
+			input = defaultInput
 		}
-		input := promptForInput(message+" "+options+" ", defaultInput)
+
 		switch strings.ToLower(input) {
 		case "y":
 			return true
@@ -401,28 +411,23 @@ func promptYesOrNo(message string, defaultInput string) bool {
 	}
 }
 
-func promptForInputWithPipes(prompt string, reader *bufio.Reader, defaultInput string) string {
+func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
 	fmt.Print(prompt)
 	response, err := reader.ReadString('\n')
 	if err != nil {
 		panic(err)
 	}
 	fmt.Print("\n")
-	input := strings.TrimRight(response, "\n")
-	if input != "" {
-		return input
-	} else {
-		return defaultInput
-	}
+	return strings.TrimRight(response, "\n")
 }
 
-func promptForInput(prompt string, defaultInput string) string {
-	return promptForInputWithPipes(prompt, bufio.NewReader(os.Stdin), defaultInput)
+func promptForInput(prompt string) string {
+	return promptForInputWithPipes(prompt, bufio.NewReader(os.Stdin))
 }
 
 func promptForEmail() string {
 	fmt.Print(PromptEmail + "\n")
-	return promptForInput("[email] : ", "")
+	return promptForInput("[email] : ")
 }
 
 func generatePassword(numberOfWords int, separator string) DicewarePassword {
@@ -436,7 +441,7 @@ func displayPassword(message string, password DicewarePassword) {
 	fmt.Print(message + "\n")
 	fmt.Print("  " + colour.Info(password.AsString()) + "\n\n")
 
-	promptForInput("Press enter when you've written it down. ", "")
+	promptForInput("Press enter when you've written it down. ")
 }
 
 func userConfirmedRandomWord(password DicewarePassword) bool {
@@ -447,7 +452,7 @@ func userConfirmedRandomWord(password DicewarePassword) bool {
 	wordOrdinal := humanize.Ordinal(randomIndex + 1)
 
 	fmt.Printf("Enter the %s word from your password\n\n", wordOrdinal)
-	givenWord := promptForInput("["+wordOrdinal+" word] : ", "")
+	givenWord := promptForInput("[" + wordOrdinal + " word] : ")
 	return givenWord == correctWord
 }
 
