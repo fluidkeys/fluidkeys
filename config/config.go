@@ -57,6 +57,18 @@ func (c *Config) GetFilename() string {
 	return c.filename
 }
 
+func (c *Config) RunFromCron() bool {
+	if !c.parsedMetadata.IsDefined("run_from_cron") {
+		c.parsedConfig.RunFromCron = defaultRunFromCron
+		err := c.save()
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return c.parsedConfig.RunFromCron
+}
+
 // ShouldStorePasswordForKey returns whether the given key's password should
 // be stored in the system keyring when successfully entered (avoiding future
 // password prompts).
@@ -191,7 +203,8 @@ const (
 )
 
 type tomlConfig struct {
-	PgpKeys map[string]key `toml:"pgpkeys"`
+	RunFromCron bool           `toml:"run_from_cron"`
+	PgpKeys     map[string]key `toml:"pgpkeys"`
 }
 
 type key struct {
@@ -199,14 +212,30 @@ type key struct {
 	RotateAutomatically bool `toml:"rotate_automatically"`
 }
 
-const defaultConfigFile string = `# Fluidkeys default configuration file.
+const defaultRunFromCron = true
 
-# To prevent the password being saved in the keyring for one of your PGP keys,
-# add the following configuration lines using the key's fingerprint:
+const defaultConfigFile string = `# Fluidkeys configuration file for 'fk' command
+#
+# # run_from_cron tells Fluidkeys to add itself to your crontab and
+# # periodically run 'key rotate --automatic'
+# # - run 'crontab -l' to see the lines added to crontab
+# # - set to false to remove the lines from crontab
+#
+# run_from_cron = true
 #
 # [pgpkeys]
 #   [pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
+#
+#     # store_password tells Fluidkeys to use the system keychain to store
+#     # the password for this key and look for it before prompting.
 #     store_password = true
+#
+#     # rotate_automatically specifies that key rotation tasks should be
+#     # carried out without prompting when running 'fk key rotate --automatic'
+#     # store_password must also be true to rotate keys automatically.
 #     rotate_automatically = true
+#
+# THIS FILE IS OVERWRITTEN BY FLUIDKEYS.
+# Any changes you make will be overwritten.
 
 `

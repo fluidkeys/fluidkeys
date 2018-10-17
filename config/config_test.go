@@ -174,7 +174,10 @@ func TestSerialize(t *testing.T) {
 		err = emptyConfig.serialize(output)
 		assert.ErrorIsNil(t, err)
 
-		expected := defaultConfigFile + "[pgpkeys]\n" +
+		expected := defaultConfigFile +
+			"run_from_cron = false\n" +
+			"\n" +
+			"[pgpkeys]\n" +
 			"  [pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]\n" +
 			"    store_password = true\n" +
 			"    rotate_automatically = false\n"
