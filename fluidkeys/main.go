@@ -311,6 +311,7 @@ func keyCreate() exitCode {
 	Keyring.SavePassword(fingerprint, password.AsString())
 	Config.SetStorePassword(fingerprint, true)
 	Config.SetRotateAutomatically(fingerprint, true)
+	scheduler.Enable()
 	return 0
 }
 
