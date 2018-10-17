@@ -308,10 +308,11 @@ func keyCreate() exitCode {
 	fmt.Print("Fluidkeys has configured a " + colour.CommandLineCode("cron") + " task to automatically rotate this key for you from now on ♻️\n")
 	fmt.Print("To do this has required storing the key's password in your operating system's keyring.\n")
 	db.RecordFingerprintImportedIntoGnuPG(fingerprint)
-	Keyring.SavePassword(fingerprint, password.AsString())
-	Config.SetStorePassword(fingerprint, true)
-	Config.SetRotateAutomatically(fingerprint, true)
-	scheduler.Enable()
+	if err := tryEnableRotateAutomatically(generateJob.pgpKey, password.AsString()); err == nil {
+		fmt.Print(colour.Success(" ▸   Successfully configured key to automatically rotate\n\n"))
+	} else {
+		fmt.Print(colour.Warning(" ▸   Failed to configure key to automatically rotate\n\n"))
+	}
 	return 0
 }
 
