@@ -276,6 +276,8 @@ func keyCreate() exitCode {
 	fmt.Printf(" > gpg --list-keys '%s'\n", email)
 
 	fingerprint := generateJob.pgpKey.Fingerprint()
+	fmt.Print("Fluidkeys has configured a " + colour.CommandLineCode("cron") + " task to automatically rotate this key for you from now on ♻️\n")
+	fmt.Print("To do this has required storing the key's password in your operating system's keyring.\n")
 	db.RecordFingerprintImportedIntoGnuPG(fingerprint)
 	Keyring.SavePassword(fingerprint, password.AsString())
 	Config.SetStorePassword(fingerprint, true)
