@@ -99,6 +99,8 @@ func init() {
 func main() {
 	usage := fmt.Sprintf(`Fluidkeys %s
 
+Configuration file: %s
+
 Usage:
 	fk key create
 	fk key from-gpg
@@ -107,7 +109,10 @@ Usage:
 
 Options:
 	-h --help     Show this screen
-	--dry-run     Don't change anything: only output what would happen `, Version)
+	--dry-run     Don't change anything: only output what would happen `,
+		Version,
+		Config.GetFilename(),
+	)
 
 	args, _ := docopt.ParseDoc(usage)
 
