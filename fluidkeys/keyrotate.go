@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/fluidkeys/fluidkeys/archiver"
@@ -15,7 +16,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/status"
 )
 
-func keyRotate(dryRun bool) exitCode {
+func keyRotate(dryRun bool, automatic bool) exitCode {
 	keys, err := loadPgpKeys()
 	if err != nil {
 		panic(err)
@@ -25,7 +26,17 @@ func keyRotate(dryRun bool) exitCode {
 	if dryRun {
 		return runKeyRotateDryRun(keys)
 	} else {
-		return runKeyRotate(keys)
+		var yesNoPrompter promptYesNoInterface
+		var passwordPrompter promptForPasswordInterface
+
+		if !automatic {
+			yesNoPrompter = &interactiveYesNoPrompter{}
+			passwordPrompter = &interactivePasswordPrompter{}
+		} else {
+			yesNoPrompter = &automaticResponder{}
+			passwordPrompter = &alwaysFailPasswordPrompter{}
+		}
+		return runKeyRotate(keys, yesNoPrompter, passwordPrompter)
 	}
 }
 
@@ -47,6 +58,7 @@ func runKeyRotateDryRun(keys []pgpkey.PgpKey) exitCode {
 
 	for i := range keyTasks {
 		var keyTask *keyTask = keyTasks[i]
+		keyTask.actions = addImportExportActions(keyTask.actions, nil)
 		printKeyWarningsAndActions(*keyTask)
 	}
 
@@ -67,7 +79,80 @@ type keyTask struct {
 	err error
 }
 
-func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
+const (
+	promptBackupGpg           = "Automatically create backup now?"
+	promptRunActions          = "     Run these actions?"
+	promptRotateAutomatically = "Automatically rotate this key from now on?"
+)
+
+type promptYesNoInterface interface {
+	promptYesNo(message string, defaultResponse string, key *pgpkey.PgpKey) bool
+}
+
+type interactiveYesNoPrompter struct{}
+
+func (iP *interactiveYesNoPrompter) promptYesNo(message string, defaultInput string, key *pgpkey.PgpKey) bool {
+	var options string
+	switch strings.ToLower(defaultInput) {
+	case "y":
+		options = "[Y/n]"
+	case "n":
+		options = "[y/N]"
+	default:
+		options = "[y/n]"
+	}
+	messageWithOptions := message + " " + options + " "
+	for {
+		input := promptForInput(messageWithOptions)
+		if input == "" {
+			input = defaultInput
+		}
+		switch strings.ToLower(input) {
+		case "y":
+			return true
+		case "n":
+			return false
+		default:
+			fmt.Printf("Please select only Y or N.\n")
+		}
+	}
+}
+
+type automaticResponder struct{}
+
+func (aR *automaticResponder) promptYesNo(message string, defaultResponse string, key *pgpkey.PgpKey) bool {
+	switch message {
+
+	case promptBackupGpg:
+		return true
+
+	case promptRunActions:
+		if key == nil {
+			panic("expected *key but got nil pointer")
+		}
+		return Config.ShouldStorePasswordForKey(key.Fingerprint()) &&
+			Config.ShouldRotateAutomaticallyForKey(key.Fingerprint())
+
+	case promptRotateAutomatically:
+		panic("prompting to rotate key automatically, but it should be set and therefore not prompt")
+
+	default:
+		panic(fmt.Errorf("don't know how to automatically respond to : %s\n", message))
+	}
+}
+
+// alwaysFailPasswordPrompter can be used for automatic running, where it's
+// impossible to prompt for a password. If a password prompt is required
+// (because we didn't get it from the keychain or config), it falls through to
+// here, which fails.
+type alwaysFailPasswordPrompter struct{}
+
+// promptForPassword always returns an empty string
+func (p *alwaysFailPasswordPrompter) promptForPassword(key *pgpkey.PgpKey) (string, error) {
+	return "", fmt.Errorf("can't prompt for password when running unattended")
+}
+
+func runKeyRotate(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwordPrompter promptForPasswordInterface) exitCode {
 	keyTasks := makeKeyTasks(keys)
 
 	if len(keyTasks) == 0 {
@@ -77,15 +162,21 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 
 	fmt.Print(reviewTheseActions)
 
-	promptAndBackupGnupg()
+	promptAndBackupGnupg(prompter)
 
 	for i := range keyTasks {
 		var keyTask *keyTask = keyTasks[i]
+		keyTask.actions = addImportExportActions(keyTask.actions, passwordPrompter)
+	}
+
+	for i := range keyTasks {
+		var keyTask *keyTask = keyTasks[i]
+
 		printKeyWarningsAndActions(*keyTask)
-		ranActionsSuccesfully := promptAndRunActions(keyTask)
+		ranActionsSuccesfully := promptAndRunActions(prompter, keyTask)
 
 		if ranActionsSuccesfully && !Config.ShouldRotateAutomaticallyForKey(keyTask.key.Fingerprint()) {
-			promptAndTurnOnRotateAutomatically(*keyTask)
+			promptAndTurnOnRotateAutomatically(prompter, *keyTask)
 		}
 	}
 
@@ -102,6 +193,17 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 		fmt.Print(colour.Success("Rotate complete") + "\n")
 		return 0
 	}
+}
+
+func addImportExportActions(actions []status.KeyAction, passwordPrompter promptForPasswordInterface) []status.KeyAction {
+	actions = prepend(actions, LoadPrivateKeyFromGnupg{passwordGetter: passwordPrompter})
+	actions = append(actions, PushIntoGnupg{})
+	actions = append(actions, UpdateBackupZIP{})
+	return actions
+}
+
+func prepend(actions []status.KeyAction, actionToPrepend status.KeyAction) []status.KeyAction {
+	return append([]status.KeyAction{actionToPrepend}, actions...)
 }
 
 func anyTasksHaveErrors(keyTasks []*keyTask) bool {
@@ -123,10 +225,6 @@ func makeKeyTasks(keys []pgpkey.PgpKey) []*keyTask {
 		actions := status.MakeActionsFromWarnings(warnings, time.Now())
 
 		if len(actions) > 0 {
-			actions = append([]status.KeyAction{LoadPrivateKeyFromGnupg{}}, actions...) // prepend
-			actions = append(actions, PushIntoGnupg{})
-			actions = append(actions, UpdateBackupZIP{})
-
 			keyTask := keyTask{
 				key:      key,
 				warnings: warnings,
@@ -142,10 +240,8 @@ func printKeyWarningsAndActions(keyTask keyTask) {
 	fmt.Print(formatKeyWarningsAndActions(keyTask))
 }
 
-func promptAndRunActions(keyTask *keyTask) (ranActionsSuccessfully bool) {
-	prompt := fmt.Sprintf("     Run these %d actions?", len(keyTask.actions))
-
-	if promptYesOrNo(prompt, "y") == false {
+func promptAndRunActions(prompter promptYesNoInterface, keyTask *keyTask) (ranActionsSuccessfully bool) {
+	if prompter.promptYesNo(promptRunActions, "y", keyTask.key) == false {
 		fmt.Print(colour.Disabled(" ▸   OK, skipped.\n\n"))
 		ranActionsSuccessfully = false
 		return
@@ -164,13 +260,13 @@ func promptAndRunActions(keyTask *keyTask) (ranActionsSuccessfully bool) {
 	}
 }
 
-func promptAndTurnOnRotateAutomatically(keyTask keyTask) {
+func promptAndTurnOnRotateAutomatically(prompter promptYesNoInterface, keyTask keyTask) {
 
 	fmt.Print("Fluidkeys can configure a " + colour.CommandLineCode("cron") +
 		" task to automatically rotate this key for you from now on ♻️\n")
 	fmt.Print("To do this requires storing the key's password in your operating system's keyring.\n\n")
 
-	if promptYesOrNo("Automatically rotate this key from now on?", "") == true {
+	if prompter.promptYesNo(promptRotateAutomatically, "", keyTask.key) == true {
 		if err := tryEnableRotateAutomatically(keyTask.key, keyTask.password); err == nil {
 			fmt.Print(colour.Success(" ▸   Successfully configured key to automatically rotate\n\n"))
 		} else {
@@ -199,12 +295,12 @@ func runActions(keyTask *keyTask) error {
 	return nil
 }
 
-func promptAndBackupGnupg() {
+func promptAndBackupGnupg(prompter promptYesNoInterface) {
 	fmt.Print("While fluidkeys is in alpha, it backs up GnuPG (~/.gnupg) each time.\n")
 
 	action := "Backup GnuPG directory (~/.gnupg)"
 
-	if promptYesOrNo("Automatically create backup now?", "y") == true {
+	if prompter.promptYesNo(promptBackupGpg, "y", nil) == true {
 		printCheckboxPending(action)
 		filename, err := makeGnupgBackup()
 		if err != nil {
@@ -300,6 +396,7 @@ func moveCursorUpLines(numLines int) {
 }
 
 type LoadPrivateKeyFromGnupg struct {
+	passwordGetter promptForPasswordInterface
 }
 
 func (a LoadPrivateKeyFromGnupg) String() string {
@@ -311,7 +408,7 @@ func (a LoadPrivateKeyFromGnupg) Enact(key *pgpkey.PgpKey, now time.Time, return
 		return fmt.Errorf("returnPassword was nil, but it's required")
 	}
 
-	if privateKey, password, err := getDecryptedPrivateKeyAndPassword(key); err != nil {
+	if privateKey, password, err := getDecryptedPrivateKeyAndPassword(key, a.passwordGetter); err != nil {
 		return err
 	} else {
 		// copy the value of privateKey to replace key

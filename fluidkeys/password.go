@@ -11,21 +11,25 @@ import (
 // and if successful, returns a decrypted private key and the password they
 // provided.
 // If the password is incorrect, it loops until they get it right.
-func getDecryptedPrivateKeyAndPassword(publicKey *pgpkey.PgpKey) (*pgpkey.PgpKey, string, error) {
+func getDecryptedPrivateKeyAndPassword(publicKey *pgpkey.PgpKey, prompter promptForPasswordInterface) (*pgpkey.PgpKey, string, error) {
 	shouldStore := Config.ShouldStorePasswordForKey(publicKey.Fingerprint())
 
 	if shouldStore {
 		if loadedPassword, gotPassword := Keyring.LoadPassword(publicKey.Fingerprint()); gotPassword == true {
-			return tryPassword(loadedPassword, publicKey, shouldStore, 0)
+			return tryPassword(loadedPassword, publicKey, prompter, shouldStore, 0)
 		} // else fall-through to prompting
 	} else {
 		Keyring.PurgePassword(publicKey.Fingerprint())
 	}
 
-	return tryPassword(getPassword(publicKey), publicKey, shouldStore, 0)
+	if password, err := prompter.promptForPassword(publicKey); err != nil {
+		return nil, "", err
+	} else {
+		return tryPassword(password, publicKey, prompter, shouldStore, 0)
+	}
 }
 
-func tryPassword(password string, publicKey *pgpkey.PgpKey, shouldStore bool, attempt int) (*pgpkey.PgpKey, string, error) {
+func tryPassword(password string, publicKey *pgpkey.PgpKey, prompter promptForPasswordInterface, shouldStore bool, attempt int) (*pgpkey.PgpKey, string, error) {
 	if privateKey, err := loadPrivateKey(publicKey.Fingerprint(), password, &gpg, &pgpkey.Loader{}); err == nil {
 		if shouldStore {
 			Keyring.SavePassword(publicKey.Fingerprint(), password)
@@ -36,9 +40,13 @@ func tryPassword(password string, publicKey *pgpkey.PgpKey, shouldStore bool, at
 		fmt.Printf("Password appeared to be incorrect.\n")
 
 		if attempt < 5 {
-			return tryPassword(getPassword(publicKey), publicKey, shouldStore, attempt+1)
+			if password, err := prompter.promptForPassword(publicKey); err != nil {
+				return nil, "", err
+			} else {
+				return tryPassword(password, publicKey, prompter, shouldStore, attempt+1)
+			}
 		} else {
-			return nil, "", fmt.Errorf("Giving up.")
+			return nil, "", fmt.Errorf("too many bad password attempts")
 		}
 	} else {
 		// different type of error
@@ -54,8 +62,14 @@ func isBadPasswordError(err error) bool {
 	return false
 }
 
-// getPassword asks the user for a password and returns the result
-func getPassword(key *pgpkey.PgpKey) string {
+type promptForPasswordInterface interface {
+	promptForPassword(key *pgpkey.PgpKey) (string, error)
+}
+
+type interactivePasswordPrompter struct{}
+
+// promptForPassword asks the user for a password and returns the result
+func (p *interactivePasswordPrompter) promptForPassword(key *pgpkey.PgpKey) (string, error) {
 	fmt.Printf("Enter password for %s: ", displayName(key))
 	password, err := terminal.ReadPassword(0)
 	if err != nil {
@@ -63,5 +77,5 @@ func getPassword(key *pgpkey.PgpKey) string {
 	} else {
 		fmt.Print("\n\n")
 	}
-	return string(password)
+	return string(password), nil
 }

@@ -130,10 +130,11 @@ Usage:
 	fk key from-gpg
 	fk key list
 	fk key rotate [--dry-run]
+	fk key rotate automatic [--cron-output]
 
 Options:
 	-h --help     Show this screen
-	--dry-run     Don't change anything: only output what would happen `,
+	   --dry-run  Don't change anything: only output what would happen`, // TODO: Document `automatic`
 		Version,
 		Config.GetFilename(),
 	)
@@ -183,7 +184,11 @@ func keySubcommand(args docopt.Opts) exitCode {
 		if err != nil {
 			panic(err)
 		}
-		os.Exit(keyRotate(dryRun))
+		automatic, err := args.Bool("automatic")
+		if err != nil {
+			panic(err)
+		}
+		os.Exit(keyRotate(dryRun, automatic))
 	}
 	panic(fmt.Errorf("keySubcommand got unexpected arguments: %v", args))
 }
@@ -386,7 +391,9 @@ func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing
 	var selectedKey int
 	if len(secretKeyListings) == 1 {
 		onlyKey := secretKeyListings[0]
-		if promptYesOrNo("Import key?", "y") {
+		prompter := interactiveYesNoPrompter{}
+
+		if prompter.promptYesNo("Import key?", "y", nil) {
 			return &onlyKey
 		} else {
 			return nil
@@ -408,33 +415,6 @@ func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing
 			}
 		}
 		return &secretKeyListings[selectedKey]
-	}
-}
-
-func promptYesOrNo(message string, defaultInput string) bool {
-	var options string
-	switch strings.ToLower(defaultInput) {
-	case "y":
-		options = "[Y/n]"
-	case "n":
-		options = "[y/N]"
-	default:
-		options = "[y/n]"
-	}
-	messageWithOptions := message + " " + options + " "
-	for {
-		input := promptForInput(messageWithOptions)
-		if input == "" {
-			input = defaultInput
-		}
-		switch strings.ToLower(input) {
-		case "y":
-			return true
-		case "n":
-			return false
-		default:
-			fmt.Printf("Please select only Y or N.\n")
-		}
 	}
 }
 
