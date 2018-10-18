@@ -20,7 +20,7 @@ type ModifyPrimaryKeyExpiry struct {
 	PreviouslyValidUntil *time.Time
 }
 
-func (a ModifyPrimaryKeyExpiry) Enact(key *pgpkey.PgpKey, now time.Time) error {
+func (a ModifyPrimaryKeyExpiry) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
 	return key.UpdateExpiryForAllUserIds(a.ValidUntil, now)
 }
 
@@ -43,7 +43,7 @@ type CreateNewEncryptionSubkey struct {
 	ValidUntil time.Time
 }
 
-func (a CreateNewEncryptionSubkey) Enact(key *pgpkey.PgpKey, now time.Time) error {
+func (a CreateNewEncryptionSubkey) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
 	return key.CreateNewEncryptionSubkey(a.ValidUntil, now, nil)
 }
 
@@ -65,7 +65,7 @@ type ExpireSubkey struct {
 	SubkeyId uint64
 }
 
-func (a ExpireSubkey) Enact(key *pgpkey.PgpKey, now time.Time) error {
+func (a ExpireSubkey) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
 	return key.ExpireSubkey(a.SubkeyId, now)
 }
 func (a ExpireSubkey) String() string {
@@ -84,7 +84,7 @@ type SetPreferredSymmetricAlgorithms struct {
 	NewPreferences []symmetric.SymmetricAlgorithm
 }
 
-func (a SetPreferredSymmetricAlgorithms) Enact(key *pgpkey.PgpKey, now time.Time) error {
+func (a SetPreferredSymmetricAlgorithms) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
 	return key.SetPreferredSymmetricAlgorithms(a.NewPreferences, now)
 }
 
@@ -105,7 +105,7 @@ type SetPreferredHashAlgorithms struct {
 	NewPreferences []hash.HashAlgorithm
 }
 
-func (a SetPreferredHashAlgorithms) Enact(key *pgpkey.PgpKey, now time.Time) error {
+func (a SetPreferredHashAlgorithms) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
 	return key.SetPreferredHashAlgorithms(a.NewPreferences, now)
 }
 
@@ -126,7 +126,7 @@ type SetPreferredCompressionAlgorithms struct {
 	NewPreferences []compression.CompressionAlgorithm
 }
 
-func (a SetPreferredCompressionAlgorithms) Enact(key *pgpkey.PgpKey, now time.Time) error {
+func (a SetPreferredCompressionAlgorithms) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
 	return key.SetPreferredCompressionAlgorithms(a.NewPreferences, now)
 }
 
@@ -144,7 +144,7 @@ type RefreshUserIdSelfSignatures struct {
 	KeyAction
 }
 
-func (a RefreshUserIdSelfSignatures) Enact(key *pgpkey.PgpKey, now time.Time) error {
+func (a RefreshUserIdSelfSignatures) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
 	return key.RefreshUserIdSelfSignatures(now)
 }
 
@@ -162,7 +162,7 @@ type RefreshSubkeyBindingSignature struct {
 	SubkeyId uint64
 }
 
-func (a RefreshSubkeyBindingSignature) Enact(key *pgpkey.PgpKey, now time.Time) error {
+func (a RefreshSubkeyBindingSignature) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
 	return key.RefreshSubkeyBindingSignature(a.SubkeyId, now)
 }
 func (a RefreshSubkeyBindingSignature) String() string {
@@ -185,6 +185,6 @@ const (
 
 type KeyAction interface {
 	String() string
-	Enact(*pgpkey.PgpKey, time.Time) error
+	Enact(*pgpkey.PgpKey, time.Time, *string) error
 	SortOrder() int
 }
