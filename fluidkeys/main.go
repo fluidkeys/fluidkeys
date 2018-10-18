@@ -130,10 +130,11 @@ Usage:
 	fk key from-gpg
 	fk key list
 	fk key rotate [--dry-run]
+	fk key rotate automatic [--cron-output]
 
 Options:
 	-h --help     Show this screen
-	--dry-run     Don't change anything: only output what would happen `,
+	   --dry-run  Don't change anything: only output what would happen`, // TODO: Document `automatic`
 		Version,
 		Config.GetFilename(),
 	)
@@ -183,7 +184,11 @@ func keySubcommand(args docopt.Opts) exitCode {
 		if err != nil {
 			panic(err)
 		}
-		os.Exit(keyRotate(dryRun))
+		automatic, err := args.Bool("automatic")
+		if err != nil {
+			panic(err)
+		}
+		os.Exit(keyRotate(dryRun, automatic))
 	}
 	panic(fmt.Errorf("keySubcommand got unexpected arguments: %v", args))
 }
