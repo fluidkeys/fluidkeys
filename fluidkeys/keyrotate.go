@@ -25,7 +25,7 @@ func keyRotate(dryRun bool) exitCode {
 	if dryRun {
 		return runKeyRotateDryRun(keys)
 	} else {
-		return runKeyRotate(keys)
+		return runKeyRotate(keys, &interactivePrompter{})
 	}
 }
 
@@ -73,7 +73,18 @@ const (
 	promptRotateAutomatically = "Automatically rotate this key from now on?"
 )
 
-func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
+type promptYesNoInterface interface {
+	promptYesNo(message string, defaultResponse string) bool
+}
+
+type interactivePrompter struct {
+}
+
+func (iP *interactivePrompter) promptYesNo(message string, defaultResponse string) bool {
+	return promptYesOrNo(message, defaultResponse)
+}
+
+func runKeyRotate(keys []pgpkey.PgpKey, prompter promptYesNoInterface) exitCode {
 	keyTasks := makeKeyTasks(keys)
 
 	if len(keyTasks) == 0 {
@@ -83,15 +94,15 @@ func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 
 	fmt.Print(reviewTheseActions)
 
-	promptAndBackupGnupg()
+	promptAndBackupGnupg(prompter)
 
 	for i := range keyTasks {
 		var keyTask *keyTask = keyTasks[i]
 		printKeyWarningsAndActions(*keyTask)
-		ranActionsSuccesfully := promptAndRunActions(keyTask)
+		ranActionsSuccesfully := promptAndRunActions(prompter, keyTask)
 
 		if ranActionsSuccesfully && !Config.ShouldRotateAutomaticallyForKey(keyTask.key.Fingerprint()) {
-			promptAndTurnOnRotateAutomatically(*keyTask)
+			promptAndTurnOnRotateAutomatically(prompter, *keyTask)
 		}
 	}
 
@@ -148,8 +159,8 @@ func printKeyWarningsAndActions(keyTask keyTask) {
 	fmt.Print(formatKeyWarningsAndActions(keyTask))
 }
 
-func promptAndRunActions(keyTask *keyTask) (ranActionsSuccessfully bool) {
-	if promptYesOrNo(promptRunActions, "y") == false {
+func promptAndRunActions(prompter promptYesNoInterface, keyTask *keyTask) (ranActionsSuccessfully bool) {
+	if prompter.promptYesNo(promptRunActions, "y") == false {
 		fmt.Print(colour.Disabled(" ▸   OK, skipped.\n\n"))
 		ranActionsSuccessfully = false
 		return
@@ -168,13 +179,13 @@ func promptAndRunActions(keyTask *keyTask) (ranActionsSuccessfully bool) {
 	}
 }
 
-func promptAndTurnOnRotateAutomatically(keyTask keyTask) {
+func promptAndTurnOnRotateAutomatically(prompter promptYesNoInterface, keyTask keyTask) {
 
 	fmt.Print("Fluidkeys can configure a " + colour.CommandLineCode("cron") +
 		" task to automatically rotate this key for you from now on ♻️\n")
 	fmt.Print("To do this requires storing the key's password in your operating system's keyring.\n\n")
 
-	if promptYesOrNo(promptRotateAutomatically, "") == true {
+	if prompter.promptYesNo(promptRotateAutomatically, "") == true {
 		if err := tryEnableRotateAutomatically(keyTask.key, keyTask.password); err == nil {
 			fmt.Print(colour.Success(" ▸   Successfully configured key to automatically rotate\n\n"))
 		} else {
@@ -203,12 +214,12 @@ func runActions(keyTask *keyTask) error {
 	return nil
 }
 
-func promptAndBackupGnupg() {
+func promptAndBackupGnupg(prompter promptYesNoInterface) {
 	fmt.Print("While fluidkeys is in alpha, it backs up GnuPG (~/.gnupg) each time.\n")
 
 	action := "Backup GnuPG directory (~/.gnupg)"
 
-	if promptYesOrNo(promptBackupGpg, "y") == true {
+	if prompter.promptYesNo(promptBackupGpg, "y") == true {
 		printCheckboxPending(action)
 		filename, err := makeGnupgBackup()
 		if err != nil {
