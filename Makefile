@@ -34,6 +34,10 @@ build/bin/fk: $(MAIN_GO_FILES)
 
 	GOPATH=$(TMPGOPATH) go build -o $@ $(MAIN_GO_FILES)
 
+.PHONY: dev
+dev: $(MAIN_GO_FILES)
+	go build -o build/bin/fk $(MAIN_GO_FILES)
+
 .PHONY: test
 test:
 	go test ./...
