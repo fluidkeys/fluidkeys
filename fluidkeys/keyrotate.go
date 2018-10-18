@@ -67,6 +67,12 @@ type keyTask struct {
 	err error
 }
 
+const (
+	promptBackupGpg           = "Automatically create backup now?"
+	promptRunActions          = "     Run these actions?"
+	promptRotateAutomatically = "Automatically rotate this key from now on?"
+)
+
 func runKeyRotate(keys []pgpkey.PgpKey) exitCode {
 	keyTasks := makeKeyTasks(keys)
 
@@ -143,9 +149,7 @@ func printKeyWarningsAndActions(keyTask keyTask) {
 }
 
 func promptAndRunActions(keyTask *keyTask) (ranActionsSuccessfully bool) {
-	prompt := fmt.Sprintf("     Run these %d actions?", len(keyTask.actions))
-
-	if promptYesOrNo(prompt, "y") == false {
+	if promptYesOrNo(promptRunActions, "y") == false {
 		fmt.Print(colour.Disabled(" ▸   OK, skipped.\n\n"))
 		ranActionsSuccessfully = false
 		return
@@ -170,7 +174,7 @@ func promptAndTurnOnRotateAutomatically(keyTask keyTask) {
 		" task to automatically rotate this key for you from now on ♻️\n")
 	fmt.Print("To do this requires storing the key's password in your operating system's keyring.\n\n")
 
-	if promptYesOrNo("Automatically rotate this key from now on?", "") == true {
+	if promptYesOrNo(promptRotateAutomatically, "") == true {
 		if err := tryEnableRotateAutomatically(keyTask.key, keyTask.password); err == nil {
 			fmt.Print(colour.Success(" ▸   Successfully configured key to automatically rotate\n\n"))
 		} else {
@@ -204,7 +208,7 @@ func promptAndBackupGnupg() {
 
 	action := "Backup GnuPG directory (~/.gnupg)"
 
-	if promptYesOrNo("Automatically create backup now?", "y") == true {
+	if promptYesOrNo(promptBackupGpg, "y") == true {
 		printCheckboxPending(action)
 		filename, err := makeGnupgBackup()
 		if err != nil {
