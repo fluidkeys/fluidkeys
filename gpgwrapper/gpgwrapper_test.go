@@ -83,7 +83,7 @@ func TestRunGpgWithStdin(t *testing.T) {
 
 		arguments := []string{"--import"}
 
-		output, err := gpg.runWithStdin(ExamplePublicKey, arguments...)
+		_, stderr, err := gpg.runWithStdin(ExamplePublicKey, arguments...)
 
 		if err != nil {
 			t.Errorf("Test failed, returned error %s", err)
@@ -92,14 +92,14 @@ func TestRunGpgWithStdin(t *testing.T) {
 		var sawSuccessMessage = false
 
 		for _, successMessage := range successMessages {
-			if strings.Contains(output, successMessage) {
+			if strings.Contains(stderr, successMessage) {
 				sawSuccessMessage = true
 				break
 			}
 		}
 
 		if !sawSuccessMessage {
-			t.Errorf("GPGs output '%s' did not contain any success messages", output)
+			t.Errorf("GPGs output '%s' did not contain any success messages", stderr)
 		}
 	})
 }
