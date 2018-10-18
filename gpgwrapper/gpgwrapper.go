@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -104,13 +105,15 @@ func (g *GnuPG) IsWorking() bool {
 
 // Import an armored key into the GPG key ring
 func (g *GnuPG) ImportArmoredKey(armoredKey string) (string, error) {
-	output, err := g.runWithStdin(armoredKey, "--import")
+	stdout, stderr, err := g.runWithStdin(armoredKey, "--import")
 	if err != nil {
 		err = fmt.Errorf("problem importing key, %v", err)
-		return "", err
+		return stderr, err
 	}
+	// TODO: are we correctly checking if GPG failed? I think it can return
+	// exit code 0 *but* set stderr to communicate a problem
 
-	return output, nil
+	return stdout, nil
 }
 
 func (g *GnuPG) ListSecretKeys() ([]SecretKeyListing, error) {
@@ -164,31 +167,31 @@ func (g *GnuPG) ExportPublicKey(fingerprint fingerprint.Fingerprint) (string, er
 // The outputted private key is encrypted with the password.
 func (g *GnuPG) ExportPrivateKey(fingerprint fingerprint.Fingerprint, password string) (string, error) {
 
-	output, err := g.runWithStdin(
+	stdout, stderr, err := g.runWithStdin(
 		password,
 		getArgsExportPrivateKeyWithPinentry(fingerprint)...,
 	)
 
 	if err != nil {
-		if strings.Contains(output, invalidOptionPinentryMode) {
-			output, err := g.runWithStdin(
+		if strings.Contains(stderr, invalidOptionPinentryMode) { // TODO: is this really in stderr or in stdout?
+			stdout, stderr, err := g.runWithStdin(
 				password,
 				getArgsExportPrivateKeyWithoutPinentry(fingerprint)...,
 			)
 
 			if err != nil {
-				return "", err
+				return stderr, err
 			}
 
-			return checkValidExportPrivateOutput(output)
-		} else if strings.Contains(output, badPassphrase) {
-			return output, &BadPasswordError{}
+			return checkValidExportPrivateOutput(stdout)
+		} else if strings.Contains(stderr, badPassphrase) {
+			return stderr, &BadPasswordError{}
 		} else {
-			return "", err
+			return stderr, err
 		}
 	}
 
-	return checkValidExportPrivateOutput(output)
+	return checkValidExportPrivateOutput(stdout)
 }
 
 func getArgsExportPrivateKeyWithPinentry(fingerprint fingerprint.Fingerprint) []string {
@@ -256,26 +259,57 @@ func (g *GnuPG) run(arguments ...string) (string, error) {
 	return outString, nil
 }
 
-func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (string, error) {
+// runWithStdin runs the given command, sends textToSend via stdin, and returns
+// stdout, stderr and any error encountered
+func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (stdout string, stderr string, returnErr error) {
 	fullArguments := g.prependGlobalArguments(arguments...)
 	cmd := exec.Command(GpgPath, fullArguments...)
-	stdin, err := cmd.StdinPipe()
 
+	stdin, err := cmd.StdinPipe() // used to send textToSend
 	if err != nil {
-		return "", errors.New(fmt.Sprintf("Failed to get stdin pipe '%s'", err))
+		returnErr = fmt.Errorf("Failed to get stdin pipe '%s'", err)
+		return
+	}
+
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		returnErr = fmt.Errorf("Failed to get stdout pipe '%s'", err)
+		return
+	}
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		returnErr = fmt.Errorf("Failed to get stderr pipe '%s'", err)
+		return
 	}
 
 	io.WriteString(stdin, textToSend)
 	stdin.Close()
 
-	stdoutAndStderr, err := cmd.CombinedOutput()
-
-	if err != nil {
-		return string(stdoutAndStderr), errors.New(fmt.Sprintf("gpg failed with error '%s'", err))
+	if err = cmd.Start(); err != nil {
+		returnErr = fmt.Errorf("error starting gpg: %v", err)
+		return
 	}
 
-	output := string(stdoutAndStderr)
-	return output, nil
+	if stdoutBytes, err := ioutil.ReadAll(stdoutPipe); err != nil {
+		returnErr = fmt.Errorf("error reading stdout: %v", err)
+		return
+	} else {
+		stdout = string(stdoutBytes)
+	}
+
+	if stderrBytes, err := ioutil.ReadAll(stderrPipe); err != nil {
+		returnErr = fmt.Errorf("error reading stderr: %v", err)
+		return
+	} else {
+		stderr = string(stderrBytes)
+	}
+
+	if err := cmd.Wait(); err != nil {
+		returnErr = fmt.Errorf("gpg failed with error '%s'", err)
+		return
+	}
+
+	return
 }
 
 func (g *GnuPG) prependGlobalArguments(arguments ...string) []string {
