@@ -38,7 +38,6 @@ func loadPrivateKey(
 				originalError: err.Error(),
 			}
 		}
-		fmt.Printf("armored output from GnuPG:\n%s\n", encryptedArmored)
 		return nil, fmt.Errorf("failed to load key returned by GnuPG: %v", err)
 	}
 
