@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/fluidkeys/fluidkeys/archiver"
@@ -29,7 +30,7 @@ func keyRotate(dryRun bool, automatic bool) exitCode {
 		var passwordPrompter promptForPasswordInterface
 
 		if !automatic {
-			yesNoPrompter = &interactivePrompter{}
+			yesNoPrompter = &interactiveYesNoPrompter{}
 			passwordPrompter = &interactivePasswordPrompter{}
 		} else {
 			yesNoPrompter = &automaticResponder{}
@@ -88,10 +89,33 @@ type promptYesNoInterface interface {
 	promptYesNo(message string, defaultResponse string, key *pgpkey.PgpKey) bool
 }
 
-type interactivePrompter struct{}
+type interactiveYesNoPrompter struct{}
 
-func (iP *interactivePrompter) promptYesNo(message string, defaultResponse string, key *pgpkey.PgpKey) bool {
-	return promptYesOrNo(message, defaultResponse)
+func (iP *interactiveYesNoPrompter) promptYesNo(message string, defaultInput string, key *pgpkey.PgpKey) bool {
+	var options string
+	switch strings.ToLower(defaultInput) {
+	case "y":
+		options = "[Y/n]"
+	case "n":
+		options = "[y/N]"
+	default:
+		options = "[y/n]"
+	}
+	messageWithOptions := message + " " + options + " "
+	for {
+		input := promptForInput(messageWithOptions)
+		if input == "" {
+			input = defaultInput
+		}
+		switch strings.ToLower(input) {
+		case "y":
+			return true
+		case "n":
+			return false
+		default:
+			fmt.Printf("Please select only Y or N.\n")
+		}
+	}
 }
 
 type automaticResponder struct{}
