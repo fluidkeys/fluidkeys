@@ -148,8 +148,8 @@ func (aR *automaticResponder) promptYesNo(message string, defaultResponse string
 type alwaysFailPasswordPrompter struct{}
 
 // promptForPassword always returns an empty string
-func (p *alwaysFailPasswordPrompter) promptForPassword(key *pgpkey.PgpKey) string {
-	return ""
+func (p *alwaysFailPasswordPrompter) promptForPassword(key *pgpkey.PgpKey) (string, error) {
+	return "", fmt.Errorf("can't prompt for password when running unattended")
 }
 
 func runKeyRotate(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwordPrompter promptForPasswordInterface) exitCode {

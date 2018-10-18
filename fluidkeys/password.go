@@ -22,7 +22,11 @@ func getDecryptedPrivateKeyAndPassword(publicKey *pgpkey.PgpKey, prompter prompt
 		Keyring.PurgePassword(publicKey.Fingerprint())
 	}
 
-	return tryPassword(prompter.promptForPassword(publicKey), publicKey, prompter, shouldStore, 0)
+	if password, err := prompter.promptForPassword(publicKey); err != nil {
+		return nil, "", err
+	} else {
+		return tryPassword(password, publicKey, prompter, shouldStore, 0)
+	}
 }
 
 func tryPassword(password string, publicKey *pgpkey.PgpKey, prompter promptForPasswordInterface, shouldStore bool, attempt int) (*pgpkey.PgpKey, string, error) {
@@ -36,9 +40,13 @@ func tryPassword(password string, publicKey *pgpkey.PgpKey, prompter promptForPa
 		fmt.Printf("Password appeared to be incorrect.\n")
 
 		if attempt < 5 {
-			return tryPassword(prompter.promptForPassword(publicKey), publicKey, prompter, shouldStore, attempt+1)
+			if password, err := prompter.promptForPassword(publicKey); err != nil {
+				return nil, "", err
+			} else {
+				return tryPassword(password, publicKey, prompter, shouldStore, attempt+1)
+			}
 		} else {
-			return nil, "", fmt.Errorf("Giving up.")
+			return nil, "", fmt.Errorf("too many bad password attempts")
 		}
 	} else {
 		// different type of error
@@ -55,13 +63,13 @@ func isBadPasswordError(err error) bool {
 }
 
 type promptForPasswordInterface interface {
-	promptForPassword(key *pgpkey.PgpKey) string
+	promptForPassword(key *pgpkey.PgpKey) (string, error)
 }
 
 type interactivePasswordPrompter struct{}
 
 // promptForPassword asks the user for a password and returns the result
-func (p *interactivePasswordPrompter) promptForPassword(key *pgpkey.PgpKey) string {
+func (p *interactivePasswordPrompter) promptForPassword(key *pgpkey.PgpKey) (string, error) {
 	fmt.Printf("Enter password for %s: ", displayName(key))
 	password, err := terminal.ReadPassword(0)
 	if err != nil {
@@ -69,5 +77,5 @@ func (p *interactivePasswordPrompter) promptForPassword(key *pgpkey.PgpKey) stri
 	} else {
 		fmt.Print("\n\n")
 	}
-	return string(password)
+	return string(password), nil
 }
