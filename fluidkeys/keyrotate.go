@@ -170,6 +170,14 @@ func (o *terminalOutputter) print(message string) {
 	fmt.Print(message)
 }
 
+type cronOutputter struct {
+	buffer string
+}
+
+func (o *cronOutputter) print(message string) {
+	o.buffer += message
+}
+
 func runKeyRotate(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwordPrompter promptForPasswordInterface, outputter outputterInterface) exitCode {
 	keyTasks := makeKeyTasks(keys)
 
