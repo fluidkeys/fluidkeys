@@ -162,6 +162,7 @@ func (p *alwaysFailPasswordPrompter) promptForPassword(key *pgpkey.PgpKey) (stri
 
 type outputterInterface interface {
 	print(message string)
+	printBuffer()
 }
 
 type terminalOutputter struct{}
@@ -170,12 +171,18 @@ func (o *terminalOutputter) print(message string) {
 	fmt.Print(message)
 }
 
+func (o *terminalOutputter) printBuffer() {}
+
 type cronOutputter struct {
 	buffer string
 }
 
 func (o *cronOutputter) print(message string) {
 	o.buffer += message
+}
+
+func (o *cronOutputter) printBuffer() {
+	fmt.Print(o.buffer)
 }
 
 func runKeyRotate(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwordPrompter promptForPasswordInterface, outputter outputterInterface) exitCode {
@@ -214,6 +221,7 @@ func runKeyRotate(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwordP
 				outputter.print(displayName(keyTask.key) + ": " + colour.Error(keyTask.err.Error()) + "\n")
 			}
 		}
+		outputter.printBuffer()
 		return 1
 	} else {
 		outputter.print(colour.Success("Rotate complete") + "\n")
