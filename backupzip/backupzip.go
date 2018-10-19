@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/fluidkeys/fluidkeys/archiver"
@@ -42,7 +41,7 @@ func OutputZipBackupFile(
 		panic(fmt.Sprintf("Failed to get slug for key to work out backup location"))
 	}
 
-	filename = getZipFilename(fluidkeysDir, keySlug, time.Now())
+	filename = archiver.MakeFilePath(keySlug, "zip", fluidkeysDir, time.Now())
 
 	backupZipFile, err := os.Create(filename)
 	if err != nil {
@@ -104,9 +103,4 @@ func makeFileWriter(zipWriter *zip.Writer, filename string) (io.Writer, error) {
 		return nil, fmt.Errorf("zipWriter.CreateHeader(..) failed: %v", err)
 	}
 	return writer, nil
-}
-
-func getZipFilename(fluidkeysDir string, slug string, now time.Time) string {
-	directory := archiver.DateStampedDirectory(fluidkeysDir, now)
-	return filepath.Join(directory, slug+".zip")
 }
