@@ -16,7 +16,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/status"
 )
 
-func keyRotate(dryRun bool, automatic bool) exitCode {
+func keyRotate(dryRun bool, automatic bool, cronOutput bool) exitCode {
 	keys, err := loadPgpKeys()
 	if err != nil {
 		panic(err)
@@ -38,7 +38,11 @@ func keyRotate(dryRun bool, automatic bool) exitCode {
 		}
 
 		var outputter outputterInterface
-		outputter = &terminalOutputter{}
+		if cronOutput {
+			outputter = &cronOutputter{}
+		} else {
+			outputter = &terminalOutputter{}
+		}
 		return runKeyRotate(keys, yesNoPrompter, passwordPrompter, outputter)
 	}
 }

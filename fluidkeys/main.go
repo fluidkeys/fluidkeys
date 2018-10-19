@@ -133,8 +133,9 @@ Usage:
 	fk key rotate automatic [--cron-output]
 
 Options:
-	-h --help     Show this screen
-	   --dry-run  Don't change anything: only output what would happen`, // TODO: Document `automatic`
+	-h --help         Show this screen
+	   --dry-run      Don't change anything: only output what would happen
+	   --cron-output  Only print output on errors`, // TODO: Document `automatic`
 		Version,
 		Config.GetFilename(),
 	)
@@ -188,7 +189,11 @@ func keySubcommand(args docopt.Opts) exitCode {
 		if err != nil {
 			panic(err)
 		}
-		os.Exit(keyRotate(dryRun, automatic))
+		cronOutput, err := args.Bool("--cron-output")
+		if err != nil {
+			panic(err)
+		}
+		os.Exit(keyRotate(dryRun, automatic, cronOutput))
 	}
 	panic(fmt.Errorf("keySubcommand got unexpected arguments: %v", args))
 }
