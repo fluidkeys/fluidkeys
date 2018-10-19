@@ -194,6 +194,7 @@ func keySubcommand(args docopt.Opts) exitCode {
 }
 
 func keyFromGpg() exitCode {
+	outputter := &terminalOutputter{}
 	availableKeys, err := keysAvailableToGetFromGpg()
 	if err != nil {
 		fmt.Printf("Failed to list available keys: %v", err)
@@ -206,7 +207,7 @@ func keyFromGpg() exitCode {
 	}
 
 	fmt.Printf(formatListedKeysForImportingFromGpg(availableKeys))
-	keyToImport := promptForKeyToImportFromGpg(availableKeys)
+	keyToImport := promptForKeyToImportFromGpg(availableKeys, outputter)
 
 	if keyToImport == nil {
 		fmt.Printf("No key selected to link\n")
@@ -387,13 +388,13 @@ func printSecretKeyListing(listNumber int, key gpgwrapper.SecretKeyListing) stri
 	return output
 }
 
-func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) *gpgwrapper.SecretKeyListing {
+func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing, outputter outputterInterface) *gpgwrapper.SecretKeyListing {
 	var selectedKey int
 	if len(secretKeyListings) == 1 {
 		onlyKey := secretKeyListings[0]
 		prompter := interactiveYesNoPrompter{}
 
-		if prompter.promptYesNo("Import key?", "y", nil) {
+		if prompter.promptYesNo("Import key?", "y", nil, outputter) {
 			return &onlyKey
 		} else {
 			return nil

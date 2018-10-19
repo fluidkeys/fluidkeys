@@ -36,7 +36,10 @@ func keyRotate(dryRun bool, automatic bool) exitCode {
 			yesNoPrompter = &automaticResponder{}
 			passwordPrompter = &alwaysFailPasswordPrompter{}
 		}
-		return runKeyRotate(keys, yesNoPrompter, passwordPrompter)
+
+		var outputter outputterInterface
+		outputter = &terminalOutputter{}
+		return runKeyRotate(keys, yesNoPrompter, passwordPrompter, outputter)
 	}
 }
 
@@ -47,24 +50,25 @@ var (
 )
 
 func runKeyRotateDryRun(keys []pgpkey.PgpKey) exitCode {
+	outputter := &terminalOutputter{}
 	keyTasks := makeKeyTasks(keys)
 
 	if len(keyTasks) == 0 {
-		fmt.Print(nothingToDo)
+		outputter.print(nothingToDo)
 		return 0 // success! nothing to do
 	}
 
-	fmt.Print(reviewTheseActions)
+	outputter.print(reviewTheseActions)
 
 	for i := range keyTasks {
 		var keyTask *keyTask = keyTasks[i]
 		keyTask.actions = addImportExportActions(keyTask.actions, nil)
-		printKeyWarningsAndActions(*keyTask)
+		printKeyWarningsAndActions(*keyTask, outputter)
 	}
 
-	fmt.Print("To start run\n")
-	fmt.Print(" >   " + colour.CommandLineCode("fk key rotate") + "\n\n")
-	fmt.Print("You’ll be asked at each stage to confirm before making any changes.\n\n")
+	outputter.print("To start run\n")
+	outputter.print(" >   " + colour.CommandLineCode("fk key rotate") + "\n\n")
+	outputter.print("You’ll be asked at each stage to confirm before making any changes.\n\n")
 	return 0
 }
 
@@ -86,12 +90,12 @@ const (
 )
 
 type promptYesNoInterface interface {
-	promptYesNo(message string, defaultResponse string, key *pgpkey.PgpKey) bool
+	promptYesNo(message string, defaultResponse string, key *pgpkey.PgpKey, outputter outputterInterface) bool
 }
 
 type interactiveYesNoPrompter struct{}
 
-func (iP *interactiveYesNoPrompter) promptYesNo(message string, defaultInput string, key *pgpkey.PgpKey) bool {
+func (iP *interactiveYesNoPrompter) promptYesNo(message string, defaultInput string, key *pgpkey.PgpKey, outputter outputterInterface) bool {
 	var options string
 	switch strings.ToLower(defaultInput) {
 	case "y":
@@ -113,14 +117,14 @@ func (iP *interactiveYesNoPrompter) promptYesNo(message string, defaultInput str
 		case "n":
 			return false
 		default:
-			fmt.Printf("Please select only Y or N.\n")
+			outputter.print("Please select only Y or N.\n")
 		}
 	}
 }
 
 type automaticResponder struct{}
 
-func (aR *automaticResponder) promptYesNo(message string, defaultResponse string, key *pgpkey.PgpKey) bool {
+func (aR *automaticResponder) promptYesNo(message string, defaultResponse string, key *pgpkey.PgpKey, outputter outputterInterface) bool {
 	switch message {
 
 	case promptBackupGpg:
@@ -152,17 +156,27 @@ func (p *alwaysFailPasswordPrompter) promptForPassword(key *pgpkey.PgpKey) (stri
 	return "", fmt.Errorf("can't prompt for password when running unattended")
 }
 
-func runKeyRotate(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwordPrompter promptForPasswordInterface) exitCode {
+type outputterInterface interface {
+	print(message string)
+}
+
+type terminalOutputter struct{}
+
+func (o *terminalOutputter) print(message string) {
+	fmt.Print(message)
+}
+
+func runKeyRotate(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwordPrompter promptForPasswordInterface, outputter outputterInterface) exitCode {
 	keyTasks := makeKeyTasks(keys)
 
 	if len(keyTasks) == 0 {
-		fmt.Print(nothingToDo)
+		outputter.print(nothingToDo)
 		return 0 // success! nothing to do
 	}
 
-	fmt.Print(reviewTheseActions)
+	outputter.print(reviewTheseActions)
 
-	promptAndBackupGnupg(prompter)
+	promptAndBackupGnupg(prompter, outputter)
 
 	for i := range keyTasks {
 		var keyTask *keyTask = keyTasks[i]
@@ -172,25 +186,25 @@ func runKeyRotate(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwordP
 	for i := range keyTasks {
 		var keyTask *keyTask = keyTasks[i]
 
-		printKeyWarningsAndActions(*keyTask)
-		ranActionsSuccesfully := promptAndRunActions(prompter, keyTask)
+		printKeyWarningsAndActions(*keyTask, outputter)
+		ranActionsSuccesfully := promptAndRunActions(prompter, keyTask, outputter)
 
 		if ranActionsSuccesfully && !Config.ShouldRotateAutomaticallyForKey(keyTask.key.Fingerprint()) {
-			promptAndTurnOnRotateAutomatically(prompter, *keyTask)
+			promptAndTurnOnRotateAutomatically(prompter, *keyTask, outputter)
 		}
 	}
 
 	if anyTasksHaveErrors(keyTasks) {
-		fmt.Print(colour.Error("Encountered errors while running rotate:\n"))
+		outputter.print(colour.Error("Encountered errors while running rotate:\n"))
 
 		for _, keyTask := range keyTasks {
 			if keyTask.err != nil {
-				fmt.Print(displayName(keyTask.key) + ": " + colour.Error(keyTask.err.Error()) + "\n")
+				outputter.print(displayName(keyTask.key) + ": " + colour.Error(keyTask.err.Error()) + "\n")
 			}
 		}
 		return 1
 	} else {
-		fmt.Print(colour.Success("Rotate complete") + "\n")
+		outputter.print(colour.Success("Rotate complete") + "\n")
 		return 0
 	}
 }
@@ -236,37 +250,37 @@ func makeKeyTasks(keys []pgpkey.PgpKey) []*keyTask {
 	return keyTasks
 }
 
-func printKeyWarningsAndActions(keyTask keyTask) {
-	fmt.Print(formatKeyWarningsAndActions(keyTask))
+func printKeyWarningsAndActions(keyTask keyTask, outputter outputterInterface) {
+	outputter.print(formatKeyWarningsAndActions(keyTask))
 }
 
-func promptAndRunActions(prompter promptYesNoInterface, keyTask *keyTask) (ranActionsSuccessfully bool) {
-	if prompter.promptYesNo(promptRunActions, "y", keyTask.key) == false {
-		fmt.Print(colour.Disabled(" ▸   OK, skipped.\n\n"))
+func promptAndRunActions(prompter promptYesNoInterface, keyTask *keyTask, outputter outputterInterface) (ranActionsSuccessfully bool) {
+	if prompter.promptYesNo(promptRunActions, "y", keyTask.key, outputter) == false {
+		outputter.print(colour.Disabled(" ▸   OK, skipped.\n\n"))
 		ranActionsSuccessfully = false
 		return
 	}
 
-	if err := runActions(keyTask); err != nil {
+	if err := runActions(keyTask, outputter); err != nil {
 		keyTask.err = err
-		fmt.Print("\n")
-		fmt.Print("     " + colour.Warning("Skipping remaining actions for") + " " + displayName(keyTask.key) + "\n\n")
+		outputter.print("\n")
+		outputter.print("     " + colour.Warning("Skipping remaining actions for") + " " + displayName(keyTask.key) + "\n\n")
 		ranActionsSuccessfully = false
 		return
 	} else {
-		fmt.Printf(colour.Success(" ▸   Successfully updated keys for " + displayName(keyTask.key) + "\n\n"))
+		outputter.print(colour.Success(" ▸   Successfully updated keys for " + displayName(keyTask.key) + "\n\n"))
 		ranActionsSuccessfully = true
 		return
 	}
 }
 
-func promptAndTurnOnRotateAutomatically(prompter promptYesNoInterface, keyTask keyTask) {
+func promptAndTurnOnRotateAutomatically(prompter promptYesNoInterface, keyTask keyTask, outputter outputterInterface) {
 
 	fmt.Print("Fluidkeys can configure a " + colour.CommandLineCode("cron") +
 		" task to automatically rotate this key for you from now on ♻️\n")
 	fmt.Print("To do this requires storing the key's password in your operating system's keyring.\n\n")
 
-	if prompter.promptYesNo(promptRotateAutomatically, "", keyTask.key) == true {
+	if prompter.promptYesNo(promptRotateAutomatically, "", keyTask.key, outputter) == true {
 		if err := tryEnableRotateAutomatically(keyTask.key, keyTask.password); err == nil {
 			fmt.Print(colour.Success(" ▸   Successfully configured key to automatically rotate\n\n"))
 		} else {
@@ -277,41 +291,41 @@ func promptAndTurnOnRotateAutomatically(prompter promptYesNoInterface, keyTask k
 	}
 }
 
-func runActions(keyTask *keyTask) error {
+func runActions(keyTask *keyTask, outputter outputterInterface) error {
 	for _, action := range keyTask.actions {
-		printCheckboxPending(action.String())
+		printCheckboxPending(action.String(), outputter)
 
 		var err error
 		err = action.Enact(keyTask.key, time.Now(), &keyTask.password)
 		if err != nil {
-			printCheckboxFailure(action.String(), err)
+			printCheckboxFailure(action.String(), err, outputter)
 			return err // don't run any more actions
 
 		} else {
-			printCheckboxSuccess(action.String())
+			printCheckboxSuccess(action.String(), outputter)
 		}
 	}
-	fmt.Print("\n")
+	outputter.print("\n")
 	return nil
 }
 
-func promptAndBackupGnupg(prompter promptYesNoInterface) {
-	fmt.Print("While fluidkeys is in alpha, it backs up GnuPG (~/.gnupg) each time.\n")
+func promptAndBackupGnupg(prompter promptYesNoInterface, outputter outputterInterface) {
+	outputter.print("While fluidkeys is in alpha, it backs up GnuPG (~/.gnupg) each time.\n")
 
 	action := "Backup GnuPG directory (~/.gnupg)"
 
-	if prompter.promptYesNo(promptBackupGpg, "y", nil) == true {
-		printCheckboxPending(action)
+	if prompter.promptYesNo(promptBackupGpg, "y", nil, outputter) == true {
+		printCheckboxPending(action, outputter)
 		filename, err := makeGnupgBackup()
 		if err != nil {
-			printCheckboxFailure(action, err)
-			fmt.Printf("\n")
+			printCheckboxFailure(action, err, outputter)
+			outputter.print("\n")
 		} else {
-			printCheckboxSuccess(fmt.Sprintf("GnuPG backed up to %v", filename))
-			fmt.Printf("\n")
+			printCheckboxSuccess(fmt.Sprintf("GnuPG backed up to %v", filename), outputter)
+			outputter.print("\n")
 		}
 	} else {
-		printCheckboxSkipped(action)
+		printCheckboxSkipped(action, outputter)
 	}
 }
 
@@ -322,22 +336,22 @@ func makeGnupgBackup() (string, error) {
 	return filename, err
 }
 
-func printCheckboxPending(actionText string) {
-	fmt.Printf("     [.] %s\n", actionText)
-	moveCursorUpLines(1)
+func printCheckboxPending(actionText string, outputter outputterInterface) {
+	outputter.print(fmt.Sprintf("     [.] %s\n", actionText))
+	moveCursorUpLines(1, outputter)
 }
 
-func printCheckboxSuccess(actionText string) {
-	fmt.Printf("     [%s] %s\n", colour.Success("✔"), actionText)
+func printCheckboxSuccess(actionText string, outputter outputterInterface) {
+	outputter.print(fmt.Sprintf("     [%s] %s\n", colour.Success("✔"), actionText))
 }
 
-func printCheckboxSkipped(actionText string) {
-	fmt.Printf("     [%s] %s\n", colour.Info("-"), actionText)
+func printCheckboxSkipped(actionText string, outputter outputterInterface) {
+	outputter.print(fmt.Sprintf("     [%s] %s\n", colour.Info("-"), actionText))
 }
 
-func printCheckboxFailure(actionText string, err error) {
-	fmt.Printf("     %s %s\n", colour.Error("[!]"), actionText)
-	fmt.Printf("         %s\n", colour.Error(fmt.Sprintf("%s", err)))
+func printCheckboxFailure(actionText string, err error, outputter outputterInterface) {
+	outputter.print(fmt.Sprintf("     %s %s\n", colour.Error("[!]"), actionText))
+	outputter.print(fmt.Sprintf("         %s\n", colour.Error(fmt.Sprintf("%s", err))))
 }
 
 // formatKeyWarningsAndActions outputs a header for each key as follows:
@@ -389,9 +403,9 @@ func tryEnableRotateAutomatically(key *pgpkey.PgpKey, password string) (err erro
 	return nil
 }
 
-func moveCursorUpLines(numLines int) {
+func moveCursorUpLines(numLines int, outputter outputterInterface) {
 	for i := 0; i < numLines; i++ {
-		fmt.Printf("\033[1A")
+		outputter.print("\033[1A")
 	}
 }
 
