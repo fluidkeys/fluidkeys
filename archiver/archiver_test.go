@@ -17,7 +17,7 @@ func TestMakeFilePath(t *testing.T) {
 	filename := "foo"
 	extension := "txt"
 
-	expect := directory + "/backups/2018-06-15/foo-153201.txt"
+	expect := directory + "/backups/2018-06-15/foo-2018-06-15T15-32-01.txt"
 	got := MakeFilePath(filename, extension, directory, now)
 
 	assert.Equal(t, expect, got)

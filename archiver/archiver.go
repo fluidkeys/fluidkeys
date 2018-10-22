@@ -8,7 +8,7 @@ import (
 
 // MakeFilePath takes a filename, extension, directory and time and constructs
 // a filepath string formated like:
-//   directory/2016-08-23/filename-180500.ext
+//   directory/2016-08-23/filename-2016-08-23T18-05-00.ext
 func MakeFilePath(filename string, extension string, directory string, now time.Time) string {
 	return filepath.Join(
 		dateStampedDirectory(directory, now),
@@ -17,7 +17,7 @@ func MakeFilePath(filename string, extension string, directory string, now time.
 }
 
 func appendTimeStampToFilename(filename string, extension string, now time.Time) string {
-	timestamp := now.Format("150405")
+	timestamp := now.Format("2006-01-02T15-04-05")
 	return filename + "-" + timestamp + "." + extension
 }
 
