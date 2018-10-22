@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"github.com/fluidkeys/fluidkeys/colour"
+	"github.com/fluidkeys/fluidkeys/out"
 )
 
 func printInfo(message string) {
-	fmt.Print(" " + colour.Info("▸") + "   " + message + "\n")
+	out.Print(" " + colour.Info("▸") + "   " + message + "\n")
 }

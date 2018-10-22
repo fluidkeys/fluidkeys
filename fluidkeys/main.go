@@ -23,6 +23,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/keyring"
 	"github.com/fluidkeys/fluidkeys/keytableprinter"
+	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/scheduler"
 
@@ -73,13 +74,13 @@ func init() {
 	var err error
 	fluidkeysDirectory, err = getFluidkeysDirectory()
 	if err != nil {
-		fmt.Printf("Failed to get fluidkeys directory: %v\n", err)
+		out.Print(fmt.Sprintf("Failed to get fluidkeys directory: %v\n", err))
 		os.Exit(1)
 	}
 
 	configPointer, err := config.Load(fluidkeysDirectory)
 	if err != nil {
-		fmt.Printf("Failed to open config file: %v\n", err)
+		out.Print(fmt.Sprintf("Failed to open config file: %v\n", err))
 		os.Exit(2)
 	} else {
 		Config = *configPointer
@@ -88,7 +89,7 @@ func init() {
 
 	keyringPointer, err := keyring.Load()
 	if err != nil {
-		fmt.Printf("Failed to load keyring: %v\n", err)
+		out.Print(fmt.Sprintf("Failed to load keyring: %v\n", err))
 		os.Exit(3)
 	} else {
 		Keyring = *keyringPointer
@@ -96,6 +97,7 @@ func init() {
 
 	db = database.New(fluidkeysDirectory)
 	gpg = gpgwrapper.GnuPG{}
+	out.Outputter = &out.TerminalOutputter{}
 }
 
 func initScheduler() {
@@ -166,7 +168,7 @@ func getSubcommand(args docopt.Opts, subcommands []string) string {
 }
 
 func initSubcommand(args docopt.Opts) exitCode {
-	fmt.Println("`init` subcommand not currently implemented.")
+	out.Print("`init` subcommand not currently implemented.\n")
 	return 1
 }
 
@@ -199,30 +201,29 @@ func keySubcommand(args docopt.Opts) exitCode {
 }
 
 func keyFromGpg() exitCode {
-	outputter := &terminalOutputter{}
 	availableKeys, err := keysAvailableToGetFromGpg()
 	if err != nil {
-		fmt.Printf("Failed to list available keys: %v", err)
+		out.Print(fmt.Sprintf("Failed to list available keys: %v", err))
 		return 1
 	}
 
 	if len(availableKeys) == 0 {
-		fmt.Printf("No secret keys found in GPG\n")
+		out.Print(fmt.Sprintf("No secret keys found in GPG\n"))
 		return 1
 	}
 
-	fmt.Printf(formatListedKeysForImportingFromGpg(availableKeys))
-	keyToImport := promptForKeyToImportFromGpg(availableKeys, outputter)
+	out.Print(formatListedKeysForImportingFromGpg(availableKeys))
+	keyToImport := promptForKeyToImportFromGpg(availableKeys)
 
 	if keyToImport == nil {
-		fmt.Printf("No key selected to link\n")
+		out.Print("No key selected to link\n")
 		return 0
 	}
 
 	db.RecordFingerprintImportedIntoGnuPG(keyToImport.Fingerprint)
 	Config.SetStorePassword(keyToImport.Fingerprint, false)
 	Config.SetRotateAutomatically(keyToImport.Fingerprint, false)
-	fmt.Printf("The key has been linked to Fluidkeys\n")
+	out.Print("The key has been linked to Fluidkeys\n")
 	return keyList()
 }
 
@@ -277,8 +278,8 @@ func loadPgpKeys() ([]pgpkey.PgpKey, error) {
 func keyCreate() exitCode {
 
 	if !gpg.IsWorking() {
-		fmt.Print(colour.Warning("\n" + GPGMissing + "\n"))
-		fmt.Print(ContinueWithoutGPG + "\n")
+		out.Print(colour.Warning("\n" + GPGMissing + "\n"))
+		out.Print(ContinueWithoutGPG + "\n")
 		promptForInput("Press enter to continue. ")
 	}
 	email := promptForEmail()
@@ -291,12 +292,12 @@ func keyCreate() exitCode {
 	if !userConfirmedRandomWord(password) {
 		displayPassword(PromptLastPassword, password)
 		if !userConfirmedRandomWord(password) {
-			fmt.Printf(FailedToConfirmPassword)
+			out.Print(FailedToConfirmPassword)
 			os.Exit(1)
 		}
 	}
 
-	fmt.Print("Generating key for " + email + "\n\n")
+	out.Print("Generating key for " + email + "\n\n")
 
 	generateJob := <-channel
 
@@ -306,23 +307,23 @@ func keyCreate() exitCode {
 
 	filename, err := backupzip.OutputZipBackupFile(fluidkeysDirectory, generateJob.pgpKey, password.AsString())
 	if err != nil {
-		fmt.Printf("Failed to create backup ZIP file: %s", err)
+		out.Print(fmt.Sprintf("Failed to create backup ZIP file: %s", err))
 	}
 	directory, _ := filepath.Split(filename)
-	fmt.Printf("Full key backup saved in %s\n", directory)
+	out.Print(fmt.Sprintf("Full key backup saved in %s\n", directory))
 
 	pushPrivateKeyBackToGpg(generateJob.pgpKey, password.AsString(), &gpg)
-	fmt.Println("The new key has been imported into GnuPG, inspect it with:")
-	fmt.Printf(" > gpg --list-keys '%s'\n", email)
+	out.Print("The new key has been imported into GnuPG, inspect it with:\n")
+	out.Print(fmt.Sprintf(" > gpg --list-keys '%s'\n", email))
 
 	fingerprint := generateJob.pgpKey.Fingerprint()
-	fmt.Print("Fluidkeys has configured a " + colour.CommandLineCode("cron") + " task to automatically rotate this key for you from now on ♻️\n")
-	fmt.Print("To do this has required storing the key's password in your operating system's keyring.\n")
+	out.Print("Fluidkeys has configured a " + colour.CommandLineCode("cron") + " task to automatically rotate this key for you from now on ♻️\n")
+	out.Print("To do this has required storing the key's password in your operating system's keyring.\n")
 	db.RecordFingerprintImportedIntoGnuPG(fingerprint)
 	if err := tryEnableRotateAutomatically(generateJob.pgpKey, password.AsString()); err == nil {
-		fmt.Print(colour.Success(" ▸   Successfully configured key to automatically rotate\n\n"))
+		out.Print(colour.Success(" ▸   Successfully configured key to automatically rotate\n\n"))
 	} else {
-		fmt.Print(colour.Warning(" ▸   Failed to configure key to automatically rotate\n\n"))
+		out.Print(colour.Warning(" ▸   Failed to configure key to automatically rotate\n\n"))
 	}
 	return 0
 }
@@ -333,7 +334,7 @@ func keyList() exitCode {
 		panic(err)
 	}
 
-	fmt.Printf("\n")
+	out.Print("\n")
 	keytableprinter.Print(keys)
 	return 0
 }
@@ -393,13 +394,13 @@ func printSecretKeyListing(listNumber int, key gpgwrapper.SecretKeyListing) stri
 	return output
 }
 
-func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing, outputter outputterInterface) *gpgwrapper.SecretKeyListing {
+func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) *gpgwrapper.SecretKeyListing {
 	var selectedKey int
 	if len(secretKeyListings) == 1 {
 		onlyKey := secretKeyListings[0]
 		prompter := interactiveYesNoPrompter{}
 
-		if prompter.promptYesNo("Import key?", "y", nil, outputter) {
+		if prompter.promptYesNo("Import key?", "y", nil) {
 			return &onlyKey
 		} else {
 			return nil
@@ -410,13 +411,13 @@ func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing
 			rangePrompt := colour.Info(fmt.Sprintf("[1-%v]", len(secretKeyListings)))
 			input := promptForInput(fmt.Sprintf(PromptWhichKeyFromGPG + " " + rangePrompt + " "))
 			if integerSelected, err := strconv.Atoi(input); err != nil {
-				fmt.Print(invalidEntry)
+				out.Print(invalidEntry)
 			} else {
 				if (integerSelected >= 1) && (integerSelected <= len(secretKeyListings)) {
 					selectedKey = integerSelected - 1
 					validInput = true
 				} else {
-					fmt.Print(invalidEntry)
+					out.Print(invalidEntry)
 				}
 			}
 		}
@@ -425,12 +426,12 @@ func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing
 }
 
 func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
-	fmt.Print(prompt)
+	out.Print(prompt)
 	response, err := reader.ReadString('\n')
 	if err != nil {
 		panic(err)
 	}
-	fmt.Print("\n")
+	out.Print("\n")
 	return strings.TrimRight(response, "\n")
 }
 
@@ -439,7 +440,7 @@ func promptForInput(prompt string) string {
 }
 
 func promptForEmail() string {
-	fmt.Print(PromptEmail + "\n")
+	out.Print(PromptEmail + "\n")
 	return promptForInput("[email] : ")
 }
 
@@ -451,8 +452,8 @@ func generatePassword(numberOfWords int, separator string) DicewarePassword {
 }
 
 func displayPassword(message string, password DicewarePassword) {
-	fmt.Print(message + "\n")
-	fmt.Print("  " + colour.Info(password.AsString()) + "\n\n")
+	out.Print(message + "\n")
+	out.Print("  " + colour.Info(password.AsString()) + "\n\n")
 
 	promptForInput("Press enter when you've written it down. ")
 }
@@ -464,13 +465,13 @@ func userConfirmedRandomWord(password DicewarePassword) bool {
 	correctWord := password.words[randomIndex]
 	wordOrdinal := humanize.Ordinal(randomIndex + 1)
 
-	fmt.Printf("Enter the %s word from your password\n\n", wordOrdinal)
+	out.Print(fmt.Sprintf("Enter the %s word from your password\n\n", wordOrdinal))
 	givenWord := promptForInput("[" + wordOrdinal + " word] : ")
 	return givenWord == correctWord
 }
 
 func clearScreen() {
-	fmt.Print("\033[H\033[2J")
+	out.Print("\033[H\033[2J")
 }
 
 // Max returns the larger of x or y.
