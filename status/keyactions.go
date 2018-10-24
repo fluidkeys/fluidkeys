@@ -89,7 +89,7 @@ func (a SetPreferredSymmetricAlgorithms) Enact(key *pgpkey.PgpKey, now time.Time
 }
 
 func (a SetPreferredSymmetricAlgorithms) String() string {
-	return fmt.Sprintf("Set preferred encryption algorithms to %s", joinCipherNames(a.NewPreferences))
+	return fmt.Sprintf("Set cipher preferences to %s", joinCipherNames(a.NewPreferences))
 }
 
 func (a SetPreferredSymmetricAlgorithms) SortOrder() int {
@@ -110,7 +110,7 @@ func (a SetPreferredHashAlgorithms) Enact(key *pgpkey.PgpKey, now time.Time, pas
 }
 
 func (a SetPreferredHashAlgorithms) String() string {
-	return fmt.Sprintf("Set preferred hash algorithms to %s", joinHashNames(a.NewPreferences))
+	return fmt.Sprintf("Set hash preferences to %s", joinHashNames(a.NewPreferences))
 }
 
 func (a SetPreferredHashAlgorithms) SortOrder() int {
@@ -131,7 +131,7 @@ func (a SetPreferredCompressionAlgorithms) Enact(key *pgpkey.PgpKey, now time.Ti
 }
 
 func (a SetPreferredCompressionAlgorithms) String() string {
-	return fmt.Sprintf("Set preferred compression algorithms to %s", joinCompressionNames(a.NewPreferences))
+	return fmt.Sprintf("Set compression preferences to %s", joinCompressionNames(a.NewPreferences))
 }
 
 func (a SetPreferredCompressionAlgorithms) SortOrder() int {
