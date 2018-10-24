@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -302,7 +301,7 @@ func promptAndBackupGnupg(prompter promptYesNoInterface) {
 
 	if prompter.promptYesNo(promptBackupGpg, "y", nil) == true {
 		printCheckboxPending(action)
-		filename, err := makeGnupgBackup()
+		filename, err := makeGnupgBackup(time.Now())
 		if err != nil {
 			printCheckboxFailure(action, err)
 			fmt.Printf("\n")
@@ -315,10 +314,9 @@ func promptAndBackupGnupg(prompter promptYesNoInterface) {
 	}
 }
 
-func makeGnupgBackup() (string, error) {
-	directory := archiver.DateStampedDirectory(fluidkeysDirectory, time.Now())
-	filepath := filepath.Join(directory, "gpghome.tgz")
-	filename, err := gpg.BackupHomeDir(filepath, time.Now())
+func makeGnupgBackup(now time.Time) (string, error) {
+	filepath := archiver.MakeFilePath("gpghome", "tgz", fluidkeysDirectory, now)
+	filename, err := gpg.BackupHomeDir(filepath, now)
 	return filename, err
 }
 
