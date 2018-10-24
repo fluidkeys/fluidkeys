@@ -61,6 +61,10 @@ func Success(message string) string {
 	return green(message)
 }
 
+func Failure(message string) string {
+	return red(message)
+}
+
 func Info(message string) string {
 	return bright + blue(message)
 }

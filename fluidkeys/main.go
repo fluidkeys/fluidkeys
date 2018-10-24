@@ -37,10 +37,7 @@ const GPGMissing string = "GPG isn't working on your system 🤒\n"
 const ContinueWithoutGPG string = "You can still use FluidKeys to make a key and then later import it from your backup.\n\nAlternatively, quit now [ctrl-c], install GPG then run FluidKeys again.\n"
 const PromptPressEnter string = "Press enter to continue"
 
-const PromptEmail string = "To start using Fluidkeys, first you'll need to create a key.\n\nEnter your email address, this will help other people find your key.\n"
-const PromptFirstPassword string = "This is your password.\n\n* If you use a password manager, save it there now\n* Otherwise write it on a piece of paper and keep it with you\n"
-const PromptLastPassword string = "That didn't match 🤷🏽 This is your last chance!\n"
-const FailedToConfirmPassword string = "That didn't match. Quitting...\n"
+const PromptEmail string = "Enter your email address, this will help other people find your key.\n"
 
 const PromptWhichKeyFromGPG string = "Which key would you like to import?"
 
@@ -283,49 +280,55 @@ func keyCreate() exitCode {
 		out.Print(ContinueWithoutGPG + "\n")
 		promptForInput("Press enter to continue. ")
 	}
+	out.Print("\n")
 	email := promptForEmail()
 	channel := make(chan generatePgpKeyResult)
 	go generatePgpKey(email, channel)
 
 	password := generatePassword(DicewareNumberOfWords, DicewareSeparator)
 
-	displayPassword(PromptFirstPassword, password)
+	out.Print("Your key will be protected with this password:\n\n")
+	displayPassword(password)
 	if !userConfirmedRandomWord(password) {
-		displayPassword(PromptLastPassword, password)
+		out.Print("Those words did not match. Here it is again:\n\n")
+		displayPassword(password)
 		if !userConfirmedRandomWord(password) {
-			out.Print(FailedToConfirmPassword)
+			out.Print("Those words didn't match again. Quitting...\n")
 			os.Exit(1)
 		}
 	}
 
-	out.Print("Generating key for " + email + "\n\n")
+	out.Print("Creating key for " + colour.Info(email) + ":\n\n")
 
 	generateJob := <-channel
 
 	if generateJob.err != nil {
 		panic(fmt.Sprint("Failed to generate key: ", generateJob.err))
 	}
+	printSuccessfulAction("Generate key for ian@example.com")
+
+	pushPrivateKeyBackToGpg(generateJob.pgpKey, password.AsString(), &gpg)
+	printSuccessfulAction("Store key in " + colour.Info("gpg"))
+
+	fingerprint := generateJob.pgpKey.Fingerprint()
+	db.RecordFingerprintImportedIntoGnuPG(fingerprint)
+	if err := tryEnableMaintainAutomatically(generateJob.pgpKey, password.AsString()); err == nil {
+		printSuccessfulAction("Store password in system keyring")
+		printSuccessfulAction("Setup automatic maintenance using " + colour.Info("cron"))
+	} else {
+		printFailedAction("Setup automatic maintenance")
+	}
 
 	filename, err := backupzip.OutputZipBackupFile(fluidkeysDirectory, generateJob.pgpKey, password.AsString())
 	if err != nil {
-		out.Print(fmt.Sprintf("Failed to create backup ZIP file: %s", err))
+		printFailedAction("Make a backup ZIP file")
 	}
 	directory, _ := filepath.Split(filename)
-	out.Print(fmt.Sprintf("Full key backup saved in %s\n", directory))
+	printSuccessfulAction("Make a backup ZIP file in")
+	out.Print("          " + colour.Info(directory) + "\n\n")
 
-	pushPrivateKeyBackToGpg(generateJob.pgpKey, password.AsString(), &gpg)
-	out.Print("The new key has been imported into GnuPG, inspect it with:\n")
-	out.Print(fmt.Sprintf(" > gpg --list-keys '%s'\n", email))
-
-	fingerprint := generateJob.pgpKey.Fingerprint()
-	out.Print("Fluidkeys has configured a " + colour.CommandLineCode("cron") + " task to automatically rotate this key for you from now on ♻️\n")
-	out.Print("To do this has required storing the key's password in your operating system's keyring.\n")
-	db.RecordFingerprintImportedIntoGnuPG(fingerprint)
-	if err := tryEnableMaintainAutomatically(generateJob.pgpKey, password.AsString()); err == nil {
-		out.Print(colour.Success(" ▸   Successfully configured key to automatically rotate\n\n"))
-	} else {
-		out.Print(colour.Warning(" ▸   Failed to configure key to automatically rotate\n\n"))
-	}
+	printSuccess("Successfully created key for ian@example.com")
+	out.Print("\n")
 	return 0
 }
 
@@ -452,11 +455,12 @@ func generatePassword(numberOfWords int, separator string) DicewarePassword {
 	}
 }
 
-func displayPassword(message string, password DicewarePassword) {
-	out.Print(message + "\n")
+func displayPassword(password DicewarePassword) {
 	out.Print("  " + colour.Info(password.AsString()) + "\n\n")
+	out.Print("If you use a password manager, save it there now.\n\n")
+	out.Print(colour.Warning("Store this safely, otherwise you won’t be able to use your key\n\n"))
 
-	promptForInput("Press enter when you've written it down. ")
+	promptForInput("Press enter when you've stored it safely. ")
 }
 
 func userConfirmedRandomWord(password DicewarePassword) bool {
