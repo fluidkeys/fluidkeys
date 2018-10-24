@@ -3,7 +3,6 @@ package gpgwrapper
 import (
 	"fmt"
 	"os/exec"
-	"strings"
 	"time"
 )
 
