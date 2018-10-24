@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -37,7 +38,7 @@ func tryPassword(password string, publicKey *pgpkey.PgpKey, prompter promptForPa
 		return privateKey, password, nil
 
 	} else if isBadPasswordError(err) {
-		fmt.Printf("Password appeared to be incorrect.\n")
+		out.Print("Password appeared to be incorrect.\n")
 
 		if attempt < 5 {
 			if password, err := prompter.promptForPassword(publicKey); err != nil {
@@ -70,12 +71,12 @@ type interactivePasswordPrompter struct{}
 
 // promptForPassword asks the user for a password and returns the result
 func (p *interactivePasswordPrompter) promptForPassword(key *pgpkey.PgpKey) (string, error) {
-	fmt.Printf("Enter password for %s: ", displayName(key))
+	out.Print(fmt.Sprintf("Enter password for %s: ", displayName(key)))
 	password, err := terminal.ReadPassword(0)
 	if err != nil {
 		panic(fmt.Sprintf("Error reading password: %v\n", err))
 	} else {
-		fmt.Print("\n\n")
+		out.Print("\n\n")
 	}
 	return string(password), nil
 }

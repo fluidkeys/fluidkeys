@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/fluidkeys/fluidkeys/colour"
+	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/status"
 )
@@ -25,8 +26,8 @@ var header = row{
 var placeholderDividerRow = row{divider, divider, divider}
 
 func Print(keys []pgpkey.PgpKey) {
-	fmt.Print(makeTable(keys))
-	fmt.Print(makePrimaryInstruction(keys))
+	out.Print(makeTable(keys))
+	out.Print(makePrimaryInstruction(keys))
 }
 
 func makeTable(keys []pgpkey.PgpKey) (output string) {

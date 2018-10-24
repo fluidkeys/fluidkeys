@@ -2,6 +2,7 @@ package keyring
 
 import (
 	"fmt"
+
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	externalkeyring "github.com/fluidkeys/keyring"
 )

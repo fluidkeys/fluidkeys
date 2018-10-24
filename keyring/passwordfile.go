@@ -2,9 +2,11 @@ package keyring
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/BurntSushi/toml"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
-	"os"
+	"github.com/fluidkeys/fluidkeys/out"
 )
 
 // This is a *temporary* workaround to the issue here:
@@ -35,7 +37,7 @@ func tryLoadFromPasswordFile(fp fingerprint.Fingerprint) (string, bool) {
 	passwordFile := os.Getenv(environmentVariable)
 
 	if passwordFile != "" {
-		fmt.Printf("Reading passwords from '%s'\n", passwordFile)
+		out.Print(fmt.Sprintf("Reading passwords from '%s'\n", passwordFile))
 		return loadPasswordFromFile(passwordFile, fp)
 	}
 	return "", false
