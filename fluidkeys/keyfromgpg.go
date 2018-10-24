@@ -9,17 +9,20 @@ import (
 	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
+	"github.com/fluidkeys/fluidkeys/status"
 )
 
 func keyFromGpg() exitCode {
+	out.Print("\n")
+	out.Print("Connecting a key allows Fluidkeys to inspect your key and fix any issues.\n\n")
 	availableKeys, err := keysAvailableToGetFromGpg()
 	if err != nil {
-		out.Print(fmt.Sprintf("Failed to list available keys: %v", err))
+		out.Print(fmt.Sprintf("Failed to list available keys: %v\n\n", err))
 		return 1
 	}
 
 	if len(availableKeys) == 0 {
-		out.Print(fmt.Sprintf("No secret keys found in GPG\n"))
+		out.Print(fmt.Sprintf("No secret keys found in GPG\n\n"))
 		return 1
 	}
 
@@ -34,8 +37,26 @@ func keyFromGpg() exitCode {
 	db.RecordFingerprintImportedIntoGnuPG(keyToImport.Fingerprint)
 	Config.SetStorePassword(keyToImport.Fingerprint, false)
 	Config.SetMaintainAutomatically(keyToImport.Fingerprint, false)
-	out.Print("The key has been linked to Fluidkeys\n")
-	return keyList()
+	printSuccess("Successfully connected key to Fluidkeys")
+	out.Print("\n")
+
+	key, err := loadPgpKey(keyToImport.Fingerprint)
+	if err != nil {
+		out.Print(fmt.Sprintf("Failed to load key from gpg: %v\n\n", err))
+		return 1
+	}
+
+	keyTask := keyTask{
+		key:      key,
+		warnings: status.GetKeyWarnings(*key),
+	}
+
+	out.Print(formatKeyWarnings(keyTask))
+
+	out.Print("Fluidkeys can fix these issues. See how by running:\n")
+	out.Print("    " + colour.CommandLineCode("fk key maintain --dry-run") + "\n\n")
+
+	return 0
 }
 
 // keysAvailableToGetFromGpg returns a filtered slice of SecretKeyListings, removing
@@ -63,7 +84,8 @@ func keysAvailableToGetFromGpg() ([]gpgwrapper.SecretKeyListing, error) {
 }
 
 func formatListedKeysForImportingFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) string {
-	str := fmt.Sprintf("Found %s in GnuPG:\n\n", humanize.Pluralize(len(secretKeyListings), "key", "keys"))
+	str := "Found " + humanize.Pluralize(len(secretKeyListings), "key", "keys") +
+		" with " + colour.CommandLineCode("gpg --list-secret-keys") + ":\n\n"
 	for index, key := range secretKeyListings {
 		str += printSecretKeyListing(index+1, key)
 	}
@@ -87,7 +109,7 @@ func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing
 		onlyKey := secretKeyListings[0]
 		prompter := interactiveYesNoPrompter{}
 
-		if prompter.promptYesNo("Import key?", "y", nil) {
+		if prompter.promptYesNo("Connect this key?", "y", nil) {
 			return &onlyKey
 		} else {
 			return nil
