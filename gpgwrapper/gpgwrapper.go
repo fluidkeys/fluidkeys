@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/fluidkeys/fluidkeys/fingerprint"
+
+	"github.com/mitchellh/go-homedir"
 )
 
 const GpgPath = "gpg2"
@@ -90,7 +92,11 @@ func (g *GnuPG) HomeDir() (string, error) {
 		return "", ErrNoHomeDirectoryStringFound
 	}
 
-	return match[1], nil
+	if fullPath, err := homedir.Expand(match[1]); err != nil {
+		return "", fmt.Errorf("error expanding home directory '%s': %v", match[1], err)
+	} else {
+		return fullPath, nil
+	}
 }
 
 // Checks whether GPG is working
