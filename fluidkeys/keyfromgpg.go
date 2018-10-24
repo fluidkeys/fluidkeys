@@ -14,7 +14,6 @@ import (
 
 func keyFromGpg() exitCode {
 	out.Print("\n")
-	out.Print("Connecting a key allows Fluidkeys to inspect your key and fix any issues.\n\n")
 	availableKeys, err := keysAvailableToGetFromGpg()
 	if err != nil {
 		out.Print(fmt.Sprintf("Failed to list available keys: %v\n\n", err))
@@ -22,9 +21,14 @@ func keyFromGpg() exitCode {
 	}
 
 	if len(availableKeys) == 0 {
-		out.Print(fmt.Sprintf("No secret keys found in GPG\n\n"))
+		out.Print(fmt.Sprintf("No new keys found with " + colour.CommandLineCode("gpg --list-secret-keys") + "\n\n"))
+		out.Print("See the keys you've already connected by running:\n")
+		out.Print("    " + colour.CommandLineCode("fk key list") + "\n\n")
+
 		return 1
 	}
+
+	out.Print("Connecting a key allows Fluidkeys to inspect your key and fix any issues.\n\n")
 
 	out.Print(formatListedKeysForImportingFromGpg(availableKeys))
 	keyToImport := promptForKeyToImportFromGpg(availableKeys)
