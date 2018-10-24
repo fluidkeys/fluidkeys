@@ -44,6 +44,7 @@ test:
 	./script/test_make_compile
 	./script/test_make_install
 	./script/test_dep_gopkg_files
+	./script/test_discover_dbus_session_address
 
 .PHONY: run
 run: $(MAIN_GO_FILES)

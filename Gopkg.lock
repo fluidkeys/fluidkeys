@@ -41,12 +41,13 @@
   revision = "b7a88d2e1e256dcbc200690189c829aabaff5c29"
 
 [[projects]]
-  digest = "1:e772845668c277db6fcc8c6fcf31664c74851f6cce4d225be4f4adbee3861057"
+  branch = "master"
+  digest = "1:dd8c10140003b6410fe4256aceced92034b7677710d7ea605f5beb84bb70d4e5"
   name = "github.com/godbus/dbus"
   packages = ["."]
   pruneopts = ""
-  revision = "a389bdde4dd695d414e47b755e95e72b7826432c"
-  version = "v4.1.0"
+  revision = "9adc973a4075ded5b9ab726210f5e63b62fd3475"
+  source = "github.com/fluidkeys/fork-dbus"
 
 [[projects]]
   branch = "master"
