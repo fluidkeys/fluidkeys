@@ -376,7 +376,7 @@ func formatKeyWarnings(keyTask keyTask) (header string) {
 		return
 	}
 
-	header += "Found " + humanize.Pluralize(len(keyTask.warnings), "warning", "warnings") +
+	header += "Fluidkeys found " + humanize.Pluralize(len(keyTask.warnings), "warning", "warnings") +
 		" for " + colour.Info(displayName(keyTask.key)) + ":\n\n"
 
 	for _, warning := range keyTask.warnings {
