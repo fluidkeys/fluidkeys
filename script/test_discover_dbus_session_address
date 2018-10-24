@@ -1,0 +1,20 @@
+#!/bin/sh -eu
+
+if [ -z ${DBUS_SESSION_BUS_ADDRESS+x} ];  then
+    echo "DBUS_SESSION_BUS_ADDRESS not set, skipping this test"
+    exit 0
+else
+    # variable is set: we have a dbus session address.
+    #
+    # - set EXPECTED_DBUS_SESSION_BUS_ADDRESS to DBUS_SESSION_BUS_ADDRESS
+    # - unset DBUS_SESSION_BUS_ADDRESS to simulate we're in crontab
+    # - run the special test that sees if we successfully discovered and set
+    #   DBUS_SESSION_BUS_ADDRESS from the operating system
+
+    export EXPECTED_DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS"
+    unset DBUS_SESSION_BUS_ADDRESS
+
+    cd keyring
+    go test -v -run TestDiscoverDbusSessionBusAddress
+fi
+

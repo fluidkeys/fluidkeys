@@ -4,6 +4,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	externalkeyring "github.com/fluidkeys/keyring"
+	"os"
 	"testing"
 )
 
@@ -98,4 +99,22 @@ func TestPurgePassword(t *testing.T) {
 
 		assert.ErrorIsNil(t, err)
 	})
+}
+
+func TestDiscoverDbusSessionBusAddress(t *testing.T) {
+	dbusAddress := os.Getenv("DBUS_SESSION_BUS_ADDRESS")
+	expectedDbusAddress := os.Getenv("EXPECTED_DBUS_SESSION_BUS_ADDRESS")
+
+	if expectedDbusAddress != "" {
+		// the caller script unset DBUS_SESSION_BUS_ADDRESS before
+		// calling this test to simulate crontab.
+		// We need to test whether godbus's init discovered and
+		// set DBUS_SESSION_BUS_ADDRESS correctly.
+
+		t.Run("DBUS_SESSION_BUS_ADDRESS should have been set to EXPECTED_DBUS_SESSION_BUS_ADDRESS", func(t *testing.T) {
+			if dbusAddress != expectedDbusAddress {
+				t.Fatalf("looks like we failed to discover DBUS_SESSION_BUS_ADDRESS correctly, expected: '%s', got: '%s'", expectedDbusAddress, dbusAddress)
+			}
+		})
+	}
 }
