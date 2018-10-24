@@ -71,8 +71,6 @@ type generatePgpKeyResult struct {
 type exitCode = int
 
 func init() {
-	out.SetOutputToTerminal()
-
 	var err error
 	fluidkeysDirectory, err = getFluidkeysDirectory()
 	if err != nil {
@@ -99,6 +97,7 @@ func init() {
 
 	db = database.New(fluidkeysDirectory)
 	gpg = gpgwrapper.GnuPG{}
+	out.SetOutputToTerminal()
 }
 
 func initScheduler() {
