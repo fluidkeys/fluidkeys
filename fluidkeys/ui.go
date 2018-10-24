@@ -13,6 +13,10 @@ func printSuccess(message string) {
 	out.Print(" " + colour.Success("▸   "+message) + "\n")
 }
 
+func printFailed(message string) {
+	out.Print(" " + colour.Failure("▸   "+message) + "\n")
+}
+
 func printSuccessfulAction(message string) {
 	out.Print("    [" + colour.Success("✔") + "] " + message + "\n")
 }

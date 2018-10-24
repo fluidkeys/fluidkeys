@@ -49,9 +49,7 @@ func keyMaintain(dryRun bool, automatic bool, cronOutput bool) exitCode {
 }
 
 var (
-	nothingToDo        string = colour.Success("✔ All keys look good — nothing to do.\n")
-	reviewTheseActions string = "Fluidkeys will perform the following actions.\n\n" +
-		colour.Warning("Take time to review these actions.") + "\n\n"
+	nothingToDo string = colour.Success("✔ All keys look good — nothing to do.\n")
 )
 
 func runKeyMaintainDryRun(keys []pgpkey.PgpKey) exitCode {
@@ -62,8 +60,6 @@ func runKeyMaintainDryRun(keys []pgpkey.PgpKey) exitCode {
 		return 0 // success! nothing to do
 	}
 
-	out.Print(reviewTheseActions)
-
 	for i := range keyTasks {
 		var keyTask *keyTask = keyTasks[i]
 		keyTask.actions = addImportExportActions(keyTask.actions, nil)
@@ -71,9 +67,15 @@ func runKeyMaintainDryRun(keys []pgpkey.PgpKey) exitCode {
 		out.Print(formatKeyActions(*keyTask))
 	}
 
-	out.Print("To start run\n")
-	out.Print(" >   " + colour.CommandLineCode("fk key maintain") + "\n\n")
-	out.Print("You’ll be asked at each stage to confirm before making any changes.\n\n")
+	if len(keyTasks) > 1 {
+		out.Print("You’ll be asked to confirm for each key.\n\n")
+	}
+
+	out.Print("Before running these actions, Fluidkeys makes a backup of " + colour.CommandLineCode("gpg") + ".\n")
+	out.Print(colour.Warning("Changes can only be undone by restoring from the backup.\n\n"))
+
+	out.Print("Fix these issues by running:\n")
+	out.Print("    " + colour.CommandLineCode("fk key maintain") + "\n\n")
 	return 0
 }
 
@@ -88,9 +90,9 @@ type keyTask struct {
 	err error
 }
 
-const (
-	promptBackupGpg             = "Automatically create backup now?"
-	promptRunActions            = "     Run these actions?"
+var (
+	promptBackupAndRunActions   = "Make a backup of " + colour.CommandLineCode("gpg") + " and run these actions?"
+	promptRunActions            = "Run these actions?"
 	promptMaintainAutomatically = "Automatically rotate this key from now on?"
 )
 
@@ -132,10 +134,7 @@ type automaticResponder struct{}
 func (aR *automaticResponder) promptYesNo(message string, defaultResponse string, key *pgpkey.PgpKey) bool {
 	switch message {
 
-	case promptBackupGpg:
-		return true
-
-	case promptRunActions:
+	case promptBackupAndRunActions, promptRunActions:
 		if key == nil {
 			panic("expected *key but got nil pointer")
 		}
@@ -169,21 +168,25 @@ func runKeyMaintain(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwor
 		return 0 // success! nothing to do
 	}
 
-	out.Print(reviewTheseActions)
-
-	promptAndBackupGnupg(prompter)
-
 	for i := range keyTasks {
 		var keyTask *keyTask = keyTasks[i]
 		keyTask.actions = addImportExportActions(keyTask.actions, passwordPrompter)
 	}
+
+	var backupCreatedAlready bool = false
 
 	for i := range keyTasks {
 		var keyTask *keyTask = keyTasks[i]
 
 		out.Print(formatKeyWarnings(*keyTask))
 		out.Print(formatKeyActions(*keyTask))
-		ranActionsSuccesfully := promptAndRunActions(prompter, keyTask)
+
+		skipBackup := backupCreatedAlready
+		ranActionsSuccesfully := promptToBackupAndRunActions(prompter, keyTask, skipBackup)
+
+		if ranActionsSuccesfully {
+			backupCreatedAlready = true
+		}
 
 		if ranActionsSuccesfully && !Config.ShouldMaintainAutomatically(keyTask.key.Fingerprint()) {
 			promptAndTurnOnMaintainAutomatically(prompter, *keyTask)
@@ -200,7 +203,7 @@ func runKeyMaintain(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwor
 		}
 		return 1
 	} else {
-		out.Print(colour.Success("Rotate complete") + "\n")
+		out.Print(colour.Success("Maintenance complete.") + "\n")
 		return 0
 	}
 }
@@ -246,19 +249,39 @@ func makeKeyTasks(keys []pgpkey.PgpKey) []*keyTask {
 	return keyTasks
 }
 
-func promptAndRunActions(prompter promptYesNoInterface, keyTask *keyTask) (ranActionsSuccessfully bool) {
-	if prompter.promptYesNo(promptRunActions, "y", keyTask.key) == false {
+func promptToBackupAndRunActions(prompter promptYesNoInterface, keyTask *keyTask, skipBackup bool) (ranActionsSuccessfully bool) {
+	skipDueToError := func(err error) {
+		keyTask.err = err
+		out.Print("     " + colour.Warning("Skipping remaining actions for") + " " + displayName(keyTask.key) + "\n\n")
+		ranActionsSuccessfully = false
+	}
+
+	skip := func() {
 		out.Print(colour.Disabled(" ▸   OK, skipped.\n\n"))
 		ranActionsSuccessfully = false
-		return
+	}
+
+	if skipBackup {
+		if prompter.promptYesNo(promptRunActions, "y", keyTask.key) == false {
+			skip()
+			return
+		}
+	} else {
+		if prompter.promptYesNo(promptBackupAndRunActions, "y", keyTask.key) == false {
+			skip()
+			return
+		}
+
+		if err := backupGpg(); err != nil {
+			skipDueToError(err)
+			return
+		}
 	}
 
 	if err := runActions(keyTask); err != nil {
-		keyTask.err = err
-		out.Print("\n")
-		out.Print("     " + colour.Warning("Skipping remaining actions for") + " " + displayName(keyTask.key) + "\n\n")
-		ranActionsSuccessfully = false
+		skipDueToError(err)
 		return
+
 	} else {
 		out.Print(colour.Success(" ▸   Successfully updated keys for " + displayName(keyTask.key) + "\n\n"))
 		ranActionsSuccessfully = true
@@ -266,17 +289,31 @@ func promptAndRunActions(prompter promptYesNoInterface, keyTask *keyTask) (ranAc
 	}
 }
 
+func backupGpg() error {
+	filename, err := makeGnupgBackup(time.Now())
+	if err != nil {
+		printFailed("Failed to make a backup:")
+		out.Print("     " + colour.Failure(err.Error()) + "\n\n")
+		return err
+	} else {
+		printSuccess("Successfully made a backup to:")
+		out.Print("     " + colour.Info(filename) + "\n\n")
+		return nil
+	}
+}
+
 func promptAndTurnOnMaintainAutomatically(prompter promptYesNoInterface, keyTask keyTask) {
 
-	out.Print("Fluidkeys can configure a " + colour.CommandLineCode("cron") +
-		" task to automatically rotate this key for you from now on ♻️\n")
-	out.Print("To do this requires storing the key's password in your operating system's keyring.\n\n")
+	out.Print("Fluidkeys can maintain this key automatically using " + colour.CommandLineCode("cron") + ".\n")
+	out.Print("This requires storing the password in the system keyring.\n\n")
 
 	if prompter.promptYesNo(promptMaintainAutomatically, "", keyTask.key) == true {
 		if err := tryEnableMaintainAutomatically(keyTask.key, keyTask.password); err == nil {
-			out.Print(colour.Success(" ▸   Successfully configured key to automatically rotate\n\n"))
+			printSuccess("Successfully set up automatic maintenance")
+			out.Print("\n")
 		} else {
-			out.Print(colour.Warning(" ▸   Failed to configure key to automatically rotate\n\n"))
+			printFailed("Failed to set up automatic maintenance")
+			out.Print("\n")
 		}
 	} else {
 		out.Print(colour.Disabled(" ▸   OK, skipped.\n\n"))
@@ -301,29 +338,12 @@ func runActions(keyTask *keyTask) error {
 	return nil
 }
 
-func promptAndBackupGnupg(prompter promptYesNoInterface) {
-	out.Print("While fluidkeys is in alpha, it backs up GnuPG (~/.gnupg) each time.\n")
-
-	action := "Backup GnuPG directory (~/.gnupg)"
-
-	if prompter.promptYesNo(promptBackupGpg, "y", nil) == true {
-		printCheckboxPending(action)
-		filename, err := makeGnupgBackup(time.Now())
-		if err != nil {
-			printCheckboxFailure(action, err)
-			out.Print("\n")
-		} else {
-			printCheckboxSuccess(fmt.Sprintf("GnuPG backed up to %v", filename))
-			out.Print("\n")
-		}
-	} else {
-		printCheckboxSkipped(action)
-	}
-}
-
 func makeGnupgBackup(now time.Time) (string, error) {
 	filepath := archiver.MakeFilePath("gpghome", "tgz", fluidkeysDirectory, now)
 	filename, err := gpg.BackupHomeDir(filepath, now)
+	if err != nil {
+		return "", fmt.Errorf("failed to call gpg.BackupHomeDir: %v", err)
+	}
 	return filename, err
 }
 
