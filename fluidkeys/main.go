@@ -3,18 +3,15 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/mitchellh/go-homedir"
 
 	"github.com/docopt/docopt-go"
-	"github.com/fluidkeys/fluidkeys/backupzip"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/config"
 	"github.com/fluidkeys/fluidkeys/database"
@@ -26,21 +23,10 @@ import (
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/scheduler"
-
-	"github.com/sethvargo/go-diceware/diceware"
 )
-
-const DicewareNumberOfWords int = 6
-const DicewareSeparator string = "."
 
 const GPGMissing string = "GPG isn't working on your system 🤒\n"
 const ContinueWithoutGPG string = "You can still use FluidKeys to make a key and then later import it from your backup.\n\nAlternatively, quit now [ctrl-c], install GPG then run FluidKeys again.\n"
-const PromptPressEnter string = "Press enter to continue"
-
-const PromptEmail string = "To start using Fluidkeys, first you'll need to create a key.\n\nEnter your email address, this will help other people find your key.\n"
-const PromptFirstPassword string = "This is your password.\n\n* If you use a password manager, save it there now\n* Otherwise write it on a piece of paper and keep it with you\n"
-const PromptLastPassword string = "That didn't match 🤷🏽 This is your last chance!\n"
-const FailedToConfirmPassword string = "That didn't match. Quitting...\n"
 
 const PromptWhichKeyFromGPG string = "Which key would you like to import?"
 
@@ -276,59 +262,6 @@ func loadPgpKeys() ([]pgpkey.PgpKey, error) {
 	return keys, nil
 }
 
-func keyCreate() exitCode {
-
-	if !gpg.IsWorking() {
-		out.Print(colour.Warning("\n" + GPGMissing + "\n"))
-		out.Print(ContinueWithoutGPG + "\n")
-		promptForInput("Press enter to continue. ")
-	}
-	email := promptForEmail()
-	channel := make(chan generatePgpKeyResult)
-	go generatePgpKey(email, channel)
-
-	password := generatePassword(DicewareNumberOfWords, DicewareSeparator)
-
-	displayPassword(PromptFirstPassword, password)
-	if !userConfirmedRandomWord(password) {
-		displayPassword(PromptLastPassword, password)
-		if !userConfirmedRandomWord(password) {
-			out.Print(FailedToConfirmPassword)
-			os.Exit(1)
-		}
-	}
-
-	out.Print("Generating key for " + email + "\n\n")
-
-	generateJob := <-channel
-
-	if generateJob.err != nil {
-		panic(fmt.Sprint("Failed to generate key: ", generateJob.err))
-	}
-
-	filename, err := backupzip.OutputZipBackupFile(fluidkeysDirectory, generateJob.pgpKey, password.AsString())
-	if err != nil {
-		out.Print(fmt.Sprintf("Failed to create backup ZIP file: %s", err))
-	}
-	directory, _ := filepath.Split(filename)
-	out.Print(fmt.Sprintf("Full key backup saved in %s\n", directory))
-
-	pushPrivateKeyBackToGpg(generateJob.pgpKey, password.AsString(), &gpg)
-	out.Print("The new key has been imported into GnuPG, inspect it with:\n")
-	out.Print(fmt.Sprintf(" > gpg --list-keys '%s'\n", email))
-
-	fingerprint := generateJob.pgpKey.Fingerprint()
-	out.Print("Fluidkeys has configured a " + colour.CommandLineCode("cron") + " task to automatically rotate this key for you from now on ♻️\n")
-	out.Print("To do this has required storing the key's password in your operating system's keyring.\n")
-	db.RecordFingerprintImportedIntoGnuPG(fingerprint)
-	if err := tryEnableMaintainAutomatically(generateJob.pgpKey, password.AsString()); err == nil {
-		out.Print(colour.Success(" ▸   Successfully configured key to automatically rotate\n\n"))
-	} else {
-		out.Print(colour.Warning(" ▸   Failed to configure key to automatically rotate\n\n"))
-	}
-	return 0
-}
-
 func keyList() exitCode {
 	keys, err := loadPgpKeys()
 	if err != nil {
@@ -368,12 +301,6 @@ func makeFluidkeysHomeDirectory() (string, error) {
 	fluidkeysDir := filepath.Join(homeDirectory, ".config", "fluidkeys")
 	os.MkdirAll(fluidkeysDir, 0700)
 	return fluidkeysDir, nil
-}
-
-func generatePgpKey(email string, channel chan generatePgpKeyResult) {
-	key, err := pgpkey.Generate(email, time.Now(), nil)
-
-	channel <- generatePgpKeyResult{key, err}
 }
 
 func formatListedKeysForImportingFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) string {
@@ -438,47 +365,4 @@ func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
 
 func promptForInput(prompt string) string {
 	return promptForInputWithPipes(prompt, bufio.NewReader(os.Stdin))
-}
-
-func promptForEmail() string {
-	out.Print(PromptEmail + "\n")
-	return promptForInput("[email] : ")
-}
-
-func generatePassword(numberOfWords int, separator string) DicewarePassword {
-	return DicewarePassword{
-		words:     diceware.MustGenerate(numberOfWords),
-		separator: separator,
-	}
-}
-
-func displayPassword(message string, password DicewarePassword) {
-	out.Print(message + "\n")
-	out.Print("  " + colour.Info(password.AsString()) + "\n\n")
-
-	promptForInput("Press enter when you've written it down. ")
-}
-
-func userConfirmedRandomWord(password DicewarePassword) bool {
-	clearScreen()
-	rand.Seed(time.Now().UnixNano())
-	randomIndex := rand.Intn(len(password.words))
-	correctWord := password.words[randomIndex]
-	wordOrdinal := humanize.Ordinal(randomIndex + 1)
-
-	out.Print(fmt.Sprintf("Enter the %s word from your password\n\n", wordOrdinal))
-	givenWord := promptForInput("[" + wordOrdinal + " word] : ")
-	return givenWord == correctWord
-}
-
-func clearScreen() {
-	out.Print("\033[H\033[2J")
-}
-
-// Max returns the larger of x or y.
-func Max(x, y int) int {
-	if x < y {
-		return y
-	}
-	return x
 }
