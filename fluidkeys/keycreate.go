@@ -1,0 +1,122 @@
+package main
+
+import (
+	"fmt"
+	"math/rand"
+	"os"
+	"path/filepath"
+	"time"
+
+	"github.com/fluidkeys/fluidkeys/backupzip"
+	"github.com/fluidkeys/fluidkeys/colour"
+	"github.com/fluidkeys/fluidkeys/humanize"
+	"github.com/fluidkeys/fluidkeys/out"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
+
+	"github.com/sethvargo/go-diceware/diceware"
+)
+
+const DicewareNumberOfWords int = 6
+const DicewareSeparator string = "."
+const PromptEmail string = "Enter your email address, this will help other people find your key.\n"
+
+func keyCreate() exitCode {
+
+	if !gpg.IsWorking() {
+		out.Print(colour.Warning("\n" + GPGMissing + "\n"))
+		out.Print(ContinueWithoutGPG + "\n")
+		promptForInput("Press enter to continue. ")
+	}
+	out.Print("\n")
+	email := promptForEmail()
+	channel := make(chan generatePgpKeyResult)
+	go generatePgpKey(email, channel)
+
+	password := generatePassword(DicewareNumberOfWords, DicewareSeparator)
+
+	out.Print("Your key will be protected with this password:\n\n")
+	displayPassword(password)
+	if !userConfirmedRandomWord(password) {
+		out.Print("Those words did not match. Here it is again:\n\n")
+		displayPassword(password)
+		if !userConfirmedRandomWord(password) {
+			out.Print("Those words didn't match again. Quitting...\n")
+			os.Exit(1)
+		}
+	}
+
+	out.Print("Creating key for " + colour.Info(email) + ":\n\n")
+
+	generateJob := <-channel
+
+	if generateJob.err != nil {
+		panic(fmt.Sprint("Failed to generate key: ", generateJob.err))
+	}
+	printSuccessfulAction("Generate key for ian@example.com")
+
+	pushPrivateKeyBackToGpg(generateJob.pgpKey, password.AsString(), &gpg)
+	printSuccessfulAction("Store key in " + colour.Info("gpg"))
+
+	fingerprint := generateJob.pgpKey.Fingerprint()
+	db.RecordFingerprintImportedIntoGnuPG(fingerprint)
+	if err := tryEnableMaintainAutomatically(generateJob.pgpKey, password.AsString()); err == nil {
+		printSuccessfulAction("Store password in system keyring")
+		printSuccessfulAction("Setup automatic maintenance using " + colour.Info("cron"))
+	} else {
+		printFailedAction("Setup automatic maintenance")
+	}
+
+	filename, err := backupzip.OutputZipBackupFile(fluidkeysDirectory, generateJob.pgpKey, password.AsString())
+	if err != nil {
+		printFailedAction("Make a backup ZIP file")
+	}
+	directory, _ := filepath.Split(filename)
+	printSuccessfulAction("Make a backup ZIP file in")
+	out.Print("        " + colour.Info(directory) + "\n\n")
+
+	printSuccess("Successfully created key for ian@example.com")
+	out.Print("\n")
+	return 0
+}
+
+func generatePgpKey(email string, channel chan generatePgpKeyResult) {
+	key, err := pgpkey.Generate(email, time.Now(), nil)
+
+	channel <- generatePgpKeyResult{key, err}
+}
+
+func promptForEmail() string {
+	out.Print(PromptEmail + "\n")
+	return promptForInput("[email] : ")
+}
+
+func generatePassword(numberOfWords int, separator string) DicewarePassword {
+	return DicewarePassword{
+		words:     diceware.MustGenerate(numberOfWords),
+		separator: separator,
+	}
+}
+
+func displayPassword(password DicewarePassword) {
+	out.Print("  " + colour.Info(password.AsString()) + "\n\n")
+	out.Print("If you use a password manager, save it there now.\n\n")
+	out.Print(colour.Warning("Store this safely, otherwise you won’t be able to use your key\n\n"))
+
+	promptForInput("Press enter when you've stored it safely. ")
+}
+
+func userConfirmedRandomWord(password DicewarePassword) bool {
+	clearScreen()
+	rand.Seed(time.Now().UnixNano())
+	randomIndex := rand.Intn(len(password.words))
+	correctWord := password.words[randomIndex]
+	wordOrdinal := humanize.Ordinal(randomIndex + 1)
+
+	out.Print(fmt.Sprintf("Enter the %s word from your password\n\n", wordOrdinal))
+	givenWord := promptForInput("[" + wordOrdinal + " word] : ")
+	return givenWord == correctWord
+}
+
+func clearScreen() {
+	out.Print("\033[H\033[2J")
+}
