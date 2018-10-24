@@ -407,7 +407,7 @@ type LoadPrivateKeyFromGnupg struct {
 }
 
 func (a LoadPrivateKeyFromGnupg) String() string {
-	return "Load private key from GnuPG"
+	return "Load private key from " + colour.CommandLineCode("gpg")
 }
 
 func (a LoadPrivateKeyFromGnupg) Enact(key *pgpkey.PgpKey, now time.Time, returnPassword *string) error {
@@ -434,7 +434,7 @@ type PushIntoGnupg struct {
 }
 
 func (a PushIntoGnupg) String() string {
-	return "Push key back into GnuPG"
+	return "Store updated key in " + colour.CommandLineCode("gpg")
 }
 
 type passwordMap = map[fingerprint.Fingerprint]string
@@ -455,7 +455,7 @@ type UpdateBackupZIP struct {
 }
 
 func (a UpdateBackupZIP) String() string {
-	return "Create full key backup ZIP file"
+	return "Make backup ZIP file"
 }
 
 func (a UpdateBackupZIP) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
