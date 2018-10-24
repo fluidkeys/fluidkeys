@@ -85,7 +85,6 @@ func init() {
 	} else {
 		Config = *configPointer
 	}
-	initScheduler()
 
 	keyringPointer, err := keyring.Load()
 	if err != nil {
@@ -100,7 +99,7 @@ func init() {
 	out.SetOutputToTerminal()
 }
 
-func initScheduler() {
+func ensureCrontabStateMatchesConfig() {
 	if Config.RunFromCron() {
 		crontabWasAdded, err := scheduler.Enable()
 		if err != nil {
@@ -143,6 +142,8 @@ Options:
 	)
 
 	args, _ := docopt.ParseDoc(usage)
+
+	ensureCrontabStateMatchesConfig()
 
 	switch getSubcommand(args, []string{"key"}) {
 	case "init":
