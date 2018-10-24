@@ -57,10 +57,10 @@ func (w KeyWarning) String() string {
 		return ""
 
 	case PrimaryKeyDueForRotation:
-		return "Primary key due for rotation"
+		return "Primary key needs extending"
 
 	case PrimaryKeyOverdueForRotation:
-		return colour.Danger("Primary key overdue for rotation, " + countdownUntilExpiry(w.DaysUntilExpiry))
+		return colour.Danger("Primary key needs extending now (" + countdownUntilExpiry(w.DaysUntilExpiry) + ")")
 
 	case PrimaryKeyExpired:
 		return colour.Danger("Primary key " + relativeExpiryDate(w.DaysSinceExpiry))
@@ -69,55 +69,55 @@ func (w KeyWarning) String() string {
 		return "Primary key never expires"
 
 	case PrimaryKeyLongExpiry:
-		return "Primary key set to expire too far in the future"
+		return "Primary key expires too far in the future"
 
 	case NoValidEncryptionSubkey:
 		return colour.Danger("Missing encryption subkey")
 
 	case SubkeyDueForRotation:
-		return "Encryption subkey due for rotation"
+		return "Encryption subkey needs rotating"
 
 	case SubkeyOverdueForRotation:
-		return colour.Danger("Encryption subkey overdue for rotation, " + countdownUntilExpiry(w.DaysUntilExpiry))
+		return colour.Danger("Encryption subkey needs rotating now (" + countdownUntilExpiry(w.DaysUntilExpiry) + ")")
 
 	case SubkeyNoExpiry:
 		return "Encryption subkey never expires"
 
 	case SubkeyLongExpiry:
-		return "Encryption subkey set to expire too far in the future"
+		return "Encryption subkey expires too far in the future"
 
 	case MissingPreferredSymmetricAlgorithms:
-		return "Primary key missing preferred symmetric algorithms"
+		return "Missing cipher preferences"
 
 	case WeakPreferredSymmetricAlgorithms:
-		return fmt.Sprintf("Primary key has weak preferred symmetric algorithms (%s)", w.Detail)
+		return fmt.Sprintf("Cipher preferences could be stronger (currently: %s)", w.Detail)
 
 	case UnsupportedPreferredSymmetricAlgorithm:
-		return fmt.Sprintf("Primary key has unsupported preferred symmetric algorithm (%s)", w.Detail)
+		return fmt.Sprintf("Fluidkeys doesn't support %s cipher", w.Detail)
 
 	case MissingPreferredHashAlgorithms:
-		return "Primary key missing preferred hash algorithms"
+		return "Missing hash preferences"
 
 	case WeakPreferredHashAlgorithms:
-		return fmt.Sprintf("Primary key has weak preferred hash algorithms (%s)", w.Detail)
+		return fmt.Sprintf("Hash preferences could be stronger (currently: %s)", w.Detail)
 
 	case UnsupportedPreferredHashAlgorithm:
-		return fmt.Sprintf("Primary key has unsupported preferred hash algorithm (%s)", w.Detail)
+		return fmt.Sprintf("Fluidkeys doesn't support %s hash", w.Detail)
 
 	case MissingPreferredCompressionAlgorithms:
-		return "Primary key missing preferred compression algorithms"
+		return "Missing compression preferences"
 
 	case MissingUncompressedPreference:
-		return "Primary key missing uncompressed preference"
+		return "Key does not support uncompressed data"
 
 	case UnsupportedPreferredCompressionAlgorithm:
-		return fmt.Sprintf("Primary key has unsupported preferred compression algorithm (%s)", w.Detail)
+		return fmt.Sprintf("Fluidkeys doesn't support %s compression", w.Detail)
 
 	case WeakSelfSignatureHash:
-		return fmt.Sprintf("Primary key has weak self signature hash (%s)", w.Detail)
+		return fmt.Sprintf("Weak hash %s used for self signature", w.Detail)
 
 	case WeakSubkeyBindingSignatureHash:
-		return "Weak encryption subkey binding signature hash"
+		return fmt.Sprintf("Weak hash %s used for subkey binding signature", w.Detail)
 	}
 
 	return fmt.Sprintf("KeyWarning{Type=%d}", w.Type)

@@ -59,19 +59,19 @@ func TestString(t *testing.T) {
 	}{
 		{
 			KeyWarning{Type: PrimaryKeyOverdueForRotation, DaysUntilExpiry: 5},
-			colour.Danger("Primary key overdue for rotation, expires in 5 days"),
+			colour.Danger("Primary key needs extending now (expires in 5 days)"),
 		},
 		{
 			KeyWarning{Type: PrimaryKeyOverdueForRotation, DaysUntilExpiry: 1},
-			colour.Danger("Primary key overdue for rotation, expires tomorrow!"),
+			colour.Danger("Primary key needs extending now (expires tomorrow!)"),
 		},
 		{
 			KeyWarning{Type: PrimaryKeyOverdueForRotation, DaysUntilExpiry: 0},
-			colour.Danger("Primary key overdue for rotation, expires today!"),
+			colour.Danger("Primary key needs extending now (expires today!)"),
 		},
 		{
 			KeyWarning{Type: SubkeyOverdueForRotation, DaysUntilExpiry: 5},
-			colour.Danger("Encryption subkey overdue for rotation, expires in 5 days"),
+			colour.Danger("Encryption subkey needs rotating now (expires in 5 days)"),
 		},
 		{
 			KeyWarning{Type: PrimaryKeyExpired, DaysSinceExpiry: 0},
@@ -90,28 +90,32 @@ func TestString(t *testing.T) {
 			colour.Danger("Primary key has expired"),
 		},
 		{
-			KeyWarning{Type: WeakPreferredSymmetricAlgorithms, Detail: "some algo"},
-			"Primary key has weak preferred symmetric algorithms (some algo)",
+			KeyWarning{Type: WeakPreferredSymmetricAlgorithms, Detail: "AES123, DES"},
+			"Cipher preferences could be stronger (currently: AES123, DES)",
 		},
 		{
-			KeyWarning{Type: UnsupportedPreferredSymmetricAlgorithm, Detail: "some algo"},
-			"Primary key has unsupported preferred symmetric algorithm (some algo)",
+			KeyWarning{Type: UnsupportedPreferredSymmetricAlgorithm, Detail: "AES123"},
+			"Fluidkeys doesn't support AES123 cipher",
 		},
 		{
-			KeyWarning{Type: WeakPreferredHashAlgorithms, Detail: "some algo"},
-			"Primary key has weak preferred hash algorithms (some algo)",
+			KeyWarning{Type: WeakPreferredHashAlgorithms, Detail: "SHA1, MD5"},
+			"Hash preferences could be stronger (currently: SHA1, MD5)",
 		},
 		{
-			KeyWarning{Type: UnsupportedPreferredHashAlgorithm, Detail: "some algo"},
-			"Primary key has unsupported preferred hash algorithm (some algo)",
+			KeyWarning{Type: UnsupportedPreferredHashAlgorithm, Detail: "SHA60"},
+			"Fluidkeys doesn't support SHA60 hash",
 		},
 		{
-			KeyWarning{Type: UnsupportedPreferredCompressionAlgorithm, Detail: "some algo"},
-			"Primary key has unsupported preferred compression algorithm (some algo)",
+			KeyWarning{Type: UnsupportedPreferredCompressionAlgorithm, Detail: "BZIP2"},
+			"Fluidkeys doesn't support BZIP2 compression",
 		},
 		{
-			KeyWarning{Type: WeakSelfSignatureHash, Detail: "some algo"},
-			"Primary key has weak self signature hash (some algo)",
+			KeyWarning{Type: WeakSelfSignatureHash, Detail: "SHA1"},
+			"Weak hash SHA1 used for self signature",
+		},
+		{
+			KeyWarning{Type: WeakSubkeyBindingSignatureHash, Detail: "SHA1"},
+			"Weak hash SHA1 used for subkey binding signature",
 		},
 		{
 			KeyWarning{}, // unspecified type
