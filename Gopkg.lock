@@ -2,79 +2,126 @@
 
 
 [[projects]]
+  digest = "1:e4b30804a381d7603b8a344009987c1ba351c26043501b23b8c7ce21f0b67474"
   name = "github.com/BurntSushi/toml"
   packages = ["."]
+  pruneopts = ""
   revision = "3012a1dbe2e4bd1391d42b32f0577cb7bbc7f005"
   version = "v0.3.1"
 
 [[projects]]
   branch = "master"
+  digest = "1:20da7140359cab99772431cbeb195bd8cbe76312fcf6509fd8125cf91ab2847b"
   name = "github.com/docopt/docopt-go"
   packages = ["."]
+  pruneopts = ""
   revision = "ee0de3bc6815ee19d4a46c7eb90f829db0e014b1"
 
 [[projects]]
+  digest = "1:26e46fdf6cb8b18f2c81f9451823e5d3c0e6483ef5ccf894600ab8f72610a3fe"
   name = "github.com/fluidkeys/crypto"
-  packages = ["cast5","openpgp","openpgp/armor","openpgp/elgamal","openpgp/errors","openpgp/packet","openpgp/s2k"]
+  packages = [
+    "cast5",
+    "openpgp",
+    "openpgp/armor",
+    "openpgp/elgamal",
+    "openpgp/errors",
+    "openpgp/packet",
+    "openpgp/s2k",
+  ]
+  pruneopts = ""
   revision = "2018-09-13"
 
 [[projects]]
   branch = "master"
+  digest = "1:af146838806d5f66f5bd1c6cb145e1511ff5f0c292d278dcf98301ac602338cd"
   name = "github.com/fluidkeys/keyring"
   packages = ["."]
+  pruneopts = ""
   revision = "b7a88d2e1e256dcbc200690189c829aabaff5c29"
 
 [[projects]]
+  digest = "1:e772845668c277db6fcc8c6fcf31664c74851f6cce4d225be4f4adbee3861057"
   name = "github.com/godbus/dbus"
   packages = ["."]
+  pruneopts = ""
   revision = "a389bdde4dd695d414e47b755e95e72b7826432c"
   version = "v4.1.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:36f5bd9b89fcd728488eee3a0cf8787448579ac381fded60edd6e3ac01fe1a38"
   name = "github.com/gsterjov/go-libsecret"
   packages = ["."]
+  pruneopts = ""
   revision = "a6f4afe4910cad8688db3e0e9b9ac92ad22d54e1"
 
 [[projects]]
   branch = "master"
+  digest = "1:0f38f10cf33188908afc6541797c271b110a5d65385951b2c741380bdab56439"
   name = "github.com/keybase/go-keychain"
   packages = ["."]
+  pruneopts = ""
   revision = "f1daa725cce4049b1715f1e97d6a51880e401e70"
 
 [[projects]]
   branch = "master"
+  digest = "1:83854f6b1d2ce047b69657e3a87ba7602f4c5505e8bdfd02ab857db8e983bde1"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
+  pruneopts = ""
   revision = "58046073cbffe2f25d425fe1331102f55cf719de"
 
 [[projects]]
   branch = "master"
+  digest = "1:b7828e0269971efd2ab9789d3a4c73d0504fcc8ede95ee2fa2bda3e5f873ffad"
   name = "github.com/natefinch/atomic"
   packages = ["."]
+  pruneopts = ""
   revision = "a62ce929ffcc871a51e98c6eba7b20321e3ed62d"
 
 [[projects]]
   branch = "master"
+  digest = "1:cbf98c3b2c6382b31a34b356e02ade0c8a42d7cd93109c65d2d192152a71d59c"
   name = "github.com/sethvargo/go-diceware"
   packages = ["diceware"]
+  pruneopts = ""
   revision = "2cc4e45af027798e625c3256fc10925eb3f1e5c0"
 
 [[projects]]
   branch = "master"
+  digest = "1:d263c39e9144265037f7473751f48b4193df3efe4763cc72e925c13d5bdbe551"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
+  pruneopts = ""
   revision = "7c1a557ab941a71c619514f229f0b27ccb0c27cf"
 
 [[projects]]
   branch = "master"
+  digest = "1:a4bda6e065eb3ccf1e6adeaa863cb416e0ae6b43e613f20a8931d52d19dc20e2"
   name = "golang.org/x/sys"
-  packages = ["unix","windows"]
+  packages = [
+    "unix",
+    "windows",
+  ]
+  pruneopts = ""
   revision = "4497e2df6f9e69048a54498c7affbbec3294ad47"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "82d736b2950dd1c85d3d6c625300124503303d41cb80ec058dc3b287446f506c"
+  input-imports = [
+    "github.com/BurntSushi/toml",
+    "github.com/docopt/docopt-go",
+    "github.com/fluidkeys/crypto/openpgp",
+    "github.com/fluidkeys/crypto/openpgp/armor",
+    "github.com/fluidkeys/crypto/openpgp/errors",
+    "github.com/fluidkeys/crypto/openpgp/packet",
+    "github.com/fluidkeys/keyring",
+    "github.com/mitchellh/go-homedir",
+    "github.com/natefinch/atomic",
+    "github.com/sethvargo/go-diceware/diceware",
+    "golang.org/x/crypto/ssh/terminal",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1

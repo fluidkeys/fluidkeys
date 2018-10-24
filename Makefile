@@ -43,6 +43,7 @@ test:
 	go test ./...
 	./script/test_make_compile
 	./script/test_make_install
+	./script/test_dep_gopkg_files
 
 .PHONY: run
 run: $(MAIN_GO_FILES)
