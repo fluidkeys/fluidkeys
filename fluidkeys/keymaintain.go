@@ -67,7 +67,8 @@ func runKeyMaintainDryRun(keys []pgpkey.PgpKey) exitCode {
 	for i := range keyTasks {
 		var keyTask *keyTask = keyTasks[i]
 		keyTask.actions = addImportExportActions(keyTask.actions, nil)
-		printKeyWarningsAndActions(*keyTask)
+		out.Print(formatKeyWarnings(*keyTask))
+		out.Print(formatKeyActions(*keyTask))
 	}
 
 	out.Print("To start run\n")
@@ -180,7 +181,8 @@ func runKeyMaintain(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwor
 	for i := range keyTasks {
 		var keyTask *keyTask = keyTasks[i]
 
-		printKeyWarningsAndActions(*keyTask)
+		out.Print(formatKeyWarnings(*keyTask))
+		out.Print(formatKeyActions(*keyTask))
 		ranActionsSuccesfully := promptAndRunActions(prompter, keyTask)
 
 		if ranActionsSuccesfully && !Config.ShouldMaintainAutomatically(keyTask.key.Fingerprint()) {
@@ -242,10 +244,6 @@ func makeKeyTasks(keys []pgpkey.PgpKey) []*keyTask {
 		}
 	}
 	return keyTasks
-}
-
-func printKeyWarningsAndActions(keyTask keyTask) {
-	out.Print(formatKeyWarningsAndActions(keyTask))
 }
 
 func promptAndRunActions(prompter promptYesNoInterface, keyTask *keyTask) (ranActionsSuccessfully bool) {
@@ -347,28 +345,38 @@ func printCheckboxFailure(actionText string, err error) {
 	out.Print(fmt.Sprintf("         %s\n", colour.Error(fmt.Sprintf("%s", err))))
 }
 
-// formatKeyWarningsAndActions outputs a header for each key as follows:
+// formatKeyWarnings outputs a header for the key as follows:
 //
 // 2 issues for foo@example.com:
 //
 // ▸   Encryption subkey overdue for rotation, expires in 5 days
 // ▸   Primary key set to expire too far in the future
-//
-//    [ ] Shorten the primary key expiry to 31 Oct 18
-//    [ ] Expire the encryption subkey now (ID: 0xC52C5BD9719C9F00)
-//    [ ] Create a new encryption subkey valid until 31 Oct 18
-func formatKeyWarningsAndActions(keyTask keyTask) (header string) {
-	if len(keyTask.actions) == 0 {
+func formatKeyWarnings(keyTask keyTask) (header string) {
+	if len(keyTask.warnings) == 0 {
 		return
 	}
 
-	header += humanize.Pluralize(len(keyTask.warnings), "warning", "warnings") + " for " +
-		colour.Info(displayName(keyTask.key)) + "\n\n"
+	header += "Found " + humanize.Pluralize(len(keyTask.warnings), "warning", "warnings") +
+		" for " + colour.Info(displayName(keyTask.key)) + ":\n\n"
 
 	for _, warning := range keyTask.warnings {
 		header += fmt.Sprintf(" "+colour.Warning("▸")+"   %s\n", warning)
 	}
-	header += fmt.Sprintln()
+	header += "\n"
+
+	return
+}
+
+// formatKeyActions outputs a list as follows:
+//    [ ] Shorten the primary key expiry to 31 Oct 18
+//    [ ] Expire the encryption subkey now (ID: 0xC52C5BD9719C9F00)
+//    [ ] Create a new encryption subkey valid until 31 Oct 18
+func formatKeyActions(keyTask keyTask) (header string) {
+	if len(keyTask.actions) == 0 {
+		return
+	}
+
+	header += "Fluidkeys will run the following actions:\n\n"
 
 	for _, action := range keyTask.actions {
 		header += fmt.Sprintf("     [ ] %s\n", action)
