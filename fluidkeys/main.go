@@ -325,7 +325,7 @@ func keyCreate() exitCode {
 	}
 	directory, _ := filepath.Split(filename)
 	printSuccessfulAction("Make a backup ZIP file in")
-	out.Print("          " + colour.Info(directory) + "\n\n")
+	out.Print("        " + colour.Info(directory) + "\n\n")
 
 	printSuccess("Successfully created key for ian@example.com")
 	out.Print("\n")
