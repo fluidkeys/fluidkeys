@@ -71,27 +71,24 @@ type generatePgpKeyResult struct {
 type exitCode = int
 
 func init() {
-	out.SetOutputToTerminal()
-
 	var err error
 	fluidkeysDirectory, err = getFluidkeysDirectory()
 	if err != nil {
-		out.Print(fmt.Sprintf("Failed to get fluidkeys directory: %v\n", err))
+		fmt.Printf("Failed to get fluidkeys directory: %v\n", err)
 		os.Exit(1)
 	}
 
 	configPointer, err := config.Load(fluidkeysDirectory)
 	if err != nil {
-		out.Print(fmt.Sprintf("Failed to open config file: %v\n", err))
+		fmt.Printf("Failed to open config file: %v\n", err)
 		os.Exit(2)
 	} else {
 		Config = *configPointer
 	}
-	initScheduler()
 
 	keyringPointer, err := keyring.Load()
 	if err != nil {
-		out.Print(fmt.Sprintf("Failed to load keyring: %v\n", err))
+		fmt.Printf("Failed to load keyring: %v\n", err)
 		os.Exit(3)
 	} else {
 		Keyring = *keyringPointer
@@ -99,9 +96,10 @@ func init() {
 
 	db = database.New(fluidkeysDirectory)
 	gpg = gpgwrapper.GnuPG{}
+	out.SetOutputToTerminal()
 }
 
-func initScheduler() {
+func ensureCrontabStateMatchesConfig() {
 	if Config.RunFromCron() {
 		crontabWasAdded, err := scheduler.Enable()
 		if err != nil {
@@ -144,6 +142,8 @@ Options:
 	)
 
 	args, _ := docopt.ParseDoc(usage)
+
+	ensureCrontabStateMatchesConfig()
 
 	switch getSubcommand(args, []string{"key"}) {
 	case "init":

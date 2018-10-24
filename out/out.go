@@ -13,6 +13,9 @@ func SetOutputToBuffer() {
 }
 
 func Print(message string) {
+	if outputter == nil {
+		panic(fmt.Errorf("Print called before SetOutputToTerminal: %s\n", message))
+	}
 	outputter.print(message)
 }
 
