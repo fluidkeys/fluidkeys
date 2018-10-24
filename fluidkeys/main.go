@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/fluidkeys/fluidkeys/fingerprint"
+
 	"github.com/mitchellh/go-homedir"
 
 	"github.com/docopt/docopt-go"
@@ -193,12 +195,7 @@ func loadPgpKeys() ([]pgpkey.PgpKey, error) {
 	var keys []pgpkey.PgpKey
 
 	for _, fingerprint := range fingerprints {
-		armoredPublicKey, err := gpg.ExportPublicKey(fingerprint)
-		if err != nil {
-			continue // skip this key. TODO: log?
-		}
-
-		pgpKey, err := pgpkey.LoadFromArmoredPublicKey(armoredPublicKey)
+		pgpKey, err := loadPgpKey(fingerprint)
 		if err != nil {
 			continue // skip this key. TODO: log?
 		}
@@ -206,6 +203,19 @@ func loadPgpKeys() ([]pgpkey.PgpKey, error) {
 	}
 	sort.Sort(pgpkey.ByCreated(keys))
 	return keys, nil
+}
+
+func loadPgpKey(fingerprint fingerprint.Fingerprint) (*pgpkey.PgpKey, error) {
+	armoredPublicKey, err := gpg.ExportPublicKey(fingerprint)
+	if err != nil {
+		return nil, err
+	}
+
+	pgpKey, err := pgpkey.LoadFromArmoredPublicKey(armoredPublicKey)
+	if err != nil {
+		return nil, err
+	}
+	return pgpKey, nil
 }
 
 func keyList() exitCode {
