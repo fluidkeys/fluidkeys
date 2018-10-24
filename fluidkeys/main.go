@@ -130,8 +130,8 @@ Usage:
 	fk key create
 	fk key from-gpg
 	fk key list
-	fk key rotate [--dry-run]
-	fk key rotate automatic [--cron-output]
+	fk key maintain [--dry-run]
+	fk key maintain automatic [--cron-output]
 
 Options:
 	-h --help         Show this screen
@@ -175,7 +175,7 @@ func initSubcommand(args docopt.Opts) exitCode {
 
 func keySubcommand(args docopt.Opts) exitCode {
 	switch getSubcommand(args, []string{
-		"create", "from-gpg", "list", "rotate",
+		"create", "from-gpg", "list", "maintain",
 	}) {
 	case "create":
 		os.Exit(keyCreate())
@@ -183,7 +183,7 @@ func keySubcommand(args docopt.Opts) exitCode {
 		os.Exit(keyFromGpg())
 	case "list":
 		os.Exit(keyList())
-	case "rotate":
+	case "maintain":
 		dryRun, err := args.Bool("--dry-run")
 		if err != nil {
 			panic(err)
@@ -196,7 +196,7 @@ func keySubcommand(args docopt.Opts) exitCode {
 		if err != nil {
 			panic(err)
 		}
-		os.Exit(keyRotate(dryRun, automatic, cronOutput))
+		os.Exit(keyMaintain(dryRun, automatic, cronOutput))
 	}
 	panic(fmt.Errorf("keySubcommand got unexpected arguments: %v", args))
 }
@@ -223,7 +223,7 @@ func keyFromGpg() exitCode {
 
 	db.RecordFingerprintImportedIntoGnuPG(keyToImport.Fingerprint)
 	Config.SetStorePassword(keyToImport.Fingerprint, false)
-	Config.SetRotateAutomatically(keyToImport.Fingerprint, false)
+	Config.SetMaintainAutomatically(keyToImport.Fingerprint, false)
 	out.Print("The key has been linked to Fluidkeys\n")
 	return keyList()
 }
@@ -321,7 +321,7 @@ func keyCreate() exitCode {
 	out.Print("Fluidkeys has configured a " + colour.CommandLineCode("cron") + " task to automatically rotate this key for you from now on ♻️\n")
 	out.Print("To do this has required storing the key's password in your operating system's keyring.\n")
 	db.RecordFingerprintImportedIntoGnuPG(fingerprint)
-	if err := tryEnableRotateAutomatically(generateJob.pgpKey, password.AsString()); err == nil {
+	if err := tryEnableMaintainAutomatically(generateJob.pgpKey, password.AsString()); err == nil {
 		out.Print(colour.Success(" ▸   Successfully configured key to automatically rotate\n\n"))
 	} else {
 		out.Print(colour.Warning(" ▸   Failed to configure key to automatically rotate\n\n"))

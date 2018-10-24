@@ -69,11 +69,11 @@ func (c *Config) RunFromCron() bool {
 	return c.parsedConfig.RunFromCron
 }
 
-// ShouldStorePasswordForKey returns whether the given key's password should
+// ShouldStorePassword returns whether the given key's password should
 // be stored in the system keyring when successfully entered (avoiding future
 // password prompts).
 // The default is false.
-func (c *Config) ShouldStorePasswordForKey(fingerprint fingerprint.Fingerprint) bool {
+func (c *Config) ShouldStorePassword(fingerprint fingerprint.Fingerprint) bool {
 	return c.getConfig(fingerprint).StorePassword
 }
 
@@ -81,16 +81,16 @@ func (c *Config) SetStorePassword(fingerprint fingerprint.Fingerprint, value boo
 	return c.setProperty(fingerprint, storePassword, value)
 }
 
-// ShouldRotateAutomaticallyForKey returns whether the given key should be
-// rotated in the background. The default is false.
-func (c *Config) ShouldRotateAutomaticallyForKey(fingerprint fingerprint.Fingerprint) bool {
-	return c.getConfig(fingerprint).RotateAutomatically
+// ShouldMaintainAutomatically returns whether the given key should be
+// maintained in the background. The default is false.
+func (c *Config) ShouldMaintainAutomatically(fingerprint fingerprint.Fingerprint) bool {
+	return c.getConfig(fingerprint).MaintainAutomatically
 }
 
-// SetRotateAutomatically sets whether the given key should be rotated in the
+// SetMaintainAutomatically sets whether the given key should be maintained in the
 // background.
-func (c *Config) SetRotateAutomatically(fingerprint fingerprint.Fingerprint, value bool) error {
-	return c.setProperty(fingerprint, rotateAutomatically, value)
+func (c *Config) SetMaintainAutomatically(fingerprint fingerprint.Fingerprint, value bool) error {
+	return c.setProperty(fingerprint, maintainAutomatically, value)
 }
 
 func (c *Config) setProperty(fingerprint fingerprint.Fingerprint, property keyConfigProperty, value interface{}) error {
@@ -109,8 +109,8 @@ func (c *Config) setProperty(fingerprint fingerprint.Fingerprint, property keyCo
 	case storePassword:
 		keyConfig.StorePassword = value.(bool)
 
-	case rotateAutomatically:
-		keyConfig.RotateAutomatically = value.(bool)
+	case maintainAutomatically:
+		keyConfig.MaintainAutomatically = value.(bool)
 
 	default:
 		return fmt.Errorf("invalid property: %v", property)
@@ -190,8 +190,8 @@ func (c *Config) serialize(w io.Writer) error {
 
 func defaultKeyConfig() key {
 	return key{
-		StorePassword:       false,
-		RotateAutomatically: false,
+		StorePassword:         false,
+		MaintainAutomatically: false,
 	}
 }
 
@@ -199,7 +199,7 @@ type keyConfigProperty int
 
 const (
 	storePassword keyConfigProperty = iota
-	rotateAutomatically
+	maintainAutomatically
 )
 
 type tomlConfig struct {
@@ -208,8 +208,8 @@ type tomlConfig struct {
 }
 
 type key struct {
-	StorePassword       bool `toml:"store_password"`
-	RotateAutomatically bool `toml:"rotate_automatically"`
+	StorePassword         bool `toml:"store_password"`
+	MaintainAutomatically bool `toml:"maintain_automatically"`
 }
 
 const defaultRunFromCron = true
@@ -217,7 +217,7 @@ const defaultRunFromCron = true
 const defaultConfigFile string = `# Fluidkeys configuration file for 'fk' command
 #
 # # run_from_cron tells Fluidkeys to add itself to your crontab and
-# # periodically run 'key rotate --automatic'
+# # periodically run 'key maintain --automatic'
 # # - run 'crontab -l' to see the lines added to crontab
 # # - set to false to remove the lines from crontab
 #
@@ -230,10 +230,10 @@ const defaultConfigFile string = `# Fluidkeys configuration file for 'fk' comman
 #     # the password for this key and look for it before prompting.
 #     store_password = true
 #
-#     # rotate_automatically specifies that key rotation tasks should be
-#     # carried out without prompting when running 'fk key rotate --automatic'
-#     # store_password must also be true to rotate keys automatically.
-#     rotate_automatically = true
+#     # maintain_automatically specifies that key rotation tasks should be
+#     # carried out without prompting when running 'fk key maintain automatic'
+#     # store_password must also be true to maintain keys automatically.
+#     maintain_automatically = true
 #
 # THIS FILE IS OVERWRITTEN BY FLUIDKEYS.
 # Any changes you make will be overwritten.

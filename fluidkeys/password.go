@@ -13,7 +13,7 @@ import (
 // provided.
 // If the password is incorrect, it loops until they get it right.
 func getDecryptedPrivateKeyAndPassword(publicKey *pgpkey.PgpKey, prompter promptForPasswordInterface) (*pgpkey.PgpKey, string, error) {
-	shouldStore := Config.ShouldStorePasswordForKey(publicKey.Fingerprint())
+	shouldStore := Config.ShouldStorePassword(publicKey.Fingerprint())
 
 	if shouldStore {
 		if loadedPassword, gotPassword := Keyring.LoadPassword(publicKey.Fingerprint()); gotPassword == true {
