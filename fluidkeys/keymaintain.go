@@ -16,7 +16,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/status"
 )
 
-func keyRotate(dryRun bool, automatic bool, cronOutput bool) exitCode {
+func keyMaintain(dryRun bool, automatic bool, cronOutput bool) exitCode {
 	keys, err := loadPgpKeys()
 	if err != nil {
 		panic(err)
@@ -24,7 +24,7 @@ func keyRotate(dryRun bool, automatic bool, cronOutput bool) exitCode {
 
 	out.Print("\n")
 	if dryRun {
-		return runKeyRotateDryRun(keys)
+		return runKeyMaintainDryRun(keys)
 	} else {
 		var yesNoPrompter promptYesNoInterface
 		var passwordPrompter promptForPasswordInterface
@@ -40,7 +40,7 @@ func keyRotate(dryRun bool, automatic bool, cronOutput bool) exitCode {
 		if cronOutput {
 			out.SetOutputToBuffer()
 		}
-		exitCode := runKeyRotate(keys, yesNoPrompter, passwordPrompter)
+		exitCode := runKeyMaintain(keys, yesNoPrompter, passwordPrompter)
 		if exitCode != 0 {
 			out.PrintTheBuffer()
 		}
@@ -54,7 +54,7 @@ var (
 		colour.Warning("Take time to review these actions.") + "\n\n"
 )
 
-func runKeyRotateDryRun(keys []pgpkey.PgpKey) exitCode {
+func runKeyMaintainDryRun(keys []pgpkey.PgpKey) exitCode {
 	keyTasks := makeKeyTasks(keys)
 
 	if len(keyTasks) == 0 {
@@ -71,7 +71,7 @@ func runKeyRotateDryRun(keys []pgpkey.PgpKey) exitCode {
 	}
 
 	out.Print("To start run\n")
-	out.Print(" >   " + colour.CommandLineCode("fk key rotate") + "\n\n")
+	out.Print(" >   " + colour.CommandLineCode("fk key maintain") + "\n\n")
 	out.Print("You’ll be asked at each stage to confirm before making any changes.\n\n")
 	return 0
 }
@@ -88,9 +88,9 @@ type keyTask struct {
 }
 
 const (
-	promptBackupGpg           = "Automatically create backup now?"
-	promptRunActions          = "     Run these actions?"
-	promptRotateAutomatically = "Automatically rotate this key from now on?"
+	promptBackupGpg             = "Automatically create backup now?"
+	promptRunActions            = "     Run these actions?"
+	promptMaintainAutomatically = "Automatically rotate this key from now on?"
 )
 
 type promptYesNoInterface interface {
@@ -138,11 +138,11 @@ func (aR *automaticResponder) promptYesNo(message string, defaultResponse string
 		if key == nil {
 			panic("expected *key but got nil pointer")
 		}
-		return Config.ShouldStorePasswordForKey(key.Fingerprint()) &&
-			Config.ShouldRotateAutomaticallyForKey(key.Fingerprint())
+		return Config.ShouldStorePassword(key.Fingerprint()) &&
+			Config.ShouldMaintainAutomatically(key.Fingerprint())
 
-	case promptRotateAutomatically:
-		panic("prompting to rotate key automatically, but it should be set and therefore not prompt")
+	case promptMaintainAutomatically:
+		panic("prompting to maintain key automatically, but it should be set and therefore not prompt")
 
 	default:
 		panic(fmt.Errorf("don't know how to automatically respond to : %s\n", message))
@@ -160,7 +160,7 @@ func (p *alwaysFailPasswordPrompter) promptForPassword(key *pgpkey.PgpKey) (stri
 	return "", fmt.Errorf("can't prompt for password when running unattended")
 }
 
-func runKeyRotate(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwordPrompter promptForPasswordInterface) exitCode {
+func runKeyMaintain(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwordPrompter promptForPasswordInterface) exitCode {
 	keyTasks := makeKeyTasks(keys)
 
 	if len(keyTasks) == 0 {
@@ -183,13 +183,13 @@ func runKeyRotate(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwordP
 		printKeyWarningsAndActions(*keyTask)
 		ranActionsSuccesfully := promptAndRunActions(prompter, keyTask)
 
-		if ranActionsSuccesfully && !Config.ShouldRotateAutomaticallyForKey(keyTask.key.Fingerprint()) {
-			promptAndTurnOnRotateAutomatically(prompter, *keyTask)
+		if ranActionsSuccesfully && !Config.ShouldMaintainAutomatically(keyTask.key.Fingerprint()) {
+			promptAndTurnOnMaintainAutomatically(prompter, *keyTask)
 		}
 	}
 
 	if anyTasksHaveErrors(keyTasks) {
-		out.Print(colour.Error("Encountered errors while running rotate:\n"))
+		out.Print(colour.Error("Encountered errors while running maintain:\n"))
 
 		for _, keyTask := range keyTasks {
 			if keyTask.err != nil {
@@ -268,14 +268,14 @@ func promptAndRunActions(prompter promptYesNoInterface, keyTask *keyTask) (ranAc
 	}
 }
 
-func promptAndTurnOnRotateAutomatically(prompter promptYesNoInterface, keyTask keyTask) {
+func promptAndTurnOnMaintainAutomatically(prompter promptYesNoInterface, keyTask keyTask) {
 
 	out.Print("Fluidkeys can configure a " + colour.CommandLineCode("cron") +
 		" task to automatically rotate this key for you from now on ♻️\n")
 	out.Print("To do this requires storing the key's password in your operating system's keyring.\n\n")
 
-	if prompter.promptYesNo(promptRotateAutomatically, "", keyTask.key) == true {
-		if err := tryEnableRotateAutomatically(keyTask.key, keyTask.password); err == nil {
+	if prompter.promptYesNo(promptMaintainAutomatically, "", keyTask.key) == true {
+		if err := tryEnableMaintainAutomatically(keyTask.key, keyTask.password); err == nil {
 			out.Print(colour.Success(" ▸   Successfully configured key to automatically rotate\n\n"))
 		} else {
 			out.Print(colour.Warning(" ▸   Failed to configure key to automatically rotate\n\n"))
@@ -378,7 +378,7 @@ func formatKeyWarningsAndActions(keyTask keyTask) (header string) {
 	return
 }
 
-func tryEnableRotateAutomatically(key *pgpkey.PgpKey, password string) (err error) {
+func tryEnableMaintainAutomatically(key *pgpkey.PgpKey, password string) (err error) {
 	if err = Keyring.SavePassword(key.Fingerprint(), password); err != nil {
 		return
 	}
@@ -386,7 +386,7 @@ func tryEnableRotateAutomatically(key *pgpkey.PgpKey, password string) (err erro
 	if err = Config.SetStorePassword(key.Fingerprint(), true); err != nil {
 		return
 	}
-	if err = Config.SetRotateAutomatically(key.Fingerprint(), true); err != nil {
+	if err = Config.SetMaintainAutomatically(key.Fingerprint(), true); err != nil {
 		return
 	}
 

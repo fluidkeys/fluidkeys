@@ -190,9 +190,9 @@ func max(x int, y int) int {
 	}
 }
 
-// makePrimaryInstruction prints single instruction to the user to run fk key
-// rotate if they have any issues with their keys. The severity of the message
-// depends on if they have any urgent issues.
+// makePrimaryInstruction prints single instruction to the user to run
+// 'fk key maintain' if they have any issues with their keys. The severity of
+// the message depends on if they have any urgent issues.
 func makePrimaryInstruction(keys []pgpkey.PgpKey) string {
 	var warnings []status.KeyWarning
 	for _, key := range keys {
@@ -210,7 +210,7 @@ func makePrimaryInstruction(keys []pgpkey.PgpKey) string {
 		} else { // These aren't urgent issues
 			output = "Fix these issues by running:\n"
 		}
-		output += " >  " + colour.CommandLineCode("fk key rotate\n\n")
+		output += " >  " + colour.CommandLineCode("fk key maintain\n\n")
 	}
 	return output
 }

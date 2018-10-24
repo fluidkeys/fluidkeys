@@ -9,7 +9,7 @@ DEB=pkg/debian
 SECRETS_ID_RSA=.secret/download-fluidkeys-com.id_rsa
 MAIN_GO_FILES=fluidkeys/main.go \
 	     fluidkeys/errors.go \
-	     fluidkeys/keyrotate.go \
+	     fluidkeys/keymaintain.go \
 	     fluidkeys/password.go \
 	     fluidkeys/privatekeys.go \
 	     fluidkeys/ui.go

@@ -120,5 +120,5 @@ func removeCrontabLines(crontab string) string {
 const crontab string = "crontab"
 const cronLines string = `
 # Fluidkeys added the following line. To disable, edit your Fluidkeys configuration file.
-@hourly /usr/local/bin/fk key rotate automatic --cron-output
+@hourly /usr/local/bin/fk key maintain automatic --cron-output
 `
