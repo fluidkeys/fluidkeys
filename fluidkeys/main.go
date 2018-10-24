@@ -29,7 +29,7 @@ const ContinueWithoutGPG string = "You can still use FluidKeys to make a key and
 
 const PromptWhichKeyFromGPG string = "Which key would you like to import?"
 
-const Version = "0.1.5"
+const Version = "0.2.0"
 
 var (
 	gpg                gpgwrapper.GnuPG
