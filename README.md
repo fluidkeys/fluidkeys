@@ -4,7 +4,7 @@
 
 Fluidkeys helps teams protect themselves with strong encryption. It builds on the OpenPGP standard and is compatible with other OpenPGP software.
 
-0.1 helps you create a key with a strong password and backs it up for you.
+0.2 helps you create a key or import one from `gpg`, then automatically maintain it.
 
 Once installed, run it with `fk`.
 
