@@ -26,7 +26,7 @@ func loadPrivateKey(
 				originalError: err.Error(),
 			}
 		}
-		return nil, fmt.Errorf("failed to export private key: %v", err)
+		return nil, fmt.Errorf("gpg export error: %v", err)
 	}
 
 	outKey, err := loader.LoadFromArmoredEncryptedPrivateKey(encryptedArmored, password)

@@ -26,6 +26,7 @@ const (
 	privateFooter             = "-----END PGP PRIVATE KEY BLOCK-----"
 	nothingExported           = "WARNING: nothing exported"
 	invalidOptionPinentryMode = `gpg: invalid option "--pinentry-mode"`
+	loopbackUnsupported       = `setting pinentry mode 'loopback' failed: Not supported`
 	badPassphrase             = "Bad passphrase"
 	noPassphrase              = "No passphrase given"
 )
@@ -191,11 +192,15 @@ func (g *GnuPG) ExportPrivateKey(fingerprint fingerprint.Fingerprint, password s
 			}
 
 			return checkValidExportPrivateOutput(stdout)
+		} else if strings.Contains(stderr, loopbackUnsupported) {
+			if version, err := g.Version(); err == nil && version == "2.1.11" {
+				return "", fmt.Errorf("for gpg-2.1.11, please see https://fluidkeys.com/tweak-gpg-2.1.11/")
+			}
 		} else if strings.Contains(stderr, badPassphrase) || strings.Contains(stderr, noPassphrase) {
 			return stderr, &BadPasswordError{}
-		} else {
-			return stderr, err
 		}
+
+		return stderr, err
 	}
 
 	return checkValidExportPrivateOutput(stdout)
