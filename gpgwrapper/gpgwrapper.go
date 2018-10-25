@@ -194,7 +194,7 @@ func (g *GnuPG) ExportPrivateKey(fingerprint fingerprint.Fingerprint, password s
 			return checkValidExportPrivateOutput(stdout)
 		} else if strings.Contains(stderr, loopbackUnsupported) {
 			if version, err := g.Version(); err == nil && version == "2.1.11" {
-				return "", fmt.Errorf("gpg 2.1.11 needs a config tweak: fluidkeys.com/tweak-gpg-2.1.11/")
+				return "", fmt.Errorf("for gpg-2.1.11, please see https://fluidkeys.com/tweak-gpg-2.1.11/")
 			}
 		} else if strings.Contains(stderr, badPassphrase) || strings.Contains(stderr, noPassphrase) {
 			return stderr, &BadPasswordError{}
