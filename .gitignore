@@ -1,5 +1,9 @@
 build/*
 
+# ./gnupg-binaries is a symlink to the repo for
+# https://github.com/fluidkeys/gnupg-binaries
+gnupg-binaries
+
 # deb package files
 pkg/debian/DEBIAN/md5sums
 pkg/debian/usr/bin/fk

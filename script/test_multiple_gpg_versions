@@ -1,0 +1,32 @@
+#!/bin/sh -eu
+
+THIS_SCRIPT="$0"
+SCRIPT_DIR=$(dirname $THIS_SCRIPT)
+REPO_DIR=${SCRIPT_DIR}/..
+
+cd $REPO_DIR 
+
+GNUPG_BINARIES_REPO_SYMLINK="./gnupg-binaries"
+
+
+if [ ! -L "${GNUPG_BINARIES_REPO_SYMLINK}" ]; then
+    echo "missing symlink to gnupg-binaries repo"
+    echo "create a symlink like this:"
+    echo
+    echo '$ cd ~/dev/'
+    echo '$ git clone https://github.com/fluidkeys/gnupg-binaries'
+    echo '$ ln -s ~/dev/gnupg-binaries $GOPATH/src/github.com/fluidkeys/fluidkeys/'
+
+    exit 1
+fi
+
+GNUPG_VERSIONS_DIR="${GNUPG_BINARIES_REPO_SYMLINK}/bin"
+
+for VERSION_DIR in $(find "${GNUPG_VERSIONS_DIR}" -mindepth 1 -type d); do
+    echo
+    echo "Testing with $(basename $VERSION_DIR)"
+    echo
+    export PATH=$VERSION_DIR:$PATH
+    echo $PATH
+    go test ./...
+done
