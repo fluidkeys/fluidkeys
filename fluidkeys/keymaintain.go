@@ -194,13 +194,14 @@ func runKeyMaintain(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwor
 	}
 
 	if anyTasksHaveErrors(keyTasks) {
-		out.Print(colour.Error("Encountered errors while running maintain:\n"))
+		out.Print(colour.Error("Encountered errors while running maintain:\n\n"))
 
 		for _, keyTask := range keyTasks {
 			if keyTask.err != nil {
-				out.Print(displayName(keyTask.key) + ": " + colour.Error(keyTask.err.Error()) + "\n")
+				out.Print("    " + displayName(keyTask.key) + ": " + colour.Error(keyTask.err.Error()) + "\n")
 			}
 		}
+		out.Print("\n")
 		return 1
 	} else {
 		out.Print(colour.Success("Maintenance complete.") + "\n")
