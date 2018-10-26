@@ -52,7 +52,7 @@ func keyCreate() exitCode {
 	if generateJob.err != nil {
 		panic(fmt.Sprint("Failed to generate key: ", generateJob.err))
 	}
-	printSuccessfulAction("Generate key for ian@example.com")
+	printSuccessfulAction("Generate key for " + email)
 
 	pushPrivateKeyBackToGpg(generateJob.pgpKey, password.AsString(), &gpg)
 	printSuccessfulAction("Store key in " + colour.Info("gpg"))
@@ -74,7 +74,7 @@ func keyCreate() exitCode {
 	printSuccessfulAction("Make a backup ZIP file in")
 	out.Print("        " + colour.Info(directory) + "\n\n")
 
-	printSuccess("Successfully created key for ian@example.com")
+	printSuccess("Successfully created key for " + email)
 	out.Print("\n")
 	return 0
 }
