@@ -8,38 +8,36 @@ Fluidkeys helps teams protect themselves with strong encryption. It builds on th
 
 Once installed, run it with `fk`.
 
-## Install on Debian / Ubuntu
+## Install
 
-1. Get our public key
+Head over to [download.fluidkeys.com](https://download.fluidkeys.com)
 
-```
-curl --silent https://www.fluidkeys.com/release.asc | sudo apt-key add -
-```
+## Install from source
 
-2. Add our apt repository
+You'll need the [Go compiler](https://golang.org/dl/)
 
-```
-echo 'deb [arch=amd64] https://download.fluidkeys.com/desktop/apt any main' | sudo tee /etc/apt/sources.list.d/fluidkeys.list
-```
-
-3. Install
+Clone the repo:
 
 ```
-sudo apt update
-sudo apt install fluidkeys
+git clone https://github.com/fluidkeys/fluidkeys.git $HOME/go/src/github.com/fluidkeys/fluidkeys
+cd $HOME/go/src/github.com/fluidkeys/fluidkeys
 ```
 
-## Install on macOS
+Build and install to `/usr/local/bin/fk`:
 
 ```
-brew tap fluidkeys/tap
-brew update
-brew install fluidkeys
+sudo make install
+```
+
+If you prefer to run without `sudo` (root), install into `$HOME/fluidkeys/bin/fk`:
+
+```
+PREFIX=$HOME/fluidkeys make install
 ```
 
 ## Develop
 
-If you want to hack on Fluidkeys locally you'll need [Go 1.10](https://golang.org/dl/) and [dep](https://github.com/golang/dep#installation).
+If you want to hack on Fluidkeys locally you'll need [Go 1.10+](https://golang.org/dl/) and [dep](https://github.com/golang/dep#installation).
 
 Run:
 
