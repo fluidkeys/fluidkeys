@@ -22,7 +22,6 @@ func keyMaintain(dryRun bool, automatic bool, cronOutput bool) exitCode {
 		panic(err)
 	}
 
-	out.Print("\n")
 	if dryRun {
 		return runKeyMaintainDryRun(keys)
 	} else {
@@ -53,6 +52,7 @@ var (
 )
 
 func runKeyMaintainDryRun(keys []pgpkey.PgpKey) exitCode {
+	out.Print("\n")
 	keyTasks := makeKeyTasks(keys)
 
 	if len(keyTasks) == 0 {
@@ -161,6 +161,7 @@ func (p *alwaysFailPasswordPrompter) promptForPassword(key *pgpkey.PgpKey) (stri
 }
 
 func runKeyMaintain(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwordPrompter promptForPasswordInterface) exitCode {
+	out.Print("\n")
 	keyTasks := makeKeyTasks(keys)
 
 	if len(keyTasks) == 0 {
