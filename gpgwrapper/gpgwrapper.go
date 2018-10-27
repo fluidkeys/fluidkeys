@@ -191,7 +191,7 @@ func (g *GnuPG) ExportPrivateKey(fingerprint fingerprint.Fingerprint, password s
 				return stderr, err
 			}
 
-			return checkValidExportPrivateOutput(stdout)
+			return checkValidExportPrivateOutput(stdout, stderr)
 		} else if strings.Contains(stderr, loopbackUnsupported) {
 			if version, err := g.Version(); err == nil && version == "2.1.11" {
 				return "", fmt.Errorf("for gpg-2.1.11, please see https://fluidkeys.com/tweak-gpg-2.1.11/")
@@ -203,7 +203,7 @@ func (g *GnuPG) ExportPrivateKey(fingerprint fingerprint.Fingerprint, password s
 		return stderr, err
 	}
 
-	return checkValidExportPrivateOutput(stdout)
+	return checkValidExportPrivateOutput(stdout, stderr)
 }
 
 func getArgsExportPrivateKeyWithPinentry(fingerprint fingerprint.Fingerprint) []string {
@@ -228,17 +228,17 @@ func getArgsExportPrivateKeyWithoutPinentry(fingerprint fingerprint.Fingerprint)
 // checkValidExportPrivateOutput takes the output of `gpg --export-secret-key ...`
 // and ensures:
 // 1. there's exactly 1 ascii-armored secret key
-// 2. there's no GnuPG warning message
+// 2. there's no GnuPG warning message in stderr
 //
 // then it returns the output with err=nil if everything looks good.
-func checkValidExportPrivateOutput(output string) (string, error) {
+func checkValidExportPrivateOutput(stdout string, stderr string) (string, error) {
 
-	if strings.Contains(output, nothingExported) {
+	if strings.Contains(stderr, nothingExported) {
 		return "", fmt.Errorf("GnuPG returned 'nothing exported'")
 	}
 
-	numHeaders := strings.Count(output, privateHeader)
-	numFooters := strings.Count(output, privateFooter)
+	numHeaders := strings.Count(stdout, privateHeader)
+	numFooters := strings.Count(stdout, privateFooter)
 
 	if numHeaders != 1 || numFooters != 1 {
 		return "", fmt.Errorf(
@@ -246,7 +246,7 @@ func checkValidExportPrivateOutput(output string) (string, error) {
 			numHeaders, numFooters)
 	}
 
-	return output, nil
+	return stdout, nil
 }
 
 func parseVersionString(gpgStdout string) (string, error) {
