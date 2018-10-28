@@ -38,7 +38,7 @@ func OutputZipBackupFile(
 
 	keySlug, err := pgpKey.Slug()
 	if err != nil {
-		panic(fmt.Sprintf("Failed to get slug for key to work out backup location"))
+		panic(fmt.Sprintf("error getting key slug: %v", err))
 	}
 
 	filename = archiver.MakeFilePath(keySlug, "zip", fluidkeysDir, time.Now())
