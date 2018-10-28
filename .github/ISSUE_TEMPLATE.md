@@ -1,6 +1,8 @@
-Before you add an issue, it's worth looking [at public Trello board](https://trello.com/b/dB9j4JaG/fluidkeys?menu=filter&filter=label:BUG) to see if we're already working on it.
+Before you add an issue, it's worth looking at public Trello board to see if we're already working on it:
 
-Then, go ahead and raise the issue on Github.
+https://trello.com/b/dB9j4JaG/fluidkeys?menu=filter&filter=label:BUG
+
+Then, go ahead and delete this text, and raise the issue on Github.
 
 ----
 
