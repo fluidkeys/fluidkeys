@@ -36,14 +36,25 @@ func TestTheTestHelperFunctions(t *testing.T) {
 }
 
 func TestSlugMethod(t *testing.T) {
-	pgpKey := loadExamplePgpKey(t)
 
 	t.Run("test slug method", func(t *testing.T) {
+		pgpKey := loadExamplePgpKey(t)
 		slug, err := pgpKey.Slug()
 		if err != nil {
 			t.Fatal(err)
 		}
 		assertEqual(t, "2018-08-23-test-example-com-0C10C4A26E9B1B46E713C8D2BEBF0628DAFF9F4B", slug)
+	})
+
+	t.Run("test slug method for multiple email addresses", func(t *testing.T) {
+		pgpKey, err := LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
+		assert.ErrorIsNil(t, err)
+
+		assert.Equal(t, 3, len(pgpKey.Identities))
+
+		slug, err := pgpKey.Slug()
+		assert.ErrorIsNil(t, err)
+		assertEqual(t, "2018-09-10-test3-example-com-7C18DE4DE47813568B243AC8719BD63EF03BDC20", slug)
 	})
 }
 
