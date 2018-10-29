@@ -36,14 +36,25 @@ func TestTheTestHelperFunctions(t *testing.T) {
 }
 
 func TestSlugMethod(t *testing.T) {
-	pgpKey := loadExamplePgpKey(t)
 
 	t.Run("test slug method", func(t *testing.T) {
+		pgpKey := loadExamplePgpKey(t)
 		slug, err := pgpKey.Slug()
 		if err != nil {
 			t.Fatal(err)
 		}
 		assertEqual(t, "2018-08-23-test-example-com-0C10C4A26E9B1B46E713C8D2BEBF0628DAFF9F4B", slug)
+	})
+
+	t.Run("test slug method for multiple email addresses", func(t *testing.T) {
+		pgpKey, err := LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
+		assert.ErrorIsNil(t, err)
+
+		assert.Equal(t, 3, len(pgpKey.Identities))
+
+		slug, err := pgpKey.Slug()
+		assert.ErrorIsNil(t, err)
+		assertEqual(t, "2018-09-10-test3-example-com-7C18DE4DE47813568B243AC8719BD63EF03BDC20", slug)
 	})
 }
 
@@ -59,13 +70,76 @@ func TestEmailMethod(t *testing.T) {
 		}
 		assertEqual(t, want, got)
 	})
+
+	t.Run("returns error when there are no identities", func(t *testing.T) {
+		pgpKey, err := LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
+		assert.ErrorIsNil(t, err)
+
+		// remove all identities
+		pgpKey.Identities = make(map[string]*openpgp.Identity)
+
+		assert.Equal(t, 0, len(pgpKey.Identities))
+
+		_, err = pgpKey.Email()
+		assert.ErrorIsNotNil(t, err)
+	})
+
+	t.Run("with 3 valid identities ", func(t *testing.T) {
+		pgpKey, err := LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
+		assert.ErrorIsNil(t, err)
+		assert.Equal(t, 3, len(pgpKey.Identities))
+
+		t.Run("if no identities are primary choose the oldest signature", func(t *testing.T) {
+
+			setIsPrimary(false, pgpKey.Identities, "<test3@example.com>")
+			setIsPrimary(false, pgpKey.Identities, "Example Name <another@example.com>")
+			setIsPrimary(false, pgpKey.Identities, "unbracketedemail@example.com")
+
+			email, err := pgpKey.Email()
+			assert.ErrorIsNil(t, err)
+
+			assertEqual(t, "test3@example.com", email) // this has the oldest sig of all 3
+		})
+		t.Run("if one identity is flagged as primary choose that one", func(t *testing.T) {
+			setIsPrimary(false, pgpKey.Identities, "<test3@example.com>")
+			setIsPrimary(true, pgpKey.Identities, "Example Name <another@example.com>")
+			setIsPrimary(false, pgpKey.Identities, "unbracketedemail@example.com")
+
+			email, err := pgpKey.Email()
+			assert.ErrorIsNil(t, err)
+
+			assertEqual(t, "another@example.com", email) // 2nd identity
+		})
+
+		t.Run("if two identities are primary choose the earliest", func(t *testing.T) {
+			setIsPrimary(false, pgpKey.Identities, "<test3@example.com>")
+			setIsPrimary(true, pgpKey.Identities, "Example Name <another@example.com>")
+			setIsPrimary(true, pgpKey.Identities, "unbracketedemail@example.com")
+
+			email, err := pgpKey.Email()
+			assert.ErrorIsNil(t, err)
+
+			assertEqual(t, "another@example.com", email) // this has the oldest sig of the 2
+		})
+	})
+}
+
+func setIsPrimary(isPrimary bool, identities map[string]*openpgp.Identity, identityString string) {
+	if id, inMap := identities[identityString]; inMap == true {
+		id.SelfSignature.IsPrimaryId = &isPrimary
+	} else {
+		panic(fmt.Errorf("couldn't find user id '%s' in map %v", identityString, identities))
+	}
+
 }
 
 func TestEmailsMethod(t *testing.T) {
 	pgpKey, err := LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
-	if err != nil {
-		t.Fatalf("Failed to load example test data: %v", err)
-	}
+	assert.ErrorIsNil(t, err)
+
+	setIsPrimary(false, pgpKey.Identities, "<test3@example.com>")
+	setIsPrimary(true, pgpKey.Identities, "Example Name <another@example.com>")
+	setIsPrimary(false, pgpKey.Identities, "unbracketedemail@example.com")
 
 	t.Run("returns sorted email addresses with allowUnbracketed=false", func(t *testing.T) {
 		expected := []string{
@@ -74,15 +148,7 @@ func TestEmailsMethod(t *testing.T) {
 		}
 		got := pgpKey.Emails(false)
 
-		if len(got) != len(expected) {
-			t.Fatalf("Expected %d emails, got %d: %v", len(expected), len(got), got)
-		}
-
-		for i := range expected {
-			if expected[i] != got[i] {
-				t.Fatalf("expected[%d] = '%s', got = '%s'", i, expected[i], got[i])
-			}
-		}
+		assert.AssertEqualSliceOfStrings(t, expected, got)
 	})
 	t.Run("returns sorted email addresses with allowUnbracketed=true", func(t *testing.T) {
 		expected := []string{
@@ -92,15 +158,7 @@ func TestEmailsMethod(t *testing.T) {
 		}
 		got := pgpKey.Emails(true)
 
-		if len(got) != len(expected) {
-			t.Fatalf("Expected %d emails, got %d: %v", len(expected), len(got), got)
-		}
-
-		for i := range expected {
-			if expected[i] != got[i] {
-				t.Fatalf("expected[%d] = '%s', got = '%s'", i, expected[i], got[i])
-			}
-		}
+		assert.AssertEqualSliceOfStrings(t, expected, got)
 	})
 }
 
