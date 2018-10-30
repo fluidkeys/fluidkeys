@@ -14,7 +14,7 @@ func Load() (*Keyring, error) {
 }
 
 func load(allowedBackends []externalkeyring.BackendType) (*Keyring, error) {
-	ring, err := externalkeyring.Open(externalkeyring.Config{
+	ring, backendType, err := externalkeyring.Open(externalkeyring.Config{
 		ServiceName:     keyringServiceName,
 		AllowedBackends: allowedBackends,
 	})
@@ -23,12 +23,17 @@ func load(allowedBackends []externalkeyring.BackendType) (*Keyring, error) {
 		return &Keyring{noBackend: true}, nil
 	}
 
-	return &Keyring{realKeyring: ring, noBackend: false}, nil
+	return &Keyring{
+		realKeyring: ring,
+		noBackend:   false,
+		backendName: lookupBackendNameFromType(backendType),
+	}, nil
 }
 
 type Keyring struct {
 	realKeyring externalkeyring.Keyring
 	noBackend   bool // if true, all calls just return nothing
+	backendName string
 }
 
 // SavePassword stores the given password in the keyring against the key and
@@ -91,6 +96,10 @@ func (k *Keyring) PurgePassword(fp fingerprint.Fingerprint) error {
 	return nil
 }
 
+func (k *Keyring) Name() string {
+	return k.backendName
+}
+
 func isNotFoundError(err error) bool {
 	return err == externalkeyring.ErrKeyNotFound
 }
@@ -101,6 +110,17 @@ func makeKeyringKey(fp fingerprint.Fingerprint) string {
 
 func makeKeyringLabel(fp fingerprint.Fingerprint) string {
 	return fmt.Sprintf("Fluidkeys password for PGP key %s", fp.Hex())
+}
+
+func lookupBackendNameFromType(backend externalkeyring.BackendType) string {
+	switch backend {
+	case externalkeyring.SecretServiceBackend:
+		return "Linux login keyring"
+	case externalkeyring.KeychainBackend:
+		return "macOS Keychain"
+	default:
+		return "system keyring"
+	}
 }
 
 const keyringServiceName string = "login"
