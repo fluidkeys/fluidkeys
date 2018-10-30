@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"sort"
 	"strings"
@@ -53,6 +54,7 @@ Options:
 		Config.GetFilename(),
 	)
 
+	log.Print("$ " + strings.Join(os.Args, " "))
 	args, _ := docopt.ParseDoc(usage)
 
 	ensureCrontabStateMatchesConfig()
