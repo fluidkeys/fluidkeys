@@ -2,12 +2,17 @@ package out
 
 import (
 	"fmt"
+	"github.com/fluidkeys/fluidkeys/colour"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var outputter outputterInterface
+// NoLogCharacter can be added to an output message to prevent that line from
+// being saved to the log file.
+const NoLogCharacter string = "🤫"
 
 func init() {
 	// this is necessary for tests to use out.Print (they don't init
@@ -42,12 +47,38 @@ func SetOutputToBuffer() {
 
 func Print(message string) {
 	outputter.print(message)
+
+	if lines := splitIntoLogLines(message); len(lines) > 0 {
+		for _, line := range lines {
+			log.Print(line)
+		}
+	}
 }
 
 func PrintTheBuffer() {
 	if theBufferOutputter, ok := outputter.(*bufferOutputter); ok {
 		theBufferOutputter.printTheBuffer()
 	}
+}
+
+// splitIntoLogLines takes an output message (with newlines) and returns a
+// slice of lines for suitable for outputting with log.Print, namely:
+// * remove colour codes
+// * remove blank lines
+// * redact lines containing NoLogCharacter
+func splitIntoLogLines(message string) []string {
+	message = colour.StripAllColourCodes(message)
+
+	outLines := []string{}
+	for _, line := range strings.Split(message, "\n") {
+		if strings.Trim(line, "\n") == "" {
+			continue
+		} else if strings.Contains(line, NoLogCharacter) {
+			line = "*** line redacted from log file ***"
+		}
+		outLines = append(outLines, line)
+	}
+	return outLines
 }
 
 type outputterInterface interface {
