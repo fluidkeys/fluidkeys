@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/fluidkeys/fluidkeys/backupzip"
@@ -19,6 +20,20 @@ import (
 const DicewareNumberOfWords int = 6
 const DicewareSeparator string = "."
 const PromptEmail string = "Enter your email address, this will help other people find your key.\n"
+
+type DicewarePassword struct {
+	words     []string
+	separator string
+}
+
+func (d DicewarePassword) AsString() string {
+	return strings.Join(d.words, d.separator)
+}
+
+type generatePgpKeyResult struct {
+	pgpKey *pgpkey.PgpKey
+	err    error
+}
 
 func keyCreate() exitCode {
 

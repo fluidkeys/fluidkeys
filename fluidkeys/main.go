@@ -36,20 +36,6 @@ var (
 	Keyring            keyring.Keyring
 )
 
-type DicewarePassword struct {
-	words     []string
-	separator string
-}
-
-func (d DicewarePassword) AsString() string {
-	return strings.Join(d.words, d.separator)
-}
-
-type generatePgpKeyResult struct {
-	pgpKey *pgpkey.PgpKey
-	err    error
-}
-
 type exitCode = int
 
 func ensureCrontabStateMatchesConfig() {
