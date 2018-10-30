@@ -4,13 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/fluidkeys/fluidkeys/fingerprint"
-
-	"github.com/mitchellh/go-homedir"
 
 	"github.com/docopt/docopt-go"
 	"github.com/fluidkeys/fluidkeys/colour"
@@ -24,11 +21,6 @@ import (
 	"github.com/fluidkeys/fluidkeys/scheduler"
 )
 
-const GPGMissing string = "GPG isn't working on your system 🤒\n"
-const ContinueWithoutGPG string = "You can still use FluidKeys to make a key and then later import it from your backup.\n\nAlternatively, quit now [ctrl-c], install GPG then run FluidKeys again.\n"
-
-const PromptWhichKeyFromGPG string = "Which key would you like to import?"
-
 const Version = "0.2.4"
 
 var (
@@ -39,72 +31,7 @@ var (
 	Keyring            keyring.Keyring
 )
 
-type DicewarePassword struct {
-	words     []string
-	separator string
-}
-
-func (d DicewarePassword) AsString() string {
-	return strings.Join(d.words, d.separator)
-}
-
-type generatePgpKeyResult struct {
-	pgpKey *pgpkey.PgpKey
-	err    error
-}
-
 type exitCode = int
-
-func init() {
-	var err error
-	fluidkeysDirectory, err = getFluidkeysDirectory()
-	if err != nil {
-		fmt.Printf("Failed to get fluidkeys directory: %v\n", err)
-		os.Exit(1)
-	}
-
-	configPointer, err := config.Load(fluidkeysDirectory)
-	if err != nil {
-		fmt.Printf("Failed to open config file: %v\n", err)
-		os.Exit(2)
-	} else {
-		Config = *configPointer
-	}
-
-	keyringPointer, err := keyring.Load()
-	if err != nil {
-		fmt.Printf("Failed to load keyring: %v\n", err)
-		os.Exit(3)
-	} else {
-		Keyring = *keyringPointer
-	}
-
-	db = database.New(fluidkeysDirectory)
-	gpg = gpgwrapper.GnuPG{}
-	out.SetOutputToTerminal()
-}
-
-func ensureCrontabStateMatchesConfig() {
-	if Config.RunFromCron() {
-		crontabWasAdded, err := scheduler.Enable()
-		if err != nil {
-			panic(err)
-		}
-
-		if crontabWasAdded {
-			printInfo(fmt.Sprintf("Added Fluidkeys to crontab.  Edit %s to remove.", Config.GetFilename()))
-		}
-	} else {
-		crontabWasRemoved, err := scheduler.Disable()
-		if err != nil {
-			panic(err)
-		}
-
-		if crontabWasRemoved {
-			printInfo(fmt.Sprintf("Removed Fluidkeys from crontab.  Edit %s to add again.", Config.GetFilename()))
-		}
-	}
-}
 
 func main() {
 	usage := fmt.Sprintf(`Fluidkeys %s
@@ -135,6 +62,28 @@ Options:
 		os.Exit(initSubcommand(args))
 	case "key":
 		os.Exit(keySubcommand(args))
+	}
+}
+
+func ensureCrontabStateMatchesConfig() {
+	if Config.RunFromCron() {
+		crontabWasAdded, err := scheduler.Enable()
+		if err != nil {
+			panic(err)
+		}
+
+		if crontabWasAdded {
+			printInfo(fmt.Sprintf("Added Fluidkeys to crontab.  Edit %s to remove.", Config.GetFilename()))
+		}
+	} else {
+		crontabWasRemoved, err := scheduler.Disable()
+		if err != nil {
+			panic(err)
+		}
+
+		if crontabWasRemoved {
+			printInfo(fmt.Sprintf("Removed Fluidkeys from crontab.  Edit %s to add again.", Config.GetFilename()))
+		}
 	}
 }
 
@@ -235,28 +184,6 @@ func displayName(key *pgpkey.PgpKey) string {
 		displayName = fmt.Sprintf("%s", key.Fingerprint())
 	}
 	return colour.Info(displayName)
-}
-
-func getFluidkeysDirectory() (string, error) {
-	dirFromEnv := os.Getenv("FLUIDKEYS_DIR")
-
-	if dirFromEnv != "" {
-		return dirFromEnv, nil
-	} else {
-		return makeFluidkeysHomeDirectory()
-	}
-}
-
-func makeFluidkeysHomeDirectory() (string, error) {
-	homeDirectory, err := homedir.Dir()
-
-	if err != nil {
-		return "", err
-	}
-
-	fluidkeysDir := filepath.Join(homeDirectory, ".config", "fluidkeys")
-	os.MkdirAll(fluidkeysDir, 0700)
-	return fluidkeysDir, nil
 }
 
 func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {

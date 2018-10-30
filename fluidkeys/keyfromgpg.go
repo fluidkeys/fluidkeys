@@ -12,6 +12,8 @@ import (
 	"github.com/fluidkeys/fluidkeys/status"
 )
 
+const PromptWhichKeyFromGPG string = "Which key would you like to import?"
+
 func keyFromGpg() exitCode {
 	out.Print("\n")
 	availableKeys, err := keysAvailableToGetFromGpg()

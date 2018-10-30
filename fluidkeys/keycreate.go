@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/fluidkeys/fluidkeys/backupzip"
@@ -20,11 +21,28 @@ const DicewareNumberOfWords int = 6
 const DicewareSeparator string = "."
 const PromptEmail string = "Enter your email address, this will help other people find your key.\n"
 
+type DicewarePassword struct {
+	words     []string
+	separator string
+}
+
+func (d DicewarePassword) AsString() string {
+	return strings.Join(d.words, d.separator)
+}
+
+type generatePgpKeyResult struct {
+	pgpKey *pgpkey.PgpKey
+	err    error
+}
+
 func keyCreate() exitCode {
 
 	if !gpg.IsWorking() {
-		out.Print(colour.Warning("\n" + GPGMissing + "\n"))
-		out.Print(ContinueWithoutGPG + "\n")
+		out.Print(colour.Warning("\nGPG isn't working on your system 🤒\n\n"))
+		out.Print("You can still use FluidKeys to make a key and then " +
+			"later import it from your backup.\n\n" +
+			"Alternatively, quit now [ctrl-c], install GPG then " +
+			"run FluidKeys again.\n\n")
 		promptForInput("Press enter to continue. ")
 	}
 	out.Print("\n")
