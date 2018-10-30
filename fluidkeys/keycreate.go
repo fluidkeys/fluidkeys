@@ -78,7 +78,7 @@ func keyCreate() exitCode {
 	fingerprint := generateJob.pgpKey.Fingerprint()
 	db.RecordFingerprintImportedIntoGnuPG(fingerprint)
 	if err := tryEnableMaintainAutomatically(generateJob.pgpKey, password.AsString()); err == nil {
-		printSuccessfulAction("Store password in system keyring")
+		printSuccessfulAction("Store password in " + Keyring.Name())
 		printSuccessfulAction("Setup automatic maintenance using " + colour.Info("cron"))
 	} else {
 		printFailedAction("Setup automatic maintenance")
