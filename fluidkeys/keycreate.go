@@ -38,8 +38,11 @@ type generatePgpKeyResult struct {
 func keyCreate() exitCode {
 
 	if !gpg.IsWorking() {
-		out.Print(colour.Warning("\n" + GPGMissing + "\n"))
-		out.Print(ContinueWithoutGPG + "\n")
+		out.Print(colour.Warning("\nGPG isn't working on your system 🤒\n\n"))
+		out.Print("You can still use FluidKeys to make a key and then " +
+			"later import it from your backup.\n\n" +
+			"Alternatively, quit now [ctrl-c], install GPG then " +
+			"run FluidKeys again.\n\n")
 		promptForInput("Press enter to continue. ")
 	}
 	out.Print("\n")
