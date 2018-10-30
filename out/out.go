@@ -1,11 +1,35 @@
 package out
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+)
 
 var outputter outputterInterface
 
 func init() {
+	// this is necessary for tests to use out.Print (they don't init
+	// through the main function)
 	SetOutputToTerminal()
+}
+
+func Load(logDirectory string) error {
+	if logDirectory == "" {
+		return fmt.Errorf("missing log directory")
+	}
+	SetOutputToTerminal()
+
+	logFilename := filepath.Join(logDirectory, "debug.log")
+
+	if f, err := os.OpenFile(logFilename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err != nil {
+		return fmt.Errorf("failed to open '%s' for writing: %v", logFilename, err)
+	} else {
+		// configure global logger to output to this file
+		log.SetOutput(f)
+	}
+	return nil
 }
 
 func SetOutputToTerminal() {

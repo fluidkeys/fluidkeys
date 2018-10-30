@@ -15,11 +15,11 @@ import (
 
 func init() {
 	initFluidkeysDirectory()
+	initOutput()
 	initConfig()
 	initKeyring()
 	initDatabase()
 	initGpgWrapper()
-	initOutput()
 }
 
 func initFluidkeysDirectory() {
@@ -60,7 +60,9 @@ func initGpgWrapper() {
 }
 
 func initOutput() {
-	out.SetOutputToTerminal()
+	if err := out.Load(fluidkeysDirectory); err != nil {
+		panic(err)
+	}
 }
 
 func getFluidkeysDirectory() (string, error) {
