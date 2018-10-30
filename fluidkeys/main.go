@@ -4,13 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/fluidkeys/fluidkeys/fingerprint"
-
-	"github.com/mitchellh/go-homedir"
 
 	"github.com/docopt/docopt-go"
 	"github.com/fluidkeys/fluidkeys/colour"
@@ -54,35 +51,6 @@ type generatePgpKeyResult struct {
 }
 
 type exitCode = int
-
-func init() {
-	var err error
-	fluidkeysDirectory, err = getFluidkeysDirectory()
-	if err != nil {
-		fmt.Printf("Failed to get fluidkeys directory: %v\n", err)
-		os.Exit(1)
-	}
-
-	configPointer, err := config.Load(fluidkeysDirectory)
-	if err != nil {
-		fmt.Printf("Failed to open config file: %v\n", err)
-		os.Exit(2)
-	} else {
-		Config = *configPointer
-	}
-
-	keyringPointer, err := keyring.Load()
-	if err != nil {
-		fmt.Printf("Failed to load keyring: %v\n", err)
-		os.Exit(3)
-	} else {
-		Keyring = *keyringPointer
-	}
-
-	db = database.New(fluidkeysDirectory)
-	gpg = gpgwrapper.GnuPG{}
-	out.SetOutputToTerminal()
-}
 
 func ensureCrontabStateMatchesConfig() {
 	if Config.RunFromCron() {
@@ -235,28 +203,6 @@ func displayName(key *pgpkey.PgpKey) string {
 		displayName = fmt.Sprintf("%s", key.Fingerprint())
 	}
 	return colour.Info(displayName)
-}
-
-func getFluidkeysDirectory() (string, error) {
-	dirFromEnv := os.Getenv("FLUIDKEYS_DIR")
-
-	if dirFromEnv != "" {
-		return dirFromEnv, nil
-	} else {
-		return makeFluidkeysHomeDirectory()
-	}
-}
-
-func makeFluidkeysHomeDirectory() (string, error) {
-	homeDirectory, err := homedir.Dir()
-
-	if err != nil {
-		return "", err
-	}
-
-	fluidkeysDir := filepath.Join(homeDirectory, ".config", "fluidkeys")
-	os.MkdirAll(fluidkeysDir, 0700)
-	return fluidkeysDir, nil
 }
 
 func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
