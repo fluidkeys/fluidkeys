@@ -33,28 +33,6 @@ var (
 
 type exitCode = int
 
-func ensureCrontabStateMatchesConfig() {
-	if Config.RunFromCron() {
-		crontabWasAdded, err := scheduler.Enable()
-		if err != nil {
-			panic(err)
-		}
-
-		if crontabWasAdded {
-			printInfo(fmt.Sprintf("Added Fluidkeys to crontab.  Edit %s to remove.", Config.GetFilename()))
-		}
-	} else {
-		crontabWasRemoved, err := scheduler.Disable()
-		if err != nil {
-			panic(err)
-		}
-
-		if crontabWasRemoved {
-			printInfo(fmt.Sprintf("Removed Fluidkeys from crontab.  Edit %s to add again.", Config.GetFilename()))
-		}
-	}
-}
-
 func main() {
 	usage := fmt.Sprintf(`Fluidkeys %s
 
@@ -84,6 +62,28 @@ Options:
 		os.Exit(initSubcommand(args))
 	case "key":
 		os.Exit(keySubcommand(args))
+	}
+}
+
+func ensureCrontabStateMatchesConfig() {
+	if Config.RunFromCron() {
+		crontabWasAdded, err := scheduler.Enable()
+		if err != nil {
+			panic(err)
+		}
+
+		if crontabWasAdded {
+			printInfo(fmt.Sprintf("Added Fluidkeys to crontab.  Edit %s to remove.", Config.GetFilename()))
+		}
+	} else {
+		crontabWasRemoved, err := scheduler.Disable()
+		if err != nil {
+			panic(err)
+		}
+
+		if crontabWasRemoved {
+			printInfo(fmt.Sprintf("Removed Fluidkeys from crontab.  Edit %s to add again.", Config.GetFilename()))
+		}
 	}
 }
 
