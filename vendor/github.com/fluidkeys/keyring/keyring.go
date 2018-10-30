@@ -32,7 +32,7 @@ func AvailableBackends() []BackendType {
 type opener func(cfg Config) (Keyring, error)
 
 // Open will open a specific keyring backend
-func Open(cfg Config) (Keyring, error) {
+func Open(cfg Config) (Keyring, BackendType, error) {
 	if cfg.AllowedBackends == nil {
 		cfg.AllowedBackends = AvailableBackends()
 	}
@@ -44,10 +44,10 @@ func Open(cfg Config) (Keyring, error) {
 				debugf("Failed backend %s: %s", backend, err)
 				continue
 			}
-			return openBackend, nil
+			return openBackend, backend, nil
 		}
 	}
-	return nil, ErrNoAvailImpl
+	return nil, InvalidBackend, ErrNoAvailImpl
 }
 
 // Item is a thing stored on the keyring

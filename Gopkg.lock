@@ -34,11 +34,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:af146838806d5f66f5bd1c6cb145e1511ff5f0c292d278dcf98301ac602338cd"
+  digest = "1:c52324afeeb8f3deaabdc2a9c0228e3276dc4536de344c155a3d7e3db9eee2a7"
   name = "github.com/fluidkeys/keyring"
   packages = ["."]
   pruneopts = ""
-  revision = "b7a88d2e1e256dcbc200690189c829aabaff5c29"
+  revision = "98cd9f4bb949ed8eff838d2a2b2e0feb9ba3213d"
 
 [[projects]]
   branch = "master"
