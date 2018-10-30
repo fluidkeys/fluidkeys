@@ -24,8 +24,6 @@ import (
 const GPGMissing string = "GPG isn't working on your system 🤒\n"
 const ContinueWithoutGPG string = "You can still use FluidKeys to make a key and then later import it from your backup.\n\nAlternatively, quit now [ctrl-c], install GPG then run FluidKeys again.\n"
 
-const PromptWhichKeyFromGPG string = "Which key would you like to import?"
-
 const Version = "0.2.4"
 
 var (
