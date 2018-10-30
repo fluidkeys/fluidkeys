@@ -195,6 +195,7 @@ func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
 		panic(err)
 	}
 	out.Print("\n")
+	log.Print("> " + response)
 	return strings.TrimRight(response, "\n")
 }
 
