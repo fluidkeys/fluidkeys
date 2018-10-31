@@ -1,6 +1,7 @@
 package keyring
 
 import (
+	"fmt"
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	externalkeyring "github.com/fluidkeys/keyring"
@@ -49,7 +50,7 @@ func TestLoad(t *testing.T) {
 
 func TestSavePassword(t *testing.T) {
 	t.Run("save stores an item with sensible key, data and label", func(t *testing.T) {
-		keyring := Keyring{realKeyring: externalkeyring.NewArrayKeyring(nil)}
+		keyring := makeTestKeyring()
 		keyring.SavePassword(exampleFingerprint, "password")
 
 		item, err := keyring.realKeyring.Get(makeKeyringKey(exampleFingerprint))
@@ -63,7 +64,7 @@ func TestSavePassword(t *testing.T) {
 
 func TestLoadPassword(t *testing.T) {
 	t.Run("return ('', false) when no password is present", func(t *testing.T) {
-		keyring := Keyring{realKeyring: externalkeyring.NewArrayKeyring(nil)}
+		keyring := makeTestKeyring()
 
 		password, gotPassword := keyring.LoadPassword(exampleFingerprint)
 		assert.Equal(t, false, gotPassword)
@@ -71,7 +72,7 @@ func TestLoadPassword(t *testing.T) {
 	})
 
 	t.Run("return (password, true) when password is present", func(t *testing.T) {
-		keyring := Keyring{realKeyring: externalkeyring.NewArrayKeyring(nil)}
+		keyring := makeTestKeyring()
 		keyring.SavePassword(exampleFingerprint, "foo")
 
 		password, gotPassword := keyring.LoadPassword(exampleFingerprint)
@@ -82,7 +83,7 @@ func TestLoadPassword(t *testing.T) {
 
 func TestPurgePassword(t *testing.T) {
 	t.Run("purge deletes a password", func(t *testing.T) {
-		keyring := Keyring{realKeyring: externalkeyring.NewArrayKeyring(nil)}
+		keyring := makeTestKeyring()
 		keyring.SavePassword(exampleFingerprint, "foo")
 		err := keyring.PurgePassword(exampleFingerprint)
 
@@ -94,11 +95,47 @@ func TestPurgePassword(t *testing.T) {
 	})
 
 	t.Run("purge returns nil error if no matching password for key", func(t *testing.T) {
-		keyring := Keyring{realKeyring: externalkeyring.NewArrayKeyring(nil)}
+		keyring := makeTestKeyring()
 		err := keyring.PurgePassword(exampleFingerprint)
 
 		assert.ErrorIsNil(t, err)
 	})
+}
+
+func TestName(t *testing.T) {
+	var tests = []struct {
+		backendType  externalkeyring.BackendType
+		expectedName string
+	}{
+		{
+			externalkeyring.SecretServiceBackend,
+			"Linux login keyring",
+		},
+		{
+			externalkeyring.KeychainBackend,
+			"macOS Keychain",
+		},
+		{
+			externalkeyring.InvalidBackend,
+			"system keyring",
+		},
+		{
+			"",
+			"system keyring",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("for %s", test.backendType), func(t *testing.T) {
+			keyring := Keyring{
+				realKeyring: externalkeyring.NewArrayKeyring(nil),
+				backendType: test.backendType,
+			}
+
+			assert.Equal(t, test.expectedName, keyring.Name())
+		})
+
+	}
 }
 
 func TestDiscoverDbusSessionBusAddress(t *testing.T) {
@@ -116,5 +153,14 @@ func TestDiscoverDbusSessionBusAddress(t *testing.T) {
 				t.Fatalf("looks like we failed to discover DBUS_SESSION_BUS_ADDRESS correctly, expected: '%s', got: '%s'", expectedDbusAddress, dbusAddress)
 			}
 		})
+	}
+}
+
+func makeTestKeyring() Keyring {
+	const arrayKeyringForTesting externalkeyring.BackendType = "array-keyring-for-testing"
+
+	return Keyring{
+		realKeyring: externalkeyring.NewArrayKeyring(nil),
+		backendType: arrayKeyringForTesting,
 	}
 }
