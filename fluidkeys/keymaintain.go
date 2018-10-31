@@ -114,7 +114,7 @@ func (iP *interactiveYesNoPrompter) promptYesNo(message string, defaultInput str
 	}
 	messageWithOptions := message + " " + options + " "
 	for {
-		input := promptForInput(messageWithOptions)
+		input := promptForInput(messageWithOptions, true)
 		if input == "" {
 			input = defaultInput
 		}

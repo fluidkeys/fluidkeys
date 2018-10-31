@@ -188,17 +188,19 @@ func displayName(key *pgpkey.PgpKey) string {
 	return colour.Info(displayName)
 }
 
-func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
+func promptForInputWithPipes(prompt string, reader *bufio.Reader, logToFile bool) string {
 	out.Print(prompt)
 	response, err := reader.ReadString('\n')
 	if err != nil {
 		panic(err)
 	}
 	out.Print("\n")
-	log.Print("> " + response)
+	if logToFile {
+		log.Print("> " + response)
+	}
 	return strings.TrimRight(response, "\n")
 }
 
-func promptForInput(prompt string) string {
-	return promptForInputWithPipes(prompt, bufio.NewReader(os.Stdin))
+func promptForInput(prompt string, logToFile bool) string {
+	return promptForInputWithPipes(prompt, bufio.NewReader(os.Stdin), logToFile)
 }

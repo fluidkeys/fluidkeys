@@ -43,7 +43,7 @@ func keyCreate() exitCode {
 			"later import it from your backup.\n\n" +
 			"Alternatively, quit now [ctrl-c], install GPG then " +
 			"run FluidKeys again.\n\n")
-		promptForInput("Press enter to continue. ")
+		promptForInput("Press enter to continue. ", true)
 	}
 	out.Print("\n")
 	email := promptForEmail()
@@ -105,7 +105,7 @@ func generatePgpKey(email string, channel chan generatePgpKeyResult) {
 
 func promptForEmail() string {
 	out.Print(PromptEmail + "\n")
-	return promptForInput("[email] : ")
+	return promptForInput("[email] : ", true)
 }
 
 func generatePassword(numberOfWords int, separator string) DicewarePassword {
@@ -120,7 +120,7 @@ func displayPassword(password DicewarePassword) {
 	out.Print("If you use a password manager, save it there now.\n\n")
 	out.Print(colour.Warning("Store this safely, otherwise you won’t be able to use your key\n\n"))
 
-	promptForInput("Press enter when you've stored it safely. ")
+	promptForInput("Press enter when you've stored it safely. ", true)
 }
 
 func userConfirmedRandomWord(password DicewarePassword) bool {
@@ -131,7 +131,7 @@ func userConfirmedRandomWord(password DicewarePassword) bool {
 	wordOrdinal := humanize.Ordinal(randomIndex + 1)
 
 	out.Print(fmt.Sprintf("Enter the %s word from your password\n\n", wordOrdinal))
-	givenWord := promptForInput("[" + wordOrdinal + " word] : ")
+	givenWord := promptForInput("["+wordOrdinal+" word] : ", false)
 	return givenWord == correctWord
 }
 
