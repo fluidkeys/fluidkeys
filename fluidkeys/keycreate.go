@@ -116,7 +116,7 @@ func generatePassword(numberOfWords int, separator string) DicewarePassword {
 }
 
 func displayPassword(password DicewarePassword) {
-	out.Print("  " + colour.Info(password.AsString()) + "\n\n")
+	out.Print(out.NoLogCharacter + "   " + colour.Info(password.AsString()) + "\n\n")
 	out.Print("If you use a password manager, save it there now.\n\n")
 	out.Print(colour.Warning("Store this safely, otherwise you won’t be able to use your key\n\n"))
 
