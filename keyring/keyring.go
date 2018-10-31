@@ -2,6 +2,7 @@ package keyring
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	externalkeyring "github.com/fluidkeys/keyring"
@@ -22,6 +23,7 @@ func load(allowedBackends []externalkeyring.BackendType) (*Keyring, error) {
 	if err != nil && backendType == externalkeyring.InvalidBackend {
 		// Return a valid, but "dummy" Keyring which just returns
 		// (without an error) on LoadPassword, SavePassword etc
+		log.Printf("failed to load keyring backend: %v", err)
 		return &Keyring{}, nil
 	}
 
