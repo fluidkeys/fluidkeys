@@ -22,7 +22,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/scheduler"
 )
 
-const Version = "0.2.4"
+const Version = "0.2.5"
 
 var (
 	gpg                gpgwrapper.GnuPG
