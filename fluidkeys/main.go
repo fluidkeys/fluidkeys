@@ -45,6 +45,7 @@ Usage:
 	fk key list
 	fk key maintain [--dry-run]
 	fk key maintain automatic [--cron-output]
+	fk team create <name>
 
 Options:
 	-h --help         Show this screen
@@ -59,11 +60,13 @@ Options:
 
 	ensureCrontabStateMatchesConfig()
 
-	switch getSubcommand(args, []string{"key"}) {
+	switch getSubcommand(args, []string{"key", "team"}) {
 	case "init":
 		os.Exit(initSubcommand(args))
 	case "key":
 		os.Exit(keySubcommand(args))
+	case "team":
+		os.Exit(teamSubcommand(args))
 	}
 }
 
@@ -135,6 +138,18 @@ func keySubcommand(args docopt.Opts) exitCode {
 		os.Exit(keyMaintain(dryRun, automatic, cronOutput))
 	}
 	panic(fmt.Errorf("keySubcommand got unexpected arguments: %v", args))
+}
+
+func teamSubcommand(args docopt.Opts) exitCode {
+	switch getSubcommand(args, []string{
+		"create",
+	}) {
+	case "create":
+		teamName := args["<name>"].(string)
+		fmt.Println(teamName)
+		os.Exit(0)
+	}
+	panic(fmt.Errorf("teamSubCommand got unexpected arguments: %v", args))
 }
 
 func loadPgpKeys() ([]pgpkey.PgpKey, error) {
