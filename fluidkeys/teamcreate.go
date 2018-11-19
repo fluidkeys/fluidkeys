@@ -1,14 +1,26 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
 	"os"
 	"strings"
+
+	"github.com/fluidkeys/fluidkeys/fingerprint"
 
 	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 
 	"github.com/fluidkeys/fluidkeys/out"
 )
+
+type teamPostData struct {
+	Name      string `json:"teamName,omitempty"`
+	PublicKey string `json:"publicKey,omitempty"`
+}
 
 func teamCreate(teamName string) exitCode {
 	out.Print("\n")
@@ -22,6 +34,7 @@ func teamCreate(teamName string) exitCode {
 		os.Exit(1)
 	}
 
+	var fingerprint fingerprint.Fingerprint
 	existingKey := secretKeyListingsForEmail(availableKeys, email)
 	if existingKey != nil {
 		out.Print("You should use a separate key for each team.\n\n")
@@ -29,13 +42,51 @@ func teamCreate(teamName string) exitCode {
 		prompter := interactiveYesNoPrompter{}
 		if prompter.promptYesNo("Use this key for "+teamName+"?", "y", nil) {
 			importGPGKey(existingKey.Fingerprint)
+			fingerprint = existingKey.Fingerprint
 		} else {
-			createKeyForEmail(email)
+			fingerprint = createKeyForEmail(email)
 		}
 	} else {
-		createKeyForEmail(email)
+		fingerprint = createKeyForEmail(email)
 	}
-	fmt.Printf("%v\n", existingKey)
+
+	key, err := loadPgpKey(fingerprint)
+	if err != nil {
+		out.Print(fmt.Sprintf("Failed to load key from gpg: %v\n\n", err))
+		return 1
+	}
+
+	armoredPublicKey, err := key.Armor()
+	if err != nil {
+		panic(fmt.Sprint("Failed to output public key: ", err))
+	}
+
+	teamPost := teamPostData{
+		Name:      teamName,
+		PublicKey: armoredPublicKey,
+	}
+
+	teamJSON, err := json.Marshal(teamPost)
+	if err != nil {
+		fmt.Printf("Error marshalling JSON: %s", err)
+	}
+
+	req, err := http.NewRequest(
+		"POST",
+		getTeamServerURL("/teams"),
+		bytes.NewBuffer(teamJSON),
+	)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+
+	fmt.Println("Response: ", string(body))
+	resp.Body.Close()
 	return 0
 }
 
@@ -46,4 +97,13 @@ func secretKeyListingsForEmail(availableKeys []gpgwrapper.SecretKeyListing, emai
 		}
 	}
 	return nil
+}
+
+func getTeamServerURL(path string) string {
+	urlFromEnv := os.Getenv("TEAMSERVER_URL")
+	if urlFromEnv != "" {
+		return urlFromEnv
+	} else {
+		return "http://localhost:4747" + path
+	}
 }

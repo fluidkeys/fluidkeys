@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fluidkeys/fluidkeys/fingerprint"
+
 	"github.com/fluidkeys/fluidkeys/backupzip"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/humanize"
@@ -50,7 +52,7 @@ func keyCreate() exitCode {
 	return 0
 }
 
-func createKeyForEmail(email string) {
+func createKeyForEmail(email string) fingerprint.Fingerprint {
 	channel := make(chan generatePgpKeyResult)
 	go generatePgpKey(email, channel)
 
@@ -98,6 +100,7 @@ func createKeyForEmail(email string) {
 
 	printSuccess("Successfully created key for " + email)
 	out.Print("\n")
+	return fingerprint
 }
 
 func generatePgpKey(email string, channel chan generatePgpKeyResult) {
