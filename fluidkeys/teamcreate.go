@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -71,23 +70,50 @@ func teamCreate(teamName string) exitCode {
 		fmt.Printf("Error marshalling JSON: %s", err)
 	}
 
-	req, err := http.NewRequest(
+	request, err := http.NewRequest(
 		"POST",
 		getTeamServerURL("/teams"),
 		bytes.NewBuffer(teamJSON),
 	)
-	req.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
-	resp, err := client.Do(req)
+	response, err := client.Do(request)
 	if err != nil {
-		log.Fatal(err)
+		return outputError(teamName, err.Error())
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		response.Body.Close()
+		return outputError(teamName, err.Error())
+	}
+	jsonResponse, err := parsePostResponse([]byte(body))
+	if err != nil {
+		response.Body.Close()
+		return outputError(teamName, err.Error())
+	}
 
-	fmt.Println("Response: ", string(body))
-	resp.Body.Close()
-	return 0
+	if jsonResponse.UUID != nil {
+		printSuccess("Successfully created " + teamName + "team")
+		out.Print("\n")
+		out.Print("Edit and send the invite below to your team:\n\n")
+		out.Print("---\n")
+		out.Print("  Hello! Come and join our Example Inc team on Fluidkeys.\n")
+		out.Print("  Download Fluidkeys from download.fluidkeys.com then run:\n")
+		out.Print("  > fk team join " + *jsonResponse.UUID + "\n")
+		out.Print("---\n\n")
+		out.Print("You’ll need to approve new team members by running:\n\n")
+		out.Print("> fk team approve\n\n")
+		response.Body.Close()
+		return 0
+	} else if jsonResponse.Message != nil {
+		printFailed("Couldn't create the " + teamName + " team!\n")
+		out.Print("Received an error: " + *jsonResponse.Message + "\n")
+		response.Body.Close()
+		return 1
+	}
+
+	return 1
 }
 
 func secretKeyListingsForEmail(availableKeys []gpgwrapper.SecretKeyListing, email string) *gpgwrapper.SecretKeyListing {
@@ -106,4 +132,21 @@ func getTeamServerURL(path string) string {
 	} else {
 		return "http://localhost:4747" + path
 	}
+}
+
+type PostResponse struct {
+	Message *string `json:"message"`
+	UUID    *string `json:"teamUuid,omitempty"`
+}
+
+func parsePostResponse(body []byte) (*PostResponse, error) {
+	var postResponse = new(PostResponse)
+	err := json.Unmarshal(body, &postResponse)
+	return postResponse, err
+}
+
+func outputError(teamName string, err string) exitCode {
+	printFailed("Couldn't create the " + teamName + " team!\n")
+	out.Print("Received an error: " + err + "\n")
+	return 1
 }
