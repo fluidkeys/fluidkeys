@@ -146,8 +146,7 @@ func teamSubcommand(args docopt.Opts) exitCode {
 	}) {
 	case "create":
 		teamName := args["<name>"].(string)
-		fmt.Println(teamName)
-		os.Exit(0)
+		os.Exit(teamCreate(teamName))
 	}
 	panic(fmt.Errorf("teamSubCommand got unexpected arguments: %v", args))
 }
