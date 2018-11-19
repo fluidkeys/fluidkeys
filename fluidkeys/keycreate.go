@@ -19,7 +19,6 @@ import (
 
 const DicewareNumberOfWords int = 6
 const DicewareSeparator string = "."
-const PromptEmail string = "Enter your email address, this will help other people find your key.\n"
 
 type DicewarePassword struct {
 	words     []string
@@ -46,7 +45,12 @@ func keyCreate() exitCode {
 		promptForInput("Press enter to continue. ")
 	}
 	out.Print("\n")
-	email := promptForEmail()
+	email := promptForEmail("Enter your email address, this will help other people find your key.\n")
+	createKeyForEmail(email)
+	return 0
+}
+
+func createKeyForEmail(email string) {
 	channel := make(chan generatePgpKeyResult)
 	go generatePgpKey(email, channel)
 
@@ -94,7 +98,6 @@ func keyCreate() exitCode {
 
 	printSuccess("Successfully created key for " + email)
 	out.Print("\n")
-	return 0
 }
 
 func generatePgpKey(email string, channel chan generatePgpKeyResult) {
@@ -103,8 +106,8 @@ func generatePgpKey(email string, channel chan generatePgpKeyResult) {
 	channel <- generatePgpKeyResult{key, err}
 }
 
-func promptForEmail() string {
-	out.Print(PromptEmail + "\n")
+func promptForEmail(promptMessage string) string {
+	out.Print(promptMessage + "\n")
 	return promptForInput("[email] : ")
 }
 

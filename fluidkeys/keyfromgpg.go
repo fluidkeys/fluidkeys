@@ -40,11 +40,7 @@ func keyFromGpg() exitCode {
 		return 0
 	}
 
-	db.RecordFingerprintImportedIntoGnuPG(keyToImport.Fingerprint)
-	Config.SetStorePassword(keyToImport.Fingerprint, false)
-	Config.SetMaintainAutomatically(keyToImport.Fingerprint, false)
-	printSuccess("Successfully connected key to Fluidkeys")
-	out.Print("\n")
+	importGPGKey(keyToImport.Fingerprint)
 
 	key, err := loadPgpKey(keyToImport.Fingerprint)
 	if err != nil {
@@ -63,6 +59,17 @@ func keyFromGpg() exitCode {
 	out.Print("    " + colour.CommandLineCode("fk key maintain --dry-run") + "\n\n")
 
 	return 0
+}
+
+// importGPGKey records that a fingerprint is now maintained by Fluidkeys. We
+// don't store the password, nor set it to maintain automatically as this feels
+// a little like overreaching.
+func importGPGKey(fingerprint fingerprint.Fingerprint) {
+	db.RecordFingerprintImportedIntoGnuPG(fingerprint)
+	Config.SetStorePassword(fingerprint, false)
+	Config.SetMaintainAutomatically(fingerprint, false)
+	printSuccess("Successfully connected key to Fluidkeys")
+	out.Print("\n")
 }
 
 // keysAvailableToGetFromGpg returns a filtered slice of SecretKeyListings, removing

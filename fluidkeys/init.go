@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"os"
 
+	"path/filepath"
+
 	"github.com/fluidkeys/fluidkeys/config"
 	"github.com/fluidkeys/fluidkeys/database"
 	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 	"github.com/fluidkeys/fluidkeys/keyring"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/mitchellh/go-homedir"
-	"path/filepath"
 )
 
 func init() {
