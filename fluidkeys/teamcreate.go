@@ -26,38 +26,10 @@ func teamCreate(teamName string) exitCode {
 
 	email := promptForEmail("What’s your " + teamName + " email address?\n")
 
-	availableKeys, err := keysAvailableToGetFromGpg()
+	armoredPublicKey, err := importOrCreateKeyForEmail(email, teamName)
 	if err != nil {
-		output := fmt.Sprintf("Couldn't retrieve keys from GPG: %v\n", err)
-		out.Print(output)
-		os.Exit(1)
-	}
-
-	var fingerprint fingerprint.Fingerprint
-	existingKey := secretKeyListingsForEmail(availableKeys, email)
-	if existingKey != nil {
-		out.Print("You should use a separate key for each team.\n\n")
-		out.Print(printSecretKeyListing(1, *existingKey))
-		prompter := interactiveYesNoPrompter{}
-		if prompter.promptYesNo("Use this key for "+teamName+"?", "y", nil) {
-			importGPGKey(existingKey.Fingerprint)
-			fingerprint = existingKey.Fingerprint
-		} else {
-			fingerprint = createKeyForEmail(email)
-		}
-	} else {
-		fingerprint = createKeyForEmail(email)
-	}
-
-	key, err := loadPgpKey(fingerprint)
-	if err != nil {
-		out.Print(fmt.Sprintf("Failed to load key from gpg: %v\n\n", err))
+		out.Print(err.Error() + "\n")
 		return 1
-	}
-
-	armoredPublicKey, err := key.Armor()
-	if err != nil {
-		panic(fmt.Sprint("Failed to output public key: ", err))
 	}
 
 	teamPost := teamPostData{
@@ -149,4 +121,35 @@ func outputError(teamName string, err string) exitCode {
 	printFailed("Couldn't create the " + teamName + " team!\n")
 	out.Print("Received an error: " + err + "\n")
 	return 1
+}
+
+func importOrCreateKeyForEmail(email string, teamName string) (armoredPublicKey string, err error) {
+	availableKeys, err := keysAvailableToGetFromGpg()
+	if err != nil {
+		return "", fmt.Errorf("Couldn't retrieve keys from GPG: %v\n", err)
+	}
+
+	var fingerprint fingerprint.Fingerprint
+	existingKey := secretKeyListingsForEmail(availableKeys, email)
+	if existingKey != nil {
+		out.Print("You should use a separate key for each team.\n\n")
+		out.Print(printSecretKeyListing(1, *existingKey))
+		prompter := interactiveYesNoPrompter{}
+		if prompter.promptYesNo("Use this key for "+teamName+"?", "y", nil) {
+			importGPGKey(existingKey.Fingerprint)
+			fingerprint = existingKey.Fingerprint
+		} else {
+			fingerprint = createKeyForEmail(email)
+		}
+	} else {
+		fingerprint = createKeyForEmail(email)
+	}
+
+	key, err := loadPgpKey(fingerprint)
+	if err != nil {
+		return "", fmt.Errorf("Failed to load key from gpg: %v\n\n", err)
+	}
+
+	armoredPublicKey, err = key.Armor()
+	return
 }
