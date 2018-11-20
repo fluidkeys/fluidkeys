@@ -47,6 +47,7 @@ func teamCreate(teamName string) exitCode {
 		getTeamServerURL("/teams"),
 		bytes.NewBuffer(teamJSON),
 	)
+	request.Header.Set("User-Agent", "fk-client")
 	request.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
