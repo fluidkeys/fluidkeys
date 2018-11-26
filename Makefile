@@ -18,6 +18,7 @@ MAIN_GO_FILES=fluidkeys/main.go \
 	     fluidkeys/keyfromgpg.go \
 	     fluidkeys/teamcreate.go \
 	     fluidkeys/teamjoin.go \
+	     fluidkeys/teamshow.go \
 
 # `make compile` should populate build/ with all files that will
 # ultimately be installed to PREFIX (/usr/local), for example

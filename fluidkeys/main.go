@@ -47,6 +47,7 @@ Usage:
 	fk key maintain automatic [--cron-output]
 	fk team create <name>
 	fk team join <code>
+	fk team show <code>
 
 Options:
 	-h --help         Show this screen
@@ -143,7 +144,7 @@ func keySubcommand(args docopt.Opts) exitCode {
 
 func teamSubcommand(args docopt.Opts) exitCode {
 	switch getSubcommand(args, []string{
-		"create", "join",
+		"create", "join", "show",
 	}) {
 	case "create":
 		teamName := args["<name>"].(string)
@@ -151,6 +152,9 @@ func teamSubcommand(args docopt.Opts) exitCode {
 	case "join":
 		teamUuid := args["<code>"].(string)
 		os.Exit(teamJoin(teamUuid))
+	case "show":
+		teamUuid := args["<code>"].(string)
+		os.Exit(teamShow(teamUuid))
 	}
 	panic(fmt.Errorf("teamSubCommand got unexpected arguments: %v", args))
 }
