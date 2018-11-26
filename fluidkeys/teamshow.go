@@ -85,7 +85,8 @@ func teamShow(teamUUID string) exitCode {
 	out.Print("\n")
 
 	out.Print("To approve these requests run:\n")
-	out.Print("    " + colour.CommandLineCode("fk team approve "+strings.Join(requestEmails, " ")) + "\n\n")
+	cmd := "fk team approve " + teamUUID + " " + strings.Join(requestEmails, " ")
+	out.Print("    " + colour.CommandLineCode(cmd) + "\n\n")
 
 	return 0
 }
