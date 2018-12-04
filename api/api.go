@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -38,7 +39,7 @@ func NewClient() *Client {
 // GetPublicKey attempts to get a single armorded public key.
 func (c *Client) GetPublicKey(email string) (string, *http.Response, error) {
 	url := fmt.Sprintf("email/%s/key", url.QueryEscape(email))
-	request, err := c.newRequest("GET", url)
+	request, err := c.newRequest("GET", url, nil)
 	if err != nil {
 		return "", nil, err
 	}
@@ -53,7 +54,9 @@ func (c *Client) GetPublicKey(email string) (string, *http.Response, error) {
 // newRequest creates an API request. A relative URL can be provided in urlStr,
 // in which case it is resolved relative to the BaseURL of the Client.
 // Relative URLs should always be specified without a preceding slash.
-func (c *Client) newRequest(method, urlStr string) (*http.Request, error) {
+// If specified, the value pointed to by body is JSON encoded and included as
+// the request body.
+func (c *Client) newRequest(method, urlStr string, body interface{}) (*http.Request, error) {
 	if !strings.HasSuffix(c.BaseURL.Path, "/") {
 		return nil, fmt.Errorf("BaseURL must have a trailing slash, but %q does not", c.BaseURL)
 	}
@@ -63,12 +66,24 @@ func (c *Client) newRequest(method, urlStr string) (*http.Request, error) {
 	}
 
 	var buf io.ReadWriter
+	if body != nil {
+		buf = new(bytes.Buffer)
+		enc := json.NewEncoder(buf)
+		enc.SetEscapeHTML(false)
+		err := enc.Encode(body)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	request, err := http.NewRequest(method, url.String(), buf)
 	if err != nil {
 		return nil, err
 	}
 
+	if body != nil {
+		request.Header.Set("Content-Type", "application/json")
+	}
 	if c.UserAgent != "" {
 		request.Header.Set("User-Agent", c.UserAgent)
 	}
