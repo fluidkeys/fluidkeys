@@ -2,9 +2,12 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 	"os"
 
+	"github.com/fluidkeys/crypto/openpgp"
+	"github.com/fluidkeys/crypto/openpgp/armor"
 	"github.com/fluidkeys/fluidkeys/api"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
@@ -32,7 +35,14 @@ func secretSend(recipientEmail string) exitCode {
 		return 1
 	}
 
-	//TODO: Encrypt the secret and POST back to API
+	encryptedSecret, err := encryptSecret(secret, pgpKey)
+	if err != nil {
+		out.Print(err.Error())
+		return 1
+	}
+
+	// TODO: POST the secret back to the API
+	out.Print(encryptedSecret + "\n")
 	return 0
 }
 
@@ -49,4 +59,32 @@ func scanUntilEOF() (message string, err error) {
 	}
 
 	return string(output), nil
+}
+
+func encryptSecret(secret string, pgpKey *pgpkey.PgpKey) (string, error) {
+	buffer := bytes.NewBuffer(nil)
+	message, err := armor.Encode(buffer, "PGP MESSAGE", nil)
+	if err != nil {
+		return "", err
+	}
+
+	pgpWriteCloser, err := openpgp.Encrypt(
+		message,
+		[]*openpgp.Entity{&pgpKey.Entity},
+		nil,
+		nil,
+		nil,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = pgpWriteCloser.Write([]byte(secret))
+	if err != nil {
+		return "", err
+	}
+
+	pgpWriteCloser.Close()
+	message.Close()
+	return buffer.String(), nil
 }
