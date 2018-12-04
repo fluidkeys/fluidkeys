@@ -18,6 +18,14 @@
   revision = "ee0de3bc6815ee19d4a46c7eb90f829db0e014b1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:d41a8d7ef29966b06b214f2cda28dab2fde1a45a0bd570ed850a2036f6979542"
+  name = "github.com/fluidkeys/api"
+  packages = ["v1structs"]
+  pruneopts = "UT"
+  revision = "16f9fb7803e745d8f0d2cab472947b8489cd4d0f"
+
+[[projects]]
   digest = "1:794b0374eaa547e9c375736a05da2a740e695c8816e42d30984228e0c1a5436b"
   name = "github.com/fluidkeys/crypto"
   packages = [
@@ -114,6 +122,7 @@
   input-imports = [
     "github.com/BurntSushi/toml",
     "github.com/docopt/docopt-go",
+    "github.com/fluidkeys/api/v1structs",
     "github.com/fluidkeys/crypto/openpgp",
     "github.com/fluidkeys/crypto/openpgp/armor",
     "github.com/fluidkeys/crypto/openpgp/errors",
