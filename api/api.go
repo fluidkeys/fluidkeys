@@ -51,6 +51,26 @@ func (c *Client) GetPublicKey(email string) (string, *http.Response, error) {
 	return decodedJSON.ArmoredPublicKey, response, nil
 }
 
+// CreateSecret creates a secret for the given recipient
+func (c *Client) CreateSecret(recipientFingerprint string, armoredEncryptedSecret string) (*http.Response, error) {
+	sendSecretRequest := v1structs.SendSecretRequest{
+		RecipientFingerprint:   recipientFingerprint,
+		ArmoredEncryptedSecret: armoredEncryptedSecret,
+	}
+	url := fmt.Sprintf("secrets")
+	request, err := c.newRequest("POST", url, sendSecretRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := c.do(request, nil)
+	if err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
 // newRequest creates an API request. A relative URL can be provided in urlStr,
 // in which case it is resolved relative to the BaseURL of the Client.
 // Relative URLs should always be specified without a preceding slash.

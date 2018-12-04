@@ -46,8 +46,16 @@ func secretSend(recipientEmail string) exitCode {
 		return 1
 	}
 
-	// TODO: POST the secret back to the API
-	out.Print(encryptedSecret + "\n")
+	response, err := client.CreateSecret(fmt.Sprintf("OPENPGP4FPR:%s", pgpKey.Fingerprint().Hex()), encryptedSecret)
+	if response.StatusCode != 201 || err != nil {
+		printFailed("Couldn't send the secret to " + recipientEmail)
+		if err != nil {
+			out.Print("Error: " + err.Error() + "\n")
+		}
+		return 1
+	}
+
+	printSuccess("Successfuly sent secret to " + recipientEmail + "\n")
 	return 0
 }
 
