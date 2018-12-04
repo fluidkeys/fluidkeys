@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 
@@ -26,18 +27,22 @@ func secretSend(recipientEmail string) exitCode {
 	client := api.NewClient()
 	armoredPublicKey, _, err := client.GetPublicKey(recipientEmail)
 	if err != nil {
-		out.Print("Error encountered trying to get public key for " + recipientEmail)
+		printFailed("Couldn't get the public key for " + recipientEmail + "\n")
 	}
+
+	printSuccess("Found public key for " + recipientEmail + "\n")
 
 	pgpKey, err := pgpkey.LoadFromArmoredPublicKey(armoredPublicKey)
 	if err != nil {
-		out.Print(err.Error())
+		printFailed("Couldn't load the public key:")
+		out.Print("Error: " + err.Error() + "\n")
 		return 1
 	}
 
 	encryptedSecret, err := encryptSecret(secret, pgpKey)
 	if err != nil {
-		out.Print(err.Error())
+		printFailed("Couldn't encrypt the secret:")
+		out.Print("Error: " + err.Error() + "\n")
 		return 1
 	}
 
