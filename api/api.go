@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/fluidkeys/api/v1structs"
 )
 
 const (
@@ -33,11 +35,6 @@ func NewClient() *Client {
 	}
 }
 
-// PublicKey represents the JSON structure expected from the server
-type getPublicKeyJSONResponse struct {
-	ArmoredPublicKey string `json:"armoredPublicKey,omitempty"`
-}
-
 // GetPublicKey attempts to get a single armorded public key.
 func (c *Client) GetPublicKey(email string) (string, *http.Response, error) {
 	url := fmt.Sprintf("email/%s/key", url.QueryEscape(email))
@@ -45,7 +42,7 @@ func (c *Client) GetPublicKey(email string) (string, *http.Response, error) {
 	if err != nil {
 		return "", nil, err
 	}
-	decodedJSON := new(getPublicKeyJSONResponse)
+	decodedJSON := new(v1structs.GetPublicKeyResponse)
 	response, err := c.do(request, &decodedJSON)
 	if err != nil {
 		return "", response, err
