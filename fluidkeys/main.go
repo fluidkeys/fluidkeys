@@ -214,7 +214,7 @@ func secretSubcommand(args docopt.Opts) exitCode {
 		if err != nil {
 			panic(err)
 		}
-		return 0
+		os.Exit(secretSend(emailAddress))
 	}
 	panic(fmt.Errorf("secretSubcommand got unexpected arguments: %v", args))
 }
