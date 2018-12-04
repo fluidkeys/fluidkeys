@@ -1,11 +1,17 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"testing"
+
+	"github.com/fluidkeys/fluidkeys/assert"
+
+	"github.com/fluidkeys/api/v1structs"
 )
 
 // String is a helper routine that allocates a new string value
@@ -32,6 +38,37 @@ func TestGetPublicKey(t *testing.T) {
 	want := "---- BEGIN PGP PUBLIC KEY..."
 	if armoredPublicKey != want {
 		t.Errorf("GetPublicKey(\"jane@example.com\") returned %+v, want %+v", armoredPublicKey, want)
+	}
+}
+
+func TestCreateSecret(t *testing.T) {
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	input := &v1structs.SendSecretRequest{
+		RecipientFingerprint:   "OPENPGP4FPR:....",
+		ArmoredEncryptedSecret: "---- BEGIN PGP MESSAGE...",
+	}
+
+	mux.HandleFunc("/secrets", func(w http.ResponseWriter, r *http.Request) {
+		v := new(v1structs.SendSecretRequest)
+		json.NewDecoder(r.Body).Decode(v)
+		testMethod(t, r, "POST")
+		if !reflect.DeepEqual(v, input) {
+			t.Errorf("Request body = %+v, want %+v", v, input)
+		}
+
+		w.WriteHeader(201)
+	})
+
+	response, err := client.CreateSecret(
+		"OPENPGP4FPR:....",
+		"---- BEGIN PGP MESSAGE...",
+	)
+	assert.ErrorIsNil(t, err)
+
+	if response.StatusCode != 201 {
+		t.Fatalf("Expected status code 201, got %d\n", response.StatusCode)
 	}
 }
 
