@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/fluidkeys/fluidkeys/fingerprint"
+
 	"github.com/fluidkeys/api/v1structs"
 )
 
@@ -51,9 +53,9 @@ func (c *Client) GetPublicKey(email string) (string, *http.Response, error) {
 }
 
 // CreateSecret creates a secret for the given recipient
-func (c *Client) CreateSecret(recipientFingerprint string, armoredEncryptedSecret string) (*http.Response, error) {
+func (c *Client) CreateSecret(recipientFingerprint fingerprint.Fingerprint, armoredEncryptedSecret string) (*http.Response, error) {
 	sendSecretRequest := v1structs.SendSecretRequest{
-		RecipientFingerprint:   recipientFingerprint,
+		RecipientFingerprint:   fmt.Sprintf("OPENPGP4FPR:%s", recipientFingerprint.Hex()),
 		ArmoredEncryptedSecret: armoredEncryptedSecret,
 	}
 	url := fmt.Sprintf("secrets")

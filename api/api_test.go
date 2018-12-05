@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/fluidkeys/fluidkeys/assert"
+	"github.com/fluidkeys/fluidkeys/fingerprint"
 
 	"github.com/fluidkeys/api/v1structs"
 )
@@ -46,7 +47,7 @@ func TestCreateSecret(t *testing.T) {
 	defer teardown()
 
 	input := &v1structs.SendSecretRequest{
-		RecipientFingerprint:   "OPENPGP4FPR:....",
+		RecipientFingerprint:   "OPENPGP4FPR:ABABABABABABABABABABABABABABABABABABABAB",
 		ArmoredEncryptedSecret: "---- BEGIN PGP MESSAGE...",
 	}
 
@@ -61,8 +62,13 @@ func TestCreateSecret(t *testing.T) {
 		w.WriteHeader(201)
 	})
 
+	fingerprint, err := fingerprint.Parse("ABAB ABAB ABAB ABAB ABAB  ABAB ABAB ABAB ABAB ABAB")
+	if err != nil {
+		t.Fatalf("Couldn't parse fingerprint: %s\n", err)
+	}
+
 	response, err := client.CreateSecret(
-		"OPENPGP4FPR:....",
+		fingerprint,
 		"---- BEGIN PGP MESSAGE...",
 	)
 	assert.ErrorIsNil(t, err)
