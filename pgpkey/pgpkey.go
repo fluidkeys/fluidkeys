@@ -65,8 +65,8 @@ func LoadFromArmoredPublicKey(armoredPublicKey string) (*PgpKey, error) {
 //
 // If the password is wrong (at least, if .PrivateKey.Decrypt(password) returns
 // an error), this function returns an error of type `IncorrectPassword`.
-func LoadFromArmoredEncryptedPrivateKey(armoredPublicKey string, password string) (*PgpKey, error) {
-	entityList, err := openpgp.ReadArmoredKeyRing(strings.NewReader(armoredPublicKey))
+func LoadFromArmoredEncryptedPrivateKey(armoredPrivateKey string, password string) (*PgpKey, error) {
+	entityList, err := openpgp.ReadArmoredKeyRing(strings.NewReader(armoredPrivateKey))
 	if err != nil {
 		return nil, fmt.Errorf("error reading armored key ring: %v", err)
 	}
