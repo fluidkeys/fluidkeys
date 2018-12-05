@@ -2,23 +2,23 @@
 
 
 [[projects]]
-  digest = "1:e4b30804a381d7603b8a344009987c1ba351c26043501b23b8c7ce21f0b67474"
+  digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
   name = "github.com/BurntSushi/toml"
   packages = ["."]
-  pruneopts = ""
+  pruneopts = "UT"
   revision = "3012a1dbe2e4bd1391d42b32f0577cb7bbc7f005"
   version = "v0.3.1"
 
 [[projects]]
   branch = "master"
-  digest = "1:20da7140359cab99772431cbeb195bd8cbe76312fcf6509fd8125cf91ab2847b"
+  digest = "1:289fa52f4d9e9c817a003324bc14e9339b996dbe02b9f6cfc57a9383e5365287"
   name = "github.com/docopt/docopt-go"
   packages = ["."]
-  pruneopts = ""
+  pruneopts = "UT"
   revision = "ee0de3bc6815ee19d4a46c7eb90f829db0e014b1"
 
 [[projects]]
-  digest = "1:26e46fdf6cb8b18f2c81f9451823e5d3c0e6483ef5ccf894600ab8f72610a3fe"
+  digest = "1:794b0374eaa547e9c375736a05da2a740e695c8816e42d30984228e0c1a5436b"
   name = "github.com/fluidkeys/crypto"
   packages = [
     "cast5",
@@ -29,23 +29,23 @@
     "openpgp/packet",
     "openpgp/s2k",
   ]
-  pruneopts = ""
+  pruneopts = "UT"
   revision = "2018-09-13"
 
 [[projects]]
   branch = "master"
-  digest = "1:c52324afeeb8f3deaabdc2a9c0228e3276dc4536de344c155a3d7e3db9eee2a7"
+  digest = "1:e9e00953cfa97aa390070fcc21be4aa22952bbca26e97af7b79626b8eaa9694d"
   name = "github.com/fluidkeys/keyring"
   packages = ["."]
-  pruneopts = ""
+  pruneopts = "UT"
   revision = "98cd9f4bb949ed8eff838d2a2b2e0feb9ba3213d"
 
 [[projects]]
   branch = "master"
-  digest = "1:dd8c10140003b6410fe4256aceced92034b7677710d7ea605f5beb84bb70d4e5"
+  digest = "1:49eae5374d2bb801742f4472b1454cbb4f864fc434398dbc055decdbcf506e5b"
   name = "github.com/godbus/dbus"
   packages = ["."]
-  pruneopts = ""
+  pruneopts = "UT"
   revision = "9adc973a4075ded5b9ab726210f5e63b62fd3475"
   source = "github.com/fluidkeys/fork-dbus"
 
@@ -54,23 +54,23 @@
   digest = "1:36f5bd9b89fcd728488eee3a0cf8787448579ac381fded60edd6e3ac01fe1a38"
   name = "github.com/gsterjov/go-libsecret"
   packages = ["."]
-  pruneopts = ""
+  pruneopts = "UT"
   revision = "a6f4afe4910cad8688db3e0e9b9ac92ad22d54e1"
 
 [[projects]]
   branch = "master"
-  digest = "1:0f38f10cf33188908afc6541797c271b110a5d65385951b2c741380bdab56439"
+  digest = "1:00e5d2ab594acd9a96265e8e6a46bbf07f0cfcbe20f0e8e415eb80536b1b7ccf"
   name = "github.com/keybase/go-keychain"
   packages = ["."]
-  pruneopts = ""
+  pruneopts = "UT"
   revision = "f1daa725cce4049b1715f1e97d6a51880e401e70"
 
 [[projects]]
   branch = "master"
-  digest = "1:83854f6b1d2ce047b69657e3a87ba7602f4c5505e8bdfd02ab857db8e983bde1"
+  digest = "1:c7354463195544b1ab3c1f1fadb41430947f5d28dfbf2cdbd38268c5717a5a03"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
-  pruneopts = ""
+  pruneopts = "UT"
   revision = "58046073cbffe2f25d425fe1331102f55cf719de"
 
 [[projects]]
@@ -78,34 +78,34 @@
   digest = "1:b7828e0269971efd2ab9789d3a4c73d0504fcc8ede95ee2fa2bda3e5f873ffad"
   name = "github.com/natefinch/atomic"
   packages = ["."]
-  pruneopts = ""
+  pruneopts = "UT"
   revision = "a62ce929ffcc871a51e98c6eba7b20321e3ed62d"
 
 [[projects]]
   branch = "master"
-  digest = "1:cbf98c3b2c6382b31a34b356e02ade0c8a42d7cd93109c65d2d192152a71d59c"
+  digest = "1:3836b3ce84fe409ccecb4885d5d7b0f2ab7fdb898f68e725f0c24d2f9fc6c88d"
   name = "github.com/sethvargo/go-diceware"
   packages = ["diceware"]
-  pruneopts = ""
+  pruneopts = "UT"
   revision = "2cc4e45af027798e625c3256fc10925eb3f1e5c0"
 
 [[projects]]
   branch = "master"
-  digest = "1:d263c39e9144265037f7473751f48b4193df3efe4763cc72e925c13d5bdbe551"
+  digest = "1:3f3a05ae0b95893d90b9b3b5afdb79a9b3d96e4e36e099d841ae602e4aca0da8"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  pruneopts = ""
+  pruneopts = "UT"
   revision = "7c1a557ab941a71c619514f229f0b27ccb0c27cf"
 
 [[projects]]
   branch = "master"
-  digest = "1:a4bda6e065eb3ccf1e6adeaa863cb416e0ae6b43e613f20a8931d52d19dc20e2"
+  digest = "1:850d28ab022512e2cd3cf511a77f363c29e22689b4031f2050871f5de47ae4a0"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
-  pruneopts = ""
+  pruneopts = "UT"
   revision = "4497e2df6f9e69048a54498c7affbbec3294ad47"
 
 [solve-meta]
