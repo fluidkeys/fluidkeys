@@ -70,11 +70,33 @@ func (c *Client) CreateSecret(recipientFingerprint fingerprint.Fingerprint, armo
 	if err != nil {
 		return fmt.Errorf("Failed to call API: %s", err)
 	}
-
 	if response.StatusCode != http.StatusCreated {
 		return makeErrorForAPIResponse(response)
 	}
 	return nil
+}
+
+// ListSecrets for a particular fingerprint.
+func (c *Client) ListSecrets(fingerprint fingerprint.Fingerprint) ([]v1structs.Secret, error) {
+	request, err := c.newRequest("GET", "secrets", nil)
+	if err != nil {
+		return nil, err
+	}
+	var authorization = "tmpfingerprint: " + fmt.Sprintf("OPENPGP4FPR:%s", fingerprint.Hex())
+	request.Header.Add("authorization", authorization)
+	decodedJSON := new(v1structs.ListSecretsResponse)
+	response, err := c.do(request, &decodedJSON)
+	if err != nil {
+		return nil, err
+	}
+	switch response.StatusCode {
+	case http.StatusOK:
+		return decodedJSON.Secrets, nil
+	case http.StatusUnauthorized:
+		return nil, fmt.Errorf("Couldn't sign in to API")
+	default:
+		return nil, makeErrorForAPIResponse(response)
+	}
 }
 
 func makeErrorForAPIResponse(response *http.Response) error {

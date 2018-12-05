@@ -41,6 +41,7 @@ Configuration file: %s
 
 Usage:
 	fk secret send <recipient-email-address>
+	fk secret receive
 	fk key create
 	fk key from-gpg
 	fk key list
@@ -207,7 +208,7 @@ func promptForInput(prompt string) string {
 
 func secretSubcommand(args docopt.Opts) exitCode {
 	switch getSubcommand(args, []string{
-		"send",
+		"send", "receive",
 	}) {
 	case "send":
 		emailAddress, err := args.String("<recipient-email-address>")
@@ -215,6 +216,8 @@ func secretSubcommand(args docopt.Opts) exitCode {
 			panic(err)
 		}
 		os.Exit(secretSend(emailAddress))
+	case "receive":
+		os.Exit(secretReceive())
 	}
 	panic(fmt.Errorf("secretSubcommand got unexpected arguments: %v", args))
 }
