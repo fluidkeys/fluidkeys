@@ -76,8 +76,11 @@ func scanUntilEOF() (message string, err error) {
 
 	for {
 		input, _, err := reader.ReadRune()
-		if err != nil && err == io.EOF {
+		if err == io.EOF {
 			break
+		}
+		if err != io.EOF {
+			return "", err
 		}
 		output = append(output, input)
 	}
