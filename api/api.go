@@ -24,8 +24,7 @@ type Client struct {
 	UserAgent string       // User agent used when communicating with the  API.
 }
 
-// NewClient returns a new Fluidkeys Server API client. If a nil httpClient is
-// provided, http.DefaultClient will be used.
+// NewClient returns a new Fluidkeys Server API client.
 func NewClient() *Client {
 	baseURL, _ := url.Parse(defaultBaseURL)
 
