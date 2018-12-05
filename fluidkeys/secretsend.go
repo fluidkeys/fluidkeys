@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/fluidkeys/fluidkeys/colour"
+
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/armor"
 	"github.com/fluidkeys/fluidkeys/api"
@@ -56,6 +58,9 @@ func secretSend(recipientEmail string) exitCode {
 	}
 
 	printSuccess("Successfuly sent secret to " + recipientEmail + "\n")
+
+	out.Print("Tell them to get it by running\n")
+	out.Print("  " + colour.CommandLineCode("fk secret receive\n\n"))
 	return 0
 }
 
