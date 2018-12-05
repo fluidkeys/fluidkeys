@@ -30,6 +30,7 @@ func secretSend(recipientEmail string) exitCode {
 	armoredPublicKey, _, err := client.GetPublicKey(recipientEmail)
 	if err != nil {
 		printFailed("Couldn't get the public key for " + recipientEmail + "\n")
+		return 1
 	}
 
 	printSuccess("Found public key for " + recipientEmail + "\n")
