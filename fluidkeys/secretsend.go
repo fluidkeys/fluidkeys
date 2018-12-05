@@ -3,10 +3,13 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"fmt"
+	"encoding/json"
 	"io"
+	"log"
+	"net/http"
 	"os"
 
+	"github.com/fluidkeys/api/v1structs"
 	"github.com/fluidkeys/fluidkeys/colour"
 
 	"github.com/fluidkeys/crypto/openpgp"
@@ -53,7 +56,9 @@ func secretSend(recipientEmail string) exitCode {
 	if response.StatusCode != 201 || err != nil {
 		printFailed("Couldn't send the secret to " + recipientEmail)
 		if err != nil {
+			apiErrorResponseDetail := decodeErrorResponse(response)
 			out.Print("Error: " + err.Error() + "\n")
+			out.Print("Error: " + apiErrorResponseDetail + "\n")
 		}
 		return 1
 	}
@@ -106,4 +111,15 @@ func encryptSecret(secret string, pgpKey *pgpkey.PgpKey) (string, error) {
 	pgpWriteCloser.Close()
 	message.Close()
 	return buffer.String(), nil
+}
+
+func decodeErrorResponse(response *http.Response) string {
+
+	errorResponse := v1structs.ErrorResponse{}
+	if err := json.NewDecoder(os.Stdin).Decode(&errorResponse); err != nil {
+		log.Fatalf("Error decoding JSON: %s", err)
+		return "failed to decode detail from api"
+	}
+
+	return errorResponse.Detail
 }
