@@ -39,8 +39,8 @@ func NewClient() *Client {
 
 // GetPublicKey attempts to get a single armorded public key.
 func (c *Client) GetPublicKey(email string) (string, *http.Response, error) {
-	url := fmt.Sprintf("email/%s/key", url.QueryEscape(email))
-	request, err := c.newRequest("GET", url, nil)
+	path := fmt.Sprintf("email/%s/key", url.QueryEscape(email))
+	request, err := c.newRequest("GET", path, nil)
 	if err != nil {
 		return "", nil, err
 	}
@@ -58,8 +58,7 @@ func (c *Client) CreateSecret(recipientFingerprint fingerprint.Fingerprint, armo
 		RecipientFingerprint:   fmt.Sprintf("OPENPGP4FPR:%s", recipientFingerprint.Hex()),
 		ArmoredEncryptedSecret: armoredEncryptedSecret,
 	}
-	url := fmt.Sprintf("secrets")
-	request, err := c.newRequest("POST", url, sendSecretRequest)
+	request, err := c.newRequest("POST", "secrets", sendSecretRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -72,26 +71,24 @@ func (c *Client) CreateSecret(recipientFingerprint fingerprint.Fingerprint, armo
 	return response, nil
 }
 
-// newRequest creates an API request. A relative URL can be provided in urlStr,
-// in which case it is resolved relative to the BaseURL of the Client.
-// Relative URLs should always be specified without a preceding slash.
-// If specified, the value pointed to by body is JSON encoded and included as
-// the request body.
-func (c *Client) newRequest(method, urlStr string, body interface{}) (*http.Request, error) {
+// newRequest creates an API request. relativePath is resolved relative to the
+// BaseURL of the client.
+// If specified, the value pointed to by requestData is JSON encoded and
+// included as the request body.
+func (c *Client) newRequest(method, relativePath string, requestData interface{}) (*http.Request, error) {
 	if !strings.HasSuffix(c.BaseURL.Path, "/") {
 		return nil, fmt.Errorf("BaseURL must have a trailing slash, but %q does not", c.BaseURL)
 	}
-	url, err := c.BaseURL.Parse(urlStr)
+	url, err := c.BaseURL.Parse(relativePath)
 	if err != nil {
 		return nil, err
 	}
 
 	var buf io.ReadWriter
-	if body != nil {
+	if requestData != nil {
 		buf = new(bytes.Buffer)
 		enc := json.NewEncoder(buf)
-		enc.SetEscapeHTML(false)
-		err := enc.Encode(body)
+		err := enc.Encode(requestData)
 		if err != nil {
 			return nil, err
 		}
@@ -102,7 +99,7 @@ func (c *Client) newRequest(method, urlStr string, body interface{}) (*http.Requ
 		return nil, err
 	}
 
-	if body != nil {
+	if requestData != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}
 	if c.UserAgent != "" {
@@ -112,16 +109,16 @@ func (c *Client) newRequest(method, urlStr string, body interface{}) (*http.Requ
 }
 
 // do sends an API request and decodes the JSON response, storing it in the
-// value pointed to by v. If an API error occurs, it returns error.
-func (c *Client) do(req *http.Request, v interface{}) (*http.Response, error) {
+// value pointed to by responseData. If an API error occurs, it returns error.
+func (c *Client) do(req *http.Request, responseData interface{}) (*http.Response, error) {
 	response, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer response.Body.Close()
 
-	if v != nil {
-		err = json.NewDecoder(response.Body).Decode(v)
+	if responseData != nil {
+		err = json.NewDecoder(response.Body).Decode(responseData)
 	}
 
 	return response, err

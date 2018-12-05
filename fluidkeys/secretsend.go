@@ -48,7 +48,7 @@ func secretSend(recipientEmail string) exitCode {
 		return 1
 	}
 
-	response, err := client.CreateSecret(pgpKey.Fingerprint), encryptedSecret)
+	response, err := client.CreateSecret(pgpKey.Fingerprint(), encryptedSecret)
 	if response.StatusCode != 201 || err != nil {
 		printFailed("Couldn't send the secret to " + recipientEmail)
 		if err != nil {
