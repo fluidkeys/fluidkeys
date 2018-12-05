@@ -40,12 +40,12 @@ func main() {
 Configuration file: %s
 
 Usage:
+	fk secret send <recipient-email-address>
 	fk key create
 	fk key from-gpg
 	fk key list
 	fk key maintain [--dry-run]
 	fk key maintain automatic [--cron-output]
-	fk secret send <recipient-email-address>
 
 Options:
 	-h --help         Show this screen
