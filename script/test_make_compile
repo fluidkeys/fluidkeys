@@ -1,20 +1,14 @@
 #!/bin/sh -eu
 
+# Note: don't try and compile outside of $GOPATH. It only lead to misery.
+# This used to test that `make compile` could be run from anywhere, but it's
+# not worth the hassle.
+
 THIS_FILE=$0
 THIS_DIR=$(dirname $0)
 
-PREFIX_DIR=$(mktemp -d)
-
-copy_repo_to_random_directory() {
-    TEMP_REPO_DIR=$(mktemp -d)
-
-    cp -R "${THIS_DIR}/../"  "${TEMP_REPO_DIR}"
-}
-
-run_make_compile_without_goroot_or_gopath() {
-    cd "${TEMP_REPO_DIR}"
-    GOROOT="" GOPATH="" PREFIX=${PREFIX_DIR} make compile || exit 1
-    cd -
+test_make_compile_runs() {
+    make compile || exit 1
 }
 
 ensure_fk_binary_exists_in_build() {
@@ -27,7 +21,6 @@ print_success() {
     echo 'OK: `make compile` ran successfully'
 }
 
-copy_repo_to_random_directory
-run_make_compile_without_goroot_or_gopath
+test_make_compile_runs
 ensure_fk_binary_exists_in_build
 print_success
