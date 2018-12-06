@@ -3,10 +3,12 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/fluidkeys/fluidkeys/assert"
@@ -28,13 +30,9 @@ func TestGetPublicKey(t *testing.T) {
 		fmt.Fprint(w, `{"armoredPublicKey": "---- BEGIN PGP PUBLIC KEY..."}`)
 	})
 
-	armoredPublicKey, response, err := client.GetPublicKey("jane@example.com")
+	armoredPublicKey, err := client.GetPublicKey("jane@example.com")
 
-	fmt.Printf("armoredPublicKey: %s\n", armoredPublicKey)
-
-	if err != nil {
-		t.Errorf("GetPublicKey returned error: %v\nresponse: %v", err, response)
-	}
+	assert.ErrorIsNil(t, err)
 
 	want := "---- BEGIN PGP PUBLIC KEY..."
 	if armoredPublicKey != want {
@@ -67,15 +65,39 @@ func TestCreateSecret(t *testing.T) {
 		t.Fatalf("Couldn't parse fingerprint: %s\n", err)
 	}
 
-	response, err := client.CreateSecret(
+	err = client.CreateSecret(
 		fingerprint,
 		"---- BEGIN PGP MESSAGE...",
 	)
 	assert.ErrorIsNil(t, err)
+}
 
-	if response.StatusCode != 201 {
-		t.Fatalf("Expected status code 201, got %d\n", response.StatusCode)
-	}
+func TestDecodeErrorResponse(t *testing.T) {
+	t.Run("a response body of nil", func(t *testing.T) {
+		httpResponse := http.Response{Body: nil}
+		assert.Equal(t, "", decodeErrorResponse(&httpResponse))
+	})
+	t.Run("a response body of invalid JSON", func(t *testing.T) {
+		bodyString := "foo"
+		httpResponse := http.Response{
+			Body: ioutil.NopCloser(strings.NewReader(bodyString)),
+		}
+		assert.Equal(t, "", decodeErrorResponse(&httpResponse))
+	})
+	t.Run("Valid JSON but missing 'detail'", func(t *testing.T) {
+		bodyString := `{"foo":"bar"}`
+		httpResponse := http.Response{
+			Body: ioutil.NopCloser(strings.NewReader(bodyString)),
+		}
+		assert.Equal(t, "", decodeErrorResponse(&httpResponse))
+	})
+	t.Run("Valid JSON but missing 'detail'", func(t *testing.T) {
+		bodyString := `{"detail":"missing record"}`
+		httpResponse := http.Response{
+			Body: ioutil.NopCloser(strings.NewReader(bodyString)),
+		}
+		assert.Equal(t, "missing record", decodeErrorResponse(&httpResponse))
+	})
 }
 
 // setup sets up a test HTTP server along with a fluidkeysServer.Client that is

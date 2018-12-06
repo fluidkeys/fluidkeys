@@ -38,37 +38,62 @@ func NewClient() *Client {
 }
 
 // GetPublicKey attempts to get a single armorded public key.
-func (c *Client) GetPublicKey(email string) (string, *http.Response, error) {
+func (c *Client) GetPublicKey(email string) (string, error) {
 	path := fmt.Sprintf("email/%s/key", url.QueryEscape(email))
 	request, err := c.newRequest("GET", path, nil)
 	if err != nil {
-		return "", nil, err
+		return "", err
 	}
 	decodedJSON := new(v1structs.GetPublicKeyResponse)
 	response, err := c.do(request, &decodedJSON)
 	if err != nil {
-		return "", response, err
+		return "", err
 	}
-	return decodedJSON.ArmoredPublicKey, response, nil
+	if response.StatusCode != http.StatusOK {
+		return "", makeErrorForAPIResponse(response)
+	}
+	return decodedJSON.ArmoredPublicKey, nil
 }
 
 // CreateSecret creates a secret for the given recipient
-func (c *Client) CreateSecret(recipientFingerprint fingerprint.Fingerprint, armoredEncryptedSecret string) (*http.Response, error) {
+func (c *Client) CreateSecret(recipientFingerprint fingerprint.Fingerprint, armoredEncryptedSecret string) error {
 	sendSecretRequest := v1structs.SendSecretRequest{
 		RecipientFingerprint:   recipientFingerprint.Uri(),
 		ArmoredEncryptedSecret: armoredEncryptedSecret,
 	}
 	request, err := c.newRequest("POST", "secrets", sendSecretRequest)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	response, err := c.do(request, nil)
 	if err != nil {
-		return response, err
+		return fmt.Errorf("Failed to call API: %s", err)
 	}
 
-	return response, nil
+	if response.StatusCode != http.StatusCreated {
+		return makeErrorForAPIResponse(response)
+	}
+	return nil
+}
+
+func makeErrorForAPIResponse(response *http.Response) error {
+	apiErrorResponseDetail := decodeErrorResponse(response)
+	if apiErrorResponseDetail != "" {
+		return fmt.Errorf("Got API error: %d %s", response.StatusCode, apiErrorResponseDetail)
+	}
+	return fmt.Errorf("Got API error: %d", response.StatusCode)
+}
+
+func decodeErrorResponse(response *http.Response) string {
+	if response.Body == nil {
+		return ""
+	}
+	errorResponse := v1structs.ErrorResponse{}
+	if err := json.NewDecoder(response.Body).Decode(&errorResponse); err != nil {
+		return ""
+	}
+	return errorResponse.Detail
 }
 
 // newRequest creates an API request. relativePath is resolved relative to the
