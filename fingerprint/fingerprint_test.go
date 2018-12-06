@@ -114,6 +114,16 @@ func TestFingerprint(t *testing.T) {
 		}
 	})
 
+	t.Run("Uri method", func(t *testing.T) {
+		fp := MustParse("0999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517")
+		expected := "OPENPGP4FPR:0999B7498D1A8DC473E53C92309F635DAD1B5517"
+		got := fp.Uri()
+
+		if expected != got {
+			t.Errorf("expected Uri='%s', got='%s'", expected, got)
+		}
+	})
+
 	t.Run("IsSet method (when set)", func(t *testing.T) {
 		fp := MustParse("A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517")
 		expected := true
