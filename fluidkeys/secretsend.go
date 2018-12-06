@@ -63,7 +63,7 @@ func secretSend(recipientEmail string) exitCode {
 		return 1
 	}
 
-	printSuccess("Successfuly sent secret to " + recipientEmail + "\n")
+	printSuccess("Successfully sent secret to " + recipientEmail + "\n")
 
 	out.Print("Tell them to get it by running\n")
 	out.Print("  " + colour.CommandLineCode("fk secret receive\n\n"))
