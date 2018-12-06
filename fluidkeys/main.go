@@ -40,6 +40,7 @@ func main() {
 Configuration file: %s
 
 Usage:
+	fk secret send <recipient-email-address>
 	fk key create
 	fk key from-gpg
 	fk key list
@@ -59,11 +60,13 @@ Options:
 
 	ensureCrontabStateMatchesConfig()
 
-	switch getSubcommand(args, []string{"key"}) {
+	switch getSubcommand(args, []string{"key", "secret"}) {
 	case "init":
 		os.Exit(initSubcommand(args))
 	case "key":
 		os.Exit(keySubcommand(args))
+	case "secret":
+		os.Exit(secretSubcommand(args))
 	}
 }
 
@@ -200,4 +203,18 @@ func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
 
 func promptForInput(prompt string) string {
 	return promptForInputWithPipes(prompt, bufio.NewReader(os.Stdin))
+}
+
+func secretSubcommand(args docopt.Opts) exitCode {
+	switch getSubcommand(args, []string{
+		"send",
+	}) {
+	case "send":
+		emailAddress, err := args.String("<recipient-email-address>")
+		if err != nil {
+			panic(err)
+		}
+		os.Exit(secretSend(emailAddress))
+	}
+	panic(fmt.Errorf("secretSubcommand got unexpected arguments: %v", args))
 }
