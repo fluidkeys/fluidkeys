@@ -98,6 +98,15 @@ func (f Fingerprint) Hex() string {
 	return fmt.Sprintf("%0X", b)
 }
 
+// Uri returns the uppercase hex fingerprint prepended with `OPENPGP4FPR:`,
+// as implemented by OpenKeychain:
+// https://github.com/open-keychain/open-keychain/issues/1281#issuecomment-103580789
+// for example:
+// `OPENPGP4FPR:AB01AB01AB01AB01AB01AB01AB01AB01AB01AB01`
+func (f Fingerprint) Uri() string {
+	return fmt.Sprintf("OPENPGP4FPR:%s", f.Hex())
+}
+
 func (f Fingerprint) Bytes() [20]byte {
 	f.assertIsSet()
 	return f.fingerprintBytes
