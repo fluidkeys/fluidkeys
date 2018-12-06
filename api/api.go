@@ -55,7 +55,7 @@ func (c *Client) GetPublicKey(email string) (string, *http.Response, error) {
 // CreateSecret creates a secret for the given recipient
 func (c *Client) CreateSecret(recipientFingerprint fingerprint.Fingerprint, armoredEncryptedSecret string) (*http.Response, error) {
 	sendSecretRequest := v1structs.SendSecretRequest{
-		RecipientFingerprint:   fmt.Sprintf("OPENPGP4FPR:%s", recipientFingerprint.Hex()),
+		RecipientFingerprint:   recipientFingerprint.Uri(),
 		ArmoredEncryptedSecret: armoredEncryptedSecret,
 	}
 	request, err := c.newRequest("POST", "secrets", sendSecretRequest)
