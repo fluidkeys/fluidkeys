@@ -19,20 +19,22 @@ You'll need the [Go compiler](https://golang.org/dl/)
 Clone the repo:
 
 ```
-git clone https://github.com/fluidkeys/fluidkeys.git $HOME/go/src/github.com/fluidkeys/fluidkeys
-cd $HOME/go/src/github.com/fluidkeys/fluidkeys
+REPODIR=$(go env GOPATH)/src/github.com/fluidkeys/fluidkeys
+
+git clone https://github.com/fluidkeys/fluidkeys.git $REPODIR
+cd $REPODIR
 ```
 
 Build and install to `/usr/local/bin/fk`:
 
 ```
-sudo make install
+make && sudo make install
 ```
 
-If you prefer to run without `sudo` (root), install into `$HOME/fluidkeys/bin/fk`:
+If you prefer to run without `sudo` (root), install into `$HOME/bin/fk`:
 
 ```
-PREFIX=$HOME/fluidkeys make install
+PREFIX=$HOME make install
 ```
 
 ## Develop
