@@ -36,50 +36,52 @@ func secretReceive() exitCode {
 			printFailed("Couldn't get email for key " + key.Fingerprint().String() + "\n")
 			continue
 		}
-
-		if encryptedSecrets, err := client.ListSecrets(key.Fingerprint()); err != nil {
+		encryptedSecrets, err := client.ListSecrets(key.Fingerprint())
+		if err != nil {
 			out.Print("📪 " + displayName(&key) + ": " + colour.Failure(err.Error()) + "\n")
+			continue
+		}
+
+		if len(encryptedSecrets) == 0 {
+			out.Print("📭 " + displayName(&key) + ": No secrets found\n")
+			continue
+		}
+		var passwordPrompter promptForPasswordInterface
+		passwordPrompter = &interactivePasswordPrompter{}
+		if privateKey, _, err := getDecryptedPrivateKeyAndPassword(&key, passwordPrompter); err != nil {
+			err := fmt.Sprintf("Error getting private key and password: %s", err)
+			out.Print("📪 " + displayName(&key) + ": " + colour.Failure(err) + "\n")
+			continue
 		} else {
-			if encryptedSecrets == nil {
-				out.Print("📭 " + displayName(&key) + ": No secrets found\n")
-				continue
-			}
-			a := LoadPrivateKeyFromGnupg{}
-			if privateKey, _, err := getDecryptedPrivateKeyAndPassword(&key, a.passwordGetter); err != nil {
-				err := fmt.Sprintf("Error getting private key and password: %s", err)
-				out.Print("📪 " + displayName(&key) + ": " + colour.Failure(err) + "\n")
-				continue
+			key = *privateKey
+		}
+
+		out.Print("📬 " + displayName(&key) + ":\n")
+
+		errors := []error{}
+		for i, encryptedSecret := range encryptedSecrets {
+			decryptedContent, err := decrypt(encryptedSecret.EncryptedContent, &key)
+			if err != nil {
+				errors = append(errors, err)
 			} else {
-				key = *privateKey
-			}
+				displayCounter := strconv.Itoa(i+1) + ". "
+				barLength := secretDividerLength - len(displayCounter)
+				out.Print(displayCounter + strings.Repeat("─", barLength) + "\n")
 
-			out.Print("📬 " + displayName(&key) + ":\n")
-
-			errors := []error{}
-			for i, encryptedSecret := range encryptedSecrets {
-				decryptedContent, err := decrypt(encryptedSecret.EncryptedContent, &key)
-				if err != nil {
-					errors = append(errors, err)
-				} else {
-					displayCounter := strconv.Itoa(i+1) + ". "
-					barLength := secretDividerLength - len(displayCounter)
-					out.Print(displayCounter + strings.Repeat("─", barLength) + "\n")
-
-					scanner := bufio.NewScanner(strings.NewReader(decryptedContent))
-					for scanner.Scan() {
-						out.Print(strings.Repeat(" ", len(displayCounter)) + scanner.Text() + "\n")
-					}
+				scanner := bufio.NewScanner(strings.NewReader(decryptedContent))
+				for scanner.Scan() {
+					out.Print(strings.Repeat(" ", len(displayCounter)) + scanner.Text() + "\n")
 				}
 			}
+		}
 
-			out.Print(strings.Repeat("─", secretDividerLength) + "\n")
+		out.Print(strings.Repeat("─", secretDividerLength) + "\n")
 
-			if len(errors) > 0 {
-				output := humanize.Pluralize(len(errors), "secret", "secrets") + " failed to download for " + displayName(&key) + ":\n"
-				out.Print(colour.Failure(colour.StripAllColourCodes(output)))
-				for _, error := range errors {
-					printFailed(error.Error())
-				}
+		if len(errors) > 0 {
+			output := humanize.Pluralize(len(errors), "secret", "secrets") + " failed to download for " + displayName(&key) + ":\n"
+			out.Print(colour.Failure(colour.StripAllColourCodes(output)))
+			for _, error := range errors {
+				printFailed(error.Error())
 			}
 		}
 
