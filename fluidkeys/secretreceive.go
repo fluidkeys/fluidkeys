@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -21,7 +20,6 @@ import (
 
 func secretReceive() exitCode {
 	out.Print("\n")
-	client := api.NewClient()
 	keys, err := loadPgpKeys()
 
 	if err != nil {
@@ -32,61 +30,74 @@ func secretReceive() exitCode {
 	out.Print(colour.Info("Downloading secrets...") + "\n\n")
 
 	for _, key := range keys {
+		secrets, secretErrors, err := downloadAndDecryptSecrets(key)
 		if err != nil {
-			printFailed("Couldn't get email for key " + key.Fingerprint().String() + "\n")
+			switch err.(type) {
+			case errNoSecretsFound:
+				out.Print("📭 " + displayName(&key) + ": No secrets found\n")
+			case errDecryptPrivateKey:
+				message := fmt.Sprintf("Error getting private key and password: %s", err)
+				out.Print("📪 " + displayName(&key) + ": " + colour.Failure(message) + "\n")
+			case errListSecrets:
+				out.Print("📪 " + displayName(&key) + ": " + colour.Failure(err.Error()) + "\n")
+			default:
+				out.Print("📪 " + displayName(&key) + ": " + colour.Failure(err.Error()) + "\n")
+			}
 			continue
 		}
-		encryptedSecrets, err := client.ListSecrets(key.Fingerprint())
-		if err != nil {
-			out.Print("📪 " + displayName(&key) + ": " + colour.Failure(err.Error()) + "\n")
-			continue
-		}
-
-		if len(encryptedSecrets) == 0 {
-			out.Print("📭 " + displayName(&key) + ": No secrets found\n")
-			continue
-		}
-		var passwordPrompter promptForPasswordInterface
-		passwordPrompter = &interactivePasswordPrompter{}
-		if privateKey, _, err := getDecryptedPrivateKeyAndPassword(&key, passwordPrompter); err != nil {
-			err := fmt.Sprintf("Error getting private key and password: %s", err)
-			out.Print("📪 " + displayName(&key) + ": " + colour.Failure(err) + "\n")
-			continue
-		} else {
-			key = *privateKey
-		}
-
 		out.Print("📬 " + displayName(&key) + ":\n")
 
-		errors := []error{}
-		for i, encryptedSecret := range encryptedSecrets {
-			decryptedContent, err := decrypt(encryptedSecret.EncryptedContent, &key)
-			if err != nil {
-				errors = append(errors, err)
-			} else {
-				displayCounter := strconv.Itoa(i+1) + ". "
-				barLength := secretDividerLength - len(displayCounter)
-				out.Print(displayCounter + strings.Repeat("─", barLength) + "\n")
-
-				scanner := bufio.NewScanner(strings.NewReader(decryptedContent))
-				for scanner.Scan() {
-					out.Print(strings.Repeat(" ", len(displayCounter)) + scanner.Text() + "\n")
-				}
-			}
+		for i, secret := range secrets {
+			out.Print(formatSecretListItem(i+1, secret))
 		}
 
-		out.Print(strings.Repeat("─", secretDividerLength) + "\n")
+		out.Print(strings.Repeat(secretDividerRune, secretDividerLength) + "\n")
 
-		if len(errors) > 0 {
-			output := humanize.Pluralize(len(errors), "secret", "secrets") + " failed to download for " + displayName(&key) + ":\n"
+		if len(secretErrors) > 0 {
+			output := humanize.Pluralize(len(secretErrors), "secret", "secrets") + " failed to download for " + displayName(&key) + ":\n"
 			out.Print(colour.Failure(colour.StripAllColourCodes(output)))
-			for _, error := range errors {
+			for _, error := range secretErrors {
 				printFailed(error.Error())
 			}
+			// TODO: Record the fact we saw an error, don't return 0
 		}
-
 	}
 	return 0
+}
+
+func downloadAndDecryptSecrets(key pgpkey.PgpKey) (decryptedSecrets []string, secretErrors []error, err error) {
+	client := api.NewClient()
+	encryptedSecrets, err := client.ListSecrets(key.Fingerprint())
+	if err != nil {
+		return nil, nil, errListSecrets{originalError: err}
+	}
+	if len(encryptedSecrets) == 0 {
+		return nil, nil, errNoSecretsFound{}
+	}
+	privateKey, _, err := getDecryptedPrivateKeyAndPassword(&key, &interactivePasswordPrompter{})
+	if err != nil {
+		return nil, nil, errDecryptPrivateKey{originalError: err}
+	}
+	for _, encryptedSecret := range encryptedSecrets {
+		decryptedContent, err := decrypt(encryptedSecret.EncryptedContent, privateKey)
+		if err != nil {
+			secretErrors = append(secretErrors, err)
+		} else {
+			decryptedSecrets = append(decryptedSecrets, decryptedContent)
+		}
+	}
+	return decryptedSecrets, secretErrors, nil
+}
+
+func formatSecretListItem(listNumber int, decryptedContent string) (output string) {
+	displayCounter := fmt.Sprintf("%d. ", listNumber)
+	trimmedDivider := strings.Repeat(secretDividerRune, secretDividerLength-len(displayCounter))
+	output = displayCounter + trimmedDivider + "\n"
+	output = output + decryptedContent
+	if !strings.HasSuffix(decryptedContent, "\n") {
+		output = output + "\n"
+	}
+	return output
 }
 
 func decrypt(encrypted string, pgpKey *pgpkey.PgpKey) (string, error) {
@@ -118,5 +129,22 @@ func countDigits(i int) (count int) {
 }
 
 const (
+	secretDividerRune   = "─"
 	secretDividerLength = 30
 )
+
+type errListSecrets struct {
+	originalError error
+}
+
+func (e errListSecrets) Error() string { return e.originalError.Error() }
+
+type errNoSecretsFound struct{}
+
+func (e errNoSecretsFound) Error() string { return "" }
+
+type errDecryptPrivateKey struct {
+	originalError error
+}
+
+func (e errDecryptPrivateKey) Error() string { return e.originalError.Error() }
