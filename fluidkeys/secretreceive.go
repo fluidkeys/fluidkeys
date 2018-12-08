@@ -2,11 +2,14 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"strconv"
 	"strings"
 
+	"github.com/fluidkeys/api/v1structs"
 	"github.com/fluidkeys/fluidkeys/humanize"
 
 	"github.com/fluidkeys/fluidkeys/colour"
@@ -90,6 +93,19 @@ func downloadAndDecryptSecrets(key pgpkey.PgpKey) (decryptedSecrets []string, se
 			secretErrors = append(secretErrors, err)
 		} else {
 			decryptedSecrets = append(decryptedSecrets, decryptedContent)
+		}
+		jsonMetadata, err := decrypt(encryptedSecret.EncryptedMetadata, privateKey)
+		if err != nil {
+			log.Print(fmt.Sprintf("Failed to decrypt secret metadata: %s", err))
+		}
+		metadata := v1structs.SecretMetadata{}
+		err = json.NewDecoder(strings.NewReader(jsonMetadata)).Decode(&metadata)
+		if err != nil {
+			log.Print(fmt.Sprintf("Failed to decode secret metadata: %s", err))
+		}
+		err = client.DeleteSecret(key.Fingerprint(), metadata.SecretUUID)
+		if err != nil {
+			log.Print(fmt.Sprintf("Failed to delete secret: %s", err))
 		}
 	}
 	return decryptedSecrets, secretErrors, nil
