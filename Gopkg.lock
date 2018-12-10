@@ -58,6 +58,14 @@
   source = "github.com/fluidkeys/fork-dbus"
 
 [[projects]]
+  digest = "1:c594a691090b434d55c67f6cc8e326ef5ba49452abc059821bd5d4fd4cdef08c"
+  name = "github.com/gofrs/uuid"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "7077aa61129615a0d7f45c49101cd011ab221c27"
+  version = "v3.1.2"
+
+[[projects]]
   branch = "master"
   digest = "1:36f5bd9b89fcd728488eee3a0cf8787448579ac381fded60edd6e3ac01fe1a38"
   name = "github.com/gsterjov/go-libsecret"
@@ -128,6 +136,7 @@
     "github.com/fluidkeys/crypto/openpgp/errors",
     "github.com/fluidkeys/crypto/openpgp/packet",
     "github.com/fluidkeys/keyring",
+    "github.com/gofrs/uuid",
     "github.com/mitchellh/go-homedir",
     "github.com/natefinch/atomic",
     "github.com/sethvargo/go-diceware/diceware",

@@ -59,3 +59,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/natefinch/atomic"
+
+[[constraint]]
+  name = "github.com/gofrs/uuid"
+  version = "3.1.2"
