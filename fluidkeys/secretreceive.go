@@ -29,6 +29,8 @@ func secretReceive() exitCode {
 
 	out.Print(colour.Info("Downloading secrets...") + "\n\n")
 
+	var sawError bool = false
+
 	for _, key := range keys {
 		secrets, secretErrors, err := downloadAndDecryptSecrets(key)
 		if err != nil {
@@ -59,10 +61,14 @@ func secretReceive() exitCode {
 			for _, error := range secretErrors {
 				printFailed(error.Error())
 			}
-			// TODO: Record the fact we saw an error, don't return 0
+			sawError = true
 		}
 	}
-	return 0
+	if sawError {
+		return 1
+	} else {
+		return 0
+	}
 }
 
 func downloadAndDecryptSecrets(key pgpkey.PgpKey) (decryptedSecrets []string, secretErrors []error, err error) {
