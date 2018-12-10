@@ -93,6 +93,19 @@ func (c *Config) SetMaintainAutomatically(fingerprint fingerprint.Fingerprint, v
 	return c.setProperty(fingerprint, maintainAutomatically, value)
 }
 
+// ShouldAllowSearchByEmail returns whether the given key should be uploaded to the
+// Fluidkeys directoryto allow others to search for it by email address.
+// The default is false.
+func (c *Config) ShouldAllowSearchByEmail(fingerprint fingerprint.Fingerprint) bool {
+	return c.getConfig(fingerprint).AllowSearchByEmail
+}
+
+// SetAllowSearchByEmail sets whether the given key should be uploaded to the
+// Fluidkeys directory to allow others to search for it by email address.
+func (c *Config) SetAllowSearchByEmail(fingerprint fingerprint.Fingerprint, value bool) error {
+	return c.setProperty(fingerprint, allowSearchByEmail, value)
+}
+
 func (c *Config) setProperty(fingerprint fingerprint.Fingerprint, property keyConfigProperty, value interface{}) error {
 	if c.parsedConfig.PgpKeys == nil { // initialize the map if empty
 		c.parsedConfig.PgpKeys = make(map[string]key)
@@ -111,6 +124,9 @@ func (c *Config) setProperty(fingerprint fingerprint.Fingerprint, property keyCo
 
 	case maintainAutomatically:
 		keyConfig.MaintainAutomatically = value.(bool)
+
+	case allowSearchByEmail:
+		keyConfig.AllowSearchByEmail = value.(bool)
 
 	default:
 		return fmt.Errorf("invalid property: %v", property)
@@ -192,6 +208,7 @@ func defaultKeyConfig() key {
 	return key{
 		StorePassword:         false,
 		MaintainAutomatically: false,
+		AllowSearchByEmail:    false,
 	}
 }
 
@@ -200,6 +217,7 @@ type keyConfigProperty int
 const (
 	storePassword keyConfigProperty = iota
 	maintainAutomatically
+	allowSearchByEmail
 )
 
 type tomlConfig struct {
@@ -210,6 +228,7 @@ type tomlConfig struct {
 type key struct {
 	StorePassword         bool `toml:"store_password"`
 	MaintainAutomatically bool `toml:"maintain_automatically"`
+	AllowSearchByEmail    bool `toml:"allow_search_by_email"`
 }
 
 const defaultRunFromCron = true
@@ -234,6 +253,11 @@ const defaultConfigFile string = `# Fluidkeys configuration file for 'fk' comman
 #     # carried out without prompting when running 'fk key maintain automatic'
 #     # store_password must also be true to maintain keys automatically.
 #     maintain_automatically = true
+#
+#     # allow_search_by_email specifies that key will be uploaded to the
+#     # Fluidkeys directory and that others will be able to search for the
+#     # key by email address
+#     allow_search_by_email = true
 #
 # THIS FILE IS OVERWRITTEN BY FLUIDKEYS.
 # Any changes you make will be overwritten.
