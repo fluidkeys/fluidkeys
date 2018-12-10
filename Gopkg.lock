@@ -26,12 +26,13 @@
   revision = "aaeb013656daf94a2c4bd8b2bbe156611a01309e"
 
 [[projects]]
-  digest = "1:794b0374eaa547e9c375736a05da2a740e695c8816e42d30984228e0c1a5436b"
+  digest = "1:ace3142d1c330736b91b01355276568b90431cedf4d9469798568ef2ba1d64f5"
   name = "github.com/fluidkeys/crypto"
   packages = [
     "cast5",
     "openpgp",
     "openpgp/armor",
+    "openpgp/clearsign",
     "openpgp/elgamal",
     "openpgp/errors",
     "openpgp/packet",
@@ -133,6 +134,7 @@
     "github.com/fluidkeys/api/v1structs",
     "github.com/fluidkeys/crypto/openpgp",
     "github.com/fluidkeys/crypto/openpgp/armor",
+    "github.com/fluidkeys/crypto/openpgp/clearsign",
     "github.com/fluidkeys/crypto/openpgp/errors",
     "github.com/fluidkeys/crypto/openpgp/packet",
     "github.com/fluidkeys/keyring",
