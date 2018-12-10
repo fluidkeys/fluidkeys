@@ -2,12 +2,18 @@ package api
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
+
+	"github.com/fluidkeys/crypto/openpgp/clearsign"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"github.com/gofrs/uuid"
 
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 
@@ -118,6 +124,78 @@ func (c *Client) DeleteSecret(fingerprint fingerprint.Fingerprint, uuid string) 
 	default:
 		return makeErrorForAPIResponse(response)
 	}
+}
+
+// UpsertPublicKey creates or updates a public key in the Fluidkeys Directory.
+// It requires privateKey to ensure that only the owner of the public key can
+// upload it.
+func (c *Client) UpsertPublicKey(armoredPublicKey string, privateKey *pgpkey.PgpKey) error {
+	armoredSignedJSON, err := makeUpsertPublicKeySignedData(armoredPublicKey, privateKey)
+	if err != nil {
+		return fmt.Errorf("Failed to create ArmoredSignedJSON: %s", err)
+	}
+	upsertPublicKeyRequest := v1structs.UpsertPublicKeyRequest{
+		ArmoredPublicKey:  armoredPublicKey,
+		ArmoredSignedJSON: armoredSignedJSON,
+	}
+	request, err := c.newRequest("POST", "keys", upsertPublicKeyRequest)
+	if err != nil {
+		return fmt.Errorf("Failed to upload key: %s", err)
+	}
+	decodedUpsertResponse := new(v1structs.UpsertPublicKeyResponse)
+	response, err := c.do(request, &decodedUpsertResponse)
+	if err != nil {
+		return fmt.Errorf("Failed to call API: %s", err)
+	}
+	if response.StatusCode != http.StatusOK {
+		return makeErrorForAPIResponse(response)
+	}
+	return nil
+}
+
+func makeUpsertPublicKeySignedData(armoredPublicKey string, privateKey *pgpkey.PgpKey) (armoredSignedJSON string, err error) {
+	publicKeyHash := fmt.Sprintf("%X", sha256.Sum256([]byte(armoredPublicKey)))
+
+	singleTimeUUID, err := uuid.NewV4()
+	if err != nil {
+		return "", fmt.Errorf("Couldn't generate UUID: %s", err)
+	}
+
+	publicKeyData := v1structs.UpsertPublicKeySignedData{
+		Timestamp:       time.Now(),
+		SingleUseUUID:   singleTimeUUID.String(),
+		PublicKeySHA256: publicKeyHash,
+	}
+
+	jsonBytes, err := json.Marshal(publicKeyData)
+	if err != nil {
+		return "", fmt.Errorf("Couldn't marshal JSON: %s", err)
+	}
+
+	armoredSignedJSON, err = signText(jsonBytes, privateKey)
+	if err != nil {
+		return "", fmt.Errorf("Couldn't marshal JSON: %s", err)
+	}
+
+	return armoredSignedJSON, nil
+}
+
+func signText(bytesToSign []byte, key *pgpkey.PgpKey) (armoredSigned string, err error) {
+	armorOutBuffer := bytes.NewBuffer(nil)
+	privKey := key.Entity.PrivateKey
+
+	armorWriteCloser, err := clearsign.Encode(armorOutBuffer, privKey, nil)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = armorWriteCloser.Write(bytesToSign)
+	if err != nil {
+		return "", err
+	}
+
+	armorWriteCloser.Close()
+	return armorOutBuffer.String(), nil
 }
 
 func makeErrorForAPIResponse(response *http.Response) error {
