@@ -139,6 +139,15 @@ func TestParse(t *testing.T) {
 			}
 			assert.Equal(t, false, firstKey.MaintainAutomatically)
 		})
+
+		t.Run("first PgpKey should have allow_search_by_email=true", func(t *testing.T) {
+			firstKey, inMap := config.parsedConfig.PgpKeys["AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111"]
+
+			if !inMap {
+				t.Fatalf("key wasn't in the map")
+			}
+			assert.Equal(t, true, firstKey.AllowSearchByEmail)
+		})
 	})
 
 	t.Run("return an error if an invalid fingerprint is encountered", func(t *testing.T) {
@@ -180,7 +189,8 @@ func TestSerialize(t *testing.T) {
 			"[pgpkeys]\n" +
 			"  [pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]\n" +
 			"    store_password = true\n" +
-			"    maintain_automatically = false\n"
+			"    maintain_automatically = false\n" +
+			"    allow_search_by_email = false\n"
 		assertEqualStrings(t, expected, output.String())
 	})
 }
@@ -246,6 +256,22 @@ func TestSettersAndGetters(t *testing.T) {
 			err := config.SetStorePassword(testFingerprint, false)
 			assert.ErrorIsNil(t, err)
 			assert.Equal(t, false, config.ShouldStorePassword(testFingerprint))
+		})
+	})
+
+	t.Run("StorePassword", func(t *testing.T) {
+		config := Config{filename: "/tmp/config.toml"}
+
+		t.Run("true", func(t *testing.T) {
+			err := config.SetAllowSearchByEmail(testFingerprint, true)
+			assert.ErrorIsNil(t, err)
+			assert.Equal(t, true, config.ShouldAllowSearchByEmail(testFingerprint))
+		})
+
+		t.Run("false", func(t *testing.T) {
+			err := config.SetAllowSearchByEmail(testFingerprint, false)
+			assert.ErrorIsNil(t, err)
+			assert.Equal(t, false, config.ShouldAllowSearchByEmail(testFingerprint))
 		})
 	})
 }
@@ -419,8 +445,10 @@ const exampleTomlDocument string = `
     [pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
     store_password = true
     maintain_automatically = false
+    allow_search_by_email = true
     
     [pgpkeys.BBBB2222BBBB2222BBBB2222BBBB2222BBBB2222]
     store_password = false
     maintain_automatically = false
+    allow_search_by_email = false
 `
