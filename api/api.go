@@ -82,8 +82,7 @@ func (c *Client) ListSecrets(fingerprint fingerprint.Fingerprint) ([]v1structs.S
 	if err != nil {
 		return nil, err
 	}
-	var authorization = "tmpfingerprint: " + fmt.Sprintf("OPENPGP4FPR:%s", fingerprint.Hex())
-	request.Header.Add("authorization", authorization)
+	request.Header.Add("authorization", authorization(fingerprint))
 	decodedJSON := new(v1structs.ListSecretsResponse)
 	response, err := c.do(request, &decodedJSON)
 	if err != nil {
@@ -96,6 +95,28 @@ func (c *Client) ListSecrets(fingerprint fingerprint.Fingerprint) ([]v1structs.S
 		return nil, fmt.Errorf("Couldn't sign in to API")
 	default:
 		return nil, makeErrorForAPIResponse(response)
+	}
+}
+
+// DeleteSecret deletes a secret
+func (c *Client) DeleteSecret(fingerprint fingerprint.Fingerprint, uuid string) error {
+	path := fmt.Sprintf("secrets/%s", uuid)
+	request, err := c.newRequest("DELETE", path, nil)
+	if err != nil {
+		return err
+	}
+	request.Header.Add("authorization", authorization(fingerprint))
+	response, err := c.do(request, nil)
+	if err != nil {
+		return err
+	}
+	switch response.StatusCode {
+	case http.StatusAccepted:
+		return nil
+	case http.StatusUnauthorized:
+		return fmt.Errorf("Couldn't sign in to API")
+	default:
+		return makeErrorForAPIResponse(response)
 	}
 }
 
@@ -169,4 +190,8 @@ func (c *Client) do(req *http.Request, responseData interface{}) (*http.Response
 	}
 
 	return response, err
+}
+
+func authorization(fpr fingerprint.Fingerprint) string {
+	return "tmpfingerprint: " + fmt.Sprintf("OPENPGP4FPR:%s", fpr.Hex())
 }
