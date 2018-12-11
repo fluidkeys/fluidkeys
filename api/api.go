@@ -256,14 +256,14 @@ func (c *Client) newRequest(method, relativePath string, requestData interface{}
 
 // do sends an API request and decodes the JSON response, storing it in the
 // value pointed to by responseData. If an API error occurs, it returns error.
-func (c *Client) do(req *http.Request, responseData interface{}) (*http.Response, error) {
-	response, err := c.client.Do(req)
+func (c *Client) do(req *http.Request, responseData interface{}) (response *http.Response, err error) {
+	response, err = c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer response.Body.Close()
 
-	if responseData != nil {
+	if responseData != nil && response.Header.Get("Content-Type") == "application/json" && response.Body != nil {
 		err = json.NewDecoder(response.Body).Decode(responseData)
 	}
 
