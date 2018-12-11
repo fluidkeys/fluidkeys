@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with Fluidkeys Client.  If not, see <https://www.gnu.org/licenses/>.
 
-package keytableprinter
+package keytable
 
 import (
 	"fmt"
@@ -23,32 +23,28 @@ import (
 	"strings"
 
 	"github.com/fluidkeys/fluidkeys/colour"
-	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/status"
 )
 
-type column = []string
-type row = []string
-
-const gutter = "  "
-const divider = "---"
-
-var header = row{
-	colour.TableHeader("Email address"),
-	colour.TableHeader("Created"),
-	colour.TableHeader("Status"),
+// A KeyWithWarnings defines a key with a slice of warnings used to format
+// a row in the table
+type KeyWithWarnings struct {
+	Key      *pgpkey.PgpKey
+	Warnings []status.KeyWarning
 }
 
-var placeholderDividerRow = row{divider, divider, divider}
-
-func Print(keys []pgpkey.PgpKey) {
-	out.Print(makeTable(keys))
-	out.Print(makePrimaryInstruction(keys))
+// Format takes a slice of keys with warnings and returns a string containing
+// a formatted table of the keys, warnings and an instruction to the user
+// on what they might do to resolve the warnings.
+func Format(keysWithWarnings []KeyWithWarnings) (output string) {
+	output = makeTable(keysWithWarnings)
+	output = output + makePrimaryInstruction(keysWithWarnings)
+	return output
 }
 
-func makeTable(keys []pgpkey.PgpKey) (output string) {
-	rows := makeTableRows(keys)
+func makeTable(keysWithWarnings []KeyWithWarnings) (output string) {
+	rows := makeTableRows(keysWithWarnings)
 	rowStrings := makeStringsFromRows(rows)
 	for _, rowString := range rowStrings {
 		output += rowString + "\n"
@@ -56,11 +52,11 @@ func makeTable(keys []pgpkey.PgpKey) (output string) {
 	return output + "\n"
 }
 
-func makeTableRows(keys []pgpkey.PgpKey) []row {
+func makeTableRows(keysWithWarnings []KeyWithWarnings) []row {
 	var rows []row
 	rows = append(rows, header)
 	rows = append(rows, placeholderDividerRow)
-	rows = append(rows, makeRowsForKeys(keys)...)
+	rows = append(rows, makeRowsForKeys(keysWithWarnings)...)
 	return rows
 }
 
@@ -70,13 +66,13 @@ func makeTableRows(keys []pgpkey.PgpKey) []row {
 // e.g ->   [['jane@example.com', '12 Jan 1998', 'Due for rotation',
 //           ['jane@work.com', '', 'Another warning']]
 // It adds a dividing line between each key
-func makeRowsForKeys(keys []pgpkey.PgpKey) []row {
+func makeRowsForKeys(keysWithWarnings []KeyWithWarnings) []row {
 	var allRows []row
-	for _, key := range keys {
+	for _, keyWithWarnings := range keysWithWarnings {
 		columns := []column{
-			key.Emails(true),
-			[]string{key.PrimaryKey.CreationTime.Format("2 Jan 2006")},
-			keyStatus(key, status.GetKeyWarnings(key)),
+			keyWithWarnings.Key.Emails(true),
+			[]string{keyWithWarnings.Key.PrimaryKey.CreationTime.Format("2 Jan 2006")},
+			keyStatus(*keyWithWarnings.Key, keyWithWarnings.Warnings),
 		}
 		keyRows := makeRowsFromColumns(columns)
 		allRows = append(allRows, keyRows...)
@@ -202,18 +198,17 @@ func maxInSlice(values []int) int {
 func max(x int, y int) int {
 	if x < y {
 		return y
-	} else {
-		return x
 	}
+	return x
 }
 
 // makePrimaryInstruction prints single instruction to the user to run
 // 'fk key maintain' if they have any issues with their keys. The severity of
 // the message depends on if they have any urgent issues.
-func makePrimaryInstruction(keys []pgpkey.PgpKey) string {
+func makePrimaryInstruction(keysWithWarnings []KeyWithWarnings) string {
 	var warnings []status.KeyWarning
-	for _, key := range keys {
-		warnings = append(warnings, status.GetKeyWarnings(key)...)
+	for _, keyWithWarnings := range keysWithWarnings {
+		warnings = append(warnings, keyWithWarnings.Warnings...)
 	}
 	var output string
 	if len(warnings) > 0 {
@@ -260,3 +255,17 @@ func keyStatus(key pgpkey.PgpKey, keyWarnings []status.KeyWarning) []string {
 	}
 	return keyWarningLines
 }
+
+type column = []string
+type row = []string
+
+const gutter = "  "
+const divider = "---"
+
+var header = row{
+	colour.TableHeader("Email address"),
+	colour.TableHeader("Created"),
+	colour.TableHeader("Status"),
+}
+
+var placeholderDividerRow = row{divider, divider, divider}

@@ -25,6 +25,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/fluidkeys/fluidkeys/keytable"
+	"github.com/fluidkeys/fluidkeys/status"
+
 	"github.com/fluidkeys/fluidkeys/api"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 
@@ -34,7 +37,6 @@ import (
 	"github.com/fluidkeys/fluidkeys/database"
 	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 	"github.com/fluidkeys/fluidkeys/keyring"
-	"github.com/fluidkeys/fluidkeys/keytableprinter"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/scheduler"
@@ -199,7 +201,20 @@ func keyList() exitCode {
 	}
 
 	out.Print("\n")
-	keytableprinter.Print(keys)
+
+	keysWithWarnings := []keytable.KeyWithWarnings{}
+
+	for i := range keys {
+		key := &keys[i]
+
+		keyWithWarnings := keytable.KeyWithWarnings{
+			Key:      key,
+			Warnings: status.GetKeyWarnings(*key),
+		}
+		keysWithWarnings = append(keysWithWarnings, keyWithWarnings)
+	}
+
+	out.Print(keytable.Format(keysWithWarnings))
 	return 0
 }
 

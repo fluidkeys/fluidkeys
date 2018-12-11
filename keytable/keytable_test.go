@@ -1,4 +1,4 @@
-package keytableprinter
+package keytable
 
 import (
 	"testing"
@@ -17,11 +17,17 @@ func TestMakeTableRows(t *testing.T) {
 	}
 
 	t.Run("with example pgp key", func(t *testing.T) {
-		makeTableRows([]pgpkey.PgpKey{*pgpKey})
+		makeTableRows(
+			[]KeyWithWarnings{
+				KeyWithWarnings{Key: pgpKey},
+			},
+		)
 	})
 
 	t.Run("with empty slice of keys", func(t *testing.T) {
-		makeTableRows([]pgpkey.PgpKey{})
+		makeTableRows(
+			[]KeyWithWarnings{},
+		)
 	})
 
 }
