@@ -4,6 +4,8 @@
 
 Fluidkeys helps teams protect themselves with strong encryption. It builds on the OpenPGP standard and is compatible with other OpenPGP software.
 
+Fluidkeys is licensed under the [AGPLv3](https://www.gnu.org/licenses/agpl-3.0.txt).
+
 0.2 helps you create a key or import one from `gpg`, then automatically maintain it.
 
 Once installed, run it with `fk`.
