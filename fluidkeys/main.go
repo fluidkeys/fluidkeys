@@ -209,7 +209,7 @@ func keyList() exitCode {
 
 		keyWithWarnings := keytable.KeyWithWarnings{
 			Key:      key,
-			Warnings: status.GetKeyWarnings(*key),
+			Warnings: status.GetKeyWarnings(*key, &Config),
 		}
 		keysWithWarnings = append(keysWithWarnings, keyWithWarnings)
 	}

@@ -118,6 +118,18 @@ func TestString(t *testing.T) {
 			"Weak hash SHA1 used for subkey binding signature",
 		},
 		{
+			KeyWarning{Type: ConfigMaintainAutomaticallyNotSet},
+			"Key not maintained automatically",
+		},
+		{
+			KeyWarning{Type: ConfigPublishToAPINotSet},
+			"Key not published in the Fluidkeys directory",
+		},
+		{
+			KeyWarning{Type: ConfigMaintainAutomaticallyButDontPublish},
+			"Key maintained automatically but not published",
+		},
+		{
 			KeyWarning{}, // unspecified type
 			"",
 		},

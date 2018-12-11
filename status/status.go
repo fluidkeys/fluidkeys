@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/fluidkeys/crypto/openpgp/packet"
+	"github.com/fluidkeys/fluidkeys/config"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/compression"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/hash"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/symmetric"
@@ -33,7 +34,7 @@ import (
 
 // GetKeyWarnings returns a slice of KeyWarnings indicating problems found
 // with the given PgpKey.
-func GetKeyWarnings(key pgpkey.PgpKey) []KeyWarning {
+func GetKeyWarnings(key pgpkey.PgpKey, config *config.Config) []KeyWarning {
 	var warnings []KeyWarning
 	now := time.Now()
 
@@ -51,6 +52,8 @@ func GetKeyWarnings(key pgpkey.PgpKey) []KeyWarning {
 		warnings = append(warnings, getSelfSignatureHashWarnings(bindingSignature)...)
 		// TODO: check preferences (tho if missing, it's acceptable)
 	}
+
+	warnings = append(warnings, getConfigurationWarnings(key, config)...)
 
 	return warnings
 }
@@ -332,6 +335,28 @@ func acceptableSignatureHash(hash *crypto.Hash) bool {
 	}
 
 	return hasAcceptableHash
+}
+
+func getConfigurationWarnings(key pgpkey.PgpKey, config *config.Config) []KeyWarning {
+	var warnings []KeyWarning
+
+	if !config.ShouldMaintainAutomatically(key.Fingerprint()) {
+		warning := KeyWarning{Type: ConfigMaintainAutomaticallyNotSet}
+		warnings = append(warnings, warning)
+	}
+
+	if !config.ShouldPublishToAPI(key.Fingerprint()) {
+		warning := KeyWarning{Type: ConfigPublishToAPINotSet}
+		warnings = append(warnings, warning)
+	}
+
+	if config.ShouldMaintainAutomatically(key.Fingerprint()) &&
+		!config.ShouldPublishToAPI(key.Fingerprint()) {
+		warning := KeyWarning{Type: ConfigMaintainAutomaticallyButDontPublish}
+		warnings = append(warnings, warning)
+	}
+
+	return warnings
 }
 
 func contains(haystack []uint8, needle uint8) bool {

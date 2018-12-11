@@ -56,6 +56,10 @@ const (
 
 	WeakSelfSignatureHash          = 20
 	WeakSubkeyBindingSignatureHash = 21
+
+	ConfigMaintainAutomaticallyNotSet         = 22
+	ConfigPublishToAPINotSet                  = 23
+	ConfigMaintainAutomaticallyButDontPublish = 24
 )
 
 type KeyWarning struct {
@@ -135,6 +139,15 @@ func (w KeyWarning) String() string {
 
 	case WeakSubkeyBindingSignatureHash:
 		return fmt.Sprintf("Weak hash %s used for subkey binding signature", w.Detail)
+
+	case ConfigMaintainAutomaticallyNotSet:
+		return "Key not maintained automatically"
+
+	case ConfigPublishToAPINotSet:
+		return "Key not published in the Fluidkeys directory"
+
+	case ConfigMaintainAutomaticallyButDontPublish:
+		return "Key maintained automatically but not published"
 	}
 
 	return fmt.Sprintf("KeyWarning{Type=%d}", w.Type)

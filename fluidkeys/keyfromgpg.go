@@ -71,7 +71,7 @@ func keyFromGpg() exitCode {
 
 	keyTask := keyTask{
 		key:      key,
-		warnings: status.GetKeyWarnings(*key),
+		warnings: status.GetKeyWarnings(*key, &Config),
 	}
 
 	out.Print(formatKeyWarnings(keyTask))
