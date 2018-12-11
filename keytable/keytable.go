@@ -198,9 +198,8 @@ func maxInSlice(values []int) int {
 func max(x int, y int) int {
 	if x < y {
 		return y
-	} else {
-		return x
 	}
+	return x
 }
 
 // makePrimaryInstruction prints single instruction to the user to run
