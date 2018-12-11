@@ -145,7 +145,7 @@ func setup() (client *Client, mux *http.ServeMux, serverURL string, teardown fun
 
 	// client is the Fluidkeys Server client being tested and is
 	// configured to use test server.
-	client = NewClient()
+	client = NewClient("vtest")
 	url, _ := url.Parse(server.URL + "/")
 	client.BaseURL = url
 

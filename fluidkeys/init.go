@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"os"
 
+	"path/filepath"
+
+	"github.com/fluidkeys/fluidkeys/api"
 	"github.com/fluidkeys/fluidkeys/config"
 	"github.com/fluidkeys/fluidkeys/database"
 	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 	"github.com/fluidkeys/fluidkeys/keyring"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/mitchellh/go-homedir"
-	"path/filepath"
 )
 
 func init() {
@@ -20,6 +22,7 @@ func init() {
 	initKeyring()
 	initDatabase()
 	initGpgWrapper()
+	initAPIClient()
 }
 
 func initFluidkeysDirectory() {
@@ -63,6 +66,10 @@ func initOutput() {
 	if err := out.Load(fluidkeysDirectory); err != nil {
 		panic(err)
 	}
+}
+
+func initAPIClient() {
+	client = api.NewClient(Version)
 }
 
 func getFluidkeysDirectory() (string, error) {
