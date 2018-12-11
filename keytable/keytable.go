@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with Fluidkeys Client.  If not, see <https://www.gnu.org/licenses/>.
 
-package keytableprinter
+package keytable
 
 import (
 	"fmt"
@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/fluidkeys/fluidkeys/colour"
-	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/status"
 )
@@ -35,9 +34,13 @@ type KeyWithWarnings struct {
 	Warnings []status.KeyWarning
 }
 
-func Print(keysWithWarnings []KeyWithWarnings) {
-	out.Print(makeTable(keysWithWarnings))
-	out.Print(makePrimaryInstruction(keysWithWarnings))
+// Format takes a slice of keys with warnings and returns a string containing
+// a formatted table of the keys, warnings and an instruction to the user
+// on what they might do to resolve the warnings.
+func Format(keysWithWarnings []KeyWithWarnings) (output string) {
+	output = makeTable(keysWithWarnings)
+	output = output + makePrimaryInstruction(keysWithWarnings)
+	return output
 }
 
 func makeTable(keysWithWarnings []KeyWithWarnings) (output string) {

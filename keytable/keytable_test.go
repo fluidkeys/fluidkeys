@@ -1,4 +1,4 @@
-package keytableprinter
+package keytable
 
 import (
 	"testing"
