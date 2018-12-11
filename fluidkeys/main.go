@@ -204,10 +204,12 @@ func keyList() exitCode {
 
 	keysWithWarnings := []keytable.KeyWithWarnings{}
 
-	for _, key := range keys {
+	for i := range keys {
+		key := &keys[i]
+
 		keyWithWarnings := keytable.KeyWithWarnings{
-			Key:      &key,
-			Warnings: status.GetKeyWarnings(key),
+			Key:      key,
+			Warnings: status.GetKeyWarnings(*key),
 		}
 		keysWithWarnings = append(keysWithWarnings, keyWithWarnings)
 	}
