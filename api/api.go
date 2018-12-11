@@ -200,6 +200,12 @@ func makeUpsertPublicKeySignedData(armoredPublicKey string, privateKey *pgpkey.P
 func signText(bytesToSign []byte, key *pgpkey.PgpKey) (armoredSigned string, err error) {
 	armorOutBuffer := bytes.NewBuffer(nil)
 	privKey := key.Entity.PrivateKey
+	if privKey == nil {
+		return "", fmt.Errorf("no private key provided for key %s", key.Fingerprint())
+	}
+	if privKey.Encrypted {
+		return "", fmt.Errorf("private key is encrypted %s", key.Fingerprint())
+	}
 
 	armorWriteCloser, err := clearsign.Encode(armorOutBuffer, privKey, nil)
 	if err != nil {
