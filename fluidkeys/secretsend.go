@@ -48,6 +48,13 @@ func secretSend(recipientEmail string) exitCode {
 		return 1
 	}
 
+	_, err = encryptSecret("dummy data to test encryption", pgpKey)
+	if err != nil {
+		printFailed("Couldn't encrypt to the key:")
+		out.Print("Error: " + err.Error() + "\n")
+		return 1
+	}
+
 	out.Print("\n")
 	out.Print("[type or paste your message, ending by typing Ctrl-D]\n\n")
 
