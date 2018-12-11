@@ -33,13 +33,13 @@ type Client struct {
 }
 
 // NewClient returns a new Fluidkeys Server API client.
-func NewClient() *Client {
+func NewClient(fluidkeysVersion string) *Client {
 	baseURL, _ := url.Parse(defaultBaseURL)
 
 	return &Client{
 		client:    http.DefaultClient,
 		BaseURL:   baseURL,
-		UserAgent: userAgent,
+		UserAgent: userAgent + "-" + fluidkeysVersion,
 	}
 }
 

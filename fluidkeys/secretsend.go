@@ -10,7 +10,6 @@ import (
 
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/armor"
-	"github.com/fluidkeys/fluidkeys/api"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
@@ -25,7 +24,6 @@ func secretSend(recipientEmail string) exitCode {
 		return 1
 	}
 
-	client := api.NewClient()
 	armoredPublicKey, err := client.GetPublicKey(recipientEmail)
 	if err != nil {
 		printFailed("Couldn't get the public key for " + recipientEmail + "\n")

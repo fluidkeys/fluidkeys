@@ -16,7 +16,6 @@ import (
 
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/armor"
-	"github.com/fluidkeys/fluidkeys/api"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
@@ -75,7 +74,6 @@ func secretReceive() exitCode {
 }
 
 func downloadAndDecryptSecrets(key pgpkey.PgpKey) (decryptedSecrets []string, secretErrors []error, err error) {
-	client := api.NewClient()
 	encryptedSecrets, err := client.ListSecrets(key.Fingerprint())
 	if err != nil {
 		return nil, nil, errListSecrets{originalError: err}

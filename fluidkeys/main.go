@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/fluidkeys/fluidkeys/api"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 
 	"github.com/docopt/docopt-go"
@@ -30,6 +31,7 @@ var (
 	db                 database.Database
 	Config             config.Config
 	Keyring            keyring.Keyring
+	client             *api.Client
 )
 
 type exitCode = int
