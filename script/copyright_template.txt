@@ -15,17 +15,3 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with Fluidkeys Client.  If not, see <https://www.gnu.org/licenses/>.
 
-package main
-
-type IncorrectPassword struct {
-	message       string
-	originalError string
-}
-
-func (e *IncorrectPassword) Error() string {
-	if e.message != "" {
-		return e.message
-	} else {
-		return "the password was incorrect"
-	}
-}
