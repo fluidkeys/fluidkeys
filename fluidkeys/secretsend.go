@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/fluidkeys/fluidkeys/colour"
 
@@ -38,6 +39,11 @@ func secretSend(recipientEmail string) exitCode {
 	secret, err := scanUntilEOF()
 	if err != nil {
 		panic(err)
+		return 1
+	}
+
+	if strings.TrimSpace(secret) == "" {
+		printFailed("Exiting due to empty message.\n")
 		return 1
 	}
 
