@@ -166,8 +166,8 @@ func promptAndPublishToFluidkeysDirectory(prompter promptYesNoInterface, private
 	out.Print("🔍 Publishing your key in the Fluidkeys directory allows\n")
 	out.Print("   others to find your key from your email address.\n\n")
 
-	if prompter.promptYesNo(promptAllowSearchByEmail, "", nil) {
-		if err := tryToPublishKeyAndSetAllowSearchByEmail(privateKey); err != nil {
+	if prompter.promptYesNo(promptPublishToAPI, "", nil) {
+		if err := tryToPublishKeyAndSetPublishToAPI(privateKey); err != nil {
 			printFailed(err.Error())
 		} else {
 			printSuccess("Successfully published key")
@@ -177,7 +177,7 @@ func promptAndPublishToFluidkeysDirectory(prompter promptYesNoInterface, private
 	}
 }
 
-func tryToPublishKeyAndSetAllowSearchByEmail(privateKey *pgpkey.PgpKey) error {
+func tryToPublishKeyAndSetPublishToAPI(privateKey *pgpkey.PgpKey) error {
 	if privateKey.PrivateKey == nil {
 		return fmt.Errorf("no private key for primary key")
 	}
@@ -194,7 +194,7 @@ func tryToPublishKeyAndSetAllowSearchByEmail(privateKey *pgpkey.PgpKey) error {
 	if err != nil {
 		return fmt.Errorf("Couldn't get fingerprint for key: %s", err)
 	}
-	err = Config.SetAllowSearchByEmail(fingerprint, true)
+	err = Config.SetPublishToAPI(fingerprint, true)
 	if err != nil {
 		return fmt.Errorf("Couldn't set key to publish: %s", err)
 	}

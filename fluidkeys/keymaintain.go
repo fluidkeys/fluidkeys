@@ -111,7 +111,7 @@ var (
 	promptBackupAndRunActions   = "Make a backup of " + colour.CommandLineCode("gpg") + " and run these actions?"
 	promptRunActions            = "Run these actions?"
 	promptMaintainAutomatically = "Automatically maintain this key from now on?"
-	promptAllowSearchByEmail    = "Publish this key?"
+	promptPublishToAPI          = "Publish this key?"
 )
 
 type promptYesNoInterface interface {
@@ -162,11 +162,11 @@ func (aR *automaticResponder) promptYesNo(message string, defaultResponse string
 	case promptMaintainAutomatically:
 		panic("prompting to maintain key automatically, but it should be set and therefore not prompt")
 
-	case promptAllowSearchByEmail:
+	case promptPublishToAPI:
 		if key == nil {
 			panic("expected *key but got nil pointer")
 		}
-		return Config.ShouldAllowSearchByEmail(key.Fingerprint())
+		return Config.ShouldPublishToAPI(key.Fingerprint())
 
 	default:
 		panic(fmt.Errorf("don't know how to automatically respond to : %s\n", message))

@@ -110,17 +110,17 @@ func (c *Config) SetMaintainAutomatically(fingerprint fingerprint.Fingerprint, v
 	return c.setProperty(fingerprint, maintainAutomatically, value)
 }
 
-// ShouldAllowSearchByEmail returns whether the given key should be uploaded to the
-// Fluidkeys directoryto allow others to search for it by email address.
+// ShouldPublishToAPI returns whether the given key should be uploaded to the
+// Fluidkeys directory to allow others to search for it by email address.
 // The default is false.
-func (c *Config) ShouldAllowSearchByEmail(fingerprint fingerprint.Fingerprint) bool {
-	return c.getConfig(fingerprint).AllowSearchByEmail
+func (c *Config) ShouldPublishToAPI(fingerprint fingerprint.Fingerprint) bool {
+	return c.getConfig(fingerprint).PublishToAPI
 }
 
-// SetAllowSearchByEmail sets whether the given key should be uploaded to the
+// SetShouldPublishToAPI sets whether the given key should be uploaded to the
 // Fluidkeys directory to allow others to search for it by email address.
-func (c *Config) SetAllowSearchByEmail(fingerprint fingerprint.Fingerprint, value bool) error {
-	return c.setProperty(fingerprint, allowSearchByEmail, value)
+func (c *Config) SetPublishToAPI(fingerprint fingerprint.Fingerprint, value bool) error {
+	return c.setProperty(fingerprint, publishToAPI, value)
 }
 
 func (c *Config) setProperty(fingerprint fingerprint.Fingerprint, property keyConfigProperty, value interface{}) error {
@@ -142,8 +142,8 @@ func (c *Config) setProperty(fingerprint fingerprint.Fingerprint, property keyCo
 	case maintainAutomatically:
 		keyConfig.MaintainAutomatically = value.(bool)
 
-	case allowSearchByEmail:
-		keyConfig.AllowSearchByEmail = value.(bool)
+	case publishToAPI:
+		keyConfig.PublishToAPI = value.(bool)
 
 	default:
 		return fmt.Errorf("invalid property: %v", property)
@@ -225,7 +225,7 @@ func defaultKeyConfig() key {
 	return key{
 		StorePassword:         false,
 		MaintainAutomatically: false,
-		AllowSearchByEmail:    false,
+		PublishToAPI:          false,
 	}
 }
 
@@ -234,7 +234,7 @@ type keyConfigProperty int
 const (
 	storePassword keyConfigProperty = iota
 	maintainAutomatically
-	allowSearchByEmail
+	publishToAPI
 )
 
 type tomlConfig struct {
@@ -245,7 +245,7 @@ type tomlConfig struct {
 type key struct {
 	StorePassword         bool `toml:"store_password"`
 	MaintainAutomatically bool `toml:"maintain_automatically"`
-	AllowSearchByEmail    bool `toml:"allow_search_by_email"`
+	PublishToAPI          bool `toml:"publish_to_api"`
 }
 
 const defaultRunFromCron = true
