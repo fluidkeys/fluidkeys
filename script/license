@@ -1,0 +1,23 @@
+#!/bin/sh -eu
+
+THIS_SCRIPT=$0
+THIS_DIR=$(dirname ${THIS_SCRIPT})
+
+HEADER_TEMPLATE=$(cat ${THIS_DIR}/copyright_template.txt)
+
+GOFILES="$(find . -name *.go -not -path './vendor/*' -not -name '*_test.go')"
+
+
+for FILE in $GOFILES; do
+
+	if ! grep "^// Copyright" $FILE > /dev/null ; then
+		echo "Adding copyright header to $FILE"
+		TEMPFILE=$(mktemp)
+		echo "${HEADER_TEMPLATE}" > $TEMPFILE
+		echo >> $TEMPFILE
+		cat $FILE >> $TEMPFILE
+		mv $TEMPFILE $FILE
+	else
+		echo "nothing to do for $FILE"
+	fi
+done
