@@ -24,7 +24,7 @@ MAIN_GO_FILES=fluidkeys/main.go \
 # ultimately be installed to PREFIX (/usr/local), for example
 # ./build/bin/fk, ./build/share etc
 .PHONY: compile
-compile: clean build/bin/fk
+compile: build/bin/fk
 
 
 build/bin/fk: $(MAIN_GO_FILES)
