@@ -35,20 +35,6 @@ type KeyWithWarnings struct {
 	Warnings []status.KeyWarning
 }
 
-type column = []string
-type row = []string
-
-const gutter = "  "
-const divider = "---"
-
-var header = row{
-	colour.TableHeader("Email address"),
-	colour.TableHeader("Created"),
-	colour.TableHeader("Status"),
-}
-
-var placeholderDividerRow = row{divider, divider, divider}
-
 func Print(keysWithWarnings []KeyWithWarnings) {
 	out.Print(makeTable(keysWithWarnings))
 	out.Print(makePrimaryInstruction(keysWithWarnings))
@@ -267,3 +253,17 @@ func keyStatus(key pgpkey.PgpKey, keyWarnings []status.KeyWarning) []string {
 	}
 	return keyWarningLines
 }
+
+type column = []string
+type row = []string
+
+const gutter = "  "
+const divider = "---"
+
+var header = row{
+	colour.TableHeader("Email address"),
+	colour.TableHeader("Created"),
+	colour.TableHeader("Status"),
+}
+
+var placeholderDividerRow = row{divider, divider, divider}
