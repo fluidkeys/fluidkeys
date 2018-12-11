@@ -3,14 +3,15 @@ package config
 import (
 	"bytes"
 	"fmt"
-	"github.com/fluidkeys/fluidkeys/assert"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
 	"testing"
+
+	"github.com/fluidkeys/fluidkeys/assert"
+	"github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 func TestLoad(t *testing.T) {

@@ -20,12 +20,13 @@ package config
 import (
 	"bytes"
 	"fmt"
-	"github.com/BurntSushi/toml"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
-	"github.com/natefinch/atomic"
 	"io"
 	"os"
 	"path"
+
+	"github.com/BurntSushi/toml"
+	"github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/natefinch/atomic"
 )
 
 // Load attempts to load `config.toml` from inside the given
