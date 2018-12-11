@@ -93,7 +93,7 @@ type keyTask struct {
 var (
 	promptBackupAndRunActions   = "Make a backup of " + colour.CommandLineCode("gpg") + " and run these actions?"
 	promptRunActions            = "Run these actions?"
-	promptMaintainAutomatically = "Automatically rotate this key from now on?"
+	promptMaintainAutomatically = "Automatically maintain this key from now on?"
 )
 
 type promptYesNoInterface interface {
