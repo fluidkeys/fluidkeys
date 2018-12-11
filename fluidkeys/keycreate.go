@@ -161,6 +161,14 @@ func promptAndPublishToFluidkeysDirectory(privateKey *pgpkey.PgpKey) {
 }
 
 func tryToPublishKeyAndSetAllowSearchByEmail(privateKey *pgpkey.PgpKey) error {
+	if privateKey.PrivateKey == nil {
+		return fmt.Errorf("no private key for primary key")
+	}
+
+	if privateKey.PrivateKey.Encrypted {
+		return fmt.Errorf("private key for primary key is encrypted")
+	}
+
 	err := keyPublish(privateKey)
 	if err != nil {
 		return fmt.Errorf("Couldn't publish key: %s", err)
