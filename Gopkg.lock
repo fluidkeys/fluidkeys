@@ -19,19 +19,20 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:d41a8d7ef29966b06b214f2cda28dab2fde1a45a0bd570ed850a2036f6979542"
+  digest = "1:4464e26031b926fb4db7725c77a50862f8772c322265b11fe1167613c3b4026d"
   name = "github.com/fluidkeys/api"
   packages = ["v1structs"]
   pruneopts = "UT"
-  revision = "16f9fb7803e745d8f0d2cab472947b8489cd4d0f"
+  revision = "aaeb013656daf94a2c4bd8b2bbe156611a01309e"
 
 [[projects]]
-  digest = "1:794b0374eaa547e9c375736a05da2a740e695c8816e42d30984228e0c1a5436b"
+  digest = "1:ace3142d1c330736b91b01355276568b90431cedf4d9469798568ef2ba1d64f5"
   name = "github.com/fluidkeys/crypto"
   packages = [
     "cast5",
     "openpgp",
     "openpgp/armor",
+    "openpgp/clearsign",
     "openpgp/elgamal",
     "openpgp/errors",
     "openpgp/packet",
@@ -56,6 +57,14 @@
   pruneopts = "UT"
   revision = "9adc973a4075ded5b9ab726210f5e63b62fd3475"
   source = "github.com/fluidkeys/fork-dbus"
+
+[[projects]]
+  digest = "1:c594a691090b434d55c67f6cc8e326ef5ba49452abc059821bd5d4fd4cdef08c"
+  name = "github.com/gofrs/uuid"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "7077aa61129615a0d7f45c49101cd011ab221c27"
+  version = "v3.1.2"
 
 [[projects]]
   branch = "master"
@@ -125,9 +134,11 @@
     "github.com/fluidkeys/api/v1structs",
     "github.com/fluidkeys/crypto/openpgp",
     "github.com/fluidkeys/crypto/openpgp/armor",
+    "github.com/fluidkeys/crypto/openpgp/clearsign",
     "github.com/fluidkeys/crypto/openpgp/errors",
     "github.com/fluidkeys/crypto/openpgp/packet",
     "github.com/fluidkeys/keyring",
+    "github.com/gofrs/uuid",
     "github.com/mitchellh/go-homedir",
     "github.com/natefinch/atomic",
     "github.com/sethvargo/go-diceware/diceware",

@@ -94,6 +94,10 @@ func keyCreate() exitCode {
 
 	printSuccess("Successfully created key for " + email)
 	out.Print("\n")
+
+	promptAndPublishToFluidkeysDirectory(generateJob.pgpKey)
+	out.Print("\n")
+
 	return 0
 }
 
@@ -137,4 +141,37 @@ func userConfirmedRandomWord(password DicewarePassword) bool {
 
 func clearScreen() {
 	out.Print("\033[H\033[2J")
+}
+
+func promptAndPublishToFluidkeysDirectory(privateKey *pgpkey.PgpKey) {
+	out.Print("🔍 Publishing your key in the Fluidkeys directory allows\n")
+	out.Print("   others to find your key from your email address.\n\n")
+
+	prompter := interactiveYesNoPrompter{}
+
+	if prompter.promptYesNo("Would you like to publish your key?", "", nil) {
+		if err := tryToPublishKeyAndSetAllowSearchByEmail(privateKey); err != nil {
+			printFailed(err.Error())
+		} else {
+			printSuccess("Successfully published key")
+		}
+	} else {
+		printInfo("Skipped publishing key")
+	}
+}
+
+func tryToPublishKeyAndSetAllowSearchByEmail(privateKey *pgpkey.PgpKey) error {
+	err := keyPublish(privateKey)
+	if err != nil {
+		return fmt.Errorf("Couldn't publish key: %s", err)
+	}
+	fingerprint := privateKey.Fingerprint()
+	if err != nil {
+		return fmt.Errorf("Couldn't get fingerprint for key: %s", err)
+	}
+	err = Config.SetAllowSearchByEmail(fingerprint, true)
+	if err != nil {
+		return fmt.Errorf("Couldn't set key to publish: %s", err)
+	}
+	return nil
 }

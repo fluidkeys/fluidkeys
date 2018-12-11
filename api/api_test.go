@@ -25,19 +25,50 @@ func TestGetPublicKey(t *testing.T) {
 	client, mux, _, teardown := setup()
 	defer teardown()
 
-	mux.HandleFunc("/email/jane@example.com/key", func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, "GET")
-		fmt.Fprint(w, `{"armoredPublicKey": "---- BEGIN PGP PUBLIC KEY..."}`)
+	t.Run("with valid JSON response", func(t *testing.T) {
+		mux.HandleFunc("/email/jane@example.com/key", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, "GET")
+			w.Header().Add("Content-Type", "application/json")
+			fmt.Fprint(w, `{"armoredPublicKey": "---- BEGIN PGP PUBLIC KEY..."}`)
+		})
+
+		armoredPublicKey, err := client.GetPublicKey("jane@example.com")
+
+		assert.ErrorIsNil(t, err)
+
+		want := "---- BEGIN PGP PUBLIC KEY..."
+		if armoredPublicKey != want {
+			t.Errorf("GetPublicKey(\"jane@example.com\") returned %+v, want %+v", armoredPublicKey, want)
+		}
 	})
 
-	armoredPublicKey, err := client.GetPublicKey("jane@example.com")
+	t.Run("with empty response", func(t *testing.T) {
+		mux.HandleFunc("/email/joe@example.com/key", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, "GET")
+		})
 
-	assert.ErrorIsNil(t, err)
+		armoredPublicKey, err := client.GetPublicKey("joe@example.com")
 
-	want := "---- BEGIN PGP PUBLIC KEY..."
-	if armoredPublicKey != want {
-		t.Errorf("GetPublicKey(\"jane@example.com\") returned %+v, want %+v", armoredPublicKey, want)
-	}
+		assert.ErrorIsNil(t, err)
+
+		want := ""
+		if armoredPublicKey != want {
+			t.Errorf("GetPublicKey(\"joe@example.com\") returned %+v, want %+v", armoredPublicKey, want)
+		}
+	})
+
+	t.Run("with a server error", func(t *testing.T) {
+		mux.HandleFunc("/email/abby@example.com/key", func(w http.ResponseWriter, r *http.Request) {
+			testMethod(t, r, "GET")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Header().Add("Content-Type", "application/json")
+			fmt.Fprint(w, `{"detail": "Key not found"}`)
+		})
+
+		_, err := client.GetPublicKey("abby@example.com")
+
+		assert.ErrorIsNotNil(t, err)
+	})
 }
 
 func TestCreateSecret(t *testing.T) {
