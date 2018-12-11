@@ -28,6 +28,13 @@ import (
 	"github.com/fluidkeys/fluidkeys/status"
 )
 
+// A KeyWithWarnings defines a key with a slice of warnings used to format
+// a row in the table
+type KeyWithWarnings struct {
+	Key      *pgpkey.PgpKey
+	Warnings []status.KeyWarning
+}
+
 type column = []string
 type row = []string
 
@@ -42,13 +49,13 @@ var header = row{
 
 var placeholderDividerRow = row{divider, divider, divider}
 
-func Print(keys []pgpkey.PgpKey) {
-	out.Print(makeTable(keys))
-	out.Print(makePrimaryInstruction(keys))
+func Print(keysWithWarnings []KeyWithWarnings) {
+	out.Print(makeTable(keysWithWarnings))
+	out.Print(makePrimaryInstruction(keysWithWarnings))
 }
 
-func makeTable(keys []pgpkey.PgpKey) (output string) {
-	rows := makeTableRows(keys)
+func makeTable(keysWithWarnings []KeyWithWarnings) (output string) {
+	rows := makeTableRows(keysWithWarnings)
 	rowStrings := makeStringsFromRows(rows)
 	for _, rowString := range rowStrings {
 		output += rowString + "\n"
@@ -56,11 +63,11 @@ func makeTable(keys []pgpkey.PgpKey) (output string) {
 	return output + "\n"
 }
 
-func makeTableRows(keys []pgpkey.PgpKey) []row {
+func makeTableRows(keysWithWarnings []KeyWithWarnings) []row {
 	var rows []row
 	rows = append(rows, header)
 	rows = append(rows, placeholderDividerRow)
-	rows = append(rows, makeRowsForKeys(keys)...)
+	rows = append(rows, makeRowsForKeys(keysWithWarnings)...)
 	return rows
 }
 
@@ -70,13 +77,13 @@ func makeTableRows(keys []pgpkey.PgpKey) []row {
 // e.g ->   [['jane@example.com', '12 Jan 1998', 'Due for rotation',
 //           ['jane@work.com', '', 'Another warning']]
 // It adds a dividing line between each key
-func makeRowsForKeys(keys []pgpkey.PgpKey) []row {
+func makeRowsForKeys(keysWithWarnings []KeyWithWarnings) []row {
 	var allRows []row
-	for _, key := range keys {
+	for _, keyWithWarnings := range keysWithWarnings {
 		columns := []column{
-			key.Emails(true),
-			[]string{key.PrimaryKey.CreationTime.Format("2 Jan 2006")},
-			keyStatus(key, status.GetKeyWarnings(key)),
+			keyWithWarnings.Key.Emails(true),
+			[]string{keyWithWarnings.Key.PrimaryKey.CreationTime.Format("2 Jan 2006")},
+			keyStatus(*keyWithWarnings.Key, keyWithWarnings.Warnings),
 		}
 		keyRows := makeRowsFromColumns(columns)
 		allRows = append(allRows, keyRows...)
@@ -210,10 +217,10 @@ func max(x int, y int) int {
 // makePrimaryInstruction prints single instruction to the user to run
 // 'fk key maintain' if they have any issues with their keys. The severity of
 // the message depends on if they have any urgent issues.
-func makePrimaryInstruction(keys []pgpkey.PgpKey) string {
+func makePrimaryInstruction(keysWithWarnings []KeyWithWarnings) string {
 	var warnings []status.KeyWarning
-	for _, key := range keys {
-		warnings = append(warnings, status.GetKeyWarnings(key)...)
+	for _, keyWithWarnings := range keysWithWarnings {
+		warnings = append(warnings, keyWithWarnings.Warnings...)
 	}
 	var output string
 	if len(warnings) > 0 {
