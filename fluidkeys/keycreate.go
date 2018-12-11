@@ -112,7 +112,9 @@ func keyCreate() exitCode {
 	printSuccess("Successfully created key for " + email)
 	out.Print("\n")
 
-	promptAndPublishToFluidkeysDirectory(generateJob.pgpKey)
+	prompter := interactiveYesNoPrompter{}
+
+	promptAndPublishToFluidkeysDirectory(&prompter, generateJob.pgpKey)
 	out.Print("\n")
 
 	return 0
@@ -160,11 +162,9 @@ func clearScreen() {
 	out.Print("\033[H\033[2J")
 }
 
-func promptAndPublishToFluidkeysDirectory(privateKey *pgpkey.PgpKey) {
+func promptAndPublishToFluidkeysDirectory(prompter promptYesNoInterface, privateKey *pgpkey.PgpKey) {
 	out.Print("🔍 Publishing your key in the Fluidkeys directory allows\n")
 	out.Print("   others to find your key from your email address.\n\n")
-
-	prompter := interactiveYesNoPrompter{}
 
 	if prompter.promptYesNo("Would you like to publish your key?", "", nil) {
 		if err := tryToPublishKeyAndSetAllowSearchByEmail(privateKey); err != nil {
