@@ -154,7 +154,7 @@ func (aR *automaticResponder) promptYesNo(message string, defaultResponse string
 
 	case promptBackupAndRunActions, promptRunActions:
 		if key == nil {
-			panic("expected *key but got nil pointer")
+			panic("promptYesNo called with nil key pointer")
 		}
 		return Config.ShouldStorePassword(key.Fingerprint()) &&
 			Config.ShouldMaintainAutomatically(key.Fingerprint())
