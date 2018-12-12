@@ -216,9 +216,12 @@ func runKeyMaintain(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwor
 		if ranActionsSuccesfully && !Config.ShouldMaintainAutomatically(keyTask.key.Fingerprint()) {
 			promptAndTurnOnMaintainAutomatically(prompter, *keyTask)
 		}
+		if ranActionsSuccesfully && !Config.ShouldPublishToAPI(keyTask.key.Fingerprint()) {
+			promptAndTurnOnPublishToAPI(prompter, keyTask.key)
+		}
 
-		if ranActionsSuccesfully {
-			promptAndPublishToFluidkeysDirectory(prompter, keyTask.key)
+		if Config.ShouldPublishToAPI(keyTask.key.Fingerprint()) {
+			keyPublish(keyTask.key)
 		}
 	}
 
