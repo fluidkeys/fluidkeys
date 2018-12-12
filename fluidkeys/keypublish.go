@@ -47,6 +47,6 @@ func promptAndTurnOnPublishToAPI(prompter promptYesNoInterface, key *pgpkey.PgpK
 			log.Printf("Failed to enable publish to api: %v", err)
 		}
 	} else {
-		out.Print(colour.Disabled(" ▸   Not publishing key to API.\n\n"))
+		out.Print(colour.Disabled(" ▸   Not publishing key to Fluidkeys directory.\n\n"))
 	}
 }
