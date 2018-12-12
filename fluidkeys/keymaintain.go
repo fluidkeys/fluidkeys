@@ -229,7 +229,22 @@ func runKeyMaintain(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwor
 		out.Print("\n")
 		return 1
 	} else {
-		out.Print(colour.Success("Maintenance complete.") + "\n")
+		out.Print(colour.Success("Maintenance complete.") + "\n\n")
+
+		var numKeysNotPublished = 0
+		for _, keyTask := range keyTasks {
+			if !Config.ShouldPublishToAPI(keyTask.key.Fingerprint()) {
+				numKeysNotPublished += 1
+			}
+		}
+		if numKeysNotPublished > 0 {
+
+			out.Print(fmt.Sprintf(" " + colour.Warning("▸   "+humanize.Pluralize(numKeysNotPublished, "key hasn't", "keys haven't")+
+				" been updated in the Fluidkeys directory.\n\n")))
+			out.Print("Make sure others can find your updated keys by running:\n")
+			out.Print("    " + colour.CommandLineCode("fk key publish") + "\n\n")
+		}
+
 		return 0
 	}
 }
