@@ -79,7 +79,7 @@ func runKeyMaintainDryRun(keys []pgpkey.PgpKey) exitCode {
 
 	for i := range keyTasks {
 		var keyTask *keyTask = keyTasks[i]
-		keyTask.actions = addImportExportActions(keyTask.actions, nil)
+		addImportExportActions(keyTask, nil)
 		out.Print(formatKeyWarnings(*keyTask))
 		out.Print(formatKeyActions(*keyTask))
 	}
@@ -195,7 +195,7 @@ func runKeyMaintain(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwor
 
 	for i := range keyTasks {
 		var keyTask *keyTask = keyTasks[i]
-		keyTask.actions = addImportExportActions(keyTask.actions, passwordPrompter)
+		addImportExportActions(keyTask, passwordPrompter)
 	}
 
 	var backupCreatedAlready bool = false
@@ -247,11 +247,10 @@ func runKeyMaintain(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwor
 	}
 }
 
-func addImportExportActions(actions []status.KeyAction, passwordPrompter promptForPasswordInterface) []status.KeyAction {
-	actions = prepend(actions, LoadPrivateKeyFromGnupg{passwordGetter: passwordPrompter})
-	actions = append(actions, PushIntoGnupg{})
-	actions = append(actions, UpdateBackupZIP{})
-	return actions
+func addImportExportActions(keytask *keyTask, passwordPrompter promptForPasswordInterface) {
+	keytask.actions = prepend(keytask.actions, LoadPrivateKeyFromGnupg{passwordGetter: passwordPrompter})
+	keytask.actions = append(keytask.actions, PushIntoGnupg{})
+	keytask.actions = append(keytask.actions, UpdateBackupZIP{})
 }
 
 func prepend(actions []status.KeyAction, actionToPrepend status.KeyAction) []status.KeyAction {
