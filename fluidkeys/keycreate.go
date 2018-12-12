@@ -166,7 +166,7 @@ func promptAndPublishToFluidkeysDirectory(prompter promptYesNoInterface, private
 	out.Print("🔍 Publishing your key in the Fluidkeys directory allows\n")
 	out.Print("   others to find your key from your email address.\n\n")
 
-	if prompter.promptYesNo(promptPublishToAPI, "", nil) {
+	if prompter.promptYesNo(promptPublishToAPI, "", privateKey) {
 		if err := tryToPublishKeyAndSetPublishToAPI(privateKey); err != nil {
 			printFailed(err.Error())
 		} else {
