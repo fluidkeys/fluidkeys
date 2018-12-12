@@ -221,7 +221,13 @@ func runKeyMaintain(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwor
 		}
 
 		if Config.ShouldPublishToAPI(keyTask.key.Fingerprint()) {
-			keyPublish(keyTask.key)
+			err := publishKeyToAPI(keyTask.key)
+			if err != nil {
+				printFailed("Failed to publish key")
+				out.Print(err.Error())
+			} else {
+				printSuccess("Published key to API")
+			}
 		}
 	}
 

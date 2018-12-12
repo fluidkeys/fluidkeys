@@ -23,7 +23,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
 
-func keyPublish(privateKey *pgpkey.PgpKey) error {
+func publishKeyToAPI(privateKey *pgpkey.PgpKey) error {
 	armoredPublicKey, err := privateKey.Armor()
 	if err != nil {
 		return fmt.Errorf("Couldn't load armored key: %s\n", err)

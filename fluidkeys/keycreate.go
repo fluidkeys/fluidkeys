@@ -118,7 +118,13 @@ func keyCreate() exitCode {
 	promptAndTurnOnPublishToAPI(&prompter, generateJob.pgpKey)
 
 	if Config.ShouldPublishToAPI(generateJob.pgpKey.Fingerprint()) {
-		keyPublish(generateJob.pgpKey)
+		err := publishKeyToAPI(generateJob.pgpKey)
+		if err != nil {
+			printFailed("Failed to publish key")
+			out.Print(err.Error())
+		} else {
+			printSuccess("Successfully published key")
+		}
 	}
 	out.Print("\n")
 
