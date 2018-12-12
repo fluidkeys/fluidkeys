@@ -1,5 +1,8 @@
 #!/bin/sh -eux
 
+# This script is run by Jenkins, in a random(ish) workspace directory.
+# We make a GOPATH in temp and re-checkout the repo inside that directory.
+
 WORKSPACE=${WORKSPACE:-$PWD}
 export GOPATH=$(mktemp -d)
 REPO_DIR="${GOPATH}/src/github.com/fluidkeys/fluidkeys"
