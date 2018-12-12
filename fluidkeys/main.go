@@ -68,6 +68,7 @@ Usage:
 	fk key list
 	fk key maintain [--dry-run]
 	fk key maintain automatic [--cron-output]
+	fk key publish
 
 Options:
 	-h --help         Show this screen
@@ -136,7 +137,7 @@ func initSubcommand(args docopt.Opts) exitCode {
 
 func keySubcommand(args docopt.Opts) exitCode {
 	switch getSubcommand(args, []string{
-		"create", "from-gpg", "list", "maintain",
+		"create", "from-gpg", "list", "maintain", "publish",
 	}) {
 	case "create":
 		os.Exit(keyCreate())
@@ -158,6 +159,8 @@ func keySubcommand(args docopt.Opts) exitCode {
 			panic(err)
 		}
 		os.Exit(keyMaintain(dryRun, automatic, cronOutput))
+	case "publish":
+		os.Exit(keyPublish())
 	}
 	panic(fmt.Errorf("keySubcommand got unexpected arguments: %v", args))
 }

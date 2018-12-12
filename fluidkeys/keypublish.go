@@ -26,6 +26,58 @@ import (
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
 
+func keyPublish() exitCode {
+	out.Print(colour.Info("Publishing keys...") + "\n\n")
+	keys, err := loadPgpKeys()
+	if err != nil {
+		panic(err)
+	}
+
+	passwordPrompter := interactivePasswordPrompter{}
+	yesNoPrompter := interactiveYesNoPrompter{}
+
+	gotAnyErrors := false
+
+	for i := range keys {
+		key := &keys[i]
+		out.Print(displayName(key) + "\n\n")
+
+		if !Config.ShouldPublishToAPI(key.Fingerprint()) {
+			out.Print(colour.Warning(" ▸   Config currently preventing key from being published\n\n"))
+			promptAndTurnOnPublishToAPI(&yesNoPrompter, key)
+		}
+
+		// Check again, since promptAndTurnOnPublishToAPI modifies
+		// this setting if the user answers "yes"
+		if !Config.ShouldPublishToAPI(key.Fingerprint()) {
+			continue // they really really don't want to publish
+		}
+
+		unlockedKey, _, err := getDecryptedPrivateKeyAndPassword(key, &passwordPrompter)
+		if err != nil {
+			printFailed("Failed to unlock private key")
+			out.Print("Error: " + err.Error() + "\n")
+			gotAnyErrors = true
+			continue
+		}
+
+		err = publishKeyToAPI(unlockedKey)
+		if err != nil {
+			printFailed("Error publishing key")
+			out.Print(colour.Error("     " + err.Error() + "\n\n"))
+			gotAnyErrors = true
+			continue
+		}
+
+		printSuccess("Published key to Fluidkeys directory\n")
+	}
+
+	if gotAnyErrors {
+		return 1
+	}
+	return 0
+}
+
 func publishKeyToAPI(privateKey *pgpkey.PgpKey) error {
 	armoredPublicKey, err := privateKey.Armor()
 	if err != nil {
