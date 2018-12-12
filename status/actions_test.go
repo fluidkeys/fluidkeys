@@ -14,7 +14,7 @@ func TestMakeActionsFromSingleWarning(t *testing.T) {
 
 	var tests = []struct {
 		warningType     WarningType
-		subkeyId        uint64
+		subkeyID        uint64
 		expectedActions []KeyAction
 	}{
 		{
@@ -201,12 +201,11 @@ func TestMakeActionsFromSingleWarning(t *testing.T) {
 	for _, test := range tests {
 		warning := KeyWarning{
 			Type:     test.warningType,
-			SubkeyId: test.subkeyId,
+			SubkeyId: test.subkeyID,
 		}
 
-		t.Run(fmt.Sprintf("%s subkey=%v", warning, test.subkeyId), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%s subkey=%v", warning, test.subkeyID), func(t *testing.T) {
 			gotActions := makeActionsFromSingleWarning(warning, now)
-			fmt.Sprintf("gotActions: %v\n", gotActions)
 			assertActionsEqual(t, test.expectedActions, gotActions)
 		})
 	}
