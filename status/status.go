@@ -338,22 +338,26 @@ func acceptableSignatureHash(hash *crypto.Hash) bool {
 }
 
 func getConfigurationWarnings(key pgpkey.PgpKey, config *config.Config) []KeyWarning {
+
 	var warnings []KeyWarning
 
-	if !config.ShouldMaintainAutomatically(key.Fingerprint()) {
-		warning := KeyWarning{Type: ConfigMaintainAutomaticallyNotSet}
-		warnings = append(warnings, warning)
-	}
+	maintainAutomatically := config.ShouldMaintainAutomatically(key.Fingerprint())
+	publishToAPI := config.ShouldPublishToAPI(key.Fingerprint())
 
-	if !config.ShouldPublishToAPI(key.Fingerprint()) {
-		warning := KeyWarning{Type: ConfigPublishToAPINotSet}
-		warnings = append(warnings, warning)
-	}
+	if !maintainAutomatically && !publishToAPI {
+		warnings = append(warnings,
+			KeyWarning{Type: ConfigMaintainAutomaticallyNotSet},
+			KeyWarning{Type: ConfigPublishToAPINotSet},
+		)
+	} else if maintainAutomatically && !publishToAPI {
+		warnings = append(warnings,
+			KeyWarning{Type: ConfigMaintainAutomaticallyButDontPublish},
+		)
 
-	if config.ShouldMaintainAutomatically(key.Fingerprint()) &&
-		!config.ShouldPublishToAPI(key.Fingerprint()) {
-		warning := KeyWarning{Type: ConfigMaintainAutomaticallyButDontPublish}
-		warnings = append(warnings, warning)
+	} else if !maintainAutomatically && publishToAPI {
+		warnings = append(warnings,
+			KeyWarning{Type: ConfigMaintainAutomaticallyNotSet},
+		)
 	}
 
 	return warnings

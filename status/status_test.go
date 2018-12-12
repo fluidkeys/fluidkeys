@@ -453,40 +453,50 @@ func TestGetConfiguartionWarnings(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Run("with an acceptable config setup", func(t *testing.T) {
-		config := config.Config{}
-		config.SetMaintainAutomatically(key.Fingerprint(), true)
-		config.SetPublishToAPI(key.Fingerprint(), true)
+	var tests = []struct {
+		maintainAutomatically bool
+		publishToAPI          bool
+		expectedWarnings      []KeyWarning
+	}{
+		{
+			maintainAutomatically: true,
+			publishToAPI:          true,
+			expectedWarnings:      []KeyWarning{},
+		},
+		{
+			maintainAutomatically: false,
+			publishToAPI:          false,
+			expectedWarnings: []KeyWarning{
+				KeyWarning{Type: ConfigMaintainAutomaticallyNotSet},
+				KeyWarning{Type: ConfigPublishToAPINotSet},
+			},
+		},
+		{
+			maintainAutomatically: true,
+			publishToAPI:          false,
+			expectedWarnings: []KeyWarning{
+				KeyWarning{Type: ConfigMaintainAutomaticallyButDontPublish},
+			},
+		},
+		{
+			maintainAutomatically: false,
+			publishToAPI:          true,
+			expectedWarnings: []KeyWarning{
+				KeyWarning{Type: ConfigMaintainAutomaticallyNotSet},
+			},
+		},
+	}
 
-		expected := []KeyWarning{}
-		got := getConfigurationWarnings(*key, &config)
-		assertEqualSliceOfKeyWarningTypes(t, expected, got)
-	})
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("maintain automatically=%t, publish to API=%t", test.maintainAutomatically, test.publishToAPI), func(t *testing.T) {
+			config := config.Config{}
+			config.SetMaintainAutomatically(key.Fingerprint(), test.maintainAutomatically)
+			config.SetPublishToAPI(key.Fingerprint(), test.publishToAPI)
 
-	t.Run("with a key not set to maintain automatically", func(t *testing.T) {
-		config := config.Config{}
-		config.SetMaintainAutomatically(key.Fingerprint(), false)
-		config.SetPublishToAPI(key.Fingerprint(), true)
-
-		expected := []KeyWarning{
-			KeyWarning{Type: ConfigMaintainAutomaticallyNotSet},
-		}
-		got := getConfigurationWarnings(*key, &config)
-		assertEqualSliceOfKeyWarningTypes(t, expected, got)
-	})
-
-	t.Run("with a key not set to publish", func(t *testing.T) {
-		config := config.Config{}
-		config.SetMaintainAutomatically(key.Fingerprint(), true)
-		config.SetPublishToAPI(key.Fingerprint(), false)
-
-		expected := []KeyWarning{
-			KeyWarning{Type: ConfigPublishToAPINotSet},
-			KeyWarning{Type: ConfigMaintainAutomaticallyButDontPublish},
-		}
-		got := getConfigurationWarnings(*key, &config)
-		assertEqualSliceOfKeyWarningTypes(t, expected, got)
-	})
+			got := getConfigurationWarnings(*key, &config)
+			assertEqualSliceOfKeyWarningTypes(t, test.expectedWarnings, got)
+		})
+	}
 }
 
 func assertKeyWarningsContains(t *testing.T, gotWarnings []KeyWarning, expectedWarning KeyWarning) {
