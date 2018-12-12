@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/fluidkeys/fluidkeys/colour"
 
@@ -32,15 +33,6 @@ import (
 )
 
 func secretSend(recipientEmail string) exitCode {
-	out.Print("\n")
-	out.Print("[type or paste your message, ending by typing Ctrl-D]\n\n")
-
-	secret, err := scanUntilEOF()
-	if err != nil {
-		panic(err)
-		return 1
-	}
-
 	armoredPublicKey, err := client.GetPublicKey(recipientEmail)
 	if err != nil {
 		printFailed("Couldn't get the public key for " + recipientEmail + "\n")
@@ -53,6 +45,27 @@ func secretSend(recipientEmail string) exitCode {
 	if err != nil {
 		printFailed("Couldn't load the public key:")
 		out.Print("Error: " + err.Error() + "\n")
+		return 1
+	}
+
+	_, err = encryptSecret("dummy data to test encryption", pgpKey)
+	if err != nil {
+		printFailed("Couldn't encrypt to the key:")
+		out.Print("Error: " + err.Error() + "\n")
+		return 1
+	}
+
+	out.Print("\n")
+	out.Print("[type or paste your message, ending by typing Ctrl-D]\n\n")
+
+	secret, err := scanUntilEOF()
+	if err != nil {
+		panic(err)
+		return 1
+	}
+
+	if strings.TrimSpace(secret) == "" {
+		printFailed("Exiting due to empty message.\n")
 		return 1
 	}
 
