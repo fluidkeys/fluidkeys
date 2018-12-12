@@ -19,7 +19,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -171,17 +170,4 @@ func userConfirmedRandomWord(password DicewarePassword) bool {
 
 func clearScreen() {
 	out.Print("\033[H\033[2J")
-}
-
-func promptAndTurnOnPublishToAPI(prompter promptYesNoInterface, key *pgpkey.PgpKey) {
-	out.Print("🔍 Publishing your key in the Fluidkeys directory allows\n")
-	out.Print("   others to find your key from your email address.\n\n")
-
-	if prompter.promptYesNo(promptPublishToAPI, "", key) == true {
-		if err := Config.SetPublishToAPI(key.Fingerprint(), true); err != nil {
-			log.Printf("Failed to enable publish to api: %v", err)
-		}
-	} else {
-		out.Print(colour.Disabled(" ▸   Not publishing key to API.\n\n"))
-	}
 }
