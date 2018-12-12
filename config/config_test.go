@@ -3,14 +3,15 @@ package config
 import (
 	"bytes"
 	"fmt"
-	"github.com/fluidkeys/fluidkeys/assert"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
 	"testing"
+
+	"github.com/fluidkeys/fluidkeys/assert"
+	"github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 func TestLoad(t *testing.T) {
@@ -146,7 +147,7 @@ func TestParse(t *testing.T) {
 			if !inMap {
 				t.Fatalf("key wasn't in the map")
 			}
-			assert.Equal(t, true, firstKey.AllowSearchByEmail)
+			assert.Equal(t, true, firstKey.PublishToAPI)
 		})
 	})
 
@@ -190,7 +191,7 @@ func TestSerialize(t *testing.T) {
 			"  [pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]\n" +
 			"    store_password = true\n" +
 			"    maintain_automatically = false\n" +
-			"    allow_search_by_email = false\n"
+			"    publish_to_api = false\n"
 		assertEqualStrings(t, expected, output.String())
 	})
 }
@@ -263,15 +264,15 @@ func TestSettersAndGetters(t *testing.T) {
 		config := Config{filename: "/tmp/config.toml"}
 
 		t.Run("true", func(t *testing.T) {
-			err := config.SetAllowSearchByEmail(testFingerprint, true)
+			err := config.SetPublishToAPI(testFingerprint, true)
 			assert.ErrorIsNil(t, err)
-			assert.Equal(t, true, config.ShouldAllowSearchByEmail(testFingerprint))
+			assert.Equal(t, true, config.ShouldPublishToAPI(testFingerprint))
 		})
 
 		t.Run("false", func(t *testing.T) {
-			err := config.SetAllowSearchByEmail(testFingerprint, false)
+			err := config.SetPublishToAPI(testFingerprint, false)
 			assert.ErrorIsNil(t, err)
-			assert.Equal(t, false, config.ShouldAllowSearchByEmail(testFingerprint))
+			assert.Equal(t, false, config.ShouldPublishToAPI(testFingerprint))
 		})
 	})
 }
@@ -445,10 +446,10 @@ const exampleTomlDocument string = `
     [pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
     store_password = true
     maintain_automatically = false
-    allow_search_by_email = true
+    publish_to_api = true
     
     [pgpkeys.BBBB2222BBBB2222BBBB2222BBBB2222BBBB2222]
     store_password = false
     maintain_automatically = false
-    allow_search_by_email = false
+    publish_to_api = false
 `

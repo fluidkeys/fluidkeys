@@ -111,6 +111,7 @@ var (
 	promptBackupAndRunActions   = "Make a backup of " + colour.CommandLineCode("gpg") + " and run these actions?"
 	promptRunActions            = "Run these actions?"
 	promptMaintainAutomatically = "Automatically maintain this key from now on?"
+	promptPublishToAPI          = "Publish this key?"
 )
 
 type promptYesNoInterface interface {
@@ -161,6 +162,12 @@ func (aR *automaticResponder) promptYesNo(message string, defaultResponse string
 	case promptMaintainAutomatically:
 		panic("prompting to maintain key automatically, but it should be set and therefore not prompt")
 
+	case promptPublishToAPI:
+		if key == nil {
+			panic("expected *key but got nil pointer")
+		}
+		return Config.ShouldPublishToAPI(key.Fingerprint())
+
 	default:
 		panic(fmt.Errorf("don't know how to automatically respond to : %s\n", message))
 	}
@@ -208,6 +215,10 @@ func runKeyMaintain(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwor
 
 		if ranActionsSuccesfully && !Config.ShouldMaintainAutomatically(keyTask.key.Fingerprint()) {
 			promptAndTurnOnMaintainAutomatically(prompter, *keyTask)
+		}
+
+		if ranActionsSuccesfully {
+			promptAndPublishToFluidkeysDirectory(prompter, keyTask.key)
 		}
 	}
 
