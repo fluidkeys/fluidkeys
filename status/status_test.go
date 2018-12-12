@@ -3,15 +3,17 @@ package status
 import (
 	"crypto"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/fluidkeys/crypto/openpgp/packet"
+	"github.com/fluidkeys/fluidkeys/config"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/compression"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/hash"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/symmetric"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/policy"
-	"testing"
-	"time"
 )
 
 var (
@@ -441,6 +443,48 @@ func TestGetCompressionPreferenceWarnings(t *testing.T) {
 			},
 		}
 		got := getCompressionPreferenceWarnings(prefsWithBzip)
+		assertEqualSliceOfKeyWarningTypes(t, expected, got)
+	})
+}
+
+func TestGetConfiguartionWarnings(t *testing.T) {
+	key, err := pgpkey.LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("with an acceptable config setup", func(t *testing.T) {
+		config := config.Config{}
+		config.SetMaintainAutomatically(key.Fingerprint(), true)
+		config.SetPublishToAPI(key.Fingerprint(), true)
+
+		expected := []KeyWarning{}
+		got := getConfigurationWarnings(*key, &config)
+		assertEqualSliceOfKeyWarningTypes(t, expected, got)
+	})
+
+	t.Run("with a key not set to maintain automatically", func(t *testing.T) {
+		config := config.Config{}
+		config.SetMaintainAutomatically(key.Fingerprint(), false)
+		config.SetPublishToAPI(key.Fingerprint(), true)
+
+		expected := []KeyWarning{
+			KeyWarning{Type: ConfigMaintainAutomaticallyNotSet},
+		}
+		got := getConfigurationWarnings(*key, &config)
+		assertEqualSliceOfKeyWarningTypes(t, expected, got)
+	})
+
+	t.Run("with a key not set to publish", func(t *testing.T) {
+		config := config.Config{}
+		config.SetMaintainAutomatically(key.Fingerprint(), true)
+		config.SetPublishToAPI(key.Fingerprint(), false)
+
+		expected := []KeyWarning{
+			KeyWarning{Type: ConfigPublishToAPINotSet},
+			KeyWarning{Type: ConfigMaintainAutomaticallyButDontPublish},
+		}
+		got := getConfigurationWarnings(*key, &config)
 		assertEqualSliceOfKeyWarningTypes(t, expected, got)
 	})
 }
