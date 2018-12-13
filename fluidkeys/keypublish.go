@@ -34,7 +34,6 @@ func keyPublish() exitCode {
 	}
 
 	passwordPrompter := interactivePasswordPrompter{}
-	yesNoPrompter := interactiveYesNoPrompter{}
 
 	gotAnyErrors := false
 
@@ -42,14 +41,16 @@ func keyPublish() exitCode {
 		key := &keys[i]
 		out.Print(displayName(key) + "\n\n")
 
-		if !Config.ShouldPublishToAPI(key.Fingerprint()) {
+		shouldPublish := Config.ShouldPublishToAPI(key.Fingerprint())
+
+		if !shouldPublish {
 			out.Print(colour.Warning(" ▸   Config currently preventing key from being published\n\n"))
-			promptAndTurnOnPublishToAPI(&yesNoPrompter, key)
+
+			promptToEnableConfigPublishToAPI(key)
+			shouldPublish = Config.ShouldPublishToAPI(key.Fingerprint())
 		}
 
-		// Check again, since promptAndTurnOnPublishToAPI modifies
-		// this setting if the user answers "yes"
-		if !Config.ShouldPublishToAPI(key.Fingerprint()) {
+		if !shouldPublish {
 			continue // they really really don't want to publish
 		}
 
