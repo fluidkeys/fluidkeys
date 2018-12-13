@@ -264,7 +264,7 @@ func makeKeyTasks(keys []pgpkey.PgpKey) []*keyTask {
 
 	for i := range keys {
 		key := &keys[i] // get a pointer here, not in the `for` expression
-		warnings := status.GetKeyWarnings(*key)
+		warnings := status.GetKeyWarnings(*key, &Config)
 		actions := status.MakeActionsFromWarnings(warnings, time.Now())
 
 		if len(actions) > 0 {

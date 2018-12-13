@@ -3,15 +3,17 @@ package status
 import (
 	"crypto"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/fluidkeys/crypto/openpgp/packet"
+	"github.com/fluidkeys/fluidkeys/config"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/compression"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/hash"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/symmetric"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/policy"
-	"testing"
-	"time"
 )
 
 var (
@@ -443,6 +445,58 @@ func TestGetCompressionPreferenceWarnings(t *testing.T) {
 		got := getCompressionPreferenceWarnings(prefsWithBzip)
 		assertEqualSliceOfKeyWarningTypes(t, expected, got)
 	})
+}
+
+func TestGetConfiguartionWarnings(t *testing.T) {
+	key, err := pgpkey.LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var tests = []struct {
+		maintainAutomatically bool
+		publishToAPI          bool
+		expectedWarnings      []KeyWarning
+	}{
+		{
+			maintainAutomatically: true,
+			publishToAPI:          true,
+			expectedWarnings:      []KeyWarning{},
+		},
+		{
+			maintainAutomatically: false,
+			publishToAPI:          false,
+			expectedWarnings: []KeyWarning{
+				KeyWarning{Type: ConfigMaintainAutomaticallyNotSet},
+				KeyWarning{Type: ConfigPublishToAPINotSet},
+			},
+		},
+		{
+			maintainAutomatically: true,
+			publishToAPI:          false,
+			expectedWarnings: []KeyWarning{
+				KeyWarning{Type: ConfigMaintainAutomaticallyButDontPublish},
+			},
+		},
+		{
+			maintainAutomatically: false,
+			publishToAPI:          true,
+			expectedWarnings: []KeyWarning{
+				KeyWarning{Type: ConfigMaintainAutomaticallyNotSet},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("maintain automatically=%t, publish to API=%t", test.maintainAutomatically, test.publishToAPI), func(t *testing.T) {
+			config := config.Config{}
+			config.SetMaintainAutomatically(key.Fingerprint(), test.maintainAutomatically)
+			config.SetPublishToAPI(key.Fingerprint(), test.publishToAPI)
+
+			got := getConfigurationWarnings(*key, &config)
+			assertEqualSliceOfKeyWarningTypes(t, test.expectedWarnings, got)
+		})
+	}
 }
 
 func assertKeyWarningsContains(t *testing.T, gotWarnings []KeyWarning, expectedWarning KeyWarning) {
