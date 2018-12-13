@@ -90,11 +90,14 @@ func splitIntoLogLines(message string) []string {
 	for _, line := range strings.Split(message, "\n") {
 		if strings.Trim(line, "\n") == "" {
 			continue
-		} else if strings.Contains(line, NoLogCharacter) {
-			line = "*** line redacted from log file ***"
 		}
 		outLines = append(outLines, line)
 	}
+
+	if strings.Contains(message, NoLogCharacter) {
+		outLines = []string{fmt.Sprintf("*** %d lines redacted from log file ***", len(outLines))}
+	}
+
 	return outLines
 }
 
