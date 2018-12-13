@@ -112,9 +112,7 @@ func keyCreate() exitCode {
 	printSuccess("Successfully created key for " + email)
 	out.Print("\n")
 
-	prompter := interactiveYesNoPrompter{}
-
-	promptAndTurnOnPublishToAPI(&prompter, generateJob.pgpKey)
+	promptToEnableConfigPublishToAPI(generateJob.pgpKey)
 
 	if Config.ShouldPublishToAPI(generateJob.pgpKey.Fingerprint()) {
 		err := publishKeyToAPI(generateJob.pgpKey)

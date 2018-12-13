@@ -34,7 +34,6 @@ func keyPublish() exitCode {
 	}
 
 	passwordPrompter := interactivePasswordPrompter{}
-	yesNoPrompter := interactiveYesNoPrompter{}
 
 	gotAnyErrors := false
 
@@ -42,15 +41,8 @@ func keyPublish() exitCode {
 		key := &keys[i]
 		out.Print(displayName(key) + "\n\n")
 
-		if !Config.ShouldPublishToAPI(key.Fingerprint()) {
-			out.Print(colour.Warning(" ▸   Config currently preventing key from being published\n\n"))
-			promptAndTurnOnPublishToAPI(&yesNoPrompter, key)
-		}
-
-		// Check again, since promptAndTurnOnPublishToAPI modifies
-		// this setting if the user answers "yes"
-		if !Config.ShouldPublishToAPI(key.Fingerprint()) {
-			continue // they really really don't want to publish
+		if !shouldPublishToAPI(key) {
+			continue
 		}
 
 		unlockedKey, _, err := getDecryptedPrivateKeyAndPassword(key, &passwordPrompter)
@@ -78,6 +70,25 @@ func keyPublish() exitCode {
 	return 0
 }
 
+// shouldPublishToAPI nags the user to turn on publish to API if it's not
+// already turned on.
+// If it's already set, just return true.
+// If it's not already set:
+// * ask them if they want to publish it
+// * if yes, *update the config*
+// * return the current value of Config.ShouldPublishToAPI
+func shouldPublishToAPI(key *pgpkey.PgpKey) bool {
+	shouldPublish := Config.ShouldPublishToAPI(key.Fingerprint())
+
+	if !shouldPublish {
+		out.Print(colour.Warning(" ▸   Config currently preventing key from being published\n\n"))
+
+		promptToEnableConfigPublishToAPI(key)
+	}
+
+	return Config.ShouldPublishToAPI(key.Fingerprint())
+}
+
 func publishKeyToAPI(privateKey *pgpkey.PgpKey) error {
 	armoredPublicKey, err := privateKey.Armor()
 	if err != nil {
@@ -90,11 +101,17 @@ func publishKeyToAPI(privateKey *pgpkey.PgpKey) error {
 	return nil
 }
 
-func promptAndTurnOnPublishToAPI(prompter promptYesNoInterface, key *pgpkey.PgpKey) {
+// promptToEnableConfigPublishToAPI asks the user if they'd like to publish a
+// key to the Fluidkeys directory.
+// This actually means *enable config* to publish from subsequent actions like
+// `key maintain` and `key publish`.
+func promptToEnableConfigPublishToAPI(key *pgpkey.PgpKey) {
+	prompter := interactiveYesNoPrompter{}
+
 	out.Print("🔍 Publishing your key in the Fluidkeys directory allows\n")
 	out.Print("   others to find your key from your email address.\n\n")
 
-	if prompter.promptYesNo(promptPublishToAPI, "", key) == true {
+	if prompter.promptYesNo("Publish this key?", "", key) == true {
 		if err := Config.SetPublishToAPI(key.Fingerprint(), true); err != nil {
 			log.Printf("Failed to enable publish to api: %v", err)
 		}
