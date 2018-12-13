@@ -49,12 +49,8 @@
   name = "github.com/fluidkeys/keyring"
 
 [[override]]
-  # Use our temporary fork of dbus.
-  # When github.com/godbus/dbus/pull/118 is merged, delete this line and run:
-  # `dep ensure -update github.com/godbus/dbus`
   name = "github.com/godbus/dbus"
-  branch = "master"
-  source = "github.com/fluidkeys/fork-dbus"
+  version = "5.0.1"
 
 [[constraint]]
   branch = "master"
