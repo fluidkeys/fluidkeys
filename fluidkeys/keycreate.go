@@ -114,7 +114,17 @@ func keyCreate() exitCode {
 
 	prompter := interactiveYesNoPrompter{}
 
-	promptAndPublishToFluidkeysDirectory(&prompter, generateJob.pgpKey)
+	promptAndTurnOnPublishToAPI(&prompter, generateJob.pgpKey)
+
+	if Config.ShouldPublishToAPI(generateJob.pgpKey.Fingerprint()) {
+		err := publishKeyToAPI(generateJob.pgpKey)
+		if err != nil {
+			printFailed("Failed to publish key")
+			out.Print(err.Error())
+		} else {
+			printSuccess("Successfully published key")
+		}
+	}
 	out.Print("\n")
 
 	return 0
@@ -160,35 +170,4 @@ func userConfirmedRandomWord(password DicewarePassword) bool {
 
 func clearScreen() {
 	out.Print("\033[H\033[2J")
-}
-
-func promptAndPublishToFluidkeysDirectory(prompter promptYesNoInterface, privateKey *pgpkey.PgpKey) {
-	out.Print("🔍 Publishing your key in the Fluidkeys directory allows\n")
-	out.Print("   others to find your key from your email address.\n\n")
-
-	if prompter.promptYesNo(promptPublishToAPI, "", privateKey) {
-		if err := tryToPublishKeyAndSetPublishToAPI(privateKey); err != nil {
-			printFailed(err.Error())
-		} else {
-			printSuccess("Successfully published key")
-		}
-	} else {
-		printInfo("Skipped publishing key")
-	}
-}
-
-func tryToPublishKeyAndSetPublishToAPI(privateKey *pgpkey.PgpKey) error {
-	err := keyPublish(privateKey)
-	if err != nil {
-		return fmt.Errorf("Couldn't publish key: %s", err)
-	}
-	fingerprint := privateKey.Fingerprint()
-	if err != nil {
-		return fmt.Errorf("Couldn't get fingerprint for key: %s", err)
-	}
-	err = Config.SetPublishToAPI(fingerprint, true)
-	if err != nil {
-		return fmt.Errorf("Couldn't set key to publish: %s", err)
-	}
-	return nil
 }
