@@ -41,17 +41,8 @@ func keyPublish() exitCode {
 		key := &keys[i]
 		out.Print(displayName(key) + "\n\n")
 
-		shouldPublish := Config.ShouldPublishToAPI(key.Fingerprint())
-
-		if !shouldPublish {
-			out.Print(colour.Warning(" ▸   Config currently preventing key from being published\n\n"))
-
-			promptToEnableConfigPublishToAPI(key)
-			shouldPublish = Config.ShouldPublishToAPI(key.Fingerprint())
-		}
-
-		if !shouldPublish {
-			continue // they really really don't want to publish
+		if !shouldPublishToAPI(key) {
+			continue
 		}
 
 		unlockedKey, _, err := getDecryptedPrivateKeyAndPassword(key, &passwordPrompter)
@@ -77,6 +68,25 @@ func keyPublish() exitCode {
 		return 1
 	}
 	return 0
+}
+
+// shouldPublishToAPI nags the user to turn on publish to API if it's not
+// already turned on.
+// If it's already set, just return true.
+// If it's not already set:
+// * ask them if they want to publish it
+// * if yes, *update the config*
+// * return the current value of Config.ShouldPublishToAPI
+func shouldPublishToAPI(key *pgpkey.PgpKey) bool {
+	shouldPublish := Config.ShouldPublishToAPI(key.Fingerprint())
+
+	if !shouldPublish {
+		out.Print(colour.Warning(" ▸   Config currently preventing key from being published\n\n"))
+
+		promptToEnableConfigPublishToAPI(key)
+	}
+
+	return Config.ShouldPublishToAPI(key.Fingerprint())
 }
 
 func publishKeyToAPI(privateKey *pgpkey.PgpKey) error {
