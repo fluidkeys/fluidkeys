@@ -68,13 +68,11 @@ func (c *Client) GetPublicKey(email string) (string, error) {
 		return "", err
 	}
 	decodedJSON := new(v1structs.GetPublicKeyResponse)
-	response, err := c.do(request, &decodedJSON)
+	_, err = c.do(request, &decodedJSON)
 	if err != nil {
 		return "", err
 	}
-	if response.StatusCode != http.StatusOK {
-		return "", makeErrorForAPIResponse(response)
-	}
+
 	return decodedJSON.ArmoredPublicKey, nil
 }
 
@@ -89,14 +87,8 @@ func (c *Client) CreateSecret(recipientFingerprint fingerprint.Fingerprint, armo
 		return err
 	}
 
-	response, err := c.do(request, nil)
-	if err != nil {
-		return fmt.Errorf("Failed to call API: %s", err)
-	}
-	if response.StatusCode != http.StatusCreated {
-		return makeErrorForAPIResponse(response)
-	}
-	return nil
+	_, err = c.do(request, nil)
+	return err
 }
 
 // ListSecrets for a particular fingerprint.
@@ -107,18 +99,12 @@ func (c *Client) ListSecrets(fingerprint fingerprint.Fingerprint) ([]v1structs.S
 	}
 	request.Header.Add("authorization", authorization(fingerprint))
 	decodedJSON := new(v1structs.ListSecretsResponse)
-	response, err := c.do(request, &decodedJSON)
+	_, err = c.do(request, &decodedJSON)
 	if err != nil {
 		return nil, err
 	}
-	switch response.StatusCode {
-	case http.StatusOK:
-		return decodedJSON.Secrets, nil
-	case http.StatusUnauthorized:
-		return nil, fmt.Errorf("Couldn't sign in to API")
-	default:
-		return nil, makeErrorForAPIResponse(response)
-	}
+
+	return decodedJSON.Secrets, nil
 }
 
 // DeleteSecret deletes a secret
@@ -129,18 +115,8 @@ func (c *Client) DeleteSecret(fingerprint fingerprint.Fingerprint, uuid string) 
 		return err
 	}
 	request.Header.Add("authorization", authorization(fingerprint))
-	response, err := c.do(request, nil)
-	if err != nil {
-		return err
-	}
-	switch response.StatusCode {
-	case http.StatusAccepted:
-		return nil
-	case http.StatusUnauthorized:
-		return fmt.Errorf("Couldn't sign in to API")
-	default:
-		return makeErrorForAPIResponse(response)
-	}
+	_, err = c.do(request, nil)
+	return err
 }
 
 // UpsertPublicKey creates or updates a public key in the Fluidkeys Directory.
@@ -160,14 +136,8 @@ func (c *Client) UpsertPublicKey(armoredPublicKey string, privateKey *pgpkey.Pgp
 		return fmt.Errorf("Failed to upload key: %s", err)
 	}
 	decodedUpsertResponse := new(v1structs.UpsertPublicKeyResponse)
-	response, err := c.do(request, &decodedUpsertResponse)
-	if err != nil {
-		return fmt.Errorf("Failed to call API: %s", err)
-	}
-	if response.StatusCode != http.StatusOK {
-		return makeErrorForAPIResponse(response)
-	}
-	return nil
+	_, err = c.do(request, &decodedUpsertResponse)
+	return err
 }
 
 func makeUpsertPublicKeySignedData(armoredPublicKey string, privateKey *pgpkey.PgpKey) (armoredSignedJSON string, err error) {
@@ -222,11 +192,15 @@ func signText(bytesToSign []byte, key *pgpkey.PgpKey) (armoredSigned string, err
 }
 
 func makeErrorForAPIResponse(response *http.Response) error {
+	if response.StatusCode == http.StatusUnauthorized {
+		return fmt.Errorf("Couldn't sign in to API")
+	}
+
 	apiErrorResponseDetail := decodeErrorResponse(response)
 	if apiErrorResponseDetail != "" {
-		return fmt.Errorf("Got API error: %d %s", response.StatusCode, apiErrorResponseDetail)
+		return fmt.Errorf("API error: %d %s", response.StatusCode, apiErrorResponseDetail)
 	}
-	return fmt.Errorf("Got API error: %d", response.StatusCode)
+	return fmt.Errorf("API error: %d", response.StatusCode)
 }
 
 func decodeErrorResponse(response *http.Response) string {
@@ -286,11 +260,25 @@ func (c *Client) do(req *http.Request, responseData interface{}) (response *http
 	}
 	defer response.Body.Close()
 
-	if responseData != nil && response.Header.Get("Content-Type") == "application/json" && response.Body != nil {
-		err = json.NewDecoder(response.Body).Decode(responseData)
+	if isSuccess(response.StatusCode) {
+		if responseData != nil && isJSON(response) && response.Body != nil {
+			if err = json.NewDecoder(response.Body).Decode(responseData); err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		return response, makeErrorForAPIResponse(response)
 	}
 
 	return response, err
+}
+
+func isJSON(response *http.Response) bool {
+	return response.Header.Get("Content-Type") == "application/json"
+}
+
+func isSuccess(httpStatusCode int) bool {
+	return httpStatusCode/100 == 2
 }
 
 func authorization(fpr fingerprint.Fingerprint) string {
