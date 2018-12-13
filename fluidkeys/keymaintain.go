@@ -216,19 +216,6 @@ func runKeyMaintain(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwor
 		if ranActionsSuccesfully && !Config.ShouldMaintainAutomatically(keyTask.key.Fingerprint()) {
 			promptAndTurnOnMaintainAutomatically(prompter, *keyTask)
 		}
-		if ranActionsSuccesfully && !Config.ShouldPublishToAPI(keyTask.key.Fingerprint()) {
-			promptAndTurnOnPublishToAPI(prompter, keyTask.key)
-		}
-
-		if Config.ShouldPublishToAPI(keyTask.key.Fingerprint()) {
-			err := publishKeyToAPI(keyTask.key)
-			if err != nil {
-				printFailed("Failed to publish key")
-				out.Print(err.Error())
-			} else {
-				printSuccess("Published key to API")
-			}
-		}
 	}
 
 	if anyTasksHaveErrors(keyTasks) {
@@ -251,6 +238,10 @@ func addImportExportActions(keytask *keyTask, passwordPrompter promptForPassword
 	keytask.actions = prepend(keytask.actions, LoadPrivateKeyFromGnupg{passwordGetter: passwordPrompter})
 	keytask.actions = append(keytask.actions, PushIntoGnupg{})
 	keytask.actions = append(keytask.actions, UpdateBackupZIP{})
+
+	if Config.ShouldPublishToAPI(keytask.key.Fingerprint()) {
+		keytask.actions = append(keytask.actions, PublishToAPI{})
+	}
 }
 
 func prepend(actions []status.KeyAction, actionToPrepend status.KeyAction) []status.KeyAction {
@@ -533,5 +524,20 @@ func (a UpdateBackupZIP) Enact(key *pgpkey.PgpKey, now time.Time, password *stri
 }
 
 func (a UpdateBackupZIP) SortOrder() int {
+	return 0 // unimportant since actions are already sorted
+}
+
+type PublishToAPI struct {
+}
+
+func (a PublishToAPI) String() string {
+	return "Publish updated key to Fluidkeys directory"
+}
+
+func (a PublishToAPI) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
+	return publishKeyToAPI(key)
+}
+
+func (a PublishToAPI) SortOrder() int {
 	return 0 // unimportant since actions are already sorted
 }
