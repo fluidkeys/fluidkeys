@@ -19,6 +19,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -85,7 +86,7 @@ func keyCreate() exitCode {
 	generateJob := <-channel
 
 	if generateJob.err != nil {
-		panic(fmt.Sprint("Failed to generate key: ", generateJob.err))
+		log.Panicf("Failed to generate key: %v", generateJob.err)
 	}
 	printSuccessfulAction("Generate key for " + email)
 

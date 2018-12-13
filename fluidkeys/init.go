@@ -19,6 +19,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"path/filepath"
@@ -81,7 +82,7 @@ func initGpgWrapper() {
 
 func initOutput() {
 	if err := out.Load(fluidkeysDirectory); err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 }
 

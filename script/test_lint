@@ -1,0 +1,26 @@
+#!/bin/sh -eu
+
+GO_FILES="$(find . -name *.go -not -path './vendor/*')"
+
+find_panic() {
+	if grep -n 'panic(' $GO_FILES | grep -v 'panic(nil)' ; then
+		echo "found panic(..), use log.Panic / log.Panicf instead"
+		exit 1
+	fi
+}
+
+run_golint() {
+	for FILE in $GO_FILES; do
+		golint $FILE
+	done
+	
+	# TODO: actually fail on golint output. For now, just print it.
+}
+
+find_panic
+run_golint
+
+# TODO:
+# * run_go_vet
+# * run_gofmt
+# * see https://goreportcard.com/report/github.com/fluidkeys/fluidkeys#gocyclo

@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"io"
+	"log"
 	insecurerand "math/rand"
 	"testing"
 	"time"
@@ -128,7 +129,7 @@ func setIsPrimary(isPrimary bool, identities map[string]*openpgp.Identity, ident
 	if id, inMap := identities[identityString]; inMap == true {
 		id.SelfSignature.IsPrimaryId = &isPrimary
 	} else {
-		panic(fmt.Errorf("couldn't find user id '%s' in map %v", identityString, identities))
+		log.Panicf("couldn't find user id '%s' in map %v", identityString, identities)
 	}
 
 }
@@ -326,7 +327,7 @@ func getSingleUid(identities map[string]*openpgp.Identity) string {
 		uids = append(uids, uid)
 	}
 	if len(uids) != 1 {
-		panic(fmt.Sprintf("expected identities map to have 1 element, has %d", len(uids)))
+		log.Panicf("expected identities map to have 1 element, has %d", len(uids))
 	}
 
 	return uids[0]

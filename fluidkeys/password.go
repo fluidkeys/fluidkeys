@@ -19,6 +19,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
@@ -91,7 +92,7 @@ func (p *interactivePasswordPrompter) promptForPassword(key *pgpkey.PgpKey) (str
 	out.Print(fmt.Sprintf("Enter password for %s: ", displayName(key)))
 	password, err := terminal.ReadPassword(0)
 	if err != nil {
-		panic(fmt.Sprintf("Error reading password: %v\n", err))
+		log.Panicf("Error reading password: %v", err)
 	} else {
 		out.Print("\n\n")
 	}

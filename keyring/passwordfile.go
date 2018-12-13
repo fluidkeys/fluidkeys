@@ -19,6 +19,7 @@ package keyring
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/BurntSushi/toml"
@@ -66,7 +67,7 @@ func loadPasswordFromFile(filename string, fp fingerprint.Fingerprint) (string, 
 	_, err := toml.DecodeFile(filename, &parsedConfig)
 
 	if err != nil {
-		panic(fmt.Errorf("failed to parse TOML file %s: %v\nUnset the environment variable %s to stop using it\n", filename, err, environmentVariable))
+		log.Panicf("failed to parse TOML file %s: %v\nUnset the environment variable %s to stop using it", filename, err, environmentVariable)
 	}
 
 	passwords := make(map[fingerprint.Fingerprint]string)
@@ -75,7 +76,7 @@ func loadPasswordFromFile(filename string, fp fingerprint.Fingerprint) (string, 
 		if parsedFingerprint, err := fingerprint.Parse(configFingerprint); err == nil {
 			passwords[parsedFingerprint] = key.Password
 		} else {
-			panic(fmt.Errorf("TOML file %s contained invalid OpenPGP fingerprint: '%s'\n", filename, configFingerprint))
+			log.Panicf("TOML file %s contained invalid OpenPGP fingerprint: '%s'", filename, configFingerprint)
 		}
 	}
 

@@ -21,6 +21,7 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"log"
 	"os"
 	"strings"
 
@@ -60,7 +61,7 @@ func secretSend(recipientEmail string) exitCode {
 
 	secret, err := scanUntilEOF()
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 		return 1
 	}
 
