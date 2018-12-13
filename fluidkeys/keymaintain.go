@@ -162,12 +162,6 @@ func (aR *automaticResponder) promptYesNo(message string, defaultResponse string
 	case promptMaintainAutomatically:
 		panic("prompting to maintain key automatically, but it should be set and therefore not prompt")
 
-	case promptPublishToAPI:
-		if key == nil {
-			panic("expected *key but got nil pointer")
-		}
-		return Config.ShouldPublishToAPI(key.Fingerprint())
-
 	default:
 		panic(fmt.Errorf("don't know how to automatically respond to : %s\n", message))
 	}

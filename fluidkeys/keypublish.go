@@ -94,7 +94,9 @@ func publishKeyToAPI(privateKey *pgpkey.PgpKey) error {
 // key to the Fluidkeys directory.
 // This actually means *enable config* to publish from subsequent actions like
 // `key maintain` and `key publish`.
-func promptToEnableConfigPublishToAPI(prompter promptYesNoInterface, key *pgpkey.PgpKey) {
+func promptToEnableConfigPublishToAPI(key *pgpkey.PgpKey) {
+	prompter := interactiveYesNoPrompter{}
+
 	out.Print("🔍 Publishing your key in the Fluidkeys directory allows\n")
 	out.Print("   others to find your key from your email address.\n\n")
 
