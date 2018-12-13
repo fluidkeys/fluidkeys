@@ -111,7 +111,6 @@ var (
 	promptBackupAndRunActions   = "Make a backup of " + colour.CommandLineCode("gpg") + " and run these actions?"
 	promptRunActions            = "Run these actions?"
 	promptMaintainAutomatically = "Automatically maintain this key from now on?"
-	promptPublishToAPI          = "Publish this key?"
 )
 
 type promptYesNoInterface interface {
