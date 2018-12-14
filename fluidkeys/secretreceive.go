@@ -51,6 +51,11 @@ func secretReceive() exitCode {
 	var sawError bool = false
 
 	for _, key := range keys {
+		if !Config.ShouldPublishToAPI(key.Fingerprint()) {
+			message := "Not published in Fluidkeys directory"
+			out.Print("⛔ " + displayName(&key) + ": " + colour.Warning(message) + "\n")
+			continue
+		}
 		secrets, secretErrors, err := downloadAndDecryptSecrets(key)
 		if err != nil {
 			switch err.(type) {
