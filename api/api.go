@@ -23,8 +23,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -51,11 +53,19 @@ type Client struct {
 
 // NewClient returns a new Fluidkeys Server API client.
 func NewClient(fluidkeysVersion string) *Client {
-	baseURL, _ := url.Parse(defaultBaseURL)
+	apiURL, got := os.LookupEnv("FLUIDKEYS_API_URL") // e.g. http://localhost:4747/v1/
+	if !got {
+		apiURL = defaultBaseURL
+	}
+
+	parsedURL, err := url.Parse(apiURL)
+	if err != nil {
+		log.Panic(fmt.Errorf("error parsing URL '%s': %v", apiURL, err))
+	}
 
 	return &Client{
 		client:    http.DefaultClient,
-		BaseURL:   baseURL,
+		BaseURL:   parsedURL,
 		UserAgent: userAgent + "-" + fluidkeysVersion,
 	}
 }
