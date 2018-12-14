@@ -50,13 +50,12 @@
   revision = "98cd9f4bb949ed8eff838d2a2b2e0feb9ba3213d"
 
 [[projects]]
-  branch = "master"
-  digest = "1:49eae5374d2bb801742f4472b1454cbb4f864fc434398dbc055decdbcf506e5b"
+  digest = "1:b3d20bcdedab2050e6bc58e52f4fdc46f710b4c74e1a1ecee262ebec1aee7b6e"
   name = "github.com/godbus/dbus"
   packages = ["."]
   pruneopts = "UT"
-  revision = "9adc973a4075ded5b9ab726210f5e63b62fd3475"
-  source = "github.com/fluidkeys/fork-dbus"
+  revision = "2ff6f7ffd60f0f2410b3105864bdd12c7894f844"
+  version = "v5.0.1"
 
 [[projects]]
   digest = "1:c594a691090b434d55c67f6cc8e326ef5ba49452abc059821bd5d4fd4cdef08c"
