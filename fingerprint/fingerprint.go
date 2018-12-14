@@ -20,6 +20,7 @@ package fingerprint
 import (
 	"encoding/hex"
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 )
@@ -59,11 +60,11 @@ func Parse(fp string) (Fingerprint, error) {
 }
 
 // MustParse takes a string and returns a Fingerprint. If the
-// string is not a valid fingerprint (e.g. 40 hex characters) it will panic.
+// string is not a valid fingerprint (e.g. 40 hex characters) it will log.Panic.
 func MustParse(fp string) Fingerprint {
 	result, err := Parse(fp)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 	return result
 }
@@ -136,6 +137,6 @@ func (f Fingerprint) IsSet() bool {
 
 func (f Fingerprint) assertIsSet() {
 	if !f.IsSet() {
-		panic(fmt.Errorf("Fingerprint.String() called when fingerprint hasn't been set."))
+		log.Panic("Fingerprint.String() called when fingerprint hasn't been set.")
 	}
 }

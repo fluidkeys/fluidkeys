@@ -33,6 +33,7 @@ build/bin/fk: $(MAIN_GO_FILES)
 .PHONY: test
 test:
 	go test ./...
+	./script/test_lint
 	./script/test_make_compile
 	./script/test_make_install
 	./script/test_dep_gopkg_files

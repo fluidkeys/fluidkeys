@@ -97,7 +97,7 @@ func ensureCrontabStateMatchesConfig() {
 	if Config.RunFromCron() {
 		crontabWasAdded, err := scheduler.Enable()
 		if err != nil {
-			panic(err)
+			log.Panic(err)
 		}
 
 		if crontabWasAdded {
@@ -106,7 +106,7 @@ func ensureCrontabStateMatchesConfig() {
 	} else {
 		crontabWasRemoved, err := scheduler.Disable()
 		if err != nil {
-			panic(err)
+			log.Panic(err)
 		}
 
 		if crontabWasRemoved {
@@ -121,13 +121,14 @@ func getSubcommand(args docopt.Opts, subcommands []string) string {
 	for _, subcommand := range subcommands {
 		value, err := args.Bool(subcommand)
 		if err != nil {
-			panic(err)
+			log.Panic(err)
 		}
 		if value {
 			return subcommand
 		}
 	}
-	panic(fmt.Errorf("expected to find one of these subcommands: %v", subcommands))
+	log.Panicf("expected to find one of these subcommands: %v", subcommands)
+	panic(nil)
 }
 
 func initSubcommand(args docopt.Opts) exitCode {
@@ -148,21 +149,22 @@ func keySubcommand(args docopt.Opts) exitCode {
 	case "maintain":
 		dryRun, err := args.Bool("--dry-run")
 		if err != nil {
-			panic(err)
+			log.Panic(err)
 		}
 		automatic, err := args.Bool("automatic")
 		if err != nil {
-			panic(err)
+			log.Panic(err)
 		}
 		cronOutput, err := args.Bool("--cron-output")
 		if err != nil {
-			panic(err)
+			log.Panic(err)
 		}
 		os.Exit(keyMaintain(dryRun, automatic, cronOutput))
 	case "publish":
 		os.Exit(keyPublish())
 	}
-	panic(fmt.Errorf("keySubcommand got unexpected arguments: %v", args))
+	log.Panicf("keySubcommand got unexpected arguments: %v", args)
+	panic(nil)
 }
 
 func loadPgpKeys() ([]pgpkey.PgpKey, error) {
@@ -200,7 +202,7 @@ func loadPgpKey(fingerprint fingerprint.Fingerprint) (*pgpkey.PgpKey, error) {
 func keyList() exitCode {
 	keys, err := loadPgpKeys()
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 
 	out.Print("\n")
@@ -233,7 +235,7 @@ func promptForInputWithPipes(prompt string, reader *bufio.Reader) string {
 	out.Print(prompt)
 	response, err := reader.ReadString('\n')
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 	out.Print("\n")
 	return strings.TrimRight(response, "\n")
@@ -250,11 +252,12 @@ func secretSubcommand(args docopt.Opts) exitCode {
 	case "send":
 		emailAddress, err := args.String("<recipient-email-address>")
 		if err != nil {
-			panic(err)
+			log.Panic(err)
 		}
 		os.Exit(secretSend(emailAddress))
 	case "receive":
 		os.Exit(secretReceive())
 	}
-	panic(fmt.Errorf("secretSubcommand got unexpected arguments: %v", args))
+	log.Panicf("secretSubcommand got unexpected arguments: %v", args)
+	panic(nil)
 }

@@ -19,6 +19,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -36,7 +37,7 @@ import (
 func keyMaintain(dryRun bool, automatic bool, cronOutput bool) exitCode {
 	keys, err := loadPgpKeys()
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 
 	if dryRun {
@@ -153,16 +154,18 @@ func (aR *automaticResponder) promptYesNo(message string, defaultResponse string
 
 	case promptBackupAndRunActions, promptRunActions:
 		if key == nil {
-			panic("promptYesNo called with nil key pointer")
+			log.Panic("promptYesNo called with nil key pointer")
 		}
 		return Config.ShouldStorePassword(key.Fingerprint()) &&
 			Config.ShouldMaintainAutomatically(key.Fingerprint())
 
 	case promptMaintainAutomatically:
-		panic("prompting to maintain key automatically, but it should be set and therefore not prompt")
+		log.Panic("prompting to maintain key automatically, but it should be set and therefore not prompt")
+		panic(nil)
 
 	default:
-		panic(fmt.Errorf("don't know how to automatically respond to : %s\n", message))
+		log.Panicf("don't know how to automatically respond to: '%s'", message)
+		panic(nil)
 	}
 }
 

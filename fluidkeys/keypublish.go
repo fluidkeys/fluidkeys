@@ -30,7 +30,7 @@ func keyPublish() exitCode {
 	out.Print(colour.Info("Publishing keys...") + "\n\n")
 	keys, err := loadPgpKeys()
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 
 	passwordPrompter := interactivePasswordPrompter{}

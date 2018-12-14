@@ -21,6 +21,7 @@ import (
 	"archive/zip"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"time"
 
@@ -40,22 +41,22 @@ func OutputZipBackupFile(
 ) (filename string, err error) {
 	publicKey, err := pgpKey.Armor()
 	if err != nil {
-		panic(fmt.Sprint("Failed to output public key: ", err))
+		log.Panicf("Failed to output public key: %v", err)
 	}
 
 	privateKey, err := pgpKey.ArmorPrivate(password)
 	if err != nil {
-		panic(fmt.Sprint("Failed to output private key: ", err))
+		log.Panicf("Failed to output private key: %v", err)
 	}
 
 	revocationCert, err := pgpKey.ArmorRevocationCertificate(time.Now())
 	if err != nil {
-		panic(fmt.Sprint("Failed to output revocation cert: ", err))
+		log.Panicf("Failed to output revocation cert: %v", err)
 	}
 
 	keySlug, err := pgpKey.Slug()
 	if err != nil {
-		panic(fmt.Sprintf("error getting key slug: %v", err))
+		log.Panicf("error getting key slug: %v", err)
 	}
 
 	filename = archiver.MakeFilePath(keySlug, "zip", fluidkeysDir, time.Now())

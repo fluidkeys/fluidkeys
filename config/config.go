@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path"
 
@@ -80,7 +81,7 @@ func (c *Config) RunFromCron() bool {
 		c.parsedConfig.RunFromCron = defaultRunFromCron
 		err := c.save()
 		if err != nil {
-			panic(err)
+			log.Panic(err)
 		}
 	}
 
@@ -174,7 +175,7 @@ func (c *Config) getConfig(fp fingerprint.Fingerprint) key {
 	for configFingerprint, keyConfig := range c.parsedConfig.PgpKeys {
 		parsedFingerprint, err := fingerprint.Parse(configFingerprint)
 		if err != nil {
-			panic(fmt.Errorf("got invalid openpgp fingerprint: '%s'", configFingerprint))
+			log.Panicf("got invalid openpgp fingerprint: '%s'", configFingerprint)
 		}
 
 		keyConfigs[parsedFingerprint] = keyConfig

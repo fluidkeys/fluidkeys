@@ -19,7 +19,7 @@ package status
 
 import (
 	"crypto"
-	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -393,7 +393,7 @@ func isExpired(expiry time.Time, now time.Time) bool {
 func getDaysUntilExpiry(expiry time.Time, now time.Time) uint {
 	days := inDays(expiry.Sub(now))
 	if days < 0 {
-		panic(fmt.Errorf("getDaysUntilExpiry: expiry has already passed: %v", expiry))
+		log.Panicf("getDaysUntilExpiry: expiry has already passed: %v", expiry)
 	}
 	return uint(days)
 }
@@ -407,7 +407,7 @@ func inDays(duration time.Duration) int {
 func getDaysSinceExpiry(expiry time.Time, now time.Time) uint {
 	days := inDays(now.Sub(expiry))
 	if days < 0 {
-		panic(fmt.Errorf("getDaysSinceExpiry: expiry is in the future: %v", expiry))
+		log.Panicf("getDaysSinceExpiry: expiry is in the future: %v", expiry)
 	}
 	return uint(days)
 }
@@ -518,7 +518,7 @@ func nameOfHash(h crypto.Hash) string {
 
 func earliest(times []time.Time) time.Time {
 	if len(times) == 0 {
-		panic(fmt.Errorf("earliest called with empty slice"))
+		log.Panic("earliest called with empty slice")
 	}
 
 	set := false

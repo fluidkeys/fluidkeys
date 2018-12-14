@@ -1,0 +1,20 @@
+#!/bin/sh -eu
+
+GO_FILES="$(find . -name *.go -not -path './vendor/*')"
+
+find_panic() {
+	if grep -n 'panic(' $GO_FILES | grep -v 'panic(nil)' ; then
+		echo
+		echo "ERROR: panic(..): use log.Panic(..) / log.Panicf(..) instead"
+		echo
+		exit 1
+	fi
+}
+
+find_panic
+
+# TODO:
+# * run golint
+# * run go_vet
+# * run gofmt
+# * see https://goreportcard.com/report/github.com/fluidkeys/fluidkeys#gocyclo
