@@ -38,7 +38,7 @@ func secretSend(recipientEmail string) exitCode {
 		return 1
 	}
 
-	printSuccess("Found public key for " + recipientEmail + "\n")
+	printSuccess("Found public key for " + recipientEmail)
 
 	pgpKey, err := pgpkey.LoadFromArmoredPublicKey(armoredPublicKey)
 	if err != nil {
