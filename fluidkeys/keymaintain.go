@@ -46,12 +46,12 @@ func keyMaintain(dryRun bool, automatic bool, cronOutput bool) exitCode {
 		var yesNoPrompter promptYesNoInterface
 		var passwordPrompter promptForPasswordInterface
 
-		if !automatic {
-			yesNoPrompter = &interactiveYesNoPrompter{}
-			passwordPrompter = &interactivePasswordPrompter{}
-		} else {
+		if automatic {
 			yesNoPrompter = &automaticResponder{}
 			passwordPrompter = &alwaysFailPasswordPrompter{}
+		} else {
+			yesNoPrompter = &interactiveYesNoPrompter{}
+			passwordPrompter = &interactivePasswordPrompter{}
 		}
 
 		if cronOutput {
