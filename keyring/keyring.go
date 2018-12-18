@@ -35,6 +35,7 @@ func load(allowedBackends []externalkeyring.BackendType) (*Keyring, error) {
 	ring, backendType, err := externalkeyring.Open(externalkeyring.Config{
 		ServiceName:     keyringServiceName,
 		AllowedBackends: allowedBackends,
+		KeychainName:    "login",
 	})
 
 	if err != nil && backendType == externalkeyring.InvalidBackend {
