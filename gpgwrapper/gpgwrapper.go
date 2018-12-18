@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -276,9 +277,29 @@ func parseVersionString(gpgStdout string) (string, error) {
 	return match[1], nil
 }
 
+func (g *GnuPG) commandWithEnv(args ...string) *exec.Cmd {
+	cmd := exec.Command(GpgPath, args...)
+
+	pathDirs := []string{
+		"/usr/local/sbin",
+		"/usr/local/bin",
+		"/usr/sbin",
+		"/usr/bin",
+		"/sbin",
+		"/bin",
+		"/usr/local/MacGPG2/bin",
+	}
+	env := os.Environ()
+	env = append(env, "PATH", strings.Join(pathDirs, ":"))
+	cmd.Env = env
+
+	return cmd
+}
+
 func (g *GnuPG) run(arguments ...string) (string, error) {
 	fullArguments := g.prependGlobalArguments(arguments...)
-	out, err := exec.Command(GpgPath, fullArguments...).CombinedOutput()
+	cmd := g.commandWithEnv(fullArguments...)
+	out, err := cmd.CombinedOutput()
 
 	if err != nil {
 		err := ErrProblemExecutingGPG(string(out), fullArguments...)
@@ -292,7 +313,7 @@ func (g *GnuPG) run(arguments ...string) (string, error) {
 // stdout, stderr and any error encountered
 func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (stdout string, stderr string, returnErr error) {
 	fullArguments := g.prependGlobalArguments(arguments...)
-	cmd := exec.Command(GpgPath, fullArguments...)
+	cmd := g.commandWithEnv(fullArguments...)
 
 	stdin, err := cmd.StdinPipe() // used to send textToSend
 	if err != nil {
