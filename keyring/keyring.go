@@ -86,9 +86,10 @@ func (k *Keyring) LoadPassword(fp fingerprint.Fingerprint) (password string, got
 
 	if err != nil {
 		if isNotFoundError(err) {
+			log.Printf("keyring returned isNotFoundError for %s: %v", fp.Hex(), err)
 			return "", false
 		} else {
-			// TODO: log that an unexpected error was encountered
+			log.Printf("unexpected error getting password from keyring: %v", err)
 		}
 
 	}
