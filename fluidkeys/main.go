@@ -84,8 +84,6 @@ Options:
 	ensureCrontabStateMatchesConfig()
 
 	switch getSubcommand(args, []string{"key", "secret"}) {
-	case "init":
-		os.Exit(initSubcommand(args))
 	case "key":
 		os.Exit(keySubcommand(args))
 	case "secret":
@@ -129,11 +127,6 @@ func getSubcommand(args docopt.Opts, subcommands []string) string {
 	}
 	log.Panicf("expected to find one of these subcommands: %v", subcommands)
 	panic(nil)
-}
-
-func initSubcommand(args docopt.Opts) exitCode {
-	out.Print("`init` subcommand not currently implemented.\n")
-	return 1
 }
 
 func keySubcommand(args docopt.Opts) exitCode {
