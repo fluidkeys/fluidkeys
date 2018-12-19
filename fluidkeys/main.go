@@ -246,9 +246,9 @@ func secretSubcommand(args docopt.Opts) exitCode {
 		if err != nil {
 			log.Panic(err)
 		}
-		os.Exit(secretSend(emailAddress))
+		return secretSend(emailAddress)
 	case "receive":
-		os.Exit(secretReceive())
+		return secretReceive()
 	}
 	log.Panicf("secretSubcommand got unexpected arguments: %v", args)
 	panic(nil)
