@@ -32,6 +32,7 @@ import (
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/armor"
 	"github.com/fluidkeys/crypto/openpgp/packet"
+	"github.com/fluidkeys/fluidkeys/emailutils"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/compression"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/hash"
@@ -363,17 +364,13 @@ func (key *PgpKey) Emails(allowUnbracketed bool) []string {
 }
 
 func getEmail(identity *openpgp.Identity, allowUnbracketed bool) (string, bool) {
-	if email := identity.UserId.Email; roughlyValidateEmail(email) {
+	if email := identity.UserId.Email; emailutils.RoughlyValidateEmail(email) {
 		return identity.UserId.Email, true
 
-	} else if email == "" && allowUnbracketed && roughlyValidateEmail(identity.UserId.Id) {
+	} else if email == "" && allowUnbracketed && emailutils.RoughlyValidateEmail(identity.UserId.Id) {
 		return identity.UserId.Id, true
 	}
 	return "", false
-}
-
-func roughlyValidateEmail(email string) bool {
-	return strings.Contains(email, "@")
 }
 
 func (key *PgpKey) Fingerprint() fingerprint.Fingerprint {
