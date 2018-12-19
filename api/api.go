@@ -51,6 +51,8 @@ type Client struct {
 	UserAgent string       // User agent used when communicating with the  API.
 }
 
+var ErrPublicKeyNotFound = fmt.Errorf("Public key not found")
+
 // NewClient returns a new Fluidkeys Server API client.
 func NewClient(fluidkeysVersion string) *Client {
 	apiURL, got := os.LookupEnv("FLUIDKEYS_API_URL") // e.g. http://localhost:4747/v1/
@@ -78,8 +80,11 @@ func (c *Client) GetPublicKey(email string) (string, error) {
 		return "", err
 	}
 	decodedJSON := new(v1structs.GetPublicKeyResponse)
-	_, err = c.do(request, &decodedJSON)
+	response, err := c.do(request, &decodedJSON)
 	if err != nil {
+		if response != nil && response.StatusCode == http.StatusNotFound {
+			return "", ErrPublicKeyNotFound
+		}
 		return "", err
 	}
 
