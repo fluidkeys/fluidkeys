@@ -70,7 +70,7 @@ func NewClient(fluidkeysVersion string) *Client {
 	}
 }
 
-// GetPublicKey attempts to get a single armorded public key.
+// GetPublicKey attempts to get a single armored public key.
 func (c *Client) GetPublicKey(email string) (string, error) {
 	path := fmt.Sprintf("email/%s/key", url.QueryEscape(email))
 	request, err := c.newRequest("GET", path, nil)
