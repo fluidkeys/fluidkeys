@@ -28,6 +28,7 @@ import (
 
 	"github.com/fluidkeys/fluidkeys/backupzip"
 	"github.com/fluidkeys/fluidkeys/colour"
+	"github.com/fluidkeys/fluidkeys/emailutils"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
@@ -65,6 +66,12 @@ func keyCreate() exitCode {
 	}
 	out.Print("\n")
 	email := promptForEmail()
+	for !emailutils.RoughlyValidateEmail(email) {
+		printWarning("Not a valid email address")
+		out.Print("\n")
+		email = promptForInput("[email] : ")
+	}
+
 	channel := make(chan generatePgpKeyResult)
 	go generatePgpKey(email, channel)
 
