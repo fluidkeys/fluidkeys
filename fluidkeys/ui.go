@@ -34,6 +34,10 @@ func printFailed(message string) {
 	out.Print(" " + colour.Failure("▸   "+message) + "\n")
 }
 
+func printWarning(message string) {
+	out.Print(" " + colour.Warning("▸   "+message) + "\n")
+}
+
 func printSuccessfulAction(message string) {
 	out.Print("    [" + colour.Success("✔") + "] " + message + "\n")
 }
