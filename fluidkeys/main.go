@@ -84,8 +84,6 @@ Options:
 	ensureCrontabStateMatchesConfig()
 
 	switch getSubcommand(args, []string{"key", "secret"}) {
-	case "init":
-		os.Exit(initSubcommand(args))
 	case "key":
 		os.Exit(keySubcommand(args))
 	case "secret":
@@ -116,8 +114,6 @@ func ensureCrontabStateMatchesConfig() {
 }
 
 func getSubcommand(args docopt.Opts, subcommands []string) string {
-	// subcommands := []string{"init", "key"}
-
 	for _, subcommand := range subcommands {
 		value, err := args.Bool(subcommand)
 		if err != nil {
@@ -129,11 +125,6 @@ func getSubcommand(args docopt.Opts, subcommands []string) string {
 	}
 	log.Panicf("expected to find one of these subcommands: %v", subcommands)
 	panic(nil)
-}
-
-func initSubcommand(args docopt.Opts) exitCode {
-	out.Print("`init` subcommand not currently implemented.\n")
-	return 1
 }
 
 func keySubcommand(args docopt.Opts) exitCode {
@@ -178,7 +169,7 @@ func loadPgpKeys() ([]pgpkey.PgpKey, error) {
 	for _, fingerprint := range fingerprints {
 		pgpKey, err := loadPgpKey(fingerprint)
 		if err != nil {
-                        log.Printf("error loading key with fingerprint '%s': %v", fingerprint.Hex(), err)
+			log.Printf("error loading key with fingerprint '%s': %v", fingerprint.Hex(), err)
 			continue // skip this key. TODO: log?
 		}
 		keys = append(keys, *pgpKey)
@@ -255,9 +246,9 @@ func secretSubcommand(args docopt.Opts) exitCode {
 		if err != nil {
 			log.Panic(err)
 		}
-		os.Exit(secretSend(emailAddress))
+		return secretSend(emailAddress)
 	case "receive":
-		os.Exit(secretReceive())
+		return secretReceive()
 	}
 	log.Panicf("secretSubcommand got unexpected arguments: %v", args)
 	panic(nil)
