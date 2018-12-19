@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -69,7 +70,11 @@ type SecretKeyListing struct {
 }
 
 func Load() (*GnuPG, error) {
-	return &GnuPG{fullGpgPath: "/usr/bin/gpg2"}, nil
+	gpgBinary, err := findGpgBinary()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find gpg: %v", err)
+	}
+	return &GnuPG{fullGpgPath: gpgBinary}, nil
 }
 
 // Returns the GnuPG version string, e.g. "1.2.3"
@@ -347,6 +352,29 @@ func (g *GnuPG) prependGlobalArguments(arguments ...string) []string {
 		globalArguments = append(globalArguments, homeDirArgs...)
 	}
 	return append(globalArguments, arguments...)
+}
+
+func findGpgBinary() (fullPath string, err error) {
+	for _, binaryDir := range gpgSearchPaths {
+		fullPath = binaryDir + "/gpg2"
+		testGpg := GnuPG{fullGpgPath: fullPath}
+
+		version, err := testGpg.Version()
+		if err != nil {
+			continue
+		}
+
+		log.Printf("found working gpg2 with version '%s': %s", version, fullPath)
+		return fullPath, nil
+	}
+
+	return "", fmt.Errorf("didn't find working GnuPG binary")
+}
+
+var gpgSearchPaths = []string{
+	"/usr/bin",
+	"/usr/local/bin",
+	"/usr/local/MacGPG2/bin",
 }
 
 const (
