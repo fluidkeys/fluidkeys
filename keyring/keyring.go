@@ -58,18 +58,34 @@ type Keyring struct {
 
 // SavePassword stores the given password in the keyring against the key and
 // returns any error encountered in the underlying keyring.
-func (k *Keyring) SavePassword(fp fingerprint.Fingerprint, password string) error {
+func (k *Keyring) SavePassword(fp fingerprint.Fingerprint, newPassword string) error {
 	if k.noBackend() {
 		return nil
 	}
 
-	return k.realKeyring.Set(
-		externalkeyring.Item{
-			Key:   makeKeyringKey(fp),
-			Label: makeKeyringLabel(fp),
-			Data:  []byte(password),
-		},
-	)
+	shouldStorePassword := false
+
+	currentPassword, got := k.LoadPassword(fp)
+
+	if !got {
+		log.Printf("SavePassword: keyring has no password saved for %s, saving now", fp.Hex())
+		shouldStorePassword = true
+	} else if currentPassword != newPassword {
+		log.Printf("SavePassword: updating existing password in keyring for %s", fp.Hex())
+		shouldStorePassword = true
+	}
+
+	if shouldStorePassword {
+		return k.realKeyring.Set(
+			externalkeyring.Item{
+				Key:   makeKeyringKey(fp),
+				Label: makeKeyringLabel(fp),
+				Data:  []byte(newPassword),
+			},
+		)
+	} else {
+		return nil // nothing to do
+	}
 }
 
 // LoadPassword attempts to load a password from the keyring for the given key
