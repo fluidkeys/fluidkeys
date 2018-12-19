@@ -54,6 +54,8 @@ func getDecryptedPrivateKeyAndPassword(publicKey *pgpkey.PgpKey, prompter prompt
 func tryPassword(password string, publicKey *pgpkey.PgpKey, prompter promptForPasswordInterface, shouldStore bool, attempt int) (*pgpkey.PgpKey, string, error) {
 	if privateKey, err := loadPrivateKey(publicKey.Fingerprint(), password, &gpg, &pgpkey.Loader{}); err == nil {
 		if shouldStore {
+			// save back the password since we've confirmed that it
+			// was correct.
 			Keyring.SavePassword(publicKey.Fingerprint(), password)
 		}
 		return privateKey, password, nil
