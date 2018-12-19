@@ -77,7 +77,13 @@ func initDatabase() {
 }
 
 func initGpgWrapper() {
-	gpg = gpgwrapper.GnuPG{}
+	gpgPointer, err := gpgwrapper.Load()
+	if err != nil {
+		fmt.Printf("Failed to load GnuPG: %v\n", err)
+		os.Exit(4)
+	} else {
+		gpg = *gpgPointer
+	}
 }
 
 func initOutput() {

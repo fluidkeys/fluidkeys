@@ -34,8 +34,6 @@ import (
 	"github.com/mitchellh/go-homedir"
 )
 
-const GpgPath = "gpg2"
-
 var ErrNoVersionStringFound = errors.New("version string not found in GPG output")
 var ErrNoHomeDirectoryStringFound = errors.New("home directory string not found in GPG output")
 
@@ -47,6 +45,10 @@ var VersionRegexp = regexp.MustCompile(`gpg \(GnuPG.*\) (\d+\.\d+\.\d+)`)
 var HomeRegexp = regexp.MustCompile(`Home: +([^\r\n]+)`)
 
 type GnuPG struct {
+	// fullGpgPath is the full path (e.g. /usr/bin/gpg2) to the GnuPG binary.
+	// It is set during Load.
+	fullGpgPath string
+
 	homeDir string
 }
 
@@ -64,6 +66,10 @@ type SecretKeyListing struct {
 
 	// Created is the time the key was apparently created in UTC.
 	Created time.Time
+}
+
+func Load() (*GnuPG, error) {
+	return &GnuPG{fullGpgPath: "/usr/bin/gpg2"}, nil
 }
 
 // Returns the GnuPG version string, e.g. "1.2.3"
@@ -266,7 +272,7 @@ func parseVersionString(gpgStdout string) (string, error) {
 
 func (g *GnuPG) run(arguments ...string) (string, error) {
 	fullArguments := g.prependGlobalArguments(arguments...)
-	out, err := exec.Command(GpgPath, fullArguments...).CombinedOutput()
+	out, err := exec.Command(g.fullGpgPath, fullArguments...).CombinedOutput()
 
 	if err != nil {
 		err := ErrProblemExecutingGPG(fmt.Sprintf("%v, %s", err,string(out)), fullArguments...)
@@ -280,7 +286,7 @@ func (g *GnuPG) run(arguments ...string) (string, error) {
 // stdout, stderr and any error encountered
 func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (stdout string, stderr string, returnErr error) {
 	fullArguments := g.prependGlobalArguments(arguments...)
-	cmd := exec.Command(GpgPath, fullArguments...)
+	cmd := exec.Command(g.fullGpgPath, fullArguments...)
 
 	stdin, err := cmd.StdinPipe() // used to send textToSend
 	if err != nil {
