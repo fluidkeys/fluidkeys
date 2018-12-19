@@ -35,9 +35,9 @@ func TestParseGPGOutputVersion(t *testing.T) {
 }
 
 func TestHomeDir(t *testing.T) {
-	t.Run("test default home directory", func(t *testing.T) {
-		expectedDirectory := makeTempGnupgHome(t)
-		gpg := GnuPG{homeDir: expectedDirectory}
+	t.Run("test HomeDir parses correct GNUPGHOME from gpg output", func(t *testing.T) {
+		gpg := makeGpgWithTempHome(t)
+		expectedDirectory := gpg.homeDir // this will be the temp dir
 
 		gotDirectory, err := gpg.HomeDir()
 		if err != nil {
@@ -49,7 +49,7 @@ func TestHomeDir(t *testing.T) {
 }
 
 func TestRunningGPG(t *testing.T) {
-	gpg := GnuPG{homeDir: makeTempGnupgHome(t)}
+	gpg := makeGpgWithTempHome(t)
 
 	t.Run("with valid arguments", func(t *testing.T) {
 		arguments := "--version"
@@ -73,7 +73,7 @@ func TestRunningGPG(t *testing.T) {
 }
 
 func TestRunGpgWithStdin(t *testing.T) {
-	gpg := GnuPG{homeDir: makeTempGnupgHome(t)}
+	gpg := makeGpgWithTempHome(t)
 
 	t.Run("with a valid public key", func(t *testing.T) {
 		successMessages := []string{
@@ -105,7 +105,7 @@ func TestRunGpgWithStdin(t *testing.T) {
 }
 
 func TestImportPublicKey(t *testing.T) {
-	gpg := GnuPG{homeDir: makeTempGnupgHome(t)}
+	gpg := makeGpgWithTempHome(t)
 
 	t.Run("with valid public key", func(t *testing.T) {
 		_, err := gpg.ImportArmoredKey(ExamplePublicKey)
@@ -120,7 +120,7 @@ func TestImportPublicKey(t *testing.T) {
 
 func TestListSecretKeys(t *testing.T) {
 
-	gpg := GnuPG{homeDir: makeTempGnupgHome(t)}
+	gpg := makeGpgWithTempHome(t)
 	gpg.ImportArmoredKey(ExamplePublicKey)
 	gpg.ImportArmoredKey(ExamplePrivateKey)
 	secretKeys, err := gpg.ListSecretKeys()
@@ -143,7 +143,7 @@ func TestListSecretKeys(t *testing.T) {
 }
 
 func TestExportPublicKey(t *testing.T) {
-	gpg := GnuPG{homeDir: makeTempGnupgHome(t)}
+	gpg := makeGpgWithTempHome(t)
 	gpg.ImportArmoredKey(ExamplePublicKey)
 	gpg.ImportArmoredKey(ExamplePrivateKey)
 
@@ -166,7 +166,7 @@ func TestExportPublicKey(t *testing.T) {
 }
 
 func TestExportPrivateKey(t *testing.T) {
-	gpg := GnuPG{homeDir: makeTempGnupgHome(t)}
+	gpg := makeGpgWithTempHome(t)
 	gpg.ImportArmoredKey(ExamplePublicKey)
 	gpg.ImportArmoredKey(ExamplePrivateKey)
 
@@ -371,6 +371,13 @@ func assertEqual(t *testing.T, expected SecretKeyListing, got SecretKeyListing) 
 			t.Fatalf("uids don't match, expected '%v', got '%v'", expected.Uids, got.Uids)
 		}
 	}
+}
+
+func makeGpgWithTempHome(t *testing.T) GnuPG {
+	gpgBinary, err := findGpgBinary()
+	assert.ErrorIsNil(t, err)
+
+	return GnuPG{fullGpgPath: gpgBinary, homeDir: makeTempGnupgHome(t)}
 }
 
 func makeTempGnupgHome(t *testing.T) string {

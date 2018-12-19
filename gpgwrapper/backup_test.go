@@ -15,7 +15,7 @@ func TestBackupHomeDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error making temp fluidkeys directory: %v\n", err)
 	}
-	gpg := GnuPG{homeDir: makeTempGnupgHome(t)}
+	gpg := makeGpgWithTempHome(t)
 
 	filename, _ := gpg.BackupHomeDir(tmpFilePath, now)
 

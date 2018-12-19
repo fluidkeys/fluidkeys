@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -32,20 +33,6 @@ import (
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 
 	"github.com/mitchellh/go-homedir"
-)
-
-const GpgPath = "gpg2"
-
-const (
-	publicHeader              = "-----BEGIN PGP PUBLIC KEY BLOCK-----"
-	publicFooter              = "-----END PGP PUBLIC KEY BLOCK-----"
-	privateHeader             = "-----BEGIN PGP PRIVATE KEY BLOCK-----"
-	privateFooter             = "-----END PGP PRIVATE KEY BLOCK-----"
-	nothingExported           = "WARNING: nothing exported"
-	invalidOptionPinentryMode = `gpg: invalid option "--pinentry-mode"`
-	loopbackUnsupported       = `setting pinentry mode 'loopback' failed: Not supported`
-	badPassphrase             = "Bad passphrase"
-	noPassphrase              = "No passphrase given"
 )
 
 var ErrNoVersionStringFound = errors.New("version string not found in GPG output")
@@ -59,6 +46,10 @@ var VersionRegexp = regexp.MustCompile(`gpg \(GnuPG.*\) (\d+\.\d+\.\d+)`)
 var HomeRegexp = regexp.MustCompile(`Home: +([^\r\n]+)`)
 
 type GnuPG struct {
+	// fullGpgPath is the full path (e.g. /usr/bin/gpg2) to the GnuPG binary.
+	// It is set during Load.
+	fullGpgPath string
+
 	homeDir string
 }
 
@@ -76,6 +67,14 @@ type SecretKeyListing struct {
 
 	// Created is the time the key was apparently created in UTC.
 	Created time.Time
+}
+
+func Load() (*GnuPG, error) {
+	gpgBinary, err := findGpgBinary()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find gpg: %v", err)
+	}
+	return &GnuPG{fullGpgPath: gpgBinary}, nil
 }
 
 // Returns the GnuPG version string, e.g. "1.2.3"
@@ -278,10 +277,10 @@ func parseVersionString(gpgStdout string) (string, error) {
 
 func (g *GnuPG) run(arguments ...string) (string, error) {
 	fullArguments := g.prependGlobalArguments(arguments...)
-	out, err := exec.Command(GpgPath, fullArguments...).CombinedOutput()
+	out, err := exec.Command(g.fullGpgPath, fullArguments...).CombinedOutput()
 
 	if err != nil {
-		err := ErrProblemExecutingGPG(fmt.Sprintf("%v, %s", err,string(out)), fullArguments...)
+		err := ErrProblemExecutingGPG(string(out), fullArguments...)
 		return "", err
 	}
 	outString := string(out)
@@ -292,7 +291,7 @@ func (g *GnuPG) run(arguments ...string) (string, error) {
 // stdout, stderr and any error encountered
 func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (stdout string, stderr string, returnErr error) {
 	fullArguments := g.prependGlobalArguments(arguments...)
-	cmd := exec.Command(GpgPath, fullArguments...)
+	cmd := exec.Command(g.fullGpgPath, fullArguments...)
 
 	stdin, err := cmd.StdinPipe() // used to send textToSend
 	if err != nil {
@@ -354,3 +353,38 @@ func (g *GnuPG) prependGlobalArguments(arguments ...string) []string {
 	}
 	return append(globalArguments, arguments...)
 }
+
+func findGpgBinary() (fullPath string, err error) {
+	for _, binaryDir := range gpgSearchPaths {
+		fullPath = binaryDir + "/gpg2"
+		testGpg := GnuPG{fullGpgPath: fullPath}
+
+		version, err := testGpg.Version()
+		if err != nil {
+			continue
+		}
+
+		log.Printf("found working gpg2 with version '%s': %s", version, fullPath)
+		return fullPath, nil
+	}
+
+	return "", fmt.Errorf("didn't find working GnuPG binary")
+}
+
+var gpgSearchPaths = []string{
+	"/usr/bin",
+	"/usr/local/bin",
+	"/usr/local/MacGPG2/bin",
+}
+
+const (
+	publicHeader              = "-----BEGIN PGP PUBLIC KEY BLOCK-----"
+	publicFooter              = "-----END PGP PUBLIC KEY BLOCK-----"
+	privateHeader             = "-----BEGIN PGP PRIVATE KEY BLOCK-----"
+	privateFooter             = "-----END PGP PRIVATE KEY BLOCK-----"
+	nothingExported           = "WARNING: nothing exported"
+	invalidOptionPinentryMode = `gpg: invalid option "--pinentry-mode"`
+	loopbackUnsupported       = `setting pinentry mode 'loopback' failed: Not supported`
+	badPassphrase             = "Bad passphrase"
+	noPassphrase              = "No passphrase given"
+)
