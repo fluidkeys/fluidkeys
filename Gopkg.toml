@@ -59,3 +59,7 @@
 [[constraint]]
   name = "github.com/gofrs/uuid"
   version = "3.1.2"
+
+[[constraint]]
+  name = "github.com/tj/go-spin"
+  version = "1.1.0"
