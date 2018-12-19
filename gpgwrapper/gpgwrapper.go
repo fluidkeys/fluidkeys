@@ -280,7 +280,7 @@ func (g *GnuPG) run(arguments ...string) (string, error) {
 	out, err := exec.Command(g.fullGpgPath, fullArguments...).CombinedOutput()
 
 	if err != nil {
-		err := ErrProblemExecutingGPG(fmt.Sprintf("%v, %s", err,string(out)), fullArguments...)
+		err := ErrProblemExecutingGPG(string(out), fullArguments...)
 		return "", err
 	}
 	outString := string(out)
