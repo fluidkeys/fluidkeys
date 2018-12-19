@@ -169,7 +169,7 @@ func loadPgpKeys() ([]pgpkey.PgpKey, error) {
 	for _, fingerprint := range fingerprints {
 		pgpKey, err := loadPgpKey(fingerprint)
 		if err != nil {
-                        log.Printf("error loading key with fingerprint '%s': %v", fingerprint.Hex(), err)
+			log.Printf("error loading key with fingerprint '%s': %v", fingerprint.Hex(), err)
 			continue // skip this key. TODO: log?
 		}
 		keys = append(keys, *pgpKey)
