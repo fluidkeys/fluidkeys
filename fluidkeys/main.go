@@ -114,8 +114,6 @@ func ensureCrontabStateMatchesConfig() {
 }
 
 func getSubcommand(args docopt.Opts, subcommands []string) string {
-	// subcommands := []string{"init", "key"}
-
 	for _, subcommand := range subcommands {
 		value, err := args.Bool(subcommand)
 		if err != nil {
