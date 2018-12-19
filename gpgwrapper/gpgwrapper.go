@@ -36,18 +36,6 @@ import (
 
 const GpgPath = "gpg2"
 
-const (
-	publicHeader              = "-----BEGIN PGP PUBLIC KEY BLOCK-----"
-	publicFooter              = "-----END PGP PUBLIC KEY BLOCK-----"
-	privateHeader             = "-----BEGIN PGP PRIVATE KEY BLOCK-----"
-	privateFooter             = "-----END PGP PRIVATE KEY BLOCK-----"
-	nothingExported           = "WARNING: nothing exported"
-	invalidOptionPinentryMode = `gpg: invalid option "--pinentry-mode"`
-	loopbackUnsupported       = `setting pinentry mode 'loopback' failed: Not supported`
-	badPassphrase             = "Bad passphrase"
-	noPassphrase              = "No passphrase given"
-)
-
 var ErrNoVersionStringFound = errors.New("version string not found in GPG output")
 var ErrNoHomeDirectoryStringFound = errors.New("home directory string not found in GPG output")
 
@@ -354,3 +342,15 @@ func (g *GnuPG) prependGlobalArguments(arguments ...string) []string {
 	}
 	return append(globalArguments, arguments...)
 }
+
+const (
+	publicHeader              = "-----BEGIN PGP PUBLIC KEY BLOCK-----"
+	publicFooter              = "-----END PGP PUBLIC KEY BLOCK-----"
+	privateHeader             = "-----BEGIN PGP PRIVATE KEY BLOCK-----"
+	privateFooter             = "-----END PGP PRIVATE KEY BLOCK-----"
+	nothingExported           = "WARNING: nothing exported"
+	invalidOptionPinentryMode = `gpg: invalid option "--pinentry-mode"`
+	loopbackUnsupported       = `setting pinentry mode 'loopback' failed: Not supported`
+	badPassphrase             = "Bad passphrase"
+	noPassphrase              = "No passphrase given"
+)
