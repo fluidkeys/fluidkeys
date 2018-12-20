@@ -25,6 +25,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/fluidkeys/fluidkeys/emailutils"
 	"github.com/fluidkeys/fluidkeys/keytable"
 	"github.com/fluidkeys/fluidkeys/status"
 
@@ -63,7 +64,7 @@ Configuration file: %s
 Usage:
 	fk secret send <recipient-email-address>
 	fk secret receive
-	fk setup
+	fk setup [<email>]
 	fk key create
 	fk key from-gpg
 	fk key list
@@ -135,7 +136,7 @@ func keySubcommand(args docopt.Opts) exitCode {
 		"create", "from-gpg", "list", "maintain", "publish",
 	}) {
 	case "create":
-		exitCode, _ := keyCreate()
+		exitCode, _ := keyCreate("")
 		os.Exit(exitCode)
 	case "from-gpg":
 		os.Exit(keyFromGpg())
@@ -259,5 +260,11 @@ func secretSubcommand(args docopt.Opts) exitCode {
 }
 
 func setupSubcommand(args docopt.Opts) exitCode {
-	return setup()
+	email, _ := args.String("<email>")
+	// Have to swallow error, as docopts returns `err: key: "<email>" failed type conversion`
+	if email != "" && !emailutils.RoughlyValidateEmail(email) {
+		printFailed(email + " isn't a valid email address")
+		return 1
+	}
+	return setup(email)
 }
