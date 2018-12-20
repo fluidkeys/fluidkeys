@@ -118,11 +118,17 @@ func keyCreate() exitCode {
 
 	printSuccessfulAction("Generate key for " + email)
 
-	pushPrivateKeyBackToGpg(generateJob.pgpKey, password.AsString(), &gpg)
-	printSuccessfulAction("Store key in gpg")
+	if err = pushPrivateKeyBackToGpg(generateJob.pgpKey, password.AsString(), &gpg); err == nil {
+		printSuccessfulAction("Store key in gpg")
+	} else {
+		log.Panicf("error pushing key back to gpg: %v", err)
+	}
 
 	fingerprint := generateJob.pgpKey.Fingerprint()
-	db.RecordFingerprintImportedIntoGnuPG(fingerprint)
+	if err = db.RecordFingerprintImportedIntoGnuPG(fingerprint); err != nil {
+		log.Panicf("failed to record fingerprint imported into gpg: %v", err)
+	}
+
 	if err := tryEnableMaintainAutomatically(generateJob.pgpKey, password.AsString()); err == nil {
 		printSuccessfulAction("Store password in " + Keyring.Name())
 		printSuccessfulAction("Automatically rotate key each month using cron")
