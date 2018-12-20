@@ -132,7 +132,8 @@ func keySubcommand(args docopt.Opts) exitCode {
 		"create", "from-gpg", "list", "maintain", "publish",
 	}) {
 	case "create":
-		os.Exit(keyCreate())
+		exitCode, _ := keyCreate()
+		os.Exit(exitCode)
 	case "from-gpg":
 		os.Exit(keyFromGpg())
 	case "list":
