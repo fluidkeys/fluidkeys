@@ -50,7 +50,7 @@ func secretReceive() exitCode {
 
 	out.Print(colour.Info("Downloading secrets...") + "\n\n")
 
-	var sawError bool = false
+	sawError := false
 
 	for _, key := range keys {
 		if !Config.ShouldPublishToAPI(key.Fingerprint()) {
@@ -108,9 +108,8 @@ func secretReceive() exitCode {
 
 	if sawError {
 		return 1
-	} else {
-		return 0
 	}
+	return 0
 }
 
 func downloadAndDecryptSecrets(key pgpkey.PgpKey) (decryptedSecrets []string, decryptedUUIDs []string, secretErrors []error, err error) {
