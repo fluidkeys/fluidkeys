@@ -29,16 +29,17 @@ import (
 	"github.com/fluidkeys/fluidkeys/backupzip"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/emailutils"
+	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	spin "github.com/tj/go-spin"
 
 	"github.com/sethvargo/go-diceware/diceware"
 )
 
 const DicewareNumberOfWords int = 6
 const DicewareSeparator string = "."
-const PromptEmail string = "Enter your email address, this will help other people find your key.\n"
 
 type DicewarePassword struct {
 	words     []string
@@ -65,7 +66,13 @@ func keyCreate() exitCode {
 		promptForInput("Press enter to continue. ")
 	}
 	out.Print("\n")
-	email := promptForEmail()
+
+	printHeader("What's your email address?")
+
+	out.Print("This is how other people using Fluidkeys will find you.\n\n")
+	out.Print("We'll send you an email to verify your address.\n\n")
+
+	email := promptForInput("[email] : ")
 	for !emailutils.RoughlyValidateEmail(email) {
 		printWarning("Not a valid email address")
 		out.Print("\n")
@@ -140,11 +147,6 @@ func generatePgpKey(email string, channel chan generatePgpKeyResult) {
 	key, err := pgpkey.Generate(email, time.Now(), nil)
 
 	channel <- generatePgpKeyResult{key, err}
-}
-
-func promptForEmail() string {
-	out.Print(PromptEmail + "\n")
-	return promptForInput("[email] : ")
 }
 
 func generatePassword(numberOfWords int, separator string) DicewarePassword {
