@@ -115,6 +115,18 @@ func Disabled(message string) string {
 	return grey(message)
 }
 
+func Greeting(message string) string {
+	return bright + magenta(message)
+}
+
+func Header(message string) string {
+	return bgLightBlue + fgBlack + message + reset
+}
+
+func Waiting(message string) string {
+	return fgCyan + message + reset
+}
+
 func underline(message string) string {
 	return underscore + message + reset
 }

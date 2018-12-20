@@ -18,6 +18,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/out"
 )
@@ -44,4 +46,8 @@ func printSuccessfulAction(message string) {
 
 func printFailedAction(message string) {
 	out.Print("    [" + colour.Failure("✘") + "] " + message + "\n")
+}
+
+func printHeader(message string) {
+	out.Print(colour.Header(fmt.Sprintf(" %-79s", message)) + "\n\n")
 }

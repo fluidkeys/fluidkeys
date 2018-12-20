@@ -40,14 +40,15 @@ const (
 	fgCyan    = "\x1b[36m"
 	fgWhite   = "\x1b[37m"
 
-	bgBlack   = "\x1b[40m"
-	bgRed     = "\x1b[41m"
-	bgGreen   = "\x1b[42m"
-	bgYellow  = "\x1b[43m"
-	bgBlue    = "\x1b[44m"
-	bgMagenta = "\x1b[45m"
-	bgCyan    = "\x1b[46m"
-	bgWhite   = "\x1b[47m"
+	bgBlack     = "\x1b[40m"
+	bgRed       = "\x1b[41m"
+	bgGreen     = "\x1b[42m"
+	bgYellow    = "\x1b[43m"
+	bgBlue      = "\x1b[44m"
+	bgMagenta   = "\x1b[45m"
+	bgCyan      = "\x1b[46m"
+	bgWhite     = "\x1b[47m"
+	bgLightBlue = "\x1b[104m"
 )
 
 var allColourCodes = []string{
@@ -76,4 +77,5 @@ var allColourCodes = []string{
 	bgMagenta,
 	bgCyan,
 	bgWhite,
+	bgLightBlue,
 }

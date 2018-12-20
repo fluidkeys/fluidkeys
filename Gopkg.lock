@@ -106,6 +106,14 @@
   revision = "2cc4e45af027798e625c3256fc10925eb3f1e5c0"
 
 [[projects]]
+  digest = "1:da8d4acfde6ab8378152320f96377912e81200e5ac65232a22782163a710e5a4"
+  name = "github.com/tj/go-spin"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "30574f5fadef1aa5c61d4c42e936785af9f03ada"
+  version = "v1.1.0"
+
+[[projects]]
   branch = "master"
   digest = "1:3f3a05ae0b95893d90b9b3b5afdb79a9b3d96e4e36e099d841ae602e4aca0da8"
   name = "golang.org/x/crypto"
@@ -141,6 +149,7 @@
     "github.com/mitchellh/go-homedir",
     "github.com/natefinch/atomic",
     "github.com/sethvargo/go-diceware/diceware",
+    "github.com/tj/go-spin",
     "golang.org/x/crypto/ssh/terminal",
   ]
   solver-name = "gps-cdcl"

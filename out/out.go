@@ -19,11 +19,12 @@ package out
 
 import (
 	"fmt"
-	"github.com/fluidkeys/fluidkeys/colour"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/fluidkeys/fluidkeys/colour"
 )
 
 var outputter outputterInterface
@@ -70,6 +71,10 @@ func Print(message string) {
 			log.Print(line)
 		}
 	}
+}
+
+func PrintDontLog(message string) {
+	outputter.print(message)
 }
 
 func PrintTheBuffer() {

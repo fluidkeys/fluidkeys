@@ -29,16 +29,17 @@ import (
 	"github.com/fluidkeys/fluidkeys/backupzip"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/emailutils"
+	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	spin "github.com/tj/go-spin"
 
 	"github.com/sethvargo/go-diceware/diceware"
 )
 
 const DicewareNumberOfWords int = 6
 const DicewareSeparator string = "."
-const PromptEmail string = "Enter your email address, this will help other people find your key.\n"
 
 type DicewarePassword struct {
 	words     []string
@@ -65,7 +66,13 @@ func keyCreate() exitCode {
 		promptForInput("Press enter to continue. ")
 	}
 	out.Print("\n")
-	email := promptForEmail()
+
+	printHeader("What's your email address?")
+
+	out.Print("This is how other people using Fluidkeys will find you.\n\n")
+	out.Print("We'll send you an email to verify your address.\n\n")
+
+	email := promptForInput("[email] : ")
 	for !emailutils.RoughlyValidateEmail(email) {
 		printWarning("Not a valid email address")
 		out.Print("\n")
@@ -75,9 +82,11 @@ func keyCreate() exitCode {
 	channel := make(chan generatePgpKeyResult)
 	go generatePgpKey(email, channel)
 
+	printHeader("Store your password")
+
 	password := generatePassword(DicewareNumberOfWords, DicewareSeparator)
 
-	out.Print("Your key will be protected with this password:\n\n")
+	out.Print("We've made you a strong password to protect your secrets:\n\n")
 	displayPassword(password)
 	if !userConfirmedRandomWord(password) {
 		out.Print("Those words did not match. Here it is again:\n\n")
@@ -88,23 +97,76 @@ func keyCreate() exitCode {
 		}
 	}
 
-	out.Print("Creating key for " + colour.Info(email) + ":\n\n")
-
 	generateJob := <-channel
 
 	if generateJob.err != nil {
 		log.Panicf("Failed to generate key: %v", generateJob.err)
 	}
+
+	err := Config.SetPublishToAPI(generateJob.pgpKey.Fingerprint(), true)
+	if err != nil {
+		log.Panicf("Failed to set key to publish to API: %v", err)
+	}
+	err = publishKeyToAPI(generateJob.pgpKey)
+	if err != nil {
+		log.Panicf("Failed to publish key: %v", err)
+	}
+
+	printHeader("Verify your email")
+
+	out.Print("You should have received a confirmation link emailed to " + email + ".\n\n")
+
+	s := spin.New()
+	spinnerTimeDelay := 100 * time.Millisecond
+
+	timeStartedPolling := time.Now()
+	timeLastPolled := time.Now()
+	verifiedEmailResult := false
+
+	log.Printf("Waiting for link to be clicked...")
+	for !verifiedEmailResult {
+		out.PrintDontLog("\r  " + colour.Waiting("Waiting for you to click the link") + " " + s.Next())
+		time.Sleep(spinnerTimeDelay)
+		if time.Since(timeLastPolled).Seconds() > 5 {
+			verifiedEmailResult, err = verifyEmailMatchesKeyInAPI(
+				email, generateJob.pgpKey.Fingerprint(), client)
+			if err != nil {
+				log.Panicf("Failed to get public key: %v", err)
+			}
+			timeLastPolled = time.Now()
+		}
+		if time.Since(timeStartedPolling).Minutes() > 15 {
+			out.Print("\n")
+			printFailed("Failed to detect a clicked link. Stopping waiting.")
+			return 1
+		}
+	}
+
+	out.Print("\n\n")
+
+	printSuccess("Successfully verified email address")
+	print("\n")
+
+	printHeader("Finishing setup")
+
+	out.Print("🛠️  Carrying out the following tasks:\n\n")
+
 	printSuccessfulAction("Generate key for " + email)
 
-	pushPrivateKeyBackToGpg(generateJob.pgpKey, password.AsString(), &gpg)
-	printSuccessfulAction("Store key in " + colour.Info("gpg"))
+	if err = pushPrivateKeyBackToGpg(generateJob.pgpKey, password.AsString(), &gpg); err == nil {
+		printSuccessfulAction("Store key in gpg")
+	} else {
+		log.Panicf("error pushing key back to gpg: %v", err)
+	}
 
 	fingerprint := generateJob.pgpKey.Fingerprint()
-	db.RecordFingerprintImportedIntoGnuPG(fingerprint)
+	if err = db.RecordFingerprintImportedIntoGnuPG(fingerprint); err != nil {
+		log.Panicf("failed to record fingerprint imported into gpg: %v", err)
+	}
+
 	if err := tryEnableMaintainAutomatically(generateJob.pgpKey, password.AsString()); err == nil {
 		printSuccessfulAction("Store password in " + Keyring.Name())
-		printSuccessfulAction("Setup automatic maintenance using " + colour.Info("cron"))
+		printSuccessfulAction("Automatically rotate key each month using cron")
 	} else {
 		printFailedAction("Setup automatic maintenance")
 	}
@@ -115,22 +177,12 @@ func keyCreate() exitCode {
 	}
 	directory, _ := filepath.Split(filename)
 	printSuccessfulAction("Make a backup ZIP file in")
-	out.Print("        " + colour.Info(directory) + "\n\n")
+	out.Print("        " + directory + "\n")
 
-	printSuccess("Successfully created key for " + email)
+	printSuccessfulAction("Register " + email + " so others can send you secrets")
 	out.Print("\n")
 
-	promptToEnableConfigPublishToAPI(generateJob.pgpKey)
-
-	if Config.ShouldPublishToAPI(generateJob.pgpKey.Fingerprint()) {
-		err := publishKeyToAPI(generateJob.pgpKey)
-		if err != nil {
-			printFailed("Failed to publish key")
-			out.Print(err.Error())
-		} else {
-			printSuccess("Successfully published key")
-		}
-	}
+	printSuccess("Successfully created key and registered " + email)
 	out.Print("\n")
 
 	return 0
@@ -142,11 +194,6 @@ func generatePgpKey(email string, channel chan generatePgpKeyResult) {
 	channel <- generatePgpKeyResult{key, err}
 }
 
-func promptForEmail() string {
-	out.Print(PromptEmail + "\n")
-	return promptForInput("[email] : ")
-}
-
 func generatePassword(numberOfWords int, separator string) DicewarePassword {
 	return DicewarePassword{
 		words:     diceware.MustGenerate(numberOfWords),
@@ -156,10 +203,11 @@ func generatePassword(numberOfWords int, separator string) DicewarePassword {
 
 func displayPassword(password DicewarePassword) {
 	out.Print(out.NoLogCharacter + "   " + colour.Info(password.AsString()) + "\n\n")
-	out.Print("If you use a password manager, save it there now.\n\n")
-	out.Print(colour.Warning("Store this safely, otherwise you won’t be able to use your key\n\n"))
+	out.Print("The password will be saved to your " + Keyring.Name() +
+		" so you don't have to keep\ntyping it.\n\n")
+	out.Print(colour.Warning("You should save a copy in your own password manager as a backup.\n\n"))
 
-	promptForInput("Press enter when you've stored it safely. ")
+	promptForInput("Press enter when you've saved the password. ")
 }
 
 func userConfirmedRandomWord(password DicewarePassword) bool {
@@ -172,6 +220,32 @@ func userConfirmedRandomWord(password DicewarePassword) bool {
 	out.Print(fmt.Sprintf("Enter the %s word from your password\n\n", wordOrdinal))
 	givenWord := promptForInput("[" + wordOrdinal + " word] : ")
 	return givenWord == correctWord
+}
+
+type getPublicKeyInterface interface {
+	GetPublicKey(email string) (string, error)
+}
+
+func verifyEmailMatchesKeyInAPI(
+	email string, fingerprint fingerprint.Fingerprint,
+	publicKeyGetter getPublicKeyInterface) (verified bool, err error) {
+
+	armoredKey, err := publicKeyGetter.GetPublicKey(email)
+	if err != nil {
+		// Swallow all errors to accomodate events like intermitent wifi,
+		// temporary problems with the API, etc.
+		log.Printf("error polling api for public key: %v", err)
+		return false, nil
+	}
+
+	retrievedKey, err := pgpkey.LoadFromArmoredPublicKey(armoredKey)
+	if err != nil {
+		return false, fmt.Errorf("Failed to load armored key: %v", err)
+	}
+	if retrievedKey.Fingerprint() == fingerprint {
+		return true, nil
+	}
+	return false, fmt.Errorf("Retrieved key's fingerprint doesn't match")
 }
 
 func clearScreen() {
