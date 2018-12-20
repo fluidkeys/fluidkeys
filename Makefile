@@ -18,6 +18,7 @@ MAIN_GO_FILES=fluidkeys/main.go \
 	     fluidkeys/keyfromgpg.go \
 	     fluidkeys/secretsend.go \
 	     fluidkeys/secretreceive.go \
+	     fluidkeys/setup.go \
 	     fluidkeys/keypublish.go \
 
 # `make compile` should populate build/ with all files that will

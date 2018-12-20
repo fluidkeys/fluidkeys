@@ -63,6 +63,7 @@ Configuration file: %s
 Usage:
 	fk secret send <recipient-email-address>
 	fk secret receive
+	fk setup
 	fk key create
 	fk key from-gpg
 	fk key list
@@ -83,11 +84,13 @@ Options:
 
 	ensureCrontabStateMatchesConfig()
 
-	switch getSubcommand(args, []string{"key", "secret"}) {
+	switch getSubcommand(args, []string{"key", "secret", "setup"}) {
 	case "key":
 		os.Exit(keySubcommand(args))
 	case "secret":
 		os.Exit(secretSubcommand(args))
+	case "setup":
+		os.Exit(setupSubcommand(args))
 	}
 }
 
@@ -253,4 +256,8 @@ func secretSubcommand(args docopt.Opts) exitCode {
 	}
 	log.Panicf("secretSubcommand got unexpected arguments: %v", args)
 	panic(nil)
+}
+
+func setupSubcommand(args docopt.Opts) exitCode {
+	return setup()
 }
