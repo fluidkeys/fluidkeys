@@ -55,7 +55,7 @@ type generatePgpKeyResult struct {
 	err    error
 }
 
-func keyCreate() exitCode {
+func keyCreate() (exitCode, *pgpkey.PgpKey) {
 
 	if !gpg.IsWorking() {
 		out.Print(colour.Warning("\nGPG isn't working on your system 🤒\n\n"))
@@ -138,7 +138,7 @@ func keyCreate() exitCode {
 		if time.Since(timeStartedPolling).Minutes() > 15 {
 			out.Print("\n")
 			printFailed("Failed to detect a clicked link. Stopping waiting.")
-			return 1
+			return 1, nil
 		}
 	}
 
@@ -180,7 +180,7 @@ func keyCreate() exitCode {
 	printSuccess("Successfully created key and registered " + email)
 	out.Print("\n")
 
-	return 0
+	return 0, generateJob.pgpKey
 }
 
 func generatePgpKey(email string, channel chan generatePgpKeyResult) {
