@@ -95,13 +95,21 @@ func keyCreate() exitCode {
 		}
 	}
 
-	out.Print("Creating key for " + colour.Info(email) + ":\n\n")
-
 	generateJob := <-channel
 
 	if generateJob.err != nil {
 		log.Panicf("Failed to generate key: %v", generateJob.err)
 	}
+
+	err := Config.SetPublishToAPI(generateJob.pgpKey.Fingerprint(), true)
+	if err != nil {
+		log.Panicf("Failed to set key to publish to API: %v", err)
+	}
+	err = publishKeyToAPI(generateJob.pgpKey)
+	if err != nil {
+		log.Panicf("Failed to publish key: %v", err)
+	}
+
 	printSuccessfulAction("Generate key for " + email)
 
 	pushPrivateKeyBackToGpg(generateJob.pgpKey, password.AsString(), &gpg)
@@ -124,20 +132,10 @@ func keyCreate() exitCode {
 	printSuccessfulAction("Make a backup ZIP file in")
 	out.Print("        " + colour.Info(directory) + "\n\n")
 
-	printSuccess("Successfully created key for " + email)
+	printSuccessfulAction("Register " + email + " so others can send you secrets")
 	out.Print("\n")
 
-	promptToEnableConfigPublishToAPI(generateJob.pgpKey)
-
-	if Config.ShouldPublishToAPI(generateJob.pgpKey.Fingerprint()) {
-		err := publishKeyToAPI(generateJob.pgpKey)
-		if err != nil {
-			printFailed("Failed to publish key")
-			out.Print(err.Error())
-		} else {
-			printSuccess("Successfully published key")
-		}
-	}
+	printSuccess("Successfully created key and registered " + email)
 	out.Print("\n")
 
 	return 0
