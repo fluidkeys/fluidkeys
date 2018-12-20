@@ -82,9 +82,11 @@ func keyCreate() exitCode {
 	channel := make(chan generatePgpKeyResult)
 	go generatePgpKey(email, channel)
 
+	printHeader("Store your password")
+
 	password := generatePassword(DicewareNumberOfWords, DicewareSeparator)
 
-	out.Print("Your key will be protected with this password:\n\n")
+	out.Print("We've made you a strong password to protect your secrets:\n\n")
 	displayPassword(password)
 	if !userConfirmedRandomWord(password) {
 		out.Print("Those words did not match. Here it is again:\n\n")
@@ -110,16 +112,20 @@ func keyCreate() exitCode {
 		log.Panicf("Failed to publish key: %v", err)
 	}
 
+	printHeader("Finishing setup")
+
+	out.Print("🛠️  Carrying out the following tasks:\n\n")
+
 	printSuccessfulAction("Generate key for " + email)
 
 	pushPrivateKeyBackToGpg(generateJob.pgpKey, password.AsString(), &gpg)
-	printSuccessfulAction("Store key in " + colour.Info("gpg"))
+	printSuccessfulAction("Store key in gpg")
 
 	fingerprint := generateJob.pgpKey.Fingerprint()
 	db.RecordFingerprintImportedIntoGnuPG(fingerprint)
 	if err := tryEnableMaintainAutomatically(generateJob.pgpKey, password.AsString()); err == nil {
 		printSuccessfulAction("Store password in " + Keyring.Name())
-		printSuccessfulAction("Setup automatic maintenance using " + colour.Info("cron"))
+		printSuccessfulAction("Automatically rotate key each month using cron")
 	} else {
 		printFailedAction("Setup automatic maintenance")
 	}
@@ -130,7 +136,7 @@ func keyCreate() exitCode {
 	}
 	directory, _ := filepath.Split(filename)
 	printSuccessfulAction("Make a backup ZIP file in")
-	out.Print("        " + colour.Info(directory) + "\n\n")
+	out.Print("        " + directory + "\n")
 
 	printSuccessfulAction("Register " + email + " so others can send you secrets")
 	out.Print("\n")
@@ -156,10 +162,11 @@ func generatePassword(numberOfWords int, separator string) DicewarePassword {
 
 func displayPassword(password DicewarePassword) {
 	out.Print(out.NoLogCharacter + "   " + colour.Info(password.AsString()) + "\n\n")
-	out.Print("If you use a password manager, save it there now.\n\n")
-	out.Print(colour.Warning("Store this safely, otherwise you won’t be able to use your key\n\n"))
+	out.Print("The password will be saved to your " + Keyring.Name() +
+		" so you don't have to keep\ntyping it.\n\n")
+	out.Print(colour.Warning("You should save a copy in your own password manager as a backup.\n\n"))
 
-	promptForInput("Press enter when you've stored it safely. ")
+	promptForInput("Press enter when you've saved the password. ")
 }
 
 func userConfirmedRandomWord(password DicewarePassword) bool {
