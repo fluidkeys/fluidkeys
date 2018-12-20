@@ -112,6 +112,41 @@ func keyCreate() exitCode {
 		log.Panicf("Failed to publish key: %v", err)
 	}
 
+	printHeader("Verify your email")
+
+	out.Print("You should have received a confirmation link emailed to " + email + ".\n\n")
+
+	s := spin.New()
+	spinnerTimeDelay := 100 * time.Millisecond
+
+	timeStartedPolling := time.Now()
+	timeLastPolled := time.Now()
+	verifiedEmailResult := false
+
+	log.Printf("Waiting for link to be clicked...")
+	for !verifiedEmailResult {
+		out.PrintDontLog("\r  " + colour.Waiting("Waiting for you to click the link") + " " + s.Next())
+		time.Sleep(spinnerTimeDelay)
+		if time.Since(timeLastPolled).Seconds() > 5 {
+			verifiedEmailResult, err = verifyEmailMatchesKeyInAPI(
+				email, generateJob.pgpKey.Fingerprint(), client)
+			if err != nil {
+				log.Panicf("Failed to get public key: %v", err)
+			}
+			timeLastPolled = time.Now()
+		}
+		if time.Since(timeStartedPolling).Minutes() > 15 {
+			out.Print("\n")
+			printFailed("Failed to detect a clicked link. Stopping waiting.")
+			return 1
+		}
+	}
+
+	out.Print("\n\n")
+
+	printSuccess("Successfully verified email address")
+	print("\n")
+
 	printHeader("Finishing setup")
 
 	out.Print("🛠️  Carrying out the following tasks:\n\n")
@@ -185,6 +220,32 @@ func userConfirmedRandomWord(password DicewarePassword) bool {
 	out.Print(fmt.Sprintf("Enter the %s word from your password\n\n", wordOrdinal))
 	givenWord := promptForInput("[" + wordOrdinal + " word] : ")
 	return givenWord == correctWord
+}
+
+type getPublicKeyInterface interface {
+	GetPublicKey(email string) (string, error)
+}
+
+func verifyEmailMatchesKeyInAPI(
+	email string, fingerprint fingerprint.Fingerprint,
+	publicKeyGetter getPublicKeyInterface) (verified bool, err error) {
+
+	armoredKey, err := publicKeyGetter.GetPublicKey(email)
+	if err != nil {
+		// Swallow all errors to accomodate events like intermitent wifi,
+		// temporary problems with the API, etc.
+		log.Printf("error polling api for public key: %v", err)
+		return false, nil
+	}
+
+	retrievedKey, err := pgpkey.LoadFromArmoredPublicKey(armoredKey)
+	if err != nil {
+		return false, fmt.Errorf("Failed to load armored key: %v", err)
+	}
+	if retrievedKey.Fingerprint() == fingerprint {
+		return true, nil
+	}
+	return false, fmt.Errorf("Retrieved key's fingerprint doesn't match")
 }
 
 func clearScreen() {
