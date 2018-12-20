@@ -95,12 +95,7 @@ func (k *Keyring) LoadPassword(fp fingerprint.Fingerprint) (password string, got
 		return "", false
 	}
 
-	if password, gotPassword = tryLoadFromPasswordFile(fp); gotPassword {
-		return
-	}
-
 	item, err := k.realKeyring.Get(makeKeyringKey(fp))
-
 	if err != nil {
 		if isNotFoundError(err) {
 			log.Printf("keyring returned isNotFoundError for %s: %v", fp.Hex(), err)
