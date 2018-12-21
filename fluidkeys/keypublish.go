@@ -26,8 +26,8 @@ import (
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
 
-func keyPublish() exitCode {
-	out.Print(colour.Info("Publishing keys...") + "\n\n")
+func keyRegister() exitCode {
+	out.Print(colour.Info("Registering keys...") + "\n\n")
 	keys, err := loadPgpKeys()
 	if err != nil {
 		log.Panic(err)
@@ -45,6 +45,14 @@ func keyPublish() exitCode {
 			continue
 		}
 
+		email, err := key.Email()
+		if err != nil {
+			gotAnyErrors = true
+			printFailed("Failed to get email for key")
+			out.Print("Error: " + err.Error() + "\n")
+			continue
+		}
+
 		unlockedKey, _, err := getDecryptedPrivateKeyAndPassword(key, &passwordPrompter)
 		if err != nil {
 			printFailed("Failed to unlock private key")
@@ -55,13 +63,13 @@ func keyPublish() exitCode {
 
 		err = publishKeyToAPI(unlockedKey)
 		if err != nil {
-			printFailed("Error publishing key")
+			printFailed("Error registering key")
 			out.Print(colour.Error("     " + err.Error() + "\n\n"))
 			gotAnyErrors = true
 			continue
 		}
 
-		printSuccess("Published key to Fluidkeys directory\n")
+		printSuccess("Registered " + email + "\n")
 	}
 
 	if gotAnyErrors {
@@ -81,7 +89,7 @@ func shouldPublishToAPI(key *pgpkey.PgpKey) bool {
 	shouldPublish := Config.ShouldPublishToAPI(key.Fingerprint())
 
 	if !shouldPublish {
-		out.Print(colour.Warning(" ▸   Config currently preventing key from being published\n\n"))
+		out.Print(colour.Warning(" ▸   Config currently preventing key from being registered\n\n"))
 
 		promptToEnableConfigPublishToAPI(key)
 	}

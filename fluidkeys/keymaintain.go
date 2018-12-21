@@ -238,7 +238,7 @@ func runKeyMaintain(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwor
 			out.Print(fmt.Sprintf(" " + colour.Warning("▸   "+humanize.Pluralize(numKeysNotPublished, "key hasn't", "keys haven't")+
 				" been updated in the Fluidkeys directory.\n\n")))
 			out.Print("Make sure others can find your updated keys by running:\n")
-			out.Print("    " + colour.CommandLineCode("fk key publish") + "\n\n")
+			out.Print("    " + colour.CommandLineCode("fk key register") + "\n\n")
 		}
 
 		return 0
