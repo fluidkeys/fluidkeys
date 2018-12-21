@@ -144,10 +144,10 @@ func (w KeyWarning) String() string {
 		return "Key not maintained automatically"
 
 	case ConfigPublishToAPINotSet:
-		return "Key not published in the Fluidkeys directory"
+		return "Key not uploaded, unable to receive secrets"
 
 	case ConfigMaintainAutomaticallyButDontPublish:
-		return "Key maintained automatically but not published"
+		return "Key maintained automatically but not uploaded, unable to receive secrets"
 	}
 
 	return fmt.Sprintf("KeyWarning{Type=%d}", w.Type)

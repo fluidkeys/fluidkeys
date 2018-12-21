@@ -53,7 +53,7 @@ func secretReceive() exitCode {
 
 	for _, key := range keys {
 		if !Config.ShouldPublishToAPI(key.Fingerprint()) {
-			message := "Not published in Fluidkeys directory"
+			message := "Key not uploaded to Fluidkeys, can't receive secrets"
 			out.Print("⛔ " + displayName(&key) + ": " + colour.Warning(message) + "\n")
 			continue
 		}
