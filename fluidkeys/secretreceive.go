@@ -132,8 +132,8 @@ func downloadAndDecryptSecrets(key pgpkey.PgpKey) (decryptedSecrets []string, se
 }
 
 func formatSecretListItem(listNumber int, decryptedContent string) (output string) {
-	displayCounter := fmt.Sprintf("%d. ", listNumber)
-	trimmedDivider := strings.Repeat(secretDividerRune, secretDividerLength-len(displayCounter))
+	displayCounter := fmt.Sprintf(out.NoLogCharacter+" %d. ", listNumber)
+	trimmedDivider := strings.Repeat(secretDividerRune, secretDividerLength-(1+len([]rune(displayCounter))))
 	output = displayCounter + trimmedDivider + "\n"
 	output = output + decryptedContent
 	if !strings.HasSuffix(decryptedContent, "\n") {
