@@ -61,9 +61,9 @@ func main() {
 Configuration file: %s
 
 Usage:
+	fk setup
 	fk secret send <recipient-email-address>
 	fk secret receive
-	fk setup
 	fk key create
 	fk key from-gpg
 	fk key list
