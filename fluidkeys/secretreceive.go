@@ -34,12 +34,13 @@ import (
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"github.com/gofrs/uuid"
 )
 
 func secretReceive() exitCode {
 	out.Print("\n")
 	keys, err := loadPgpKeys()
-	downloadedSecrets := make(downloadedSecrets)
+	var downloadedSecrets []secret
 
 	if err != nil {
 		printFailed("Couldn't load PGP keys")
@@ -56,7 +57,7 @@ func secretReceive() exitCode {
 			out.Print("⛔ " + displayName(&key) + ": " + colour.Warning(message) + "\n")
 			continue
 		}
-		secrets, uuids, secretErrors, err := downloadAndDecryptSecrets(key)
+		secrets, secretErrors, err := downloadAndDecryptSecrets(key)
 		if err != nil {
 			switch err.(type) {
 			case errNoSecretsFound:
@@ -74,8 +75,9 @@ func secretReceive() exitCode {
 		out.Print("📬 " + displayName(&key) + ":\n")
 
 		for i, secret := range secrets {
-			out.Print(formatSecretListItem(i+1, secret))
+			out.Print(formatSecretListItem(i+1, secret.decryptedContent))
 		}
+		downloadedSecrets = append(downloadedSecrets, secrets...)
 
 		out.Print(strings.Repeat(secretDividerRune, secretDividerLength) + "\n")
 
@@ -87,18 +89,16 @@ func secretReceive() exitCode {
 			}
 			sawError = true
 		}
-		downloadedSecrets[key.Fingerprint()] = uuids
 	}
 
 	if len(downloadedSecrets) > 0 {
 		prompter := interactiveYesNoPrompter{}
 		out.Print("\n")
 		if prompter.promptYesNo("Delete now?", "Y", nil) == true {
-			for fingerprint, secretUUIDs := range downloadedSecrets {
-				for _, uuid := range secretUUIDs {
-					if err := client.DeleteSecret(fingerprint, uuid); err != nil {
-						log.Printf("failed to delete secret '%s': %v", uuid, err)
-					}
+			for _, secret := range downloadedSecrets {
+				err := client.DeleteSecret(*secret.sentToFingerprint, secret.UUID.String())
+				if err != nil {
+					log.Printf("failed to delete secret '%s': %v", secret.UUID, err)
 				}
 			}
 		}
@@ -110,37 +110,27 @@ func secretReceive() exitCode {
 	return 0
 }
 
-func downloadAndDecryptSecrets(key pgpkey.PgpKey) (decryptedSecrets []string, decryptedUUIDs []string, secretErrors []error, err error) {
+func downloadAndDecryptSecrets(key pgpkey.PgpKey) (secrets []secret, secretErrors []error, err error) {
 	encryptedSecrets, err := client.ListSecrets(key.Fingerprint())
 	if err != nil {
-		return nil, nil, nil, errListSecrets{originalError: err}
+		return nil, nil, errListSecrets{originalError: err}
 	}
 	if len(encryptedSecrets) == 0 {
-		return nil, nil, nil, errNoSecretsFound{}
+		return nil, nil, errNoSecretsFound{}
 	}
 	privateKey, _, err := getDecryptedPrivateKeyAndPassword(&key, &interactivePasswordPrompter{})
 	if err != nil {
-		return nil, nil, nil, errDecryptPrivateKey{originalError: err}
+		return nil, nil, errDecryptPrivateKey{originalError: err}
 	}
 	for _, encryptedSecret := range encryptedSecrets {
-		decryptedContent, err := decrypt(encryptedSecret.EncryptedContent, privateKey)
+		secret, err := decryptAPISecret(encryptedSecret, privateKey)
 		if err != nil {
 			secretErrors = append(secretErrors, err)
 		} else {
-			decryptedSecrets = append(decryptedSecrets, decryptedContent)
+			secrets = append(secrets, *secret)
 		}
-		jsonMetadata, err := decrypt(encryptedSecret.EncryptedMetadata, privateKey)
-		if err != nil {
-			log.Print(fmt.Sprintf("Failed to decrypt secret metadata: %s", err))
-		}
-		metadata := v1structs.SecretMetadata{}
-		err = json.NewDecoder(strings.NewReader(jsonMetadata)).Decode(&metadata)
-		if err != nil {
-			log.Print(fmt.Sprintf("Failed to decode secret metadata: %s", err))
-		}
-		decryptedUUIDs = append(decryptedUUIDs, metadata.SecretUUID)
 	}
-	return decryptedSecrets, decryptedUUIDs, secretErrors, nil
+	return secrets, secretErrors, nil
 }
 
 func formatSecretListItem(listNumber int, decryptedContent string) (output string) {
@@ -152,6 +142,35 @@ func formatSecretListItem(listNumber int, decryptedContent string) (output strin
 		output = output + "\n"
 	}
 	return output
+}
+
+func decryptAPISecret(encryptedSecret v1structs.Secret, pgpKey *pgpkey.PgpKey) (*secret, error) {
+	decryptedContent, err := decrypt(encryptedSecret.EncryptedContent, pgpKey)
+	if err != nil {
+		log.Print(fmt.Sprintf("Failed to decrypt secret: %s", err))
+	}
+
+	metadata := v1structs.SecretMetadata{}
+	jsonMetadata, err := decrypt(encryptedSecret.EncryptedMetadata, pgpKey)
+	if err != nil {
+		log.Print(fmt.Sprintf("Failed to decrypt secret metadata: %s", err))
+	}
+	err = json.NewDecoder(strings.NewReader(jsonMetadata)).Decode(&metadata)
+	if err != nil {
+		log.Print(fmt.Sprintf("Failed to decode secret metadata: %s", err))
+	}
+	uuid, err := uuid.FromString(metadata.SecretUUID)
+	if err != nil {
+		log.Print(fmt.Sprintf("Failed to parse uuid from string: %s", err))
+	}
+	fingerprint := pgpKey.Fingerprint()
+
+	secret := secret{
+		decryptedContent:  decryptedContent,
+		UUID:              uuid,
+		sentToFingerprint: &fingerprint,
+	}
+	return &secret, nil
 }
 
 func decrypt(encrypted string, pgpKey *pgpkey.PgpKey) (string, error) {
@@ -186,6 +205,12 @@ const (
 	secretDividerRune   = "─"
 	secretDividerLength = 30
 )
+
+type secret struct {
+	decryptedContent  string
+	UUID              uuid.UUID
+	sentToFingerprint *fingerprint.Fingerprint
+}
 
 type errListSecrets struct {
 	originalError error
