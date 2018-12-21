@@ -222,7 +222,8 @@ func makePrimaryInstruction(keysWithWarnings []KeyWithWarnings) string {
 		} else { // These aren't urgent issues
 			output = "Fix these issues by running:\n"
 		}
-		output += "    " + colour.CommandLineCode("fk key maintain") + "\n\n"
+		output += "    " + colour.CommandLineCode("fk key maintain") + "\n"
+		output += "    " + colour.CommandLineCode("fk key upload") + "\n\n"
 	}
 	return output
 }

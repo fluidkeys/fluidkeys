@@ -235,10 +235,12 @@ func runKeyMaintain(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwor
 		}
 		if numKeysNotPublished > 0 {
 
-			out.Print(fmt.Sprintf(" " + colour.Warning("▸   "+humanize.Pluralize(numKeysNotPublished, "key hasn't", "keys haven't")+
-				" been updated in the Fluidkeys directory.\n\n")))
-			out.Print("Make sure others can find your updated keys by running:\n")
-			out.Print("    " + colour.CommandLineCode("fk key publish") + "\n\n")
+			out.Print(
+				fmt.Sprintf(" " + colour.Warning("▸   "+
+					humanize.Pluralize(numKeysNotPublished, "key hasn't", "keys haven't")+
+					" been uploaded to Fluidkeys.\n\n")))
+			out.Print("Make sure others can send you secrets by running:\n")
+			out.Print("    " + colour.CommandLineCode("fk key upload") + "\n\n")
 		}
 
 		return 0
@@ -542,7 +544,7 @@ type PublishToAPI struct {
 }
 
 func (a PublishToAPI) String() string {
-	return "Publish updated key to Fluidkeys directory"
+	return "Upload updated key to Fluidkeys"
 }
 
 func (a PublishToAPI) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {

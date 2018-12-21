@@ -26,8 +26,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
 
-func keyPublish() exitCode {
-	out.Print(colour.Info("Publishing keys...") + "\n\n")
+func keyUpload() exitCode {
 	keys, err := loadPgpKeys()
 	if err != nil {
 		log.Panic(err)
@@ -55,13 +54,13 @@ func keyPublish() exitCode {
 
 		err = publishKeyToAPI(unlockedKey)
 		if err != nil {
-			printFailed("Error publishing key")
+			printFailed("Error uploading key")
 			out.Print(colour.Error("     " + err.Error() + "\n\n"))
 			gotAnyErrors = true
 			continue
 		}
 
-		printSuccess("Published key to Fluidkeys directory\n")
+		printSuccess("Uploaded public key to Fluidkeys\n")
 	}
 
 	if gotAnyErrors {
@@ -81,7 +80,7 @@ func shouldPublishToAPI(key *pgpkey.PgpKey) bool {
 	shouldPublish := Config.ShouldPublishToAPI(key.Fingerprint())
 
 	if !shouldPublish {
-		out.Print(colour.Warning(" ▸   Config currently preventing key from being published\n\n"))
+		out.Print(colour.Warning(" ▸   Config file prevents key from being uploaded\n\n"))
 
 		promptToEnableConfigPublishToAPI(key)
 	}
@@ -92,7 +91,7 @@ func shouldPublishToAPI(key *pgpkey.PgpKey) bool {
 func publishKeyToAPI(privateKey *pgpkey.PgpKey) error {
 	armoredPublicKey, err := privateKey.Armor()
 	if err != nil {
-		return fmt.Errorf("Couldn't load armored key: %s\n", err)
+		return fmt.Errorf("Couldn't load armored key: %s", err)
 	}
 	if err = client.UpsertPublicKey(armoredPublicKey, privateKey); err != nil {
 		return fmt.Errorf("Failed to upload public key: %s", err)
@@ -104,18 +103,18 @@ func publishKeyToAPI(privateKey *pgpkey.PgpKey) error {
 // promptToEnableConfigPublishToAPI asks the user if they'd like to publish a
 // key to the Fluidkeys directory.
 // This actually means *enable config* to publish from subsequent actions like
-// `key maintain` and `key publish`.
+// `key maintain` and `key upload`.
 func promptToEnableConfigPublishToAPI(key *pgpkey.PgpKey) {
 	prompter := interactiveYesNoPrompter{}
 
-	out.Print("🔍 Publishing your key in the Fluidkeys directory allows\n")
-	out.Print("   others to find your key from your email address.\n\n")
+	out.Print("🔍 To allow others to send you secrets, you need to upload your\n")
+	out.Print("   public key to Fluidkeys.\n\n")
 
-	if prompter.promptYesNo("Publish this key?", "", key) == true {
+	if prompter.promptYesNo("Upload key?", "", key) == true {
 		if err := Config.SetPublishToAPI(key.Fingerprint(), true); err != nil {
 			log.Printf("Failed to enable publish to api: %v", err)
 		}
 	} else {
-		out.Print(colour.Disabled(" ▸   Not publishing key to Fluidkeys directory.\n\n"))
+		out.Print(colour.Disabled(" ▸   Not uploading key\n\n"))
 	}
 }

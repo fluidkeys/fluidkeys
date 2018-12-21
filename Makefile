@@ -19,7 +19,7 @@ MAIN_GO_FILES=fluidkeys/main.go \
 	     fluidkeys/secretsend.go \
 	     fluidkeys/secretreceive.go \
 	     fluidkeys/setup.go \
-	     fluidkeys/keypublish.go \
+	     fluidkeys/keyupload.go \
 
 # `make compile` should populate build/ with all files that will
 # ultimately be installed to PREFIX (/usr/local), for example
