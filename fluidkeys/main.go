@@ -61,6 +61,7 @@ func main() {
 Configuration file: %s
 
 Usage:
+	fk setup
 	fk secret send <recipient-email-address>
 	fk secret receive
 	fk key create
@@ -83,11 +84,13 @@ Options:
 
 	ensureCrontabStateMatchesConfig()
 
-	switch getSubcommand(args, []string{"key", "secret"}) {
+	switch getSubcommand(args, []string{"key", "secret", "setup"}) {
 	case "key":
 		os.Exit(keySubcommand(args))
 	case "secret":
 		os.Exit(secretSubcommand(args))
+	case "setup":
+		os.Exit(setupSubcommand(args))
 	}
 }
 
@@ -132,7 +135,8 @@ func keySubcommand(args docopt.Opts) exitCode {
 		"create", "from-gpg", "list", "maintain", "publish",
 	}) {
 	case "create":
-		os.Exit(keyCreate())
+		exitCode, _ := keyCreate()
+		os.Exit(exitCode)
 	case "from-gpg":
 		os.Exit(keyFromGpg())
 	case "list":
@@ -252,4 +256,8 @@ func secretSubcommand(args docopt.Opts) exitCode {
 	}
 	log.Panicf("secretSubcommand got unexpected arguments: %v", args)
 	panic(nil)
+}
+
+func setupSubcommand(args docopt.Opts) exitCode {
+	return setup()
 }
