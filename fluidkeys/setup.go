@@ -10,7 +10,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/out"
 )
 
-func setup() exitCode {
+func setup(email string) exitCode {
 	out.Print("\n")
 
 	out.Print(colour.Greeting(paulAndIanGreeting) + "\n")
@@ -18,7 +18,7 @@ func setup() exitCode {
 
 	out.Print("Fluidkeys makes it easy to send end-to-end encrypted secrets using PGP.\n")
 
-	exitCode, pgpKey := keyCreate()
+	exitCode, pgpKey := keyCreate(email)
 	if exitCode != 0 {
 		return exitCode
 	}
@@ -30,7 +30,7 @@ func setup() exitCode {
 		return 1
 	}
 
-	email, err := pgpKey.Email()
+	email, err = pgpKey.Email()
 	if err != nil {
 		printFailed("Couldn't get email address for key:")
 		out.Print("Error: " + err.Error() + "\n")
