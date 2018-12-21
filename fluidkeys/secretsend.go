@@ -38,7 +38,7 @@ func secretSend(recipientEmail string) exitCode {
 	if err != nil {
 		if err == api.ErrPublicKeyNotFound {
 			out.Print("\n")
-			out.Print("Couldn't find " + recipientEmail + " in the Fluidkeys Directory.\n\n")
+			out.Print("Couldn't find " + recipientEmail + " on Fluidkeys.\n\n")
 			out.Print("You can invite them to install Fluidkeys:\n")
 			out.Print("───\n")
 			out.Print(colour.Warning(`I'd like to send you an encrypted secret with Fluidkeys.
