@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/fluidkeys/fluidkeys/colour"
@@ -20,7 +23,7 @@ func setup() exitCode {
 		return exitCode
 	}
 
-	encryptedSecret, err := encryptSecret(colour.Warning(secretSquirrelMessage), pgpKey)
+	encryptedSecret, err := encryptSecret(secretSquirrelMessage(), pgpKey)
 	if err != nil {
 		printFailed("Couldn't encrypt a test secret message:")
 		out.Print("Error: " + err.Error() + "\n")
@@ -49,7 +52,19 @@ func setup() exitCode {
 	return 0
 }
 
-const paulAndIanGreeting = `👋  Hello and welcome to Fluidkeys!
+func secretSquirrelMessage() (message string) {
+	rand.Seed(time.Now().Unix())
+	codeName := fmt.Sprintf("%s %s", adjectives[rand.Intn(len(adjectives))], nouns[rand.Intn(len(nouns))])
+
+	message = "🐿️  This is Secret Squirrel calling " + strings.Title(codeName) + "\n"
+	message = message + `   Do you copy?
+   Let me know by sending me a response:
+   squirrel@fluidkeys.com`
+	return colour.Squirrel(message)
+}
+
+const (
+	paulAndIanGreeting = `👋  Hello and welcome to Fluidkeys!
 
     We're on a mission to help teams protect themselves
     with strong encryption.
@@ -58,9 +73,20 @@ const paulAndIanGreeting = `👋  Hello and welcome to Fluidkeys!
     You can reach us at hello@fluidkeys.com
     
     Paul & Ian, Fluidkeys`
+)
 
-const secretSquirrelMessage = `🐿️  This is Secret Squirrel calling Dusty Snowflake.
-   Do you copy?
-   Let me know by sending me a response:
-   squirrel@fluidkeys.com
-`
+var (
+	adjectives = []string{
+		"dusty", "past", "amazing", "agreeable", "faded", "solid", "true", "wistful", "dear",
+		"didactic", "spiky", "interesting", "jagged", "obedient", "amused", "furry", "rapid",
+		"infamous", "succinct", "ethereal", "sable", "fantastic", "perpetual", "puzzled",
+		"sneaky", "familiar", "inquisitive", "fine", "halting", "useful", "salty", "bright",
+		"zesty", "gleaming", "graceful", "satisfying", "magnificent",
+	}
+	nouns = []string{
+		"brick", "guitar", "monster", "notebook", "thunderstorm", "snowflake", "vineyard",
+		"bacon", "canteen", "engineer", "fly", "raven", "bicycle", "crow", "eyelash", "bowtie",
+		"ankle", "glove", "champion", "rose", "tin", "shirt", "wall", "stick", "holiday", "earth",
+		"eye", "road", "cake", "sink", "brass", "sun", "stage", "table", "brake", "chair", "moon",
+	}
+)
