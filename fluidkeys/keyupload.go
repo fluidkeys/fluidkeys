@@ -110,7 +110,7 @@ func promptToEnableConfigPublishToAPI(key *pgpkey.PgpKey) {
 	out.Print("🔍 To allow others to send you secrets, you need to upload your\n")
 	out.Print("   public key to Fluidkeys.\n\n")
 
-	if prompter.promptYesNo("Upload key?", "", key) == true {
+	if prompter.promptYesNo("Upload key from now on?", "", key) == true {
 		if err := Config.SetPublishToAPI(key.Fingerprint(), true); err != nil {
 			log.Printf("Failed to enable publish to api: %v", err)
 		}
