@@ -227,5 +227,3 @@ type errDecryptPrivateKey struct {
 }
 
 func (e errDecryptPrivateKey) Error() string { return e.originalError.Error() }
-
-type downloadedSecrets map[fingerprint.Fingerprint][]string
