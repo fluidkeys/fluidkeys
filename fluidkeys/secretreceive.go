@@ -27,13 +27,11 @@ import (
 	"strings"
 
 	"github.com/fluidkeys/api/v1structs"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
-	"github.com/fluidkeys/fluidkeys/humanize"
-
-	"github.com/fluidkeys/fluidkeys/colour"
-
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/armor"
+	"github.com/fluidkeys/fluidkeys/colour"
+	"github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
