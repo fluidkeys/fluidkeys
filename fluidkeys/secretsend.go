@@ -45,7 +45,7 @@ func secretSend(recipientEmail string) exitCode {
 
 You can download and set up Fluidkeys here:
 
-https://getstarted.fluidkeys.com#` + recipientEmail + `
+https://download.fluidkeys.com#` + recipientEmail + `
 `))
 			out.Print("───\n")
 			return 1
