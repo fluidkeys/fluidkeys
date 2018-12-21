@@ -27,6 +27,7 @@ import (
 
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/armor"
+	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
@@ -55,7 +56,8 @@ func secretSend(recipientEmail string) exitCode {
 	}
 
 	out.Print("\n")
-	out.Print("[type or paste your message, ending by typing Ctrl-D]\n\n")
+	out.Print(colour.Info(femaleSpyEmoji + "  Type or paste your message, ending by typing Ctrl-D\n"))
+	out.Print(colour.Info("   It will be end-to-end encrypted so no-one else can read it\n\n"))
 
 	secret, err := scanUntilEOF()
 	if err != nil {
@@ -130,3 +132,5 @@ func encryptSecret(secret string, pgpKey *pgpkey.PgpKey) (string, error) {
 	message.Close()
 	return buffer.String(), nil
 }
+
+const femaleSpyEmoji = "\xf0\x9f\x95\xb5\xef\xb8\x8f\xe2\x80\x8d\xe2\x99\x80\xef\xb8\x8f"
