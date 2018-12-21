@@ -62,7 +62,8 @@ func main() {
 Configuration file: %s
 
 Usage:
-	fk setup [<email>]
+	fk setup
+	fk setup <email>
 	fk secret send <recipient-email-address>
 	fk secret receive
 	fk key create
@@ -260,8 +261,13 @@ func secretSubcommand(args docopt.Opts) exitCode {
 }
 
 func setupSubcommand(args docopt.Opts) exitCode {
-	email, _ := args.String("<email>")
-	// Have to swallow error, as docopts returns `err: key: "<email>" failed type conversion`
+	if args["<email>"] == nil {
+		return setup("")
+	}
+	email, err := args.String("<email>")
+	if err != nil {
+		log.Panic(err)
+	}
 	if email != "" && !emailutils.RoughlyValidateEmail(email) {
 		printFailed(email + " isn't a valid email address")
 		return 1
