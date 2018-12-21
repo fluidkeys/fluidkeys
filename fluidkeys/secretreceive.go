@@ -91,6 +91,8 @@ func secretReceive() exitCode {
 		}
 	}
 
+	sawErrorDeletingSecret := false
+
 	if len(downloadedSecrets) > 0 {
 		prompter := interactiveYesNoPrompter{}
 		out.Print("\n")
@@ -99,7 +101,13 @@ func secretReceive() exitCode {
 				err := client.DeleteSecret(*secret.sentToFingerprint, secret.UUID.String())
 				if err != nil {
 					log.Printf("failed to delete secret '%s': %v", secret.UUID, err)
+					sawErrorDeletingSecret = true
 				}
+			}
+			if sawErrorDeletingSecret {
+				printFailed("One or more errors deleting secrets")
+			} else {
+				printSuccess("Deleted all secrets")
 			}
 		}
 	}
