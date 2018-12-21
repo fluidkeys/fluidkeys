@@ -108,14 +108,19 @@ func publishKeyToAPI(privateKey *pgpkey.PgpKey) error {
 func promptToEnableConfigPublishToAPI(key *pgpkey.PgpKey) {
 	prompter := interactiveYesNoPrompter{}
 
-	out.Print("🔍 Publishing your key in the Fluidkeys directory allows\n")
-	out.Print("   others to find your key from your email address.\n\n")
+	email, err := key.Email()
+	if err != nil {
+		log.Printf("Failed to get email for key: %v", err)
+		printFailed(fmt.Sprintf("Couldn't get email address for key: %v", err))
+	}
 
-	if prompter.promptYesNo("Publish this key?", "", key) == true {
+	out.Print("🔍 To allow others to send you secrets, you need to register with Fluidkeys.\n\n")
+
+	if prompter.promptYesNo("Register "+email+" so others can send you secrets", "", key) == true {
 		if err := Config.SetPublishToAPI(key.Fingerprint(), true); err != nil {
 			log.Printf("Failed to enable publish to api: %v", err)
 		}
 	} else {
-		out.Print(colour.Disabled(" ▸   Not publishing key to Fluidkeys directory.\n\n"))
+		out.Print(colour.Disabled(" ▸   Not registering " + email + "\n\n"))
 	}
 }
