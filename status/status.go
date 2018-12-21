@@ -344,10 +344,15 @@ func getConfigurationWarnings(key pgpkey.PgpKey, config *config.Config) []KeyWar
 	maintainAutomatically := config.ShouldMaintainAutomatically(key.Fingerprint())
 	publishToAPI := config.ShouldPublishToAPI(key.Fingerprint())
 
+	email, err := key.Email()
+	if err != nil {
+		log.Printf("couldn't get email for '%s': %v", key.Fingerprint().Hex(), err)
+	}
+
 	if !maintainAutomatically && !publishToAPI {
 		warnings = append(warnings,
 			KeyWarning{Type: ConfigMaintainAutomaticallyNotSet},
-			KeyWarning{Type: ConfigPublishToAPINotSet},
+			KeyWarning{Type: ConfigPublishToAPINotSet, Detail: email},
 		)
 	} else if maintainAutomatically && !publishToAPI {
 		warnings = append(warnings,

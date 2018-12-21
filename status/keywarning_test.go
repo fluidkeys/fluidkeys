@@ -79,12 +79,12 @@ func TestString(t *testing.T) {
 			"Key not maintained automatically",
 		},
 		{
-			KeyWarning{Type: ConfigPublishToAPINotSet},
-			"Key not published in the Fluidkeys directory",
+			KeyWarning{Type: ConfigPublishToAPINotSet, Detail: "jo@example.com"},
+			"jo@example.com not registered, unable to receive secrets",
 		},
 		{
 			KeyWarning{Type: ConfigMaintainAutomaticallyButDontPublish},
-			"Key maintained automatically but not published",
+			"Key maintained automatically but not registered, unable to receive secrets",
 		},
 		{
 			KeyWarning{}, // unspecified type
