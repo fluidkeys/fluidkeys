@@ -54,7 +54,9 @@ type generatePgpKeyResult struct {
 	err    error
 }
 
-func keyCreate() (exitCode, *pgpkey.PgpKey) {
+// keyCreate creates a new pgp key and returns it.
+// If email is empty, it prompts the user for an email address
+func keyCreate(email string) (exitCode, *pgpkey.PgpKey) {
 
 	if !gpg.IsWorking() {
 		out.Print(colour.Warning("\nGPG isn't working on your system 🤒\n\n"))
@@ -66,16 +68,23 @@ func keyCreate() (exitCode, *pgpkey.PgpKey) {
 	}
 	out.Print("\n")
 
-	printHeader("What's your email address?")
+	if email == "" {
+		printHeader("What's your email address?")
 
-	out.Print("This is how other people using Fluidkeys will find you.\n\n")
-	out.Print("We'll send you an email to verify your address.\n\n")
+		out.Print("This is how other people using Fluidkeys will find you.\n\n")
+		out.Print("We'll send you an email to verify your address.\n\n")
 
-	email := promptForInput("[email] : ")
-	for !emailutils.RoughlyValidateEmail(email) {
-		printWarning("Not a valid email address")
-		out.Print("\n")
-		email = promptForInput("[email] : ")
+		email := promptForInput("[email] : ")
+		for !emailutils.RoughlyValidateEmail(email) {
+			printWarning("Not a valid email address")
+			out.Print("\n")
+			email = promptForInput("[email] : ")
+		}
+	} else {
+		printHeader("Setting up " + email)
+
+		out.Print("Other people using Fluidkeys will find you at " + email + ".\n\n")
+		out.Print("We'll send you an email to verify your address.\n\n")
 	}
 
 	channel := make(chan generatePgpKeyResult)
