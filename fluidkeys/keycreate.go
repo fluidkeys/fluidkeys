@@ -74,7 +74,7 @@ func keyCreate(email string) (exitCode, *pgpkey.PgpKey) {
 		out.Print("This is how other people using Fluidkeys will find you.\n\n")
 		out.Print("We'll send you an email to verify your address.\n\n")
 
-		email := promptForInput("[email] : ")
+		email = promptForInput("[email] : ")
 		for !emailutils.RoughlyValidateEmail(email) {
 			printWarning("Not a valid email address")
 			out.Print("\n")
