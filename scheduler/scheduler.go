@@ -20,6 +20,7 @@ package scheduler
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os/exec"
 	"strings"
 	"syscall"
@@ -104,6 +105,7 @@ func isExitStatusOne(err error) bool {
 }
 
 func runCrontab(arguments ...string) (string, error) {
+	log.Printf("Running `%s %s`", crontab, strings.Join(arguments, " "))
 	cmd := exec.Command(crontab, arguments...)
 
 	out, err := cmd.CombinedOutput()
