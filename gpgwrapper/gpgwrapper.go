@@ -79,10 +79,9 @@ func Load() (*GnuPG, error) {
 
 // Returns the GnuPG version string, e.g. "1.2.3"
 func (g *GnuPG) Version() (string, error) {
-	outString, err := g.run("--version")
+	outString, _, err := g.run("", "--version")
 
 	if err != nil {
-		err = fmt.Errorf("problem running GPG, %v", err)
 		return "", err
 	}
 
@@ -98,9 +97,8 @@ func (g *GnuPG) Version() (string, error) {
 
 // Returns the GnuPG home directory, e.g. "/Users/jane/.gnupg"
 func (g *GnuPG) HomeDir() (string, error) {
-	outString, err := g.run("--version")
+	outString, _, err := g.run("", "--version")
 	if err != nil {
-		err = fmt.Errorf("problem running GPG, %v", err)
 		return "", err
 	}
 
@@ -129,9 +127,8 @@ func (g *GnuPG) IsWorking() bool {
 
 // Import an armored key into the GPG key ring
 func (g *GnuPG) ImportArmoredKey(armoredKey string) (string, error) {
-	stdout, stderr, err := g.runWithStdin(armoredKey, "--import")
+	stdout, stderr, err := g.run(armoredKey, "--import")
 	if err != nil {
-		err = fmt.Errorf("problem importing key, %v", err)
 		return stderr, err
 	}
 	// TODO: are we correctly checking if GPG failed? I think it can return
@@ -147,9 +144,9 @@ func (g *GnuPG) ListSecretKeys() ([]SecretKeyListing, error) {
 		"--fixed-list-mode",
 		"--list-secret-keys",
 	}
-	outString, err := g.run(args...)
+	outString, _, err := g.run("", args...)
 	if err != nil {
-		return nil, fmt.Errorf("error running 'gpg %s': %v", strings.Join(args, " "), err)
+		return nil, err
 	}
 
 	return parseListSecretKeys(outString)
@@ -165,7 +162,7 @@ func (g *GnuPG) ExportPublicKey(fingerprint fingerprint.Fingerprint) (string, er
 		fingerprint.Hex(),
 	}
 
-	stdout, err := g.run(args...)
+	stdout, _, err := g.run("", args...)
 	if err != nil {
 		return "", err
 	}
@@ -191,14 +188,14 @@ func (g *GnuPG) ExportPublicKey(fingerprint fingerprint.Fingerprint) (string, er
 // The outputted private key is encrypted with the password.
 func (g *GnuPG) ExportPrivateKey(fingerprint fingerprint.Fingerprint, password string) (string, error) {
 
-	stdout, stderr, err := g.runWithStdin(
+	stdout, stderr, err := g.run(
 		password,
 		getArgsExportPrivateKeyWithPinentry(fingerprint)...,
 	)
 
 	if err != nil {
-		if strings.Contains(stderr, invalidOptionPinentryMode) { // TODO: is this really in stderr or in stdout?
-			stdout, stderr, err := g.runWithStdin(
+		if strings.Contains(stderr, invalidOptionPinentryMode) {
+			stdout, stderr, err := g.run(
 				password,
 				getArgsExportPrivateKeyWithoutPinentry(fingerprint)...,
 			)
@@ -275,29 +272,12 @@ func parseVersionString(gpgStdout string) (string, error) {
 	return match[1], nil
 }
 
-func (g *GnuPG) run(arguments ...string) (string, error) {
-	fullArguments := g.prependGlobalArguments(arguments...)
-	out, err := exec.Command(g.fullGpgPath, fullArguments...).CombinedOutput()
-
-	if err != nil {
-		err := ErrProblemExecutingGPG(string(out), fullArguments...)
-		return "", err
-	}
-	outString := string(out)
-	return outString, nil
-}
-
-// runWithStdin runs the given command, sends textToSend via stdin, and returns
+// run runs the given command, sends textToSend via stdin, and returns
 // stdout, stderr and any error encountered
-func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (stdout string, stderr string, returnErr error) {
+func (g *GnuPG) run(textToSend string, arguments ...string) (
+	stdout string, stderr string, returnErr error) {
 	fullArguments := g.prependGlobalArguments(arguments...)
 	cmd := exec.Command(g.fullGpgPath, fullArguments...)
-
-	stdin, err := cmd.StdinPipe() // used to send textToSend
-	if err != nil {
-		returnErr = fmt.Errorf("Failed to get stdin pipe '%s'", err)
-		return
-	}
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
@@ -310,8 +290,16 @@ func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (stdout str
 		return
 	}
 
-	io.WriteString(stdin, textToSend)
-	stdin.Close()
+	if textToSend != "" {
+		stdin, err := cmd.StdinPipe() // used to send textToSend
+		if err != nil {
+			returnErr = fmt.Errorf("Failed to get stdin pipe '%s'", err)
+			return
+		}
+
+		io.WriteString(stdin, textToSend)
+		stdin.Close()
+	}
 
 	if err = cmd.Start(); err != nil {
 		returnErr = fmt.Errorf("error starting gpg: %v", err)
@@ -333,7 +321,32 @@ func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (stdout str
 	}
 
 	if err := cmd.Wait(); err != nil {
-		returnErr = fmt.Errorf("gpg failed with error '%s'", err)
+		// a non-zero exit code error from .Wait() looks like:
+		// "exit status 2"
+
+		stderrLines := strings.Split(
+			strings.TrimRight(stderr, "\n\r"),
+			"\n",
+		)
+		extraErr := ""
+
+		switch len(stderrLines) {
+		case 0:
+			extraErr = ""
+
+		case 1:
+			extraErr = fmt.Sprintf(", stderr: %s", stderrLines[0])
+
+		default:
+			extraErr = fmt.Sprintf(", stderr: %s [see fluidkeys log for more]", stderrLines[0])
+		}
+
+		log.Printf("command failed: `gpg %s` : %s", strings.Join(fullArguments, " "), err)
+		for _, line := range stderrLines {
+			log.Print(line)
+		}
+
+		returnErr = fmt.Errorf("%v%s", err, extraErr)
 		return
 	}
 
