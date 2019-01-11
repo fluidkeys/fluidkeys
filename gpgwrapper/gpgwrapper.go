@@ -355,8 +355,7 @@ func (g *GnuPG) prependGlobalArguments(arguments ...string) []string {
 }
 
 func findGpgBinary() (fullPath string, err error) {
-	for _, binaryDir := range gpgSearchPaths {
-		fullPath = binaryDir + "/gpg2"
+	for _, fullPath := range gpgBinaryLocations {
 		testGpg := GnuPG{fullGpgPath: fullPath}
 
 		version, err := testGpg.Version()
@@ -364,17 +363,25 @@ func findGpgBinary() (fullPath string, err error) {
 			continue
 		}
 
+		if version[0:2] != "2." {
+			log.Printf("ignoring %s (version %s, looking for gpg 2.x)", fullPath, version)
+			continue
+		}
+
 		log.Printf("found working gpg2 with version '%s': %s", version, fullPath)
 		return fullPath, nil
 	}
 
-	return "", fmt.Errorf("didn't find working GnuPG binary")
+	return "", fmt.Errorf("didn't find working `gpg2` or `gpg` binary with version 2.x")
 }
 
-var gpgSearchPaths = []string{
-	"/usr/bin",
-	"/usr/local/bin",
-	"/usr/local/MacGPG2/bin",
+var gpgBinaryLocations = []string{
+	"/usr/bin/gpg2",
+	"/usr/bin/gpg",
+	"/usr/local/bin/gpg2",
+	"/usr/local/bin/gpg",
+	"/usr/local/MacGPG2/bin/gpg2",
+	"/usr/local/MacGPG2/bin/gpg",
 }
 
 const (
