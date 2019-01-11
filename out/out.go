@@ -27,7 +27,10 @@ import (
 	"github.com/fluidkeys/fluidkeys/colour"
 )
 
+var logFilename string
+
 var outputter outputterInterface
+
 // NoLogCharacter can be added to an output message to prevent that line from
 // being saved to the log file.
 const NoLogCharacter string = "🤫"
@@ -44,7 +47,7 @@ func Load(logDirectory string) error {
 	}
 	SetOutputToTerminal()
 
-	logFilename := filepath.Join(logDirectory, "debug.log")
+	logFilename = filepath.Join(logDirectory, "debug.log")
 
 	if f, err := os.OpenFile(logFilename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err != nil {
 		return fmt.Errorf("failed to open '%s' for writing: %v", logFilename, err)
@@ -53,6 +56,10 @@ func Load(logDirectory string) error {
 		log.SetOutput(f)
 	}
 	return nil
+}
+
+func GetLogFilename() string {
+	return logFilename
 }
 
 func SetOutputToTerminal() {
