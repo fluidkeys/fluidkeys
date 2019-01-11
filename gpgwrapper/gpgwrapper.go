@@ -336,7 +336,32 @@ func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (
 	}
 
 	if err := cmd.Wait(); err != nil {
-		returnErr = fmt.Errorf("gpg failed with error '%s'", err)
+		// a non-zero exit code error from .Wait() looks like:
+		// "exit status 2"
+
+		stderrLines := strings.Split(
+			strings.TrimRight(stderr, "\n\r"),
+			"\n",
+		)
+		extraErr := ""
+
+		switch len(stderrLines) {
+		case 0:
+			extraErr = ""
+
+		case 1:
+			extraErr = fmt.Sprintf(", stderr: %s", stderrLines[0])
+
+		default:
+			extraErr = fmt.Sprintf(", stderr: %s [see fluidkeys log for more]", stderrLines[0])
+		}
+
+		log.Printf("command failed: `gpg %s` : %s", strings.Join(fullArguments, " "), err)
+		for _, line := range stderrLines {
+			log.Print(line)
+		}
+
+		returnErr = fmt.Errorf("%v%s", err, extraErr)
 		return
 	}
 
