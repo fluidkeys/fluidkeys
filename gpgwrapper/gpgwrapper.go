@@ -82,7 +82,6 @@ func (g *GnuPG) Version() (string, error) {
 	outString, _, err := g.run("", "--version")
 
 	if err != nil {
-		err = fmt.Errorf("problem running GPG, %v", err)
 		return "", err
 	}
 
@@ -100,7 +99,6 @@ func (g *GnuPG) Version() (string, error) {
 func (g *GnuPG) HomeDir() (string, error) {
 	outString, _, err := g.run("", "--version")
 	if err != nil {
-		err = fmt.Errorf("problem running GPG, %v", err)
 		return "", err
 	}
 
@@ -131,7 +129,6 @@ func (g *GnuPG) IsWorking() bool {
 func (g *GnuPG) ImportArmoredKey(armoredKey string) (string, error) {
 	stdout, stderr, err := g.run(armoredKey, "--import")
 	if err != nil {
-		err = fmt.Errorf("problem importing key, %v", err)
 		return stderr, err
 	}
 	// TODO: are we correctly checking if GPG failed? I think it can return
@@ -149,7 +146,7 @@ func (g *GnuPG) ListSecretKeys() ([]SecretKeyListing, error) {
 	}
 	outString, _, err := g.run("", args...)
 	if err != nil {
-		return nil, fmt.Errorf("error running 'gpg %s': %v", strings.Join(args, " "), err)
+		return nil, err
 	}
 
 	return parseListSecretKeys(outString)
