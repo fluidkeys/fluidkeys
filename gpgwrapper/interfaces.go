@@ -26,5 +26,5 @@ type ExportPrivateKeyInterface interface {
 }
 
 type ImportArmoredKeyInterface interface {
-	ImportArmoredKey(string) (string, error)
+	ImportArmoredKey(string) error
 }

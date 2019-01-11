@@ -77,11 +77,11 @@ func pushPrivateKeyBackToGpg(
 		return fmt.Errorf("failed to dump private key: %v\n", err)
 	}
 
-	_, err = importer.ImportArmoredKey(armoredPublicKey)
+	err = importer.ImportArmoredKey(armoredPublicKey)
 	if err != nil {
 		return err
 	}
 
-	_, err = importer.ImportArmoredKey(armoredPrivateKey)
+	err = importer.ImportArmoredKey(armoredPrivateKey)
 	return err
 }
