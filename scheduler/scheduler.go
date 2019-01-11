@@ -37,15 +37,10 @@ func Enable() (crontabWasAdded bool, err error) {
 	if !hasFluidkeysCronLines(currentCrontab) {
 		newCrontab := addCrontabLinesWithoutRepeating(currentCrontab)
 		err = writeCrontab(newCrontab)
-		if err != nil {
-			return false, err
-		}
-		crontabWasAdded = true
-	} else {
-		crontabWasAdded = false
+		return true, err
 	}
 
-	return
+	return false, nil
 }
 
 // Disable parses the crontab (output of `crontab -l`) and removes Fluidkeys'
@@ -58,14 +53,11 @@ func Disable() (cronLinesWereRemoved bool, err error) {
 	}
 
 	if hasFluidkeysCronLines(currentCrontab) {
-		cronLinesWereRemoved = true
 		newCrontab := removeCrontabLines(currentCrontab)
 		err = writeCrontab(newCrontab)
-		return
-	} else {
-		cronLinesWereRemoved = false
-		return
+		return true, err
 	}
+	return false, nil
 }
 
 func hasFluidkeysCronLines(crontab string) bool {
