@@ -294,12 +294,6 @@ func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (
 	fullArguments := g.prependGlobalArguments(arguments...)
 	cmd := exec.Command(g.fullGpgPath, fullArguments...)
 
-	stdin, err := cmd.StdinPipe() // used to send textToSend
-	if err != nil {
-		returnErr = fmt.Errorf("Failed to get stdin pipe '%s'", err)
-		return
-	}
-
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
 		returnErr = fmt.Errorf("Failed to get stdout pipe '%s'", err)
@@ -311,8 +305,16 @@ func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (
 		return
 	}
 
-	io.WriteString(stdin, textToSend)
-	stdin.Close()
+	if textToSend != "" {
+		stdin, err := cmd.StdinPipe() // used to send textToSend
+		if err != nil {
+			returnErr = fmt.Errorf("Failed to get stdin pipe '%s'", err)
+			return
+		}
+
+		io.WriteString(stdin, textToSend)
+		stdin.Close()
+	}
 
 	if err = cmd.Start(); err != nil {
 		returnErr = fmt.Errorf("error starting gpg: %v", err)
