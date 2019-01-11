@@ -79,7 +79,7 @@ func Load() (*GnuPG, error) {
 
 // Returns the GnuPG version string, e.g. "1.2.3"
 func (g *GnuPG) Version() (string, error) {
-	outString, err := g.run("--version")
+	outString, _, err := g.runWithStdin("", "--version")
 
 	if err != nil {
 		err = fmt.Errorf("problem running GPG, %v", err)
@@ -98,7 +98,7 @@ func (g *GnuPG) Version() (string, error) {
 
 // Returns the GnuPG home directory, e.g. "/Users/jane/.gnupg"
 func (g *GnuPG) HomeDir() (string, error) {
-	outString, err := g.run("--version")
+	outString, _, err := g.runWithStdin("", "--version")
 	if err != nil {
 		err = fmt.Errorf("problem running GPG, %v", err)
 		return "", err
@@ -147,7 +147,7 @@ func (g *GnuPG) ListSecretKeys() ([]SecretKeyListing, error) {
 		"--fixed-list-mode",
 		"--list-secret-keys",
 	}
-	outString, err := g.run(args...)
+	outString, _, err := g.runWithStdin("", args...)
 	if err != nil {
 		return nil, fmt.Errorf("error running 'gpg %s': %v", strings.Join(args, " "), err)
 	}
@@ -165,7 +165,7 @@ func (g *GnuPG) ExportPublicKey(fingerprint fingerprint.Fingerprint) (string, er
 		fingerprint.Hex(),
 	}
 
-	stdout, err := g.run(args...)
+	stdout, _, err := g.runWithStdin("", args...)
 	if err != nil {
 		return "", err
 	}

@@ -48,32 +48,28 @@ func TestHomeDir(t *testing.T) {
 	})
 }
 
-func TestRunningGPG(t *testing.T) {
+func TestRunGpgWithStdin(t *testing.T) {
 	gpg := makeGpgWithTempHome(t)
 
-	t.Run("with valid arguments", func(t *testing.T) {
+	t.Run("with empty stdin (but valid arguments)", func(t *testing.T) {
 		arguments := "--version"
-		_, err := gpg.run(arguments)
+		_, _, err := gpg.runWithStdin("", arguments)
 		assertNoError(t, err)
 	})
 
 	t.Run("with invalid arguments", func(t *testing.T) {
 		arguments := "--foo"
-		_, err := gpg.run(arguments)
+		_, _, err := gpg.runWithStdin("", arguments)
 		if err == nil {
 			t.Fatalf("wanted an error but didn't get one")
 		}
 		got := err.Error()
 		differentGPGErrors := []string{
-			"gpg: invalid option \"--foo\"",
-			"gpg: Invalid option \"--foo\"",
+			`exit status 2, stderr: gpg: invalid option "--foo"`,
+			`exit status 2, stderr: gpg: Invalid option "--foo"`,
 		}
-		assertStringHasOneOfSlice(t, got, differentGPGErrors)
+		assertStringInSlice(t, got, differentGPGErrors)
 	})
-}
-
-func TestRunGpgWithStdin(t *testing.T) {
-	gpg := makeGpgWithTempHome(t)
 
 	t.Run("with a valid public key", func(t *testing.T) {
 		successMessages := []string{
@@ -421,14 +417,14 @@ func assertNoError(t *testing.T, got error) {
 	}
 }
 
-func assertStringHasOneOfSlice(t *testing.T, a string, list []string) {
+func assertStringInSlice(t *testing.T, needle string, haystack []string) {
 	t.Helper()
-	for _, b := range list {
-		if strings.Contains(a, b) {
+	for _, b := range haystack {
+		if needle == b {
 			return
 		}
 	}
-	t.Errorf("expected '%v', to contain '%s'", list, a)
+	t.Errorf("didn't find '%s' in '%#v'", needle, haystack)
 }
 
 const ExamplePublicKey string = `-----BEGIN PGP PUBLIC KEY BLOCK-----
