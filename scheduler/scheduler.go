@@ -82,26 +82,16 @@ func getCurrentCrontab() (string, error) {
 }
 
 func writeCrontab(newCrontab string) error {
-	if isEmptyCrontab(newCrontab) {
-		_, err := runCrontab("-r") // remove the user's crontab
-		return err
-	} else {
-		f, err := ioutil.TempFile("", "")
-		if err != nil {
-			return err
-		}
-
-		f.Write([]byte(newCrontab))
-		f.Close()
-
-		_, err = runCrontab(f.Name())
+	f, err := ioutil.TempFile("", "")
+	if err != nil {
 		return err
 	}
-}
 
-func isEmptyCrontab(crontab string) bool {
-	// TODO: strip newlines
-	return crontab == ""
+	f.Write([]byte(newCrontab))
+	f.Close()
+
+	_, err = runCrontab(f.Name())
+	return err
 }
 
 func isExitStatusOne(err error) bool {
