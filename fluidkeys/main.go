@@ -60,6 +60,7 @@ func main() {
 	usage := fmt.Sprintf(`Fluidkeys %s
 
 Configuration file: %s
+          Log file: %s
 
 Usage:
 	fk setup
@@ -79,6 +80,7 @@ Options:
 	   --cron-output  Only print output on errors`, // TODO: Document `automatic`
 		Version,
 		Config.GetFilename(),
+		out.GetLogFilename(),
 	)
 
 	log.Print("$ " + strings.Join(os.Args, " "))
