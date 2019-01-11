@@ -104,12 +104,12 @@ func TestImportPublicKey(t *testing.T) {
 	gpg := makeGpgWithTempHome(t)
 
 	t.Run("with valid public key", func(t *testing.T) {
-		_, err := gpg.ImportArmoredKey(ExamplePublicKey)
+		err := gpg.ImportArmoredKey(ExamplePublicKey)
 		assertNoError(t, err)
 	})
 
 	t.Run("with valid private key", func(t *testing.T) {
-		_, err := gpg.ImportArmoredKey(ExamplePrivateKey)
+		err := gpg.ImportArmoredKey(ExamplePrivateKey)
 		assertNoError(t, err)
 	})
 }

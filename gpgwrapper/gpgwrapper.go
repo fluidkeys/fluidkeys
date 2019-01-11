@@ -126,15 +126,15 @@ func (g *GnuPG) IsWorking() bool {
 }
 
 // Import an armored key into the GPG key ring
-func (g *GnuPG) ImportArmoredKey(armoredKey string) (string, error) {
-	stdout, stderr, err := g.run(armoredKey, "--import")
+func (g *GnuPG) ImportArmoredKey(armoredKey string) error {
+	_, _, err := g.run(armoredKey, "--import")
 	if err != nil {
-		return stderr, err
+		return err
 	}
 	// TODO: are we correctly checking if GPG failed? I think it can return
 	// exit code 0 *but* set stderr to communicate a problem
 
-	return stdout, nil
+	return nil
 }
 
 func (g *GnuPG) ListSecretKeys() ([]SecretKeyListing, error) {

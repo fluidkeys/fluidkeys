@@ -21,12 +21,11 @@ func (m *mockExportPrivateKey) ExportPrivateKey(fingerprint fingerprint.Fingerpr
 }
 
 type mockImportArmoredKey struct {
-	returnString string
-	returnError  error
+	returnError error
 }
 
-func (m *mockImportArmoredKey) ImportArmoredKey(armoredKey string) (string, error) {
-	return m.returnString, m.returnError
+func (m *mockImportArmoredKey) ImportArmoredKey(armoredKey string) error {
+	return m.returnError
 }
 
 type mockLoadFromArmoredEncryptedPrivateKey struct {
@@ -206,8 +205,7 @@ func TestPushPrivateKeyBackToGpg(t *testing.T) {
 		}
 
 		mockImporter := mockImportArmoredKey{
-			returnString: "",
-			returnError:  nil,
+			returnError: nil,
 		}
 
 		err := pushPrivateKeyBackToGpg(&mockKey, "[irrelevant]", &mockImporter)
@@ -223,8 +221,7 @@ func TestPushPrivateKeyBackToGpg(t *testing.T) {
 		}
 
 		mockImporter := mockImportArmoredKey{
-			returnString: "",
-			returnError:  nil,
+			returnError: nil,
 		}
 		err := pushPrivateKeyBackToGpg(&mockKey, "[irrelevant]", &mockImporter)
 		assert.ErrorIsNotNil(t, err)
@@ -239,8 +236,7 @@ func TestPushPrivateKeyBackToGpg(t *testing.T) {
 		}
 
 		mockImporter := mockImportArmoredKey{
-			returnString: "",
-			returnError:  nil,
+			returnError: nil,
 		}
 		err := pushPrivateKeyBackToGpg(&mockKey, "[irrelevant]", &mockImporter)
 		assert.ErrorIsNotNil(t, err)
@@ -255,8 +251,7 @@ func TestPushPrivateKeyBackToGpg(t *testing.T) {
 		}
 
 		mockImporter := mockImportArmoredKey{
-			returnString: "",
-			returnError:  fmt.Errorf("some error in ImportedArmoredKey"),
+			returnError: fmt.Errorf("some error in ImportedArmoredKey"),
 		}
 		err := pushPrivateKeyBackToGpg(&mockKey, "[irrelevant]", &mockImporter)
 		assert.ErrorIsNotNil(t, err)
