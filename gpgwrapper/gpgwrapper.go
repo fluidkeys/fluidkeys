@@ -289,7 +289,8 @@ func (g *GnuPG) run(arguments ...string) (string, error) {
 
 // runWithStdin runs the given command, sends textToSend via stdin, and returns
 // stdout, stderr and any error encountered
-func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (stdout string, stderr string, returnErr error) {
+func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (
+	stdout string, stderr string, returnErr error) {
 	fullArguments := g.prependGlobalArguments(arguments...)
 	cmd := exec.Command(g.fullGpgPath, fullArguments...)
 
