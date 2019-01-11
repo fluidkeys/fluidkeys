@@ -197,7 +197,7 @@ func (g *GnuPG) ExportPrivateKey(fingerprint fingerprint.Fingerprint, password s
 	)
 
 	if err != nil {
-		if strings.Contains(stderr, invalidOptionPinentryMode) { // TODO: is this really in stderr or in stdout?
+		if strings.Contains(stderr, invalidOptionPinentryMode) {
 			stdout, stderr, err := g.runWithStdin(
 				password,
 				getArgsExportPrivateKeyWithoutPinentry(fingerprint)...,
