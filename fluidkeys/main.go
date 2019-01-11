@@ -99,7 +99,12 @@ Options:
 }
 
 func ensureCrontabStateMatchesConfig() {
-	if Config.RunFromCron() {
+	shouldEnable, err := shouldEnableScheduler()
+	if err != nil {
+		log.Panic(err)
+	}
+
+	if shouldEnable {
 		crontabWasAdded, err := scheduler.Enable()
 		if err != nil {
 			log.Panic(err)
@@ -115,9 +120,30 @@ func ensureCrontabStateMatchesConfig() {
 		}
 
 		if crontabWasRemoved {
-			printInfo(fmt.Sprintf("Removed Fluidkeys from crontab.  Edit %s to add again.", Config.GetFilename()))
+			printInfo(fmt.Sprintf("Removed Fluidkeys from crontab.  Edit %s to add again.",
+				Config.GetFilename()))
 		}
 	}
+}
+
+// shouldEnableScheduler returns true if both the config allows 'run from cron' *and* at least
+// one key is set to maintain automatically
+func shouldEnableScheduler() (bool, error) {
+	if !Config.RunFromCron() {
+		return false, nil
+	}
+
+	keys, err := loadPgpKeys()
+	if err != nil {
+		return false, err
+	}
+
+	for _, key := range keys {
+		if Config.ShouldMaintainAutomatically(key.Fingerprint()) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func getSubcommand(args docopt.Opts, subcommands []string) string {

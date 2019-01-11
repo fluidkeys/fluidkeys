@@ -20,6 +20,7 @@ package scheduler
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os/exec"
 	"strings"
 	"syscall"
@@ -36,15 +37,10 @@ func Enable() (crontabWasAdded bool, err error) {
 	if !hasFluidkeysCronLines(currentCrontab) {
 		newCrontab := addCrontabLinesWithoutRepeating(currentCrontab)
 		err = writeCrontab(newCrontab)
-		if err != nil {
-			return false, err
-		}
-		crontabWasAdded = true
-	} else {
-		crontabWasAdded = false
+		return true, err
 	}
 
-	return
+	return false, nil
 }
 
 // Disable parses the crontab (output of `crontab -l`) and removes Fluidkeys'
@@ -57,14 +53,11 @@ func Disable() (cronLinesWereRemoved bool, err error) {
 	}
 
 	if hasFluidkeysCronLines(currentCrontab) {
-		cronLinesWereRemoved = true
 		newCrontab := removeCrontabLines(currentCrontab)
 		err = writeCrontab(newCrontab)
-		return
-	} else {
-		cronLinesWereRemoved = false
-		return
+		return true, err
 	}
+	return false, nil
 }
 
 func hasFluidkeysCronLines(crontab string) bool {
@@ -82,26 +75,16 @@ func getCurrentCrontab() (string, error) {
 }
 
 func writeCrontab(newCrontab string) error {
-	if isEmptyCrontab(newCrontab) {
-		_, err := runCrontab("-r") // remove the user's crontab
-		return err
-	} else {
-		f, err := ioutil.TempFile("", "")
-		if err != nil {
-			return err
-		}
-
-		f.Write([]byte(newCrontab))
-		f.Close()
-
-		_, err = runCrontab(f.Name())
+	f, err := ioutil.TempFile("", "")
+	if err != nil {
 		return err
 	}
-}
 
-func isEmptyCrontab(crontab string) bool {
-	// TODO: strip newlines
-	return crontab == ""
+	f.Write([]byte(newCrontab))
+	f.Close()
+
+	_, err = runCrontab(f.Name())
+	return err
 }
 
 func isExitStatusOne(err error) bool {
@@ -114,6 +97,7 @@ func isExitStatusOne(err error) bool {
 }
 
 func runCrontab(arguments ...string) (string, error) {
+	log.Printf("Running `%s %s`", crontab, strings.Join(arguments, " "))
 	cmd := exec.Command(crontab, arguments...)
 
 	out, err := cmd.CombinedOutput()
