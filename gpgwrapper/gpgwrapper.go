@@ -79,7 +79,7 @@ func Load() (*GnuPG, error) {
 
 // Returns the GnuPG version string, e.g. "1.2.3"
 func (g *GnuPG) Version() (string, error) {
-	outString, _, err := g.runWithStdin("", "--version")
+	outString, _, err := g.run("", "--version")
 
 	if err != nil {
 		err = fmt.Errorf("problem running GPG, %v", err)
@@ -98,7 +98,7 @@ func (g *GnuPG) Version() (string, error) {
 
 // Returns the GnuPG home directory, e.g. "/Users/jane/.gnupg"
 func (g *GnuPG) HomeDir() (string, error) {
-	outString, _, err := g.runWithStdin("", "--version")
+	outString, _, err := g.run("", "--version")
 	if err != nil {
 		err = fmt.Errorf("problem running GPG, %v", err)
 		return "", err
@@ -129,7 +129,7 @@ func (g *GnuPG) IsWorking() bool {
 
 // Import an armored key into the GPG key ring
 func (g *GnuPG) ImportArmoredKey(armoredKey string) (string, error) {
-	stdout, stderr, err := g.runWithStdin(armoredKey, "--import")
+	stdout, stderr, err := g.run(armoredKey, "--import")
 	if err != nil {
 		err = fmt.Errorf("problem importing key, %v", err)
 		return stderr, err
@@ -147,7 +147,7 @@ func (g *GnuPG) ListSecretKeys() ([]SecretKeyListing, error) {
 		"--fixed-list-mode",
 		"--list-secret-keys",
 	}
-	outString, _, err := g.runWithStdin("", args...)
+	outString, _, err := g.run("", args...)
 	if err != nil {
 		return nil, fmt.Errorf("error running 'gpg %s': %v", strings.Join(args, " "), err)
 	}
@@ -165,7 +165,7 @@ func (g *GnuPG) ExportPublicKey(fingerprint fingerprint.Fingerprint) (string, er
 		fingerprint.Hex(),
 	}
 
-	stdout, _, err := g.runWithStdin("", args...)
+	stdout, _, err := g.run("", args...)
 	if err != nil {
 		return "", err
 	}
@@ -191,14 +191,14 @@ func (g *GnuPG) ExportPublicKey(fingerprint fingerprint.Fingerprint) (string, er
 // The outputted private key is encrypted with the password.
 func (g *GnuPG) ExportPrivateKey(fingerprint fingerprint.Fingerprint, password string) (string, error) {
 
-	stdout, stderr, err := g.runWithStdin(
+	stdout, stderr, err := g.run(
 		password,
 		getArgsExportPrivateKeyWithPinentry(fingerprint)...,
 	)
 
 	if err != nil {
 		if strings.Contains(stderr, invalidOptionPinentryMode) {
-			stdout, stderr, err := g.runWithStdin(
+			stdout, stderr, err := g.run(
 				password,
 				getArgsExportPrivateKeyWithoutPinentry(fingerprint)...,
 			)
@@ -275,21 +275,9 @@ func parseVersionString(gpgStdout string) (string, error) {
 	return match[1], nil
 }
 
-func (g *GnuPG) run(arguments ...string) (string, error) {
-	fullArguments := g.prependGlobalArguments(arguments...)
-	out, err := exec.Command(g.fullGpgPath, fullArguments...).CombinedOutput()
-
-	if err != nil {
-		err := ErrProblemExecutingGPG(string(out), fullArguments...)
-		return "", err
-	}
-	outString := string(out)
-	return outString, nil
-}
-
-// runWithStdin runs the given command, sends textToSend via stdin, and returns
+// run runs the given command, sends textToSend via stdin, and returns
 // stdout, stderr and any error encountered
-func (g *GnuPG) runWithStdin(textToSend string, arguments ...string) (
+func (g *GnuPG) run(textToSend string, arguments ...string) (
 	stdout string, stderr string, returnErr error) {
 	fullArguments := g.prependGlobalArguments(arguments...)
 	cmd := exec.Command(g.fullGpgPath, fullArguments...)

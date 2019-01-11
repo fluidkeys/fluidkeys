@@ -53,13 +53,13 @@ func TestRunGpgWithStdin(t *testing.T) {
 
 	t.Run("with empty stdin (but valid arguments)", func(t *testing.T) {
 		arguments := "--version"
-		_, _, err := gpg.runWithStdin("", arguments)
+		_, _, err := gpg.run("", arguments)
 		assertNoError(t, err)
 	})
 
 	t.Run("with invalid arguments", func(t *testing.T) {
 		arguments := "--foo"
-		_, _, err := gpg.runWithStdin("", arguments)
+		_, _, err := gpg.run("", arguments)
 		if err == nil {
 			t.Fatalf("wanted an error but didn't get one")
 		}
@@ -79,7 +79,7 @@ func TestRunGpgWithStdin(t *testing.T) {
 
 		arguments := []string{"--import"}
 
-		_, stderr, err := gpg.runWithStdin(ExamplePublicKey, arguments...)
+		_, stderr, err := gpg.run(ExamplePublicKey, arguments...)
 
 		if err != nil {
 			t.Errorf("Test failed, returned error %s", err)
