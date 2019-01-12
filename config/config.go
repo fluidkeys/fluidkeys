@@ -254,15 +254,18 @@ const defaultRunFromCron = true
 
 const defaultConfigFile string = `# Fluidkeys configuration file for 'fk' command
 #
-# # run_from_cron tells Fluidkeys to add itself to your crontab and
+# # run_from_cron allows Fluidkeys to add itself to your crontab in order to
 # # periodically run 'key maintain --automatic'
 # # - run 'crontab -l' to see the lines added to crontab
-# # - set to false to remove the lines from crontab
+# # - set to false and re-run fk to remove the lines from crontab
 #
 # run_from_cron = true
 #
 # [pgpkeys]
-#   [pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
+#   [pgpkeys."AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111"]
+#
+#             ^^ keys are referenced by their OpenPGP fingerprint, see:
+#                $ gpg --list-secret-keys
 #
 #     # store_password tells Fluidkeys to use the system keychain to store
 #     # the password for this key and look for it before prompting.
@@ -273,12 +276,11 @@ const defaultConfigFile string = `# Fluidkeys configuration file for 'fk' comman
 #     # store_password must also be true to maintain keys automatically.
 #     maintain_automatically = true
 #
-#     # allow_search_by_email specifies that key will be uploaded to the
-#     # Fluidkeys directory and that others will be able to search for the
-#     # key by email address
-#     allow_search_by_email = true
+#     # publish_to_api specifies that key will be uploaded to the Fluidkeys server and that others
+#     # will be able to search for the key by email address
+#     publish_to_api = true
 #
 # THIS FILE IS OVERWRITTEN BY FLUIDKEYS.
-# Any changes you make will be overwritten.
+# Any comments you add will be lost.
 
 `
