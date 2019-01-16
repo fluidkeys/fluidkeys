@@ -67,6 +67,7 @@ Usage:
 	fk setup <email>
 	fk secret send <recipient-email-address>
 	fk secret receive
+	fk git setup
 	fk key create
 	fk key from-gpg
 	fk key list
@@ -88,7 +89,9 @@ Options:
 
 	ensureCrontabStateMatchesConfig()
 
-	switch getSubcommand(args, []string{"key", "secret", "setup"}) {
+	switch getSubcommand(args, []string{"git", "key", "secret", "setup"}) {
+	case "git":
+		os.Exit(gitSubcommand(args))
 	case "key":
 		os.Exit(keySubcommand(args))
 	case "secret":
@@ -157,6 +160,17 @@ func getSubcommand(args docopt.Opts, subcommands []string) string {
 		}
 	}
 	log.Panicf("expected to find one of these subcommands: %v", subcommands)
+	panic(nil)
+}
+
+func gitSubcommand(args docopt.Opts) exitCode {
+	switch getSubcommand(args, []string{
+		"setup",
+	}) {
+	case "setup":
+		os.Exit(gitSetup())
+	}
+	log.Panicf("gitSubcommand got unexpected arguments: %v", args)
 	panic(nil)
 }
 

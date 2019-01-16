@@ -10,6 +10,7 @@ SECRETS_ID_RSA=.secret/download-fluidkeys-com.id_rsa
 MAIN_GO_FILES=fluidkeys/main.go \
 	     fluidkeys/errors.go \
 	     fluidkeys/init.go \
+	     fluidkeys/gitsetup.go \
 	     fluidkeys/keycreate.go \
 	     fluidkeys/keymaintain.go \
 	     fluidkeys/password.go \

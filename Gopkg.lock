@@ -66,6 +66,22 @@
   version = "v3.1.2"
 
 [[projects]]
+  digest = "1:63ede27834b468648817fb80cfb95d40abfc61341f89cb7a0d6779b6aa955425"
+  name = "github.com/google/go-github"
+  packages = ["github"]
+  pruneopts = "UT"
+  revision = "a5cb647b1fac8ba77e1cf25af2f9526658ab63e3"
+  version = "v21.0.0"
+
+[[projects]]
+  digest = "1:a63cff6b5d8b95638bfe300385d93b2a6d9d687734b863da8e09dc834510a690"
+  name = "github.com/google/go-querystring"
+  packages = ["query"]
+  pruneopts = "UT"
+  revision = "44c6ddd0a2342c386950e880b658017258da92fc"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   digest = "1:36f5bd9b89fcd728488eee3a0cf8787448579ac381fded60edd6e3ac01fe1a38"
   name = "github.com/gsterjov/go-libsecret"
@@ -146,6 +162,7 @@
     "github.com/fluidkeys/crypto/openpgp/packet",
     "github.com/fluidkeys/keyring",
     "github.com/gofrs/uuid",
+    "github.com/google/go-github/github",
     "github.com/mitchellh/go-homedir",
     "github.com/natefinch/atomic",
     "github.com/sethvargo/go-diceware/diceware",

@@ -95,6 +95,10 @@ func (g *GnuPG) Version() (string, error) {
 	return version, nil
 }
 
+func (g *GnuPG) Path() string {
+	return g.fullGpgPath
+}
+
 // Returns the GnuPG home directory, e.g. "/Users/jane/.gnupg"
 func (g *GnuPG) HomeDir() (string, error) {
 	outString, _, err := g.run("", "--version")
