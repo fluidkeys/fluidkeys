@@ -59,7 +59,10 @@ func OutputZipBackupFile(
 		log.Panicf("error getting key slug: %v", err)
 	}
 
-	filename = archiver.MakeFilePath(keySlug, "zip", fluidkeysDir, time.Now())
+	filename, err = archiver.MakeFilePath(keySlug, "zip", fluidkeysDir, time.Now())
+	if err != nil {
+		return "", err
+	}
 
 	backupZipFile, err := os.Create(filename)
 	if err != nil {
