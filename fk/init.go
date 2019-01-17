@@ -114,6 +114,10 @@ func makeFluidkeysHomeDirectory() (string, error) {
 	}
 
 	fluidkeysDir := filepath.Join(homeDirectory, ".config", "fluidkeys")
-	os.MkdirAll(fluidkeysDir, 0700)
+	err = os.MkdirAll(fluidkeysDir, 0700)
+	if err != nil {
+		return "", err
+	}
+
 	return fluidkeysDir, nil
 }
