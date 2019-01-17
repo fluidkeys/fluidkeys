@@ -102,10 +102,9 @@ func gitSetup() exitCode {
 		log.Panic(err.Error())
 	}
 
+	promptForInput("Configured git. Press enter to continue. ")
+
 	printHeader("Configuring Github")
-	if prompter.promptYesNo("Configure Github?", "Y", nil) == false {
-		return 1
-	}
 	token, err := getGithubPersonalAccessToken()
 	if err != nil {
 		log.Panic(err.Error())
@@ -118,6 +117,8 @@ func gitSetup() exitCode {
 		return 1
 	}
 
+	promptForInput("Configured Github. Press enter to continue. ")
+
 	printHeader("Checking Github organisations for Fluidkeys for Teams")
 	err = printGithubOrganisations(token)
 	if err != nil {
@@ -129,6 +130,8 @@ func gitSetup() exitCode {
 	if err != nil {
 		log.Panic(err.Error())
 	}
+
+	promptForInput("Finished fetching keys. Press enter to continue. ")
 
 	printHeader("Setup complete")
 	printGitCongratulations()
@@ -252,20 +255,27 @@ func makeGithubClient(token string) (*github.Client, error) {
 }
 
 func promptForAccessToken() string {
-	out.Print("To access Github, you need to create a personal access token with these permissions:\n")
-	out.Print("\n")
-	out.Print(" ▸   " + colour.Info("read:org") + "      \"Read org and team membership\"\n")
-	out.Print("                   To list your organisations and check for Fluidkeys for Teams.\n")
-	out.Print("\n")
-	out.Print(" ▸   " + colour.Info("user:email") + "    \"Access user email addresses (read-only)\"\n")
-	out.Print("                   To confirm that paul@example.com is listed in your Github account\n")
-	out.Print("\n")
-	out.Print(" ▸   " + colour.Info("admin:gpg_key") + " \"Full control of user gpg keys\"\n")
-	out.Print("                   To upload your public key now and after key rotation\n")
+	out.Print("To configure Github, you need to create a personal access token.\n")
 	out.Print("\n")
 	out.Print("Open this URL in your browser:\n\n")
-	out.Print(colour.Info("https://github.com/settings/tokens/new") + "\n\n")
-	out.Print("Then enter the access token:\n\n")
+	out.Print("    " + colour.Info("https://github.com/settings/tokens/new") + "\n")
+	out.Print("\n")
+	out.Print("Enter this Token description:\n")
+	out.Print("\n")
+	out.Print("    \"" + colour.Info("Fluidkeys (www.fluidkeys.com) `fk git setup`") + "\"\n\n")
+
+	out.Print("Select these scropes to give Fluidkeys access:\n\n")
+	out.Print("    ☑ " + colour.Info("read:org") + "      \"Read org and team membership\"\n")
+	out.Print("                    To list your organisations and check for Fluidkeys for Teams.\n")
+	out.Print("\n")
+	out.Print("    ☑ " + colour.Info("user:email") + "    \"Access user email addresses (read-only)\"\n")
+	out.Print("                    To confirm that paul@example.com is listed in your Github account\n")
+	out.Print("\n")
+	out.Print("    ☑ " + colour.Info("admin:gpg_key") + " \"Full control of user gpg keys\"\n")
+	out.Print("                    To upload your public key now and after key rotation\n")
+	out.Print("\n")
+	out.Print("Click " + colour.Success("Generate token") + ", copy the token and paste " +
+		"it here:\n\n")
 
 	return promptForInput("[token] : ")
 }
@@ -292,8 +302,9 @@ func configureGithub(email string, key *pgpkey.PgpKey, token string) (emailOk bo
 	for _, githubEmail := range userEmails {
 		if email == *githubEmail.Email {
 			if *githubEmail.Verified {
-				printSuccessfulAction(email + " is listed in Github account " +
-					user.GetLogin())
+				printSuccessfulAction(
+					"Confirmed " + email + " is listed in Github account " +
+						user.GetLogin())
 				emailOk = true
 			} else {
 				printFailedAction(email + " is unverified in Github account " +
@@ -358,7 +369,7 @@ func deleteAndAddPublicKey(client *github.Client, key *pgpkey.PgpKey) error {
 	if err != nil {
 		return fmt.Errorf("error creating key in Github: %v", err)
 	}
-	printSuccessfulAction("uploaded PGP key to Github")
+	printSuccessfulAction("Uploaded public key to Github account")
 	out.Print("\n")
 	return nil
 }
