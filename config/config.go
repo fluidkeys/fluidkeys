@@ -88,6 +88,26 @@ func (c *Config) RunFromCron() bool {
 	return c.parsedConfig.RunFromCron
 }
 
+// GithubPersonalAccessToken returns a stored github personal access token, or an empty string
+func (c *Config) GithubPersonalAccessToken() string {
+	if !c.parsedMetadata.IsDefined("github_personal_access_token") {
+		c.parsedConfig.GithubPersonalAccessToken = ""
+		err := c.save()
+		if err != nil {
+			log.Panic(err)
+		}
+	}
+
+	return c.parsedConfig.GithubPersonalAccessToken
+}
+
+// SetGithubPersonalAccessToken saves a github personal access token. Pass in an empty string
+// to clear it.
+func (c *Config) SetGithubPersonalAccessToken(token string) error {
+	c.parsedConfig.GithubPersonalAccessToken = token
+	return c.save()
+}
+
 // ShouldStorePassword returns whether the given key's password should
 // be stored in the system keyring when successfully entered (avoiding future
 // password prompts).
@@ -240,8 +260,9 @@ const (
 )
 
 type tomlConfig struct {
-	RunFromCron bool           `toml:"run_from_cron"`
-	PgpKeys     map[string]key `toml:"pgpkeys"`
+	RunFromCron               bool           `toml:"run_from_cron"`
+	GithubPersonalAccessToken string         `toml:"github_personal_access_token"`
+	PgpKeys                   map[string]key `toml:"pgpkeys"`
 }
 
 type key struct {
@@ -260,6 +281,8 @@ const defaultConfigFile string = `# Fluidkeys configuration file for 'fk' comman
 # # - set to false and re-run fk to remove the lines from crontab
 #
 # run_from_cron = true
+#
+# github_personal_access_token = "..."
 #
 # [pgpkeys]
 #   [pgpkeys."AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111"]
