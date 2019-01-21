@@ -69,6 +69,7 @@ func gitSetup() exitCode {
 	out.Print("         user.signingkey        => " + fingerprintOrPlaceholder(pgpKey) + "\n")
 	out.Print("         commit.gpgsign         => true\n")
 	out.Print("         tag.forceSignAnnotated => true\n")
+	out.Print("         log.showSignature      => true\n")
 	out.Print("         gpg.program            => " + gpg.Path() + "\n")
 	out.Print("\n")
 	out.Print("     [ ] Ask you to create a Github personal access token\n")
@@ -191,6 +192,12 @@ func configureGit(email string, key *pgpkey.PgpKey) error {
 		return err
 	}
 	printSuccessfulAction("Always sign annotated tags")
+
+	err = git.SetConfig("log.showSignature", "true")
+	if err != nil {
+		return err
+	}
+	printSuccessfulAction("Show signatures in git log")
 
 	err = git.SetConfig("gpg.program", gpg.Path())
 	if err != nil {
