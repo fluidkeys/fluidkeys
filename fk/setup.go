@@ -56,11 +56,11 @@ func secretSquirrelMessage() (message string) {
 	rand.Seed(time.Now().Unix())
 	codeName := fmt.Sprintf("%s %s", adjectives[rand.Intn(len(adjectives))], nouns[rand.Intn(len(nouns))])
 
-	message = "🐿️  This is Secret Squirrel calling " + strings.Title(codeName) + "\n"
+	message = "🐿️ This is Secret Squirrel calling " + strings.Title(codeName) + "\n"
 	message = message + `   Do you copy?
    Let me know by sending me a response:
    squirrel@fluidkeys.com`
-	return colour.Squirrel(message)
+	return message
 }
 
 const (

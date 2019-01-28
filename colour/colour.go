@@ -95,10 +95,6 @@ func Warning(message string) string {
 	return yellow(message)
 }
 
-func Squirrel(message string) string {
-	return yellow(message)
-}
-
 func Danger(message string) string {
 	return red(message)
 }
