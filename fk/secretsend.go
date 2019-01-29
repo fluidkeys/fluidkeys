@@ -20,7 +20,9 @@ package fk
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -33,7 +35,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
 
-func secretSend(recipientEmail string) exitCode {
+func secretSend(recipientEmail string, filename string) exitCode {
 	armoredPublicKey, err := client.GetPublicKey(recipientEmail)
 	if err != nil {
 		if err == api.ErrPublicKeyNotFound {
@@ -64,29 +66,25 @@ https://download.fluidkeys.com#` + recipientEmail + `
 		return 1
 	}
 
-	_, err = encryptSecret("dummy data to test encryption", pgpKey)
+	_, err = encryptSecret("dummy data to test encryption", pgpKey, "")
 	if err != nil {
 		printFailed("Couldn't encrypt to the key:")
 		out.Print("Error: " + err.Error() + "\n")
 		return 1
 	}
 
-	out.Print("\n")
-	out.Print(colour.Info(femaleSpyEmoji + "  Type or paste your message, ending by typing Ctrl-D\n"))
-	out.Print(colour.Info("   It will be end-to-end encrypted so no-one else can read it\n\n"))
-
-	secret, err := scanUntilEOF()
+	var secret *string
+	if filename != "" {
+		secret, err = getSecretFromFile(filename)
+	} else {
+		secret, err = getSecretFromStdin()
+	}
 	if err != nil {
-		log.Panic(err)
+		printFailed("Error: " + err.Error())
 		return 1
 	}
 
-	if strings.TrimSpace(secret) == "" {
-		printFailed("Exiting due to empty message.\n")
-		return 1
-	}
-
-	encryptedSecret, err := encryptSecret(secret, pgpKey)
+	encryptedSecret, err := encryptSecret(*secret, pgpKey, filename)
 	if err != nil {
 		printFailed("Couldn't encrypt the secret:")
 		out.Print("Error: " + err.Error() + "\n")
@@ -102,6 +100,56 @@ https://download.fluidkeys.com#` + recipientEmail + `
 
 	printSuccess("Successfully sent secret to " + recipientEmail + "\n")
 	return 0
+}
+
+func getSecretFromFile(filename string) (*string, error) {
+	if fileExists(filename) {
+		secretData, err := ioutil.ReadFile(filename)
+		if err != nil {
+			return nil, fmt.Errorf("error reading file: " + err.Error())
+		}
+		secret := string(secretData)
+		out.Print("---\n")
+		out.Print(secret)
+		out.Print("---\n\n")
+
+		prompter := interactiveYesNoPrompter{}
+
+		if prompter.promptYesNo("Send "+filename+"?", "y", nil) {
+			return &secret, nil
+		}
+		return nil, nil
+	}
+	return nil, fmt.Errorf("couldn't find file " + filename)
+}
+
+func fileExists(filename string) bool {
+	if _, err := os.Stat(filename); err == nil {
+		return true
+	} else if os.IsNotExist(err) {
+		return false
+	} else {
+		log.Panic()
+		return false
+	}
+}
+
+func getSecretFromStdin() (*string, error) {
+	out.Print("\n")
+	out.Print(colour.Info(femaleSpyEmoji + "  Type or paste your message, ending by typing Ctrl-D\n"))
+	out.Print(colour.Info("   It will be end-to-end encrypted so no-one else can read it\n\n"))
+
+	secret, err := scanUntilEOF()
+	if err != nil {
+		log.Panic(err)
+		return nil, err
+	}
+
+	if strings.TrimSpace(secret) == "" {
+		return nil, fmt.Errorf("empty message")
+	}
+
+	return &secret, nil
 }
 
 func scanUntilEOF() (message string, err error) {
@@ -121,18 +169,22 @@ func scanUntilEOF() (message string, err error) {
 	return string(output), nil
 }
 
-func encryptSecret(secret string, pgpKey *pgpkey.PgpKey) (string, error) {
+func encryptSecret(secret string, pgpKey *pgpkey.PgpKey, filename string) (string, error) {
 	buffer := bytes.NewBuffer(nil)
 	message, err := armor.Encode(buffer, "PGP MESSAGE", nil)
 	if err != nil {
 		return "", err
 	}
 
+	fileHints := openpgp.FileHints{
+		FileName: filename,
+	}
+
 	pgpWriteCloser, err := openpgp.Encrypt(
 		message,
 		[]*openpgp.Entity{&pgpKey.Entity},
 		nil,
-		nil,
+		&fileHints,
 		nil,
 	)
 	if err != nil {

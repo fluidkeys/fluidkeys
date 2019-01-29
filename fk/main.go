@@ -65,7 +65,7 @@ Configuration file: %s
 Usage:
 	fk setup
 	fk setup <email>
-	fk secret send <recipient-email-address>
+	fk secret send <recipient-email-address> [--file <filename>]
 	fk secret receive
 	fk key create
 	fk key from-gpg
@@ -283,7 +283,19 @@ func secretSubcommand(args docopt.Opts) exitCode {
 		if err != nil {
 			log.Panic(err)
 		}
-		return secretSend(emailAddress)
+		file, err := args.Bool("--file")
+		if err != nil {
+			log.Panic(err)
+		}
+		if file {
+			filename, err := args.String("<filename>")
+			if err != nil {
+				log.Panic(err)
+			}
+			return secretSend(emailAddress, filename)
+		} else {
+			return secretSend(emailAddress, "")
+		}
 	case "receive":
 		return secretReceive()
 	}
