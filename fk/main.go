@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with Fluidkeys Client.  If not, see <https://www.gnu.org/licenses/>.
 
-package main
+package fk
 
 import (
 	"bufio"
@@ -56,7 +56,7 @@ var (
 
 type exitCode = int
 
-func main() {
+func Main() exitCode {
 	usage := fmt.Sprintf(`Fluidkeys %s
 
 Configuration file: %s
@@ -90,11 +90,14 @@ Options:
 
 	switch getSubcommand(args, []string{"key", "secret", "setup"}) {
 	case "key":
-		os.Exit(keySubcommand(args))
+		return keySubcommand(args)
 	case "secret":
-		os.Exit(secretSubcommand(args))
+		return secretSubcommand(args)
 	case "setup":
-		os.Exit(setupSubcommand(args))
+		return setupSubcommand(args)
+	default:
+		out.Print("unhandled subcommand")
+		return 1
 	}
 }
 
