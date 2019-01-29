@@ -64,6 +64,7 @@ Configuration file: %s
 
 Usage:
 	fk setup
+	fk team sync
 	fk setup <email>
 	fk secret send <recipient-email>
 	fk secret send [<filename>] --to=<email>
@@ -99,7 +100,7 @@ Options:
 	}
 	var code exitCode
 
-	switch getSubcommand(args, []string{"key", "secret", "setup"}) {
+	switch getSubcommand(args, []string{"key", "secret", "setup", "team"}) {
 	case "key":
 		code = keySubcommand(args)
 
@@ -109,6 +110,8 @@ Options:
 	case "setup":
 		code = setupSubcommand(args)
 
+	case "team":
+		code = teamSubcommand(args)
 	default:
 		out.Print("unhandled subcommand")
 		code = 1
@@ -138,7 +141,8 @@ func ensureCrontabStateMatchesConfig() {
 		}
 
 		if crontabWasAdded {
-			printInfo(fmt.Sprintf("Added Fluidkeys to crontab.  Edit %s to remove.", Config.GetFilename()))
+			printInfo(fmt.Sprintf("Added Fluidkeys to crontab.  Edit %s to remove.",
+				Config.GetFilename()))
 		}
 	} else {
 		crontabWasRemoved, err := scheduler.Disable()
