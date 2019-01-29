@@ -1,4 +1,4 @@
-package main
+package fk
 
 import (
 	"bytes"

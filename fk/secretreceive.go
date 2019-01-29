@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with Fluidkeys Client.  If not, see <https://www.gnu.org/licenses/>.
 
-package main
+package fk
 
 import (
 	"bytes"

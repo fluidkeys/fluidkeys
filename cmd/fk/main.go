@@ -1,4 +1,4 @@
-// Copyright 2018 Paul Furley and Ian Drysdale
+// Copyright 2019 Paul Furley and Ian Drysdale
 //
 // This file is part of Fluidkeys Client which makes it simple to use OpenPGP.
 //
@@ -17,15 +17,11 @@
 
 package main
 
-type IncorrectPassword struct {
-	message       string
-	originalError string
-}
+import (
+	"github.com/fluidkeys/fluidkeys/fk"
+	"os"
+)
 
-func (e *IncorrectPassword) Error() string {
-	if e.message != "" {
-		return e.message
-	} else {
-		return "the password was incorrect"
-	}
+func main() {
+	os.Exit(fk.Main())
 }
