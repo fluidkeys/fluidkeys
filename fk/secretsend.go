@@ -176,15 +176,11 @@ func encryptSecret(secret string, pgpKey *pgpkey.PgpKey, filename string) (strin
 		return "", err
 	}
 
-	fileHints := openpgp.FileHints{
-		FileName: filename,
-	}
-
 	pgpWriteCloser, err := openpgp.Encrypt(
 		message,
 		[]*openpgp.Entity{&pgpKey.Entity},
 		nil,
-		&fileHints,
+		makeFileHintsForFilename(filename),
 		nil,
 	)
 	if err != nil {
@@ -199,6 +195,21 @@ func encryptSecret(secret string, pgpKey *pgpkey.PgpKey, filename string) (strin
 	pgpWriteCloser.Close()
 	message.Close()
 	return buffer.String(), nil
+}
+
+func makeFileHintsForFilename(filename string) *openpgp.FileHints {
+	fileHints := openpgp.FileHints{
+		IsBinary: false,
+		// We don't set ModTime, let it be the time the receiver saves it
+	}
+	if filename == "" {
+		fileHints.FileName = "_CONSOLE"
+		// This signifies that the contents should not be written to disk
+		// See: https://tools.ietf.org/html/rfc4880#section-5.9
+	} else {
+		fileHints.FileName = filename
+	}
+	return &fileHints
 }
 
 const femaleSpyEmoji = "\xf0\x9f\x95\xb5\xef\xb8\x8f\xe2\x80\x8d\xe2\x99\x80\xef\xb8\x8f"
