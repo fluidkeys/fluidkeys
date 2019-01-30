@@ -23,7 +23,7 @@ func setup(email string) exitCode {
 		return exitCode
 	}
 
-	encryptedSecret, err := encryptSecret(secretSquirrelMessage(), pgpKey, "")
+	encryptedSecret, err := encryptSecret(secretSquirrelMessage(), "", pgpKey)
 	if err != nil {
 		printFailed("Couldn't encrypt a test secret message:")
 		out.Print("Error: " + err.Error() + "\n")

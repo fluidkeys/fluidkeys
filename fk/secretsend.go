@@ -66,7 +66,7 @@ https://download.fluidkeys.com#` + recipientEmail + `
 		return 1
 	}
 
-	_, err = encryptSecret("dummy data to test encryption", pgpKey, "")
+	_, err = encryptSecret("dummy data to test encryption", "", pgpKey)
 	if err != nil {
 		printFailed("Couldn't encrypt to the key:")
 		out.Print("Error: " + err.Error() + "\n")
@@ -84,7 +84,7 @@ https://download.fluidkeys.com#` + recipientEmail + `
 		return 1
 	}
 
-	encryptedSecret, err := encryptSecret(*secret, pgpKey, filename)
+	encryptedSecret, err := encryptSecret(*secret, filename, pgpKey)
 	if err != nil {
 		printFailed("Couldn't encrypt the secret:")
 		out.Print("Error: " + err.Error() + "\n")
@@ -169,7 +169,7 @@ func scanUntilEOF() (message string, err error) {
 	return string(output), nil
 }
 
-func encryptSecret(secret string, pgpKey *pgpkey.PgpKey, filename string) (string, error) {
+func encryptSecret(secret string, filename string, pgpKey *pgpkey.PgpKey) (string, error) {
 	buffer := bytes.NewBuffer(nil)
 	message, err := armor.Encode(buffer, "PGP MESSAGE", nil)
 	if err != nil {
