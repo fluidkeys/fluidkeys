@@ -26,11 +26,16 @@ import (
 // MakeFilePath takes a filename, extension, directory and time and constructs
 // a filepath string formated like:
 //   directory/2016-08-23/filename-2016-08-23T18-05-00.ext
-func MakeFilePath(filename string, extension string, directory string, now time.Time) string {
-	return filepath.Join(
-		dateStampedDirectory(directory, now),
-		appendTimeStampToFilename(filename, extension, now),
-	)
+// If the directory doesn't exist, it is created.
+func MakeFilePath(
+	filename string, extension string, directory string, now time.Time) (string, error) {
+
+	directory, err := dateStampedDirectory(directory, now)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(directory, appendTimeStampToFilename(filename, extension, now)), nil
 }
 
 func appendTimeStampToFilename(filename string, extension string, now time.Time) string {
@@ -38,9 +43,9 @@ func appendTimeStampToFilename(filename string, extension string, now time.Time)
 	return filename + "-" + timestamp + "." + extension
 }
 
-func dateStampedDirectory(fluidkeysDir string, now time.Time) string {
+func dateStampedDirectory(fluidkeysDir string, now time.Time) (string, error) {
 	dateSubdirectory := now.Format("2006-01-02")
 	backupDirectory := filepath.Join(fluidkeysDir, "backups", dateSubdirectory)
-	os.MkdirAll(backupDirectory, 0700)
-	return backupDirectory
+	err := os.MkdirAll(backupDirectory, 0700)
+	return backupDirectory, err
 }

@@ -381,7 +381,11 @@ func runActions(keyTask *keyTask) error {
 }
 
 func makeGnupgBackup(now time.Time) (string, error) {
-	filepath := archiver.MakeFilePath("gpghome", "tgz", fluidkeysDirectory, now)
+	filepath, err := archiver.MakeFilePath("gpghome", "tgz", fluidkeysDirectory, now)
+	if err != nil {
+		return "", err
+	}
+
 	filename, err := gpg.BackupHomeDir(filepath, now)
 	if err != nil {
 		return "", fmt.Errorf("failed to call gpg.BackupHomeDir: %v", err)
