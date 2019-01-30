@@ -21,10 +21,34 @@ func TestEncryptSecret(t *testing.T) {
 		t.Fatalf("error loading private key: %s", err)
 	}
 
-	var keyRing openpgp.EntityList = []*openpgp.Entity{&pgpKey.Entity}
+	t.Run("with an empty filename", func(t *testing.T) {
+		armoredEncryptedSecret, err := encryptSecret(secret, "", pgpKey)
+		assert.ErrorIsNil(t, err)
 
-	armoredEncryptedSecret, err := encryptSecret(secret, "", pgpKey)
-	assert.ErrorIsNil(t, err)
+		messageDetails := decryptMessageDetails(armoredEncryptedSecret, pgpKey, t)
+		assertMessageBodyMatchesSecretContent(messageDetails.UnverifiedBody, secret, t)
+		assert.Equal(t, "_CONSOLE", messageDetails.LiteralData.FileName)
+		if messageDetails.LiteralData.ForEyesOnly() != true {
+			t.Fatalf("expected secret to be For Eyes Only, but isn't")
+		}
+	})
+
+	t.Run("with a filename", func(t *testing.T) {
+		armoredEncryptedSecret, err := encryptSecret(secret, "secret.txt", pgpKey)
+		assert.ErrorIsNil(t, err)
+
+		messageDetails := decryptMessageDetails(armoredEncryptedSecret, pgpKey, t)
+		assertMessageBodyMatchesSecretContent(messageDetails.UnverifiedBody, secret, t)
+		assert.Equal(t, "secret.txt", messageDetails.LiteralData.FileName)
+		if messageDetails.LiteralData.ForEyesOnly() == true {
+			t.Fatalf("expected secret not to be For Eyes Only, but is")
+		}
+	})
+
+}
+
+func decryptMessageDetails(armoredEncryptedSecret string, pgpKey *pgpkey.PgpKey, t *testing.T) *openpgp.MessageDetails {
+	t.Helper()
 
 	buf := strings.NewReader(armoredEncryptedSecret)
 
@@ -33,12 +57,21 @@ func TestEncryptSecret(t *testing.T) {
 		t.Fatalf("error decoding armor: %s", err)
 	}
 
+	var keyRing openpgp.EntityList = []*openpgp.Entity{&pgpKey.Entity}
+
 	messageDetails, err := openpgp.ReadMessage(block.Body, keyRing, nil, nil)
 	if err != nil {
 		t.Fatalf("error rereading message: %s", err)
 	}
+
+	return messageDetails
+}
+
+func assertMessageBodyMatchesSecretContent(unverifiedBody io.Reader, secret string, t *testing.T) {
+	t.Helper()
+
 	messageBuf := bytes.NewBuffer(nil)
-	_, err = io.Copy(messageBuf, messageDetails.UnverifiedBody)
+	_, err := io.Copy(messageBuf, unverifiedBody)
 	if err != nil {
 		t.Fatalf("error rereading message: %s", err)
 	}
