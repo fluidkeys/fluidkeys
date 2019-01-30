@@ -25,6 +25,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/fluidkeys/crypto/openpgp"
@@ -74,17 +75,20 @@ https://download.fluidkeys.com#` + recipientEmail + `
 	}
 
 	var secret *string
+	var basename string
 	if filename != "" {
 		secret, err = getSecretFromFile(filename)
+		basename = filepath.Base(filename)
 	} else {
 		secret, err = getSecretFromStdin()
+		basename = ""
 	}
 	if err != nil {
 		printFailed("Error: " + err.Error())
 		return 1
 	}
 
-	encryptedSecret, err := encryptSecret(*secret, filename, pgpKey)
+	encryptedSecret, err := encryptSecret(*secret, basename, pgpKey)
 	if err != nil {
 		printFailed("Couldn't encrypt the secret:")
 		out.Print("Error: " + err.Error() + "\n")
