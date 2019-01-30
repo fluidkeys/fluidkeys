@@ -103,35 +103,21 @@ https://download.fluidkeys.com#` + recipientEmail + `
 }
 
 func getSecretFromFile(filename string) (*string, error) {
-	if fileExists(filename) {
-		secretData, err := ioutil.ReadFile(filename)
-		if err != nil {
-			return nil, fmt.Errorf("error reading file: " + err.Error())
-		}
-		secret := string(secretData)
-		out.Print("---\n")
-		out.Print(secret)
-		out.Print("---\n\n")
-
-		prompter := interactiveYesNoPrompter{}
-
-		if prompter.promptYesNo("Send "+filename+"?", "y", nil) {
-			return &secret, nil
-		}
-		return nil, nil
+	secretData, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, fmt.Errorf("error reading file: " + err.Error())
 	}
-	return nil, fmt.Errorf("couldn't find file " + filename)
-}
+	secret := string(secretData)
+	out.Print("---\n")
+	out.Print(secret)
+	out.Print("---\n\n")
 
-func fileExists(filename string) bool {
-	if _, err := os.Stat(filename); err == nil {
-		return true
-	} else if os.IsNotExist(err) {
-		return false
-	} else {
-		log.Panic()
-		return false
+	prompter := interactiveYesNoPrompter{}
+
+	if prompter.promptYesNo("Send "+filename+"?", "y", nil) {
+		return &secret, nil
 	}
+	return nil, nil
 }
 
 func getSecretFromStdin() (*string, error) {
