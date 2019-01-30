@@ -23,7 +23,7 @@ func TestEncryptSecret(t *testing.T) {
 
 	var keyRing openpgp.EntityList = []*openpgp.Entity{&pgpKey.Entity}
 
-	armoredEncryptedSecret, err := encryptSecret(secret, pgpKey)
+	armoredEncryptedSecret, err := encryptSecret(secret, "", pgpKey)
 	assert.ErrorIsNil(t, err)
 
 	buf := strings.NewReader(armoredEncryptedSecret)
