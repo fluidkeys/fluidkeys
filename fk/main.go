@@ -65,7 +65,8 @@ Configuration file: %s
 Usage:
 	fk setup
 	fk setup <email>
-	fk secret send <recipient-email-address> [--file <filename>]
+	fk secret send <recipient-email>
+	fk secret send [<filename>] --to=<email>
 	fk secret receive
 	fk key create
 	fk key from-gpg
@@ -279,23 +280,48 @@ func secretSubcommand(args docopt.Opts) exitCode {
 		"send", "receive",
 	}) {
 	case "send":
-		emailAddress, err := args.String("<recipient-email-address>")
-		if err != nil {
-			log.Panic(err)
-		}
-		file, err := args.Bool("--file")
-		if err != nil {
-			log.Panic(err)
-		}
-		if file {
-			filename, err := args.String("<filename>")
-			if err != nil {
-				log.Panic(err)
+		emailAddress, err := args.String("<recipient-email>")
+		if err == nil {
+			// They used the deprecated single-argument form, e.g.
+			// `fk secret send <email>`
+
+			if !emailutils.RoughlyValidateEmail(emailAddress) {
+				// They probably passed a filename rather than an email address:
+				// `fk secret send secret.txt`
+
+				printFailed("That doesn't look like an email address.")
+				out.Print("     Were you trying to send a file?\n\n")
+				out.Print("     > " + colour.CommandLineCode(
+					"fk secret send "+emailAddress+" --to=<email>\n\n"))
+				return 1
+			} else {
+				// They used the deprecated form for an email: warn them that
+				// it's deprecated, but work anyway.
+
+				out.Print("\n")
+				printFailed("That format is deprecated and will be removed.")
+				out.Print("     Please run this command next time:\n")
+
+				out.Print("     > " + colour.CommandLineCode(
+					"fk secret send --to="+emailAddress+"\n\n"))
 			}
-			return secretSend(emailAddress, filename)
-		} else {
-			return secretSend(emailAddress, "")
+		} else if emailAddress, err = args.String("--to"); err != nil {
+			log.Panic(err)
 		}
+
+		filename, err := args.String("<filename>")
+		if err != nil {
+			// Case 1: `fk secret send --to=someone@example.com`
+			// ... read from stdin
+
+			return secretSend(emailAddress, "")
+		} else {
+			// Case 2: `fk secret send secret.txt --to=someone@example.com`
+			// ... read from secret.txt
+
+			return secretSend(emailAddress, filename)
+		}
+
 	case "receive":
 		return secretReceive()
 	}
