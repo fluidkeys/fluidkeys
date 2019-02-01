@@ -2,6 +2,7 @@ package fk
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -43,6 +44,78 @@ func TestEncryptSecret(t *testing.T) {
 		if messageDetails.LiteralData.ForEyesOnly() == true {
 			t.Fatalf("expected secret not to be For Eyes Only, but is")
 		}
+	})
+
+}
+
+type mockReadFile struct {
+	readFileBytes []byte
+	readFileError error
+}
+
+func (m mockReadFile) ReadFile(filename string) ([]byte, error) {
+	return m.readFileBytes, m.readFileError
+}
+
+type mockYesNoPrompter struct {
+	answer bool
+}
+
+func (m mockYesNoPrompter) promptYesNo(question string, defaultAnswer string, key *pgpkey.PgpKey) bool {
+	return m.answer
+}
+
+func TestGetSecretFromFile(t *testing.T) {
+	t.Run("returns the file contents as string", func(t *testing.T) {
+		fileReader := mockReadFile{
+			readFileError: nil,
+			readFileBytes: []byte("hello"),
+		}
+
+		prompter := mockYesNoPrompter{
+			answer: true,
+		}
+
+		secret, err := getSecretFromFile("/fake/filename", fileReader, prompter)
+		assert.ErrorIsNil(t, err)
+		assert.Equal(t, "hello", secret)
+	})
+
+	t.Run("passes up errors from ReadFile", func(t *testing.T) {
+		fileReader := mockReadFile{
+			readFileError: fmt.Errorf("permission denied"),
+		}
+
+		_, err := getSecretFromFile("/fake/filename", fileReader, nil)
+		expectedErr := fmt.Errorf("error reading file: permission denied")
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("returns error if file is empty", func(t *testing.T) {
+		fileReader := mockReadFile{
+			readFileError: nil,
+			readFileBytes: []byte(""),
+		}
+
+		_, err := getSecretFromFile("/fake/filename", fileReader, nil)
+		expectedErr := fmt.Errorf("/fake/filename is empty")
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("returns error if user answers no", func(t *testing.T) {
+
+		fileReader := mockReadFile{
+			readFileError: nil,
+			readFileBytes: []byte("hello"),
+		}
+
+		prompter := mockYesNoPrompter{
+			answer: false,
+		}
+
+		_, err := getSecretFromFile("/fake/filename", fileReader, prompter)
+		expectedErr := fmt.Errorf("didn't accept prompt to send file")
+		assert.Equal(t, expectedErr, err)
 	})
 
 }
