@@ -72,10 +72,14 @@ func secretReceive() exitCode {
 			}
 			continue
 		}
-		out.Print("📬 " + displayName(&key) + ":\n")
+		out.Print("📬 " + displayName(&key) + ":\n\n")
 
-		for i, secret := range secrets {
-			out.Print(formatSecretListItem(i+1, secret.decryptedContent))
+		secretCount := len(secrets)
+
+		out.Print(humanize.Pluralize(secretCount, "secret", "secrets") + ":\n\n")
+
+		for _, secret := range secrets {
+			out.Print(formatSecretListItem(secret.decryptedContent))
 		}
 		downloadedSecrets = append(downloadedSecrets, secrets...)
 
@@ -141,10 +145,9 @@ func downloadAndDecryptSecrets(key pgpkey.PgpKey) (secrets []secret, secretError
 	return secrets, secretErrors, nil
 }
 
-func formatSecretListItem(listNumber int, decryptedContent string) (output string) {
-	displayCounter := fmt.Sprintf(out.NoLogCharacter+" %d. ", listNumber)
-	trimmedDivider := strings.Repeat(secretDividerRune, secretDividerLength-(1+len([]rune(displayCounter))))
-	output = displayCounter + trimmedDivider + "\n"
+func formatSecretListItem(decryptedContent string) (output string) {
+	trimmedDivider := strings.Repeat(secretDividerRune, secretDividerLength-(1))
+	output = out.NoLogCharacter + trimmedDivider + "\n"
 	output = output + decryptedContent
 	if !strings.HasSuffix(decryptedContent, "\n") {
 		output = output + "\n"
