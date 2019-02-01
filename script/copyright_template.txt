@@ -1,4 +1,4 @@
-// Copyright 2018 Paul Furley and Ian Drysdale
+// Copyright 2019 Paul Furley and Ian Drysdale
 //
 // This file is part of Fluidkeys Client which makes it simple to use OpenPGP.
 //
