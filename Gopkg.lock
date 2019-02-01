@@ -83,6 +83,18 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:d38753d8e83ac68464716daef19343ee087c676091df681c63dd1d1496b4d1c8"
+  name = "github.com/minimaxir/big-list-of-naughty-strings"
+  packages = [
+    "naughtystrings",
+    "naughtystrings/internal",
+  ]
+  pruneopts = "UT"
+  revision = "ebe19891edfb8f1b4af1d3702a5f6f51d7aedbfa"
+  source = "github.com/fluidkeys/fork-big-list-of-naughty-strings"
+
+[[projects]]
+  branch = "master"
   digest = "1:c7354463195544b1ab3c1f1fadb41430947f5d28dfbf2cdbd38268c5717a5a03"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
@@ -146,6 +158,7 @@
     "github.com/fluidkeys/crypto/openpgp/packet",
     "github.com/fluidkeys/keyring",
     "github.com/gofrs/uuid",
+    "github.com/minimaxir/big-list-of-naughty-strings/naughtystrings",
     "github.com/mitchellh/go-homedir",
     "github.com/natefinch/atomic",
     "github.com/sethvargo/go-diceware/diceware",
