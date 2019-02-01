@@ -20,6 +20,7 @@ package fk
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -27,6 +28,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/armor"
@@ -160,6 +162,10 @@ func scanUntilEOF() (message string, err error) {
 }
 
 func encryptSecret(secret string, filename string, pgpKey *pgpkey.PgpKey) (string, error) {
+	if containsDisallowedRune(secret) || !utf8.ValidString(secret) {
+		return "", errors.New("Secret contains disallowed characters")
+	}
+
 	buffer := bytes.NewBuffer(nil)
 	message, err := armor.Encode(buffer, "PGP MESSAGE", nil)
 	if err != nil {

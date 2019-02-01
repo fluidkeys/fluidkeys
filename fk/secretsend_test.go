@@ -23,6 +23,13 @@ func TestEncryptSecret(t *testing.T) {
 		t.Fatalf("error loading private key: %s", err)
 	}
 
+	t.Run("containing a disallowed rune", func(t *testing.T) {
+		secretWithDisallowedRune := "\x1b[40mBlocked secret message!\x1b[0m"
+
+		_, err := encryptSecret(secretWithDisallowedRune, "", pgpKey)
+		assert.ErrorIsNotNil(t, err)
+	})
+
 	t.Run("with an empty filename", func(t *testing.T) {
 		armoredEncryptedSecret, err := encryptSecret(secret, "", pgpKey)
 		assert.ErrorIsNil(t, err)
