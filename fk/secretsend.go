@@ -113,6 +113,9 @@ func getSecretFromFile(filename string) (string, error) {
 		return "", fmt.Errorf("error reading file: " + err.Error())
 	}
 	secret := string(secretData)
+	if len(strings.TrimSpace(secret)) == 0 {
+		return "", fmt.Errorf(filename + " is empty")
+	}
 	out.Print("---\n")
 	out.Print(secret)
 	out.Print("---\n\n")
