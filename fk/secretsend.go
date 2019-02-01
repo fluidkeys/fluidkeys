@@ -20,6 +20,7 @@ package fk
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -74,7 +75,7 @@ https://download.fluidkeys.com#` + recipientEmail + `
 		return 1
 	}
 
-	var secret *string
+	var secret string
 	var basename string
 	if filename != "" {
 		secret, err = getSecretFromFile(filename)
@@ -88,7 +89,7 @@ https://download.fluidkeys.com#` + recipientEmail + `
 		return 1
 	}
 
-	encryptedSecret, err := encryptSecret(*secret, basename, pgpKey)
+	encryptedSecret, err := encryptSecret(secret, basename, pgpKey)
 	if err != nil {
 		printFailed("Couldn't encrypt the secret:")
 		out.Print("Error: " + err.Error() + "\n")
@@ -106,10 +107,10 @@ https://download.fluidkeys.com#` + recipientEmail + `
 	return 0
 }
 
-func getSecretFromFile(filename string) (*string, error) {
+func getSecretFromFile(filename string) (string, error) {
 	secretData, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return nil, fmt.Errorf("error reading file: " + err.Error())
+		return "", fmt.Errorf("error reading file: " + err.Error())
 	}
 	secret := string(secretData)
 	out.Print("---\n")
@@ -118,13 +119,14 @@ func getSecretFromFile(filename string) (*string, error) {
 
 	prompter := interactiveYesNoPrompter{}
 
-	if prompter.promptYesNo("Send "+filename+"?", "y", nil) {
-		return &secret, nil
+	if !prompter.promptYesNo("Send "+filename+"?", "y", nil) {
+		return "", errors.New("didn't accept prompt to send file")
 	}
-	return nil, nil
+
+	return secret, nil
 }
 
-func getSecretFromStdin() (*string, error) {
+func getSecretFromStdin() (string, error) {
 	out.Print("\n")
 	out.Print(colour.Info(femaleSpyEmoji + "  Type or paste your message, ending by typing Ctrl-D\n"))
 	out.Print(colour.Info("   It will be end-to-end encrypted so no-one else can read it\n\n"))
@@ -132,14 +134,14 @@ func getSecretFromStdin() (*string, error) {
 	secret, err := scanUntilEOF()
 	if err != nil {
 		log.Panic(err)
-		return nil, err
+		return "", err
 	}
 
 	if strings.TrimSpace(secret) == "" {
-		return nil, fmt.Errorf("empty message")
+		return "", fmt.Errorf("empty message")
 	}
 
-	return &secret, nil
+	return secret, nil
 }
 
 func scanUntilEOF() (message string, err error) {
