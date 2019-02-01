@@ -203,3 +203,26 @@ func makeFileHintsForFilename(filename string) *openpgp.FileHints {
 }
 
 const femaleSpyEmoji = "\xf0\x9f\x95\xb5\xef\xb8\x8f\xe2\x80\x8d\xe2\x99\x80\xef\xb8\x8f"
+
+// containsDisallowedRune checks whether the given input string contains a disallowed rune
+func containsDisallowedRune(input string) bool {
+	for _, r := range input {
+		switch {
+		case 0 <= r && r <= 9:
+			return true
+		case 11 <= r && r <= 12:
+			return true
+		case r == '\n': // 10
+			continue
+		case r == '\r': // 13
+			continue
+		case 14 <= r && r <= 31:
+			return true
+		case r == 127: // DEL
+			return true
+		default:
+			continue
+		}
+	}
+	return false
+}
