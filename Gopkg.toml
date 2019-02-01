@@ -68,3 +68,7 @@
   branch = "master"
   name = "github.com/minimaxir/big-list-of-naughty-strings"
   source = "github.com/fluidkeys/fork-big-list-of-naughty-strings"
+
+[[constraint]]
+  name = "github.com/atotto/clipboard"
+  version = "0.1.1"

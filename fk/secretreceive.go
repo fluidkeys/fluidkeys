@@ -25,6 +25,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/atotto/clipboard"
 	"github.com/fluidkeys/api/v1structs"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
@@ -84,6 +85,12 @@ func secretReceive() exitCode {
 
 		for _, secret := range decryptedSecrets {
 			out.Print(formatSecretListItem(secret.decryptedContent))
+			if prompter.promptYesNo("Copy to clipboard?", "", nil) == true {
+				err := clipboard.WriteAll(secret.decryptedContent)
+				if err != nil {
+					printFailed(err.Error())
+				}
+			}
 			if prompter.promptYesNo("Delete now?", "Y", nil) == true {
 				err := client.DeleteSecret(secret.sentToFingerprint, secret.UUID.String())
 				if err != nil {
