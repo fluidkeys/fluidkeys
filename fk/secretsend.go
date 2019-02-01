@@ -78,7 +78,7 @@ https://download.fluidkeys.com#` + recipientEmail + `
 	var secret string
 	var basename string
 	if filename != "" {
-		secret, err = getSecretFromFile(filename)
+		secret, err = getSecretFromFile(filename, nil, nil)
 		basename = filepath.Base(filename)
 	} else {
 		secret, err = getSecretFromStdin()
@@ -107,8 +107,16 @@ https://download.fluidkeys.com#` + recipientEmail + `
 	return 0
 }
 
-func getSecretFromFile(filename string) (string, error) {
-	secretData, err := ioutil.ReadFile(filename)
+func getSecretFromFile(filename string, fileReader ioutilReadFileInterface, prompter promptYesNoInterface) (string, error) {
+	if fileReader == nil {
+		fileReader = &ioutilReadFilePassthrough{}
+	}
+
+	if prompter == nil {
+		prompter = &interactiveYesNoPrompter{}
+	}
+
+	secretData, err := fileReader.ReadFile(filename)
 	if err != nil {
 		return "", fmt.Errorf("error reading file: " + err.Error())
 	}
@@ -119,8 +127,6 @@ func getSecretFromFile(filename string) (string, error) {
 	out.Print("---\n")
 	out.Print(secret)
 	out.Print("---\n\n")
-
-	prompter := interactiveYesNoPrompter{}
 
 	if !prompter.promptYesNo("Send "+filename+"?", "y", nil) {
 		return "", errors.New("didn't accept prompt to send file")
@@ -205,6 +211,17 @@ func makeFileHintsForFilename(filename string) *openpgp.FileHints {
 		fileHints.FileName = filename
 	}
 	return &fileHints
+}
+
+type ioutilReadFileInterface interface {
+	ReadFile(filename string) ([]byte, error)
+}
+
+type ioutilReadFilePassthrough struct {
+}
+
+func (r *ioutilReadFilePassthrough) ReadFile(filename string) ([]byte, error) {
+	return ioutil.ReadFile(filename)
 }
 
 const femaleSpyEmoji = "\xf0\x9f\x95\xb5\xef\xb8\x8f\xe2\x80\x8d\xe2\x99\x80\xef\xb8\x8f"
