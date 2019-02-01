@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os/exec"
 	"strconv"
 	"strings"
 
@@ -80,6 +81,9 @@ func secretReceive() exitCode {
 
 		for _, secret := range secrets {
 			out.Print(formatSecretListItem(secret.decryptedContent))
+			if prompter.promptYesNo("Copy to clipboard?", "", nil) == true {
+				writeToClipboard(secret.decryptedContent)
+			}
 			if prompter.promptYesNo("Delete now?", "Y", nil) == true {
 				err := client.DeleteSecret(*secret.sentToFingerprint, secret.UUID.String())
 				if err != nil {
@@ -223,3 +227,26 @@ type errDecryptPrivateKey struct {
 }
 
 func (e errDecryptPrivateKey) Error() string { return e.originalError.Error() }
+
+func writeToClipboard(text string) error {
+	copyCmd := getCopyCommand()
+	in, err := copyCmd.StdinPipe()
+	if err != nil {
+		return err
+	}
+
+	if err := copyCmd.Start(); err != nil {
+		return err
+	}
+	if _, err := in.Write([]byte(text)); err != nil {
+		return err
+	}
+	if err := in.Close(); err != nil {
+		return err
+	}
+	return copyCmd.Wait()
+}
+
+func getCopyCommand() *exec.Cmd {
+	return exec.Command("pbcopy")
+}
