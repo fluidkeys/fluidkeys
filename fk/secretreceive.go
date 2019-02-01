@@ -40,7 +40,7 @@ import (
 func secretReceive() exitCode {
 	out.Print("\n")
 	keys, err := loadPgpKeys()
-	var downloadedSecrets []secret
+	prompter := interactiveYesNoPrompter{}
 
 	if err != nil {
 		printFailed("Couldn't load PGP keys")
@@ -80,10 +80,15 @@ func secretReceive() exitCode {
 
 		for _, secret := range secrets {
 			out.Print(formatSecretListItem(secret.decryptedContent))
+			if prompter.promptYesNo("Delete now?", "Y", nil) == true {
+				err := client.DeleteSecret(*secret.sentToFingerprint, secret.UUID.String())
+				if err != nil {
+					log.Printf("failed to delete secret '%s': %v", secret.UUID, err)
+					printFailed("Error trying to delete secret:")
+					printFailed(err.Error())
+				}
+			}
 		}
-		downloadedSecrets = append(downloadedSecrets, secrets...)
-
-		out.Print(strings.Repeat(secretDividerRune, secretDividerLength) + "\n")
 
 		if len(secretErrors) > 0 {
 			output := humanize.Pluralize(len(secretErrors), "secret", "secrets") + " failed to download for " + displayName(&key) + ":\n"
@@ -92,27 +97,6 @@ func secretReceive() exitCode {
 				printFailed(error.Error())
 			}
 			sawError = true
-		}
-	}
-
-	sawErrorDeletingSecret := false
-
-	if len(downloadedSecrets) > 0 {
-		prompter := interactiveYesNoPrompter{}
-		out.Print("\n")
-		if prompter.promptYesNo("Delete now?", "Y", nil) == true {
-			for _, secret := range downloadedSecrets {
-				err := client.DeleteSecret(*secret.sentToFingerprint, secret.UUID.String())
-				if err != nil {
-					log.Printf("failed to delete secret '%s': %v", secret.UUID, err)
-					sawErrorDeletingSecret = true
-				}
-			}
-			if sawErrorDeletingSecret {
-				printFailed("One or more errors deleting secrets")
-			} else {
-				printSuccess("Deleted all secrets")
-			}
 		}
 	}
 
@@ -152,6 +136,7 @@ func formatSecretListItem(decryptedContent string) (output string) {
 	if !strings.HasSuffix(decryptedContent, "\n") {
 		output = output + "\n"
 	}
+	output = output + strings.Repeat(secretDividerRune, secretDividerLength) + "\n"
 	return output
 }
 
