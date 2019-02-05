@@ -23,10 +23,10 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os/exec"
 	"strconv"
 	"strings"
 
+	"github.com/atotto/clipboard"
 	"github.com/fluidkeys/api/v1structs"
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/armor"
@@ -82,7 +82,10 @@ func secretReceive() exitCode {
 		for _, secret := range secrets {
 			out.Print(formatSecretListItem(secret.decryptedContent))
 			if prompter.promptYesNo("Copy to clipboard?", "", nil) == true {
-				writeToClipboard(secret.decryptedContent)
+				err := clipboard.WriteAll(secret.decryptedContent)
+				if err != nil {
+					printFailed(err.Error())
+				}
 			}
 			if prompter.promptYesNo("Delete now?", "Y", nil) == true {
 				err := client.DeleteSecret(*secret.sentToFingerprint, secret.UUID.String())
@@ -227,26 +230,3 @@ type errDecryptPrivateKey struct {
 }
 
 func (e errDecryptPrivateKey) Error() string { return e.originalError.Error() }
-
-func writeToClipboard(text string) error {
-	copyCmd := getCopyCommand()
-	in, err := copyCmd.StdinPipe()
-	if err != nil {
-		return err
-	}
-
-	if err := copyCmd.Start(); err != nil {
-		return err
-	}
-	if _, err := in.Write([]byte(text)); err != nil {
-		return err
-	}
-	if err := in.Close(); err != nil {
-		return err
-	}
-	return copyCmd.Wait()
-}
-
-func getCopyCommand() *exec.Cmd {
-	return exec.Command("pbcopy")
-}
