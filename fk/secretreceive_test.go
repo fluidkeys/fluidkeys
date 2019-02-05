@@ -239,3 +239,39 @@ func TestDecryptAPISecret(t *testing.T) {
 		})
 	})
 }
+
+func mockDoesntExist(path string) bool {
+	if path == "/fake/new_filename.txt" {
+		return true
+	}
+
+	if path == "/fake/existing_filename.txt" || path == "/fake/existing_filename(1).txt" {
+		return false
+	}
+
+	if path == "/fake/old_filename.txt.bak" {
+		return false
+	}
+
+	return true
+}
+
+func TestGetNewUniqueFilename(t *testing.T) {
+	t.Run("returns the same value if the filename doesn't exist", func(t *testing.T) {
+		filename := getNewUniqueFilename("/fake/new_filename.txt", mockDoesntExist)
+		fmt.Printf("file: %s\n", filename)
+		assert.Equal(t, "new_filename.txt", filename)
+	})
+
+	t.Run("increments a counter to find a filename that doesn't exist", func(t *testing.T) {
+		filename := getNewUniqueFilename("/fake/existing_filename.txt", mockDoesntExist)
+		fmt.Printf("file: %s\n", filename)
+		assert.Equal(t, "existing_filename(2).txt", filename)
+	})
+
+	t.Run("adds the counter before the last file extension", func(t *testing.T) {
+		filename := getNewUniqueFilename("/fake/old_filename.txt.bak", mockDoesntExist)
+		fmt.Printf("file: %s\n", filename)
+		assert.Equal(t, "old_filename.txt(1).bak", filename)
+	})
+}

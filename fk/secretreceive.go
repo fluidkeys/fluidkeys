@@ -21,9 +21,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
+	"os"
+	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
+
+	homedir "github.com/mitchellh/go-homedir"
 
 	"github.com/atotto/clipboard"
 	"github.com/fluidkeys/api/v1structs"
@@ -86,10 +92,24 @@ func secretReceive() exitCode {
 
 		for _, secret := range decryptedSecrets {
 			out.Print(formatSecretListItem(secret.decryptedContent, secret.filename))
-			if prompter.promptYesNo("Copy to clipboard?", "", nil) == true {
-				err := clipboard.WriteAll(secret.decryptedContent)
+			if secret.filename != "" {
+				filenameToWrite, err := getFileNameToWrite(secret.filename)
 				if err != nil {
+					printFailed("Error prompting to save file to disk:")
 					printFailed(err.Error())
+				}
+				if prompter.promptYesNo("Save to "+filenameToWrite+"?", "", nil) == true {
+					err := ioutil.WriteFile(filenameToWrite, []byte(secret.decryptedContent), 0644)
+					if err != nil {
+						printFailed(err.Error())
+					}
+				}
+			} else {
+				if prompter.promptYesNo("Copy to clipboard?", "", nil) == true {
+					err := clipboard.WriteAll(secret.decryptedContent)
+					if err != nil {
+						printFailed(err.Error())
+					}
 				}
 			}
 			if prompter.promptYesNo("Delete now?", "Y", nil) == true {
@@ -208,6 +228,69 @@ func decryptAPISecret(
 func countDigits(i int) (count int) {
 	iString := strconv.Itoa(i)
 	return len(iString)
+}
+
+func getFileNameToWrite(filename string) (string, error) {
+	userDir, err := homedir.Dir()
+	if err != nil {
+		return "", err
+	}
+	downloadsDir := userDir + "/Downloads"
+	fileInfo, err := os.Stat(downloadsDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf(downloadsDir + " directory doesn't exist")
+		} else {
+			return "", err
+		}
+	}
+	if !fileInfo.IsDir() {
+		return "", fmt.Errorf(fileInfo.Name() + " file exists and is not a directory")
+	}
+	filenameToWrite := getNewUniqueFilename(
+		filepath.FromSlash(downloadsDir+"/"+filename),
+		doesntExist,
+	)
+
+	return filenameToWrite, nil
+}
+
+func getNewUniqueFilename(fp string, checker func(string) bool) string {
+	i := 0
+	foundFilename := false
+	filename := filepath.Base(fp)
+	numberedFilename := filename
+	for ok := true; ok; ok = (foundFilename == false) {
+		if i == 0 {
+			// try using the original filename it was sent as first with no count suffix
+			numberedFilename = filename
+		} else if i > 0 {
+			// the original filename already exists, try `filename(i).ext` next...
+			numberedFilename = fmt.Sprintf(
+				"%s(%d)%s",
+				FilenameWithoutExtension(filename), i, path.Ext(filename),
+			)
+		}
+		if checker(filepath.FromSlash(filepath.Dir(fp) + "/" + numberedFilename)) {
+			foundFilename = true
+		} else {
+			i++
+		}
+	}
+	return numberedFilename
+}
+
+func doesntExist(path string) bool {
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return true
+		}
+	}
+	return false
+}
+
+func FilenameWithoutExtension(fn string) string {
+	return strings.TrimSuffix(fn, path.Ext(fn))
 }
 
 const (
