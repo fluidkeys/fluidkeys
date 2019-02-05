@@ -52,13 +52,15 @@ func secretReceive() exitCode {
 
 	sawError := false
 
+	secretLister := client
+
 	for _, key := range keys {
 		if !Config.ShouldPublishToAPI(key.Fingerprint()) {
 			message := "Key not uploaded to Fluidkeys, can't receive secrets"
 			out.Print("⛔ " + displayName(&key) + ": " + colour.Warning(message) + "\n")
 			continue
 		}
-		secrets, secretErrors, err := downloadAndDecryptSecrets(key)
+		secrets, secretErrors, err := downloadAndDecryptSecrets(key, secretLister)
 		if err != nil {
 			switch err.(type) {
 			case errNoSecretsFound:
@@ -113,8 +115,8 @@ func secretReceive() exitCode {
 	return 0
 }
 
-func downloadAndDecryptSecrets(key pgpkey.PgpKey) (secrets []secret, secretErrors []error, err error) {
-	encryptedSecrets, err := client.ListSecrets(key.Fingerprint())
+func downloadAndDecryptSecrets(key pgpkey.PgpKey, secretLister listSecretsInterface) (secrets []secret, secretErrors []error, err error) {
+	encryptedSecrets, err := secretLister.ListSecrets(key.Fingerprint())
 	if err != nil {
 		return nil, nil, errListSecrets{originalError: err}
 	}
@@ -230,3 +232,7 @@ type errDecryptPrivateKey struct {
 }
 
 func (e errDecryptPrivateKey) Error() string { return e.originalError.Error() }
+
+type listSecretsInterface interface {
+	ListSecrets(fingerprint fingerprint.Fingerprint) ([]v1structs.Secret, error)
+}
