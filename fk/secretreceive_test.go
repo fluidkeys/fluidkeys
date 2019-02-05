@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/fluidkeys/api/v1structs"
+	"github.com/fluidkeys/crypto/openpgp/packet"
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
@@ -82,18 +83,23 @@ func TestDownloadEncryptedSecrets(t *testing.T) {
 }
 
 type mockDecryptor struct {
-	decryptedArmoredResult         io.Reader
-	decryptedArmoredError          error
-	decryptedArmoredToStringResult string
-	decryptedArmoredToStringError  error
+	decryptedArmoredResult              io.Reader
+	decryptedArmoredLiteralData         *packet.LiteralData
+	decryptedArmoredError               error
+	decryptedArmoredToStringResult      string
+	decryptedArmoredToStringLiteralData *packet.LiteralData
+	decryptedArmoredToStringError       error
 }
 
-func (m *mockDecryptor) DecryptArmored(encrypted string) (io.Reader, error) {
-	return m.decryptedArmoredResult, m.decryptedArmoredError
+func (m *mockDecryptor) DecryptArmored(encrypted string) (
+	io.Reader, *packet.LiteralData, error) {
+	return m.decryptedArmoredResult, m.decryptedArmoredLiteralData, m.decryptedArmoredError
 }
 
-func (m *mockDecryptor) DecryptArmoredToString(encrypted string) (string, error) {
-	return m.decryptedArmoredToStringResult, m.decryptedArmoredToStringError
+func (m *mockDecryptor) DecryptArmoredToString(encrypted string) (
+	string, *packet.LiteralData, error) {
+	return m.decryptedArmoredToStringResult, m.decryptedArmoredToStringLiteralData,
+		m.decryptedArmoredToStringError
 }
 
 func TestDecryptAPISecret(t *testing.T) {
@@ -175,12 +181,45 @@ func TestDecryptAPISecret(t *testing.T) {
 		assert.Equal(t, expectedErr, err)
 	})
 
-	t.Run("populates decrypted secret", func(t *testing.T) {
+	t.Run("populates decrypted secret from stdin", func(t *testing.T) {
 		mockPrivateKey := &mockDecryptor{
 			decryptedArmoredResult: strings.NewReader(
 				`{"secretUuid": "93d5ac5b-74e5-4f87-b117-b8d7576395d8"}`,
 			),
 			decryptedArmoredToStringResult: "decrypted content",
+			decryptedArmoredToStringLiteralData: &packet.LiteralData{
+				FileName: "_CONSOLE",
+			},
+		}
+		decryptedSecret := secret{}
+
+		err := decryptAPISecret(encryptedSecret, &decryptedSecret, mockPrivateKey)
+		assert.ErrorIsNil(t, err)
+
+		t.Run("with decrypted content", func(t *testing.T) {
+			assert.Equal(t, decryptedSecret.decryptedContent, "decrypted content")
+		})
+
+		t.Run("with decrypted uuid", func(t *testing.T) {
+			uuid, err := uuid.FromString("93d5ac5b-74e5-4f87-b117-b8d7576395d8")
+			assert.ErrorIsNil(t, err)
+			assert.Equal(t, decryptedSecret.UUID, uuid)
+		})
+
+		t.Run("with an empty filename", func(t *testing.T) {
+			assert.Equal(t, decryptedSecret.filename, "")
+		})
+	})
+
+	t.Run("populates decrypted secret from a file", func(t *testing.T) {
+		mockPrivateKey := &mockDecryptor{
+			decryptedArmoredResult: strings.NewReader(
+				`{"secretUuid": "93d5ac5b-74e5-4f87-b117-b8d7576395d8"}`,
+			),
+			decryptedArmoredToStringResult: "decrypted content",
+			decryptedArmoredToStringLiteralData: &packet.LiteralData{
+				FileName: "example.txt",
+			},
 		}
 		decryptedSecret, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
 		assert.ErrorIsNil(t, err)
@@ -193,6 +232,10 @@ func TestDecryptAPISecret(t *testing.T) {
 			uuid, err := uuid.FromString("93d5ac5b-74e5-4f87-b117-b8d7576395d8")
 			assert.ErrorIsNil(t, err)
 			assert.Equal(t, decryptedSecret.UUID, uuid)
+		})
+
+		t.Run("with a matching filename", func(t *testing.T) {
+			assert.Equal(t, decryptedSecret.filename, "example.txt")
 		})
 	})
 }

@@ -27,6 +27,7 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/fluidkeys/api/v1structs"
+	"github.com/fluidkeys/crypto/openpgp/packet"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	fp "github.com/fluidkeys/fluidkeys/fingerprint"
@@ -84,7 +85,7 @@ func secretReceive() exitCode {
 		out.Print(humanize.Pluralize(secretCount, "secret", "secrets") + ":\n\n")
 
 		for _, secret := range decryptedSecrets {
-			out.Print(formatSecretListItem(secret.decryptedContent))
+			out.Print(formatSecretListItem(secret.decryptedContent, secret.filename))
 			if prompter.promptYesNo("Copy to clipboard?", "", nil) == true {
 				err := clipboard.WriteAll(secret.decryptedContent)
 				if err != nil {
@@ -142,9 +143,12 @@ func decryptSecrets(encryptedSecrets []v1structs.Secret, privateKey *pgpkey.PgpK
 	return secrets, secretErrors
 }
 
-func formatSecretListItem(decryptedContent string) (output string) {
+func formatSecretListItem(decryptedContent string, filename string) (output string) {
 	trimmedDivider := strings.Repeat(secretDividerRune, secretDividerLength-(1))
 	output = out.NoLogCharacter + trimmedDivider + "\n"
+	if filename != "" {
+		output = output + colour.File("Filename: "+filename) + "\n"
+	}
 	output = output + decryptedContent
 	if !strings.HasSuffix(decryptedContent, "\n") {
 		output = output + "\n"
@@ -166,14 +170,14 @@ func decryptAPISecret(
 		return nil, fmt.Errorf("privateKey can not be nil")
 	}
 
-	decryptedContent, err := privateKey.DecryptArmoredToString(encryptedSecret.EncryptedContent)
+	decryptedContent, literalData, err := privateKey.DecryptArmoredToString(encryptedSecret.EncryptedContent)
 	if err != nil {
 		log.Printf("Failed to decrypt secret: %s", err)
 		return nil, fmt.Errorf("error decrypting secret: %v", err)
 	}
 
 	metadata := v1structs.SecretMetadata{}
-	jsonMetadata, err := privateKey.DecryptArmored(encryptedSecret.EncryptedMetadata)
+	jsonMetadata, _, err := privateKey.DecryptArmored(encryptedSecret.EncryptedMetadata)
 	if err != nil {
 		log.Printf("Failed to decrypt secret metadata: %s", err)
 		return nil, fmt.Errorf("error decrypting secret metadata: %v", err)
@@ -194,6 +198,10 @@ func decryptAPISecret(
 		UUID:             uuid,
 	}
 
+	if !literalData.ForEyesOnly() {
+		decryptedSecret.filename = literalData.FileName
+	}
+
 	return &decryptedSecret, nil
 }
 
@@ -209,6 +217,7 @@ const (
 
 type secret struct {
 	decryptedContent string
+	filename         string
 	UUID             uuid.UUID
 }
 
@@ -233,6 +242,6 @@ type listSecretsInterface interface {
 }
 
 type decryptorInterface interface {
-	DecryptArmored(encrypted string) (io.Reader, error)
-	DecryptArmoredToString(encrypted string) (string, error)
+	DecryptArmored(encrypted string) (io.Reader, *packet.LiteralData, error)
+	DecryptArmoredToString(encrypted string) (string, *packet.LiteralData, error)
 }
