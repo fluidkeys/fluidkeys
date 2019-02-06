@@ -92,7 +92,7 @@ func secretReceive() exitCode {
 				}
 			}
 			if prompter.promptYesNo("Delete now?", "Y", nil) == true {
-				err := client.DeleteSecret(secret.sentToFingerprint, secret.UUID.String())
+				err := client.DeleteSecret(key.Fingerprint(), secret.UUID.String())
 				if err != nil {
 					log.Printf("failed to delete secret '%s': %v", secret.UUID, err)
 					printFailed("Error trying to delete secret:")
@@ -132,9 +132,7 @@ func downloadEncryptedSecrets(fingerprint fp.Fingerprint, secretLister listSecre
 func decryptSecrets(encryptedSecrets []v1structs.Secret, privateKey *pgpkey.PgpKey) (
 	secrets []secret, secretErrors []error) {
 	for _, encryptedSecret := range encryptedSecrets {
-		secret := secret{
-			sentToFingerprint: privateKey.Fingerprint(),
-		}
+		secret := secret{}
 		err := decryptAPISecret(encryptedSecret, &secret, privateKey)
 		if err != nil {
 			secretErrors = append(secretErrors, err)
@@ -212,9 +210,8 @@ const (
 )
 
 type secret struct {
-	decryptedContent  string
-	UUID              uuid.UUID
-	sentToFingerprint fingerprint.Fingerprint
+	decryptedContent string
+	UUID             uuid.UUID
 }
 
 type errListSecrets struct {
