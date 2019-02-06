@@ -25,6 +25,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/atotto/clipboard"
 	"github.com/fluidkeys/api/v1structs"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
@@ -38,7 +39,7 @@ import (
 func secretReceive() exitCode {
 	out.Print("\n")
 	keys, err := loadPgpKeys()
-	var downloadedSecrets []secret
+	prompter := interactiveYesNoPrompter{}
 
 	if err != nil {
 		printFailed("Couldn't load PGP keys")
@@ -76,14 +77,29 @@ func secretReceive() exitCode {
 		}
 		decryptedSecrets, secretErrors := decryptSecrets(encryptedSecrets, privateKey)
 
-		out.Print("📬 " + displayName(&key) + ":\n")
+		out.Print("📬 " + displayName(&key) + ":\n\n")
 
-		for i, secret := range decryptedSecrets {
-			out.Print(formatSecretListItem(i+1, secret.decryptedContent))
+		secretCount := len(decryptedSecrets)
+
+		out.Print(humanize.Pluralize(secretCount, "secret", "secrets") + ":\n\n")
+
+		for _, secret := range decryptedSecrets {
+			out.Print(formatSecretListItem(secret.decryptedContent))
+			if prompter.promptYesNo("Copy to clipboard?", "", nil) == true {
+				err := clipboard.WriteAll(secret.decryptedContent)
+				if err != nil {
+					printFailed(err.Error())
+				}
+			}
+			if prompter.promptYesNo("Delete now?", "Y", nil) == true {
+				err := client.DeleteSecret(secret.sentToFingerprint, secret.UUID.String())
+				if err != nil {
+					log.Printf("failed to delete secret '%s': %v", secret.UUID, err)
+					printFailed("Error trying to delete secret:")
+					printFailed(err.Error())
+				}
+			}
 		}
-		downloadedSecrets = append(downloadedSecrets, decryptedSecrets...)
-
-		out.Print(strings.Repeat(secretDividerRune, secretDividerLength) + "\n")
 
 		if len(secretErrors) > 0 {
 			output := humanize.Pluralize(len(secretErrors), "secret", "secrets") + " failed to download for " + displayName(&key) + ":\n"
@@ -92,27 +108,6 @@ func secretReceive() exitCode {
 				printFailed(error.Error())
 			}
 			sawError = true
-		}
-	}
-
-	sawErrorDeletingSecret := false
-
-	if len(downloadedSecrets) > 0 {
-		prompter := interactiveYesNoPrompter{}
-		out.Print("\n")
-		if prompter.promptYesNo("Delete now?", "Y", nil) == true {
-			for _, secret := range downloadedSecrets {
-				err := client.DeleteSecret(secret.sentToFingerprint, secret.UUID.String())
-				if err != nil {
-					log.Printf("failed to delete secret '%s': %v", secret.UUID, err)
-					sawErrorDeletingSecret = true
-				}
-			}
-			if sawErrorDeletingSecret {
-				printFailed("One or more errors deleting secrets")
-			} else {
-				printSuccess("Deleted all secrets")
-			}
 		}
 	}
 
@@ -150,14 +145,14 @@ func decryptSecrets(encryptedSecrets []v1structs.Secret, privateKey *pgpkey.PgpK
 	return secrets, secretErrors
 }
 
-func formatSecretListItem(listNumber int, decryptedContent string) (output string) {
-	displayCounter := fmt.Sprintf(out.NoLogCharacter+" %d. ", listNumber)
-	trimmedDivider := strings.Repeat(secretDividerRune, secretDividerLength-(1+len([]rune(displayCounter))))
-	output = displayCounter + trimmedDivider + "\n"
+func formatSecretListItem(decryptedContent string) (output string) {
+	trimmedDivider := strings.Repeat(secretDividerRune, secretDividerLength-(1))
+	output = out.NoLogCharacter + trimmedDivider + "\n"
 	output = output + decryptedContent
 	if !strings.HasSuffix(decryptedContent, "\n") {
 		output = output + "\n"
 	}
+	output = output + strings.Repeat(secretDividerRune, secretDividerLength) + "\n"
 	return output
 }
 
