@@ -18,7 +18,6 @@
 package fk
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,10 +26,9 @@ import (
 	"strings"
 
 	"github.com/fluidkeys/api/v1structs"
-	"github.com/fluidkeys/crypto/openpgp"
-	"github.com/fluidkeys/crypto/openpgp/armor"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fp "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
@@ -51,33 +49,39 @@ func secretReceive() exitCode {
 
 	sawError := false
 
+	secretLister := client
+
 	for _, key := range keys {
 		if !Config.ShouldPublishToAPI(key.Fingerprint()) {
 			message := "Key not uploaded to Fluidkeys, can't receive secrets"
 			out.Print("⛔ " + displayName(&key) + ": " + colour.Warning(message) + "\n")
 			continue
 		}
-		secrets, secretErrors, err := downloadAndDecryptSecrets(key)
+		encryptedSecrets, err := downloadEncryptedSecrets(key.Fingerprint(), secretLister)
 		if err != nil {
 			switch err.(type) {
 			case errNoSecretsFound:
 				out.Print("📭 " + displayName(&key) + ": No secrets found\n")
-			case errDecryptPrivateKey:
-				message := fmt.Sprintf("Error getting private key and password: %s", err)
-				out.Print("📪 " + displayName(&key) + ": " + colour.Failure(message) + "\n")
-			case errListSecrets:
-				out.Print("📪 " + displayName(&key) + ": " + colour.Failure(err.Error()) + "\n")
 			default:
 				out.Print("📪 " + displayName(&key) + ": " + colour.Failure(err.Error()) + "\n")
 			}
 			continue
 		}
+
+		privateKey, _, err := getDecryptedPrivateKeyAndPassword(&key, &interactivePasswordPrompter{})
+		if err != nil {
+			message := fmt.Sprintf("Error getting private key and password: %s", err)
+			out.Print("📪 " + displayName(&key) + ": " + colour.Failure(message) + "\n")
+			continue
+		}
+		decryptedSecrets, secretErrors := decryptSecrets(encryptedSecrets, privateKey)
+
 		out.Print("📬 " + displayName(&key) + ":\n")
 
-		for i, secret := range secrets {
+		for i, secret := range decryptedSecrets {
 			out.Print(formatSecretListItem(i+1, secret.decryptedContent))
 		}
-		downloadedSecrets = append(downloadedSecrets, secrets...)
+		downloadedSecrets = append(downloadedSecrets, decryptedSecrets...)
 
 		out.Print(strings.Repeat(secretDividerRune, secretDividerLength) + "\n")
 
@@ -98,7 +102,7 @@ func secretReceive() exitCode {
 		out.Print("\n")
 		if prompter.promptYesNo("Delete now?", "Y", nil) == true {
 			for _, secret := range downloadedSecrets {
-				err := client.DeleteSecret(*secret.sentToFingerprint, secret.UUID.String())
+				err := client.DeleteSecret(secret.sentToFingerprint, secret.UUID.String())
 				if err != nil {
 					log.Printf("failed to delete secret '%s': %v", secret.UUID, err)
 					sawErrorDeletingSecret = true
@@ -118,27 +122,32 @@ func secretReceive() exitCode {
 	return 0
 }
 
-func downloadAndDecryptSecrets(key pgpkey.PgpKey) (secrets []secret, secretErrors []error, err error) {
-	encryptedSecrets, err := client.ListSecrets(key.Fingerprint())
+func downloadEncryptedSecrets(fingerprint fp.Fingerprint, secretLister listSecretsInterface) (
+	secrets []v1structs.Secret, err error) {
+	encryptedSecrets, err := secretLister.ListSecrets(fingerprint)
 	if err != nil {
-		return nil, nil, errListSecrets{originalError: err}
+		return nil, err
 	}
 	if len(encryptedSecrets) == 0 {
-		return nil, nil, errNoSecretsFound{}
+		return nil, errNoSecretsFound{}
 	}
-	privateKey, _, err := getDecryptedPrivateKeyAndPassword(&key, &interactivePasswordPrompter{})
-	if err != nil {
-		return nil, nil, errDecryptPrivateKey{originalError: err}
-	}
+	return encryptedSecrets, nil
+}
+
+func decryptSecrets(encryptedSecrets []v1structs.Secret, privateKey *pgpkey.PgpKey) (
+	secrets []secret, secretErrors []error) {
 	for _, encryptedSecret := range encryptedSecrets {
-		secret, err := decryptAPISecret(encryptedSecret, privateKey)
+		secret := secret{
+			sentToFingerprint: privateKey.Fingerprint(),
+		}
+		err := decryptAPISecret(encryptedSecret, &secret, privateKey)
 		if err != nil {
 			secretErrors = append(secretErrors, err)
 		} else {
-			secrets = append(secrets, *secret)
+			secrets = append(secrets, secret)
 		}
 	}
-	return secrets, secretErrors, nil
+	return secrets, secretErrors
 }
 
 func formatSecretListItem(listNumber int, decryptedContent string) (output string) {
@@ -152,56 +161,49 @@ func formatSecretListItem(listNumber int, decryptedContent string) (output strin
 	return output
 }
 
-func decryptAPISecret(encryptedSecret v1structs.Secret, pgpKey *pgpkey.PgpKey) (*secret, error) {
-	decryptedContent, err := decrypt(encryptedSecret.EncryptedContent, pgpKey)
+func decryptAPISecret(
+	encryptedSecret v1structs.Secret, decryptedSecret *secret, privateKey decryptorInterface) error {
+
+	if encryptedSecret.EncryptedContent == "" {
+		return fmt.Errorf("encryptedSecret.EncryptedContent can not be empty")
+	}
+	if encryptedSecret.EncryptedMetadata == "" {
+		return fmt.Errorf("encryptedSecret.EncryptedMetadata can not be empty")
+	}
+	if decryptedSecret == nil {
+		return fmt.Errorf("decryptedSecret can not be nil")
+	}
+	if privateKey == nil {
+		return fmt.Errorf("privateKey can not be nil")
+	}
+
+	decryptedContent, err := privateKey.DecryptArmoredToString(encryptedSecret.EncryptedContent)
 	if err != nil {
-		log.Print(fmt.Sprintf("Failed to decrypt secret: %s", err))
+		log.Printf("Failed to decrypt secret: %s", err)
+		return fmt.Errorf("error decrypting secret: %v", err)
 	}
 
 	metadata := v1structs.SecretMetadata{}
-	jsonMetadata, err := decrypt(encryptedSecret.EncryptedMetadata, pgpKey)
+	jsonMetadata, err := privateKey.DecryptArmored(encryptedSecret.EncryptedMetadata)
 	if err != nil {
-		log.Print(fmt.Sprintf("Failed to decrypt secret metadata: %s", err))
+		log.Printf("Failed to decrypt secret metadata: %s", err)
+		return fmt.Errorf("error decrypting secret metadata: %v", err)
 	}
-	err = json.NewDecoder(strings.NewReader(jsonMetadata)).Decode(&metadata)
+	err = json.NewDecoder(jsonMetadata).Decode(&metadata)
 	if err != nil {
-		log.Print(fmt.Sprintf("Failed to decode secret metadata: %s", err))
+		log.Printf("Failed to decode secret metadata: %s", err)
+		return fmt.Errorf("error decoding secret metadata: %v", err)
 	}
 	uuid, err := uuid.FromString(metadata.SecretUUID)
 	if err != nil {
-		log.Print(fmt.Sprintf("Failed to parse uuid from string: %s", err))
-	}
-	fingerprint := pgpKey.Fingerprint()
-
-	secret := secret{
-		decryptedContent:  decryptedContent,
-		UUID:              uuid,
-		sentToFingerprint: &fingerprint,
-	}
-	return &secret, nil
-}
-
-func decrypt(encrypted string, pgpKey *pgpkey.PgpKey) (string, error) {
-	buffer := strings.NewReader(encrypted)
-	block, err := armor.Decode(buffer)
-	if err != nil {
-		return "", fmt.Errorf("error decoding armor: %s", err)
+		log.Printf("Failed to parse uuid from string: %s", err)
+		return fmt.Errorf("error decoding secret metadata: %v", err)
 	}
 
-	var keyRing openpgp.EntityList = []*openpgp.Entity{&pgpKey.Entity}
+	decryptedSecret.decryptedContent = decryptedContent
+	decryptedSecret.UUID = uuid
 
-	messageDetails, err := openpgp.ReadMessage(block.Body, keyRing, nil, nil)
-	if err != nil {
-		return "", fmt.Errorf("error reading message: %s", err)
-	}
-
-	messageBuffer := bytes.NewBuffer(nil)
-	_, err = io.Copy(messageBuffer, messageDetails.UnverifiedBody)
-	if err != nil {
-		return "", fmt.Errorf("error reading message: %s", err)
-	}
-
-	return messageBuffer.String(), nil
+	return nil
 }
 
 func countDigits(i int) (count int) {
@@ -217,7 +219,7 @@ const (
 type secret struct {
 	decryptedContent  string
 	UUID              uuid.UUID
-	sentToFingerprint *fingerprint.Fingerprint
+	sentToFingerprint fingerprint.Fingerprint
 }
 
 type errListSecrets struct {
@@ -235,3 +237,12 @@ type errDecryptPrivateKey struct {
 }
 
 func (e errDecryptPrivateKey) Error() string { return e.originalError.Error() }
+
+type listSecretsInterface interface {
+	ListSecrets(fingerprint fingerprint.Fingerprint) ([]v1structs.Secret, error)
+}
+
+type decryptorInterface interface {
+	DecryptArmored(encrypted string) (io.Reader, error)
+	DecryptArmoredToString(encrypted string) (string, error)
+}
