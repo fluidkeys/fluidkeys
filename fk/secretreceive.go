@@ -180,24 +180,24 @@ func decryptAPISecret(
 	decryptedContent, err := privateKey.DecryptArmoredToString(encryptedSecret.EncryptedContent)
 	if err != nil {
 		log.Printf("Failed to decrypt secret: %s", err)
-		return err
+		return fmt.Errorf("error decrypting secret: %v", err)
 	}
 
 	metadata := v1structs.SecretMetadata{}
 	jsonMetadata, err := privateKey.DecryptArmored(encryptedSecret.EncryptedMetadata)
 	if err != nil {
 		log.Printf("Failed to decrypt secret metadata: %s", err)
-		return err
+		return fmt.Errorf("error decrypting secret metadata: %v", err)
 	}
 	err = json.NewDecoder(jsonMetadata).Decode(&metadata)
 	if err != nil {
 		log.Printf("Failed to decode secret metadata: %s", err)
-		return err
+		return fmt.Errorf("error decoding secret metadata: %v", err)
 	}
 	uuid, err := uuid.FromString(metadata.SecretUUID)
 	if err != nil {
 		log.Printf("Failed to parse uuid from string: %s", err)
-		return err
+		return fmt.Errorf("error decoding secret metadata: %v", err)
 	}
 
 	decryptedSecret.decryptedContent = decryptedContent
