@@ -191,9 +191,7 @@ func TestDecryptAPISecret(t *testing.T) {
 				FileName: "_CONSOLE",
 			},
 		}
-		decryptedSecret := secret{}
-
-		err := decryptAPISecret(encryptedSecret, &decryptedSecret, mockPrivateKey)
+		decryptedSecret, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
 		assert.ErrorIsNil(t, err)
 
 		t.Run("with decrypted content", func(t *testing.T) {
