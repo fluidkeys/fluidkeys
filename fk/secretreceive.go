@@ -132,12 +132,11 @@ func downloadEncryptedSecrets(fingerprint fp.Fingerprint, secretLister listSecre
 func decryptSecrets(encryptedSecrets []v1structs.Secret, privateKey *pgpkey.PgpKey) (
 	secrets []secret, secretErrors []error) {
 	for _, encryptedSecret := range encryptedSecrets {
-		secret := secret{}
-		err := decryptAPISecret(encryptedSecret, &secret, privateKey)
+		secret, err := decryptAPISecret(encryptedSecret, privateKey)
 		if err != nil {
 			secretErrors = append(secretErrors, err)
 		} else {
-			secrets = append(secrets, secret)
+			secrets = append(secrets, *secret)
 		}
 	}
 	return secrets, secretErrors
@@ -155,48 +154,47 @@ func formatSecretListItem(decryptedContent string) (output string) {
 }
 
 func decryptAPISecret(
-	encryptedSecret v1structs.Secret, decryptedSecret *secret, privateKey decryptorInterface) error {
+	encryptedSecret v1structs.Secret, privateKey decryptorInterface) (*secret, error) {
 
 	if encryptedSecret.EncryptedContent == "" {
-		return fmt.Errorf("encryptedSecret.EncryptedContent can not be empty")
+		return nil, fmt.Errorf("encryptedSecret.EncryptedContent can not be empty")
 	}
 	if encryptedSecret.EncryptedMetadata == "" {
-		return fmt.Errorf("encryptedSecret.EncryptedMetadata can not be empty")
-	}
-	if decryptedSecret == nil {
-		return fmt.Errorf("decryptedSecret can not be nil")
+		return nil, fmt.Errorf("encryptedSecret.EncryptedMetadata can not be empty")
 	}
 	if privateKey == nil {
-		return fmt.Errorf("privateKey can not be nil")
+		return nil, fmt.Errorf("privateKey can not be nil")
 	}
 
 	decryptedContent, err := privateKey.DecryptArmoredToString(encryptedSecret.EncryptedContent)
 	if err != nil {
 		log.Printf("Failed to decrypt secret: %s", err)
-		return fmt.Errorf("error decrypting secret: %v", err)
+		return nil, fmt.Errorf("error decrypting secret: %v", err)
 	}
 
 	metadata := v1structs.SecretMetadata{}
 	jsonMetadata, err := privateKey.DecryptArmored(encryptedSecret.EncryptedMetadata)
 	if err != nil {
 		log.Printf("Failed to decrypt secret metadata: %s", err)
-		return fmt.Errorf("error decrypting secret metadata: %v", err)
+		return nil, fmt.Errorf("error decrypting secret metadata: %v", err)
 	}
 	err = json.NewDecoder(jsonMetadata).Decode(&metadata)
 	if err != nil {
 		log.Printf("Failed to decode secret metadata: %s", err)
-		return fmt.Errorf("error decoding secret metadata: %v", err)
+		return nil, fmt.Errorf("error decoding secret metadata: %v", err)
 	}
 	uuid, err := uuid.FromString(metadata.SecretUUID)
 	if err != nil {
 		log.Printf("Failed to parse uuid from string: %s", err)
-		return fmt.Errorf("error decoding secret metadata: %v", err)
+		return nil, fmt.Errorf("error decoding secret metadata: %v", err)
 	}
 
-	decryptedSecret.decryptedContent = decryptedContent
-	decryptedSecret.UUID = uuid
+	decryptedSecret := secret{
+		decryptedContent: decryptedContent,
+		UUID:             uuid,
+	}
 
-	return nil
+	return &decryptedSecret, nil
 }
 
 func countDigits(i int) (count int) {

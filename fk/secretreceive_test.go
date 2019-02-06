@@ -104,9 +104,7 @@ func TestDecryptAPISecret(t *testing.T) {
 				EncryptedContent:  "",
 			}
 			mockPrivateKey := &mockDecryptor{}
-			decryptedSecret := secret{}
-
-			err := decryptAPISecret(encryptedSecret, &decryptedSecret, mockPrivateKey)
+			_, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
 			assert.Equal(t, fmt.Errorf("encryptedSecret.EncryptedContent can not be empty"), err)
 		})
 
@@ -116,21 +114,8 @@ func TestDecryptAPISecret(t *testing.T) {
 				EncryptedContent:  "fake encrypted content",
 			}
 			mockPrivateKey := &mockDecryptor{}
-			decryptedSecret := secret{}
-
-			err := decryptAPISecret(encryptedSecret, &decryptedSecret, mockPrivateKey)
+			_, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
 			assert.Equal(t, fmt.Errorf("encryptedSecret.EncryptedMetadata can not be empty"), err)
-		})
-
-		t.Run("rejects nil decrypted secret", func(t *testing.T) {
-			encryptedSecret := v1structs.Secret{
-				EncryptedMetadata: "fake encrypted metadata",
-				EncryptedContent:  "fake encrypted content",
-			}
-			mockPrivateKey := &mockDecryptor{}
-
-			err := decryptAPISecret(encryptedSecret, nil, mockPrivateKey)
-			assert.Equal(t, fmt.Errorf("decryptedSecret can not be nil"), err)
 		})
 
 		t.Run("rejects nil private key", func(t *testing.T) {
@@ -138,9 +123,7 @@ func TestDecryptAPISecret(t *testing.T) {
 				EncryptedMetadata: "fake encrypted metadata",
 				EncryptedContent:  "fake encrypted content",
 			}
-			decryptedSecret := secret{}
-
-			err := decryptAPISecret(encryptedSecret, &decryptedSecret, nil)
+			_, err := decryptAPISecret(encryptedSecret, nil)
 			assert.Equal(t, fmt.Errorf("privateKey can not be nil"), err)
 		})
 	})
@@ -149,14 +132,13 @@ func TestDecryptAPISecret(t *testing.T) {
 		EncryptedMetadata: "fake encrypted metadata",
 		EncryptedContent:  "fake encrypted content",
 	}
-	decryptedSecret := secret{}
 
 	t.Run("passes up errors when decrypting content", func(t *testing.T) {
 		mockPrivateKey := &mockDecryptor{
 			decryptedArmoredToStringError: fmt.Errorf("fake error decrypting content"),
 		}
 
-		err := decryptAPISecret(encryptedSecret, &decryptedSecret, mockPrivateKey)
+		_, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
 		assert.Equal(t, fmt.Errorf("error decrypting secret: "+
 			"fake error decrypting content"), err)
 	})
@@ -165,9 +147,7 @@ func TestDecryptAPISecret(t *testing.T) {
 		mockPrivateKey := &mockDecryptor{
 			decryptedArmoredError: fmt.Errorf("fake error decrypting metadata"),
 		}
-		decryptedSecret := secret{}
-
-		err := decryptAPISecret(encryptedSecret, &decryptedSecret, mockPrivateKey)
+		_, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
 		expectedErr := fmt.Errorf("error decrypting secret metadata: " +
 			"fake error decrypting metadata")
 		assert.Equal(t, expectedErr, err)
@@ -177,9 +157,7 @@ func TestDecryptAPISecret(t *testing.T) {
 		mockPrivateKey := &mockDecryptor{
 			decryptedArmoredResult: strings.NewReader("invalid json"),
 		}
-		decryptedSecret := secret{}
-
-		err := decryptAPISecret(encryptedSecret, &decryptedSecret, mockPrivateKey)
+		_, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
 		assert.ErrorIsNotNil(t, err)
 		expectedErr := fmt.Errorf("error decoding secret metadata: " +
 			"invalid character 'i' looking for beginning of value")
@@ -190,9 +168,7 @@ func TestDecryptAPISecret(t *testing.T) {
 		mockPrivateKey := &mockDecryptor{
 			decryptedArmoredResult: strings.NewReader(`{"secretUuid": "invalid uuid"}`),
 		}
-		decryptedSecret := secret{}
-
-		err := decryptAPISecret(encryptedSecret, &decryptedSecret, mockPrivateKey)
+		_, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
 		assert.ErrorIsNotNil(t, err)
 		expectedErr := fmt.Errorf("error decoding secret metadata: " +
 			"uuid: incorrect UUID length: invalid uuid")
@@ -206,9 +182,7 @@ func TestDecryptAPISecret(t *testing.T) {
 			),
 			decryptedArmoredToStringResult: "decrypted content",
 		}
-		decryptedSecret := secret{}
-
-		err := decryptAPISecret(encryptedSecret, &decryptedSecret, mockPrivateKey)
+		decryptedSecret, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
 		assert.ErrorIsNil(t, err)
 
 		t.Run("with decrypted content", func(t *testing.T) {
