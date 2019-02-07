@@ -10,6 +10,7 @@ import (
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/armor"
 	"github.com/fluidkeys/fluidkeys/assert"
+	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
@@ -21,13 +22,6 @@ func TestEncryptSecret(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error loading private key: %s", err)
 	}
-
-	t.Run("containing a disallowed rune", func(t *testing.T) {
-		secretWithDisallowedRune := "\x1b[40mBlocked secret message!\x1b[0m"
-
-		_, err := encryptSecret(secretWithDisallowedRune, "", pgpKey)
-		assert.ErrorIsNotNil(t, err)
-	})
 
 	t.Run("with an empty filename", func(t *testing.T) {
 		armoredEncryptedSecret, err := encryptSecret(secret, "", pgpKey)
@@ -86,6 +80,27 @@ func TestGetSecretFromFile(t *testing.T) {
 		secret, err := getSecretFromFile("/fake/filename", fileReader, prompter)
 		assert.ErrorIsNil(t, err)
 		assert.Equal(t, "hello", secret)
+	})
+
+	t.Run("fails if file contained disallowed runes", func(t *testing.T) {
+		fileReader := mockReadFile{
+			readFileBytes: []byte(colour.Warning("text with colour")),
+		}
+
+		_, err := getSecretFromFile("/fake/filename", fileReader, nil)
+		expectedErr := fmt.Errorf("Secret contains disallowed characters")
+		assert.Equal(t, expectedErr, err)
+
+	})
+
+	t.Run("fails if file isn't valid utf-8", func(t *testing.T) {
+		fileReader := mockReadFile{
+			readFileBytes: []byte{255},
+		}
+
+		_, err := getSecretFromFile("/fake/filename", fileReader, nil)
+		expectedErr := fmt.Errorf("Secret contains disallowed characters")
+		assert.Equal(t, expectedErr, err)
 	})
 
 	t.Run("passes up errors from ReadFile", func(t *testing.T) {

@@ -126,6 +126,11 @@ func getSecretFromFile(filename string, fileReader ioutilReadFileInterface, prom
 	if len(strings.TrimSpace(secret)) == 0 {
 		return "", fmt.Errorf(filename + " is empty")
 	}
+
+	if !isValidTextSecret(secret) {
+		return "", errors.New("Secret contains disallowed characters")
+	}
+
 	out.Print("---\n")
 	out.Print(secret)
 	out.Print("---\n\n")
@@ -152,9 +157,16 @@ func getSecretFromStdin(scanner scanUntilEOFInterface) (string, error) {
 		return "", fmt.Errorf("empty message")
 	}
 
+	if !isValidTextSecret(secret) {
+		return "", errors.New("Secret contains disallowed characters")
+	}
+
 	return secret, nil
 }
 
+func isValidTextSecret(text string) bool {
+	return utf8.ValidString(text) && !stringutils.ContainsDisallowedRune(text)
+}
 
 type stdinReader struct{}
 
@@ -176,10 +188,6 @@ func (s *stdinReader) scanUntilEOF() (message string, err error) {
 }
 
 func encryptSecret(secret string, filename string, pgpKey *pgpkey.PgpKey) (string, error) {
-	if stringutils.ContainsDisallowedRune(secret) || !utf8.ValidString(secret) {
-		return "", errors.New("Secret contains disallowed characters")
-	}
-
 	buffer := bytes.NewBuffer(nil)
 	message, err := armor.Encode(buffer, "PGP MESSAGE", nil)
 	if err != nil {
