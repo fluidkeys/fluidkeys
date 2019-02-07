@@ -292,7 +292,7 @@ func getDownloadsDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	downloadsDir := userDir + "/Downloads"
+	downloadsDir := filepath.Join(userDir, "Downloads")
 	fileInfo, err := os.Stat(downloadsDir)
 	if err != nil {
 		if os.IsNotExist(err) {
