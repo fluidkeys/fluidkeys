@@ -58,6 +58,9 @@ func (p *PgpKey) DecryptArmoredToString(encrypted string) (string, *packet.Liter
 	if err != nil {
 		return "", nil, err
 	}
+	if literalData.IsBinary {
+		return "", nil, fmt.Errorf("encrypted binaries not allowed")
+	}
 
 	buffer := new(bytes.Buffer)
 	if _, err = buffer.ReadFrom(reader); err != nil {
