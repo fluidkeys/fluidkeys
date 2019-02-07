@@ -25,42 +25,43 @@ import (
 
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/armor"
+	"github.com/fluidkeys/crypto/openpgp/packet"
 )
 
 // DecryptArmored takes an ascii armored encrypted PGP message and attempts to decrypt it
 // against the key, returning an io.Reader
-func (p *PgpKey) DecryptArmored(encrypted string) (io.Reader, error) {
+func (p *PgpKey) DecryptArmored(encrypted string) (io.Reader, *packet.LiteralData, error) {
 	err := p.ensureGotDecryptedPrivateKey()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	buffer := strings.NewReader(encrypted)
 	block, err := armor.Decode(buffer)
 	if err != nil {
-		return nil, fmt.Errorf("error decoding armor: %s", err)
+		return nil, nil, fmt.Errorf("error decoding armor: %s", err)
 	}
 
 	var keyRing openpgp.EntityList = []*openpgp.Entity{&p.Entity}
 
 	messageDetails, err := openpgp.ReadMessage(block.Body, keyRing, nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error reading message: %s", err)
+		return nil, nil, fmt.Errorf("error reading message: %s", err)
 	}
 
-	return messageDetails.UnverifiedBody, nil
+	return messageDetails.UnverifiedBody, messageDetails.LiteralData, nil
 }
 
 // DecryptArmoredToString returns DecryptArmored as a string
-func (p *PgpKey) DecryptArmoredToString(encrypted string) (string, error) {
-	reader, err := p.DecryptArmored(encrypted)
+func (p *PgpKey) DecryptArmoredToString(encrypted string) (string, *packet.LiteralData, error) {
+	reader, literalData, err := p.DecryptArmored(encrypted)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	buffer := new(bytes.Buffer)
 	if _, err = buffer.ReadFrom(reader); err != nil {
-		return "", err
+		return "", nil, err
 	}
-	return buffer.String(), nil
+	return buffer.String(), literalData, nil
 }
