@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/armor"
@@ -52,7 +53,8 @@ func (p *PgpKey) DecryptArmored(encrypted string) (io.Reader, *packet.LiteralDat
 	return messageDetails.UnverifiedBody, messageDetails.LiteralData, nil
 }
 
-// DecryptArmoredToString returns DecryptArmored as a string
+// DecryptArmoredToString returns DecryptArmored as a UTF8 string. If the decrypted data does not
+// decode as UTF-8, it will return an error.
 func (p *PgpKey) DecryptArmoredToString(encrypted string) (string, *packet.LiteralData, error) {
 	reader, literalData, err := p.DecryptArmored(encrypted)
 	if err != nil {
@@ -66,5 +68,10 @@ func (p *PgpKey) DecryptArmoredToString(encrypted string) (string, *packet.Liter
 	if _, err = buffer.ReadFrom(reader); err != nil {
 		return "", nil, err
 	}
-	return buffer.String(), literalData, nil
+
+	text := buffer.String()
+	if !utf8.ValidString(text) {
+		return "", nil, fmt.Errorf("decrypted data was not valid UTF-8")
+	}
+	return text, literalData, nil
 }
