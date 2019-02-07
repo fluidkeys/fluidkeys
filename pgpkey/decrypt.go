@@ -19,13 +19,16 @@ package pgpkey
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/armor"
 	"github.com/fluidkeys/crypto/openpgp/packet"
+	"github.com/fluidkeys/fluidkeys/stringutils"
 )
 
 // DecryptArmored takes an ascii armored encrypted PGP message and attempts to decrypt it
@@ -66,5 +69,11 @@ func (p *PgpKey) DecryptArmoredToString(encrypted string) (string, *packet.Liter
 	if _, err = buffer.ReadFrom(reader); err != nil {
 		return "", nil, err
 	}
+
+	secret := buffer.String()
+	if stringutils.ContainsDisallowedRune(secret) || !utf8.ValidString(secret) {
+		return "", nil, errors.New("secret contains disallowed characters")
+	}
+
 	return buffer.String(), literalData, nil
 }
