@@ -212,7 +212,8 @@ func decryptAPISecret(
 		return nil, fmt.Errorf("privateKey can not be nil")
 	}
 
-	decryptedContent, literalData, err := privateKey.DecryptArmoredToString(encryptedSecret.EncryptedContent)
+	decryptedContent, literalData, err := privateKey.DecryptArmoredToString(
+		encryptedSecret.EncryptedContent)
 	if err != nil {
 		log.Printf("Failed to decrypt secret: %s", err)
 		return nil, fmt.Errorf("error decrypting secret: %v", err)
