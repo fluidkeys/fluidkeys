@@ -61,7 +61,7 @@ func (p *PgpKey) DecryptArmoredToString(encrypted string) (string, *packet.Liter
 		return "", nil, err
 	}
 	if literalData.IsBinary {
-		return "", nil, fmt.Errorf("encrypted binaries not allowed")
+		return "", nil, fmt.Errorf("got binary data, expected text")
 	}
 
 	buffer := new(bytes.Buffer)

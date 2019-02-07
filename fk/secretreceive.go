@@ -40,6 +40,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"github.com/fluidkeys/fluidkeys/stringutils"
 	"github.com/gofrs/uuid"
 )
 
@@ -215,6 +216,14 @@ func decryptAPISecret(
 	if err != nil {
 		log.Printf("Failed to decrypt secret: %s", err)
 		return nil, fmt.Errorf("error decrypting secret: %v", err)
+	}
+
+	if literalData.IsBinary {
+		return nil, fmt.Errorf("got binary data, expected text")
+	}
+
+	if stringutils.ContainsDisallowedRune(decryptedContent) {
+		return nil, fmt.Errorf("secret contained invalid characters")
 	}
 
 	metadata := v1structs.SecretMetadata{}

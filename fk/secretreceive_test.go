@@ -25,6 +25,7 @@ import (
 	"github.com/fluidkeys/api/v1structs"
 	"github.com/fluidkeys/crypto/openpgp/packet"
 	"github.com/fluidkeys/fluidkeys/assert"
+	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/gofrs/uuid"
@@ -141,7 +142,8 @@ func TestDecryptAPISecret(t *testing.T) {
 
 	t.Run("passes up errors when decrypting content", func(t *testing.T) {
 		mockPrivateKey := &mockDecryptor{
-			decryptedArmoredToStringError: fmt.Errorf("fake error decrypting content"),
+			decryptedArmoredToStringError:       fmt.Errorf("fake error decrypting content"),
+			decryptedArmoredToStringLiteralData: &packet.LiteralData{},
 		}
 
 		_, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
@@ -151,7 +153,8 @@ func TestDecryptAPISecret(t *testing.T) {
 
 	t.Run("passes up errors when decrypting metadata", func(t *testing.T) {
 		mockPrivateKey := &mockDecryptor{
-			decryptedArmoredError: fmt.Errorf("fake error decrypting metadata"),
+			decryptedArmoredError:               fmt.Errorf("fake error decrypting metadata"),
+			decryptedArmoredToStringLiteralData: &packet.LiteralData{},
 		}
 		_, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
 		expectedErr := fmt.Errorf("error decrypting secret metadata: " +
@@ -161,7 +164,8 @@ func TestDecryptAPISecret(t *testing.T) {
 
 	t.Run("passes up errors when json decoding metadata", func(t *testing.T) {
 		mockPrivateKey := &mockDecryptor{
-			decryptedArmoredResult: strings.NewReader("invalid json"),
+			decryptedArmoredResult:              strings.NewReader("invalid json"),
+			decryptedArmoredToStringLiteralData: &packet.LiteralData{},
 		}
 		_, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
 		assert.ErrorIsNotNil(t, err)
@@ -172,7 +176,8 @@ func TestDecryptAPISecret(t *testing.T) {
 
 	t.Run("passes up errors when parsing the uuid", func(t *testing.T) {
 		mockPrivateKey := &mockDecryptor{
-			decryptedArmoredResult: strings.NewReader(`{"secretUuid": "invalid uuid"}`),
+			decryptedArmoredResult:              strings.NewReader(`{"secretUuid": "invalid uuid"}`),
+			decryptedArmoredToStringLiteralData: &packet.LiteralData{},
 		}
 		_, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
 		assert.ErrorIsNotNil(t, err)
@@ -235,6 +240,40 @@ func TestDecryptAPISecret(t *testing.T) {
 		t.Run("with a matching filename reduced to basename", func(t *testing.T) {
 			assert.Equal(t, "example.txt", decryptedSecret.originalFilename)
 		})
+	})
+
+	t.Run("validate content of decrypted secret", func(t *testing.T) {
+
+		t.Run("error if file hints state that it's binary format", func(t *testing.T) {
+			mockPrivateKey := &mockDecryptor{
+				decryptedArmoredResult: strings.NewReader(
+					`{"secretUuid": "93d5ac5b-74e5-4f87-b117-b8d7576395d8"}`,
+				),
+				decryptedArmoredToStringResult: "decrypted content",
+				decryptedArmoredToStringLiteralData: &packet.LiteralData{
+					IsBinary: true,
+				},
+			}
+
+			_, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
+
+			assert.Equal(t, fmt.Errorf("got binary data, expected text"), err)
+		})
+
+		t.Run("error if it contains disallowed runes", func(t *testing.T) {
+			mockPrivateKey := &mockDecryptor{
+				decryptedArmoredResult: strings.NewReader(
+					`{"secretUuid": "93d5ac5b-74e5-4f87-b117-b8d7576395d8"}`,
+				),
+				decryptedArmoredToStringResult:      colour.Warning("hello in yellow"),
+				decryptedArmoredToStringLiteralData: &packet.LiteralData{},
+			}
+
+			_, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
+
+			assert.Equal(t, fmt.Errorf("secret contained invalid characters"), err)
+		})
+
 	})
 }
 
