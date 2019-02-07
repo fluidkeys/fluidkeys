@@ -195,17 +195,17 @@ func TestDecryptAPISecret(t *testing.T) {
 		assert.ErrorIsNil(t, err)
 
 		t.Run("with decrypted content", func(t *testing.T) {
-			assert.Equal(t, decryptedSecret.decryptedContent, "decrypted content")
+			assert.Equal(t, "decrypted content", decryptedSecret.decryptedContent)
 		})
 
 		t.Run("with decrypted uuid", func(t *testing.T) {
-			uuid, err := uuid.FromString("93d5ac5b-74e5-4f87-b117-b8d7576395d8")
+			expectedUuid, err := uuid.FromString("93d5ac5b-74e5-4f87-b117-b8d7576395d8")
 			assert.ErrorIsNil(t, err)
-			assert.Equal(t, decryptedSecret.UUID, uuid)
+			assert.Equal(t, expectedUuid, decryptedSecret.UUID)
 		})
 
 		t.Run("with an empty filename", func(t *testing.T) {
-			assert.Equal(t, decryptedSecret.originalFilename, "")
+			assert.Equal(t, "", decryptedSecret.originalFilename)
 		})
 	})
 
@@ -223,17 +223,17 @@ func TestDecryptAPISecret(t *testing.T) {
 		assert.ErrorIsNil(t, err)
 
 		t.Run("with decrypted content", func(t *testing.T) {
-			assert.Equal(t, decryptedSecret.decryptedContent, "decrypted content")
+			assert.Equal(t, "decrypted content", decryptedSecret.decryptedContent)
 		})
 
 		t.Run("with decrypted uuid", func(t *testing.T) {
-			uuid, err := uuid.FromString("93d5ac5b-74e5-4f87-b117-b8d7576395d8")
+			expectedUuid, err := uuid.FromString("93d5ac5b-74e5-4f87-b117-b8d7576395d8")
 			assert.ErrorIsNil(t, err)
-			assert.Equal(t, decryptedSecret.UUID, uuid)
+			assert.Equal(t, expectedUuid, decryptedSecret.UUID)
 		})
 
 		t.Run("with a matching filename", func(t *testing.T) {
-			assert.Equal(t, decryptedSecret.originalFilename, "example.txt")
+			assert.Equal(t, "example.txt", decryptedSecret.originalFilename)
 		})
 	})
 }
