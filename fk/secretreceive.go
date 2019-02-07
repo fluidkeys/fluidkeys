@@ -40,7 +40,6 @@ import (
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
-	"github.com/fluidkeys/fluidkeys/stringutils"
 	"github.com/gofrs/uuid"
 )
 
@@ -223,7 +222,7 @@ func decryptAPISecret(
 		return nil, fmt.Errorf("got binary data, expected text")
 	}
 
-	if stringutils.ContainsDisallowedRune(decryptedContent) {
+	if !isValidTextSecret(decryptedContent) {
 		return nil, fmt.Errorf("secret contained invalid characters")
 	}
 

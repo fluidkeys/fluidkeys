@@ -260,6 +260,19 @@ func TestDecryptAPISecret(t *testing.T) {
 			assert.Equal(t, fmt.Errorf("got binary data, expected text"), err)
 		})
 
+		t.Run("error if it isn't valid utf-8", func(t *testing.T) {
+			mockPrivateKey := &mockDecryptor{
+				decryptedArmoredResult: strings.NewReader(
+					`{"secretUuid": "93d5ac5b-74e5-4f87-b117-b8d7576395d8"}`,
+				),
+				decryptedArmoredToStringResult:      string([]byte{255}),
+				decryptedArmoredToStringLiteralData: &packet.LiteralData{},
+			}
+
+			_, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
+
+			assert.Equal(t, fmt.Errorf("secret contained invalid characters"), err)
+		})
 		t.Run("error if it contains disallowed runes", func(t *testing.T) {
 			mockPrivateKey := &mockDecryptor{
 				decryptedArmoredResult: strings.NewReader(
