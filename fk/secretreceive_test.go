@@ -238,12 +238,18 @@ func TestDecryptAPISecret(t *testing.T) {
 	})
 }
 
-func mockDoesntExist(path string) bool {
+type mockFileSafeToWriteChecker struct{}
+
+func (m *mockFileSafeToWriteChecker) IsSafeToWrite(path string) bool {
 	if path == "/fake/new_filename.txt" {
 		return true
 	}
 
 	if path == "/fake/existing_filename.txt" || path == "/fake/existing_filename(1).txt" {
+		return false
+	}
+
+	if strings.Contains(path, "unwritable_directory") {
 		return false
 	}
 
@@ -254,22 +260,54 @@ func mockDoesntExist(path string) bool {
 	return true
 }
 
-func TestGetNewUniqueFilename(t *testing.T) {
+func TestGetAvailableFilename(t *testing.T) {
+	mockChecker := &mockFileSafeToWriteChecker{}
+
 	t.Run("returns the same value if the filename doesn't exist", func(t *testing.T) {
-		filename := getNewUniqueFilename("/fake/new_filename.txt", mockDoesntExist)
-		fmt.Printf("file: %s\n", filename)
-		assert.Equal(t, "new_filename.txt", filename)
+		filename, err := getAvailableFilename(
+			"/fake", "new_filename.txt", mockChecker)
+		assert.ErrorIsNil(t, err)
+
+		assert.Equal(t, "/fake/new_filename.txt", filename)
 	})
 
 	t.Run("increments a counter to find a filename that doesn't exist", func(t *testing.T) {
-		filename := getNewUniqueFilename("/fake/existing_filename.txt", mockDoesntExist)
-		fmt.Printf("file: %s\n", filename)
-		assert.Equal(t, "existing_filename(2).txt", filename)
+		filename, err := getAvailableFilename(
+			"/fake", "existing_filename.txt", mockChecker)
+		assert.ErrorIsNil(t, err)
+		assert.Equal(t, "/fake/existing_filename(2).txt", filename)
 	})
 
 	t.Run("adds the counter before the last file extension", func(t *testing.T) {
-		filename := getNewUniqueFilename("/fake/old_filename.txt.bak", mockDoesntExist)
+		filename, err := getAvailableFilename(
+			"/fake", "old_filename.txt.bak", mockChecker)
+		assert.ErrorIsNil(t, err)
 		fmt.Printf("file: %s\n", filename)
-		assert.Equal(t, "old_filename.txt(1).bak", filename)
+		assert.Equal(t, "/fake/old_filename.txt(1).bak", filename)
 	})
+
+	t.Run("gives up after increment of 10", func(t *testing.T) {
+		_, err := getAvailableFilename(
+			"/unwritable_directory", "fake.txt", mockChecker)
+		assert.ErrorIsNotNil(t, err)
+		assert.Equal(t, fmt.Errorf("tried fake.txt, fake(1).txt, fake(2).txt..."), err)
+	})
+}
+
+func TestGenerateIncrementedFilenames(t *testing.T) {
+	gotFilenames := generateIncrementedFilenames("secret.min.css")
+	expected := []string{
+		"secret.min.css",
+		"secret.min(1).css",
+		"secret.min(2).css",
+		"secret.min(3).css",
+		"secret.min(4).css",
+		"secret.min(5).css",
+		"secret.min(6).css",
+		"secret.min(7).css",
+		"secret.min(8).css",
+		"secret.min(9).css",
+		"secret.min(10).css",
+	}
+	assert.Equal(t, expected, gotFilenames)
 }

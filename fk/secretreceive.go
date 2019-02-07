@@ -95,17 +95,13 @@ func secretReceive() exitCode {
 				secret.decryptedContent, secret.originalFilename),
 			)
 			if secret.originalFilename != "" {
-				filenameToWrite, err := getFileNameToWrite(secret.originalFilename)
+
+				err := promptAndWriteToDownloads(secret, &prompter)
 				if err != nil {
-					printFailed("Error prompting to save file to disk:")
+					printFailed("Error saving file:")
 					printFailed(err.Error())
 				}
-				if prompter.promptYesNo("Save to "+filenameToWrite+"?", "", nil) == true {
-					err := ioutil.WriteFile(filenameToWrite, []byte(secret.decryptedContent), 0644)
-					if err != nil {
-						printFailed(err.Error())
-					}
-				}
+
 			} else {
 				if prompter.promptYesNo("Copy to clipboard?", "", nil) == true {
 					err := clipboard.WriteAll(secret.decryptedContent)
@@ -138,6 +134,29 @@ func secretReceive() exitCode {
 		return 1
 	}
 	return 0
+}
+
+func promptAndWriteToDownloads(secret secret, prompter promptYesNoInterface) error {
+	downloadsDir, err := getDownloadsDir()
+	if err != nil {
+		return fmt.Errorf("Error getting downloads directory: %v", err)
+	}
+
+	filename, err := getAvailableFilename(
+		downloadsDir, secret.originalFilename, &fileSafeToWriteChecker{})
+
+	if err != nil {
+		return fmt.Errorf("Error finding available filename in %s: %v", downloadsDir, err)
+	}
+
+	if prompter.promptYesNo("Save to "+filename+"?", "", nil) == true {
+		err := ioutil.WriteFile(filename, []byte(secret.decryptedContent), 0644)
+
+		if err != nil {
+			return fmt.Errorf("Error writing file %s: %v", filename, err)
+		}
+	}
+	return nil
 }
 
 func downloadEncryptedSecrets(fingerprint fp.Fingerprint, secretLister listSecretsInterface) (
@@ -232,7 +251,43 @@ func countDigits(i int) (count int) {
 	return len(iString)
 }
 
-func getFileNameToWrite(filename string) (string, error) {
+// getAvailableFilename looks in the downloads directory for a non-existent file with the
+// requestedFilename. If the filename exists, it tries numbered alternatives, e.g.
+// `secret.txt` -> `~/Downloads/secret.txt` or `~/Downloads/secret(1).txt`
+func getAvailableFilename(
+	directory string,
+	requestedFilename string,
+	checker fileSafeToWriteInterface) (string, error) {
+
+	possibleBasenames := generateIncrementedFilenames(requestedFilename)
+	for _, possibleBasename := range possibleBasenames {
+		filenameToWrite := filepath.Join(directory, possibleBasename)
+
+		if checker.IsSafeToWrite(filenameToWrite) {
+			return filenameToWrite, nil
+		}
+	}
+	return "", fmt.Errorf("tried %s, %s, %s...",
+		possibleBasenames[0], possibleBasenames[1], possibleBasenames[2])
+}
+
+// generateIncrementedFilenames returns 11 possible basenames e.g.
+// ["file.txt", "file(1).txt", "file(2).txt" .. "file(10).txt"]
+func generateIncrementedFilenames(basename string) []string {
+	basenames := []string{
+		basename,
+	}
+
+	for i := 1; i <= 10; i += 1 {
+		beforeDot, afterDot := splitFileExtension(basename)
+
+		numberedFilename := fmt.Sprintf("%s(%d)%s", beforeDot, i, afterDot)
+		basenames = append(basenames, numberedFilename)
+	}
+	return basenames
+}
+
+func getDownloadsDir() (string, error) {
 	userDir, err := homedir.Dir()
 	if err != nil {
 		return "", err
@@ -247,43 +302,15 @@ func getFileNameToWrite(filename string) (string, error) {
 		}
 	}
 	if !fileInfo.IsDir() {
-		return "", fmt.Errorf(fileInfo.Name() + " file exists and is not a directory")
+		return "", fmt.Errorf(fileInfo.Name() + " file exists but is not a directory")
 	}
-	filenameToWrite := getNewUniqueFilename(
-		filepath.FromSlash(downloadsDir+"/"+filename),
-		doesntExist,
-	)
-
-	return filenameToWrite, nil
+	return downloadsDir, nil
 }
 
-func getNewUniqueFilename(fp string, checker func(string) bool) string {
-	i := 0
-	foundFilename := false
-	filename := filepath.Base(fp)
-	numberedFilename := filename
-	for ok := true; ok; ok = (foundFilename == false) {
-		if i == 0 {
-			// try using the original filename it was sent as first with no count suffix
-			numberedFilename = filename
-		} else if i > 0 {
-			// the original filename already exists, try `filename(i).ext` next...
-			numberedFilename = fmt.Sprintf(
-				"%s(%d)%s",
-				FilenameWithoutExtension(filename), i, path.Ext(filename),
-			)
-		}
-		if checker(filepath.FromSlash(filepath.Dir(fp) + "/" + numberedFilename)) {
-			foundFilename = true
-		} else {
-			i++
-		}
-	}
-	return numberedFilename
-}
+type fileSafeToWriteChecker struct{}
 
-func doesntExist(path string) bool {
-	if _, err := os.Stat(path); err != nil {
+func (f *fileSafeToWriteChecker) IsSafeToWrite(fullFilename string) bool {
+	if _, err := os.Stat(fullFilename); err != nil {
 		if os.IsNotExist(err) {
 			return true
 		}
@@ -291,8 +318,10 @@ func doesntExist(path string) bool {
 	return false
 }
 
-func FilenameWithoutExtension(fn string) string {
-	return strings.TrimSuffix(fn, path.Ext(fn))
+func splitFileExtension(basename string) (string, string) {
+	extension := path.Ext(basename)
+
+	return strings.TrimSuffix(basename, extension), extension
 }
 
 const (
@@ -325,6 +354,10 @@ type errDecryptPrivateKey struct {
 }
 
 func (e errDecryptPrivateKey) Error() string { return e.originalError.Error() }
+
+type fileSafeToWriteInterface interface {
+	IsSafeToWrite(fullFilename string) bool
+}
 
 type listSecretsInterface interface {
 	ListSecrets(fingerprint fingerprint.Fingerprint) ([]v1structs.Secret, error)
