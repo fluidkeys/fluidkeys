@@ -109,6 +109,28 @@ func TestGetSecretFromFile(t *testing.T) {
 		assert.Equal(t, expectedErr, err)
 	})
 
+	t.Run("returns error if file is binary", func(t *testing.T) {
+		fileReader := mockReadFile{
+			readFileError: nil,
+			readFileBytes: []byte{255},
+		}
+
+		_, err := getSecretFromFile("/fake/filename", fileReader, nil)
+		expectedErr := fmt.Errorf("/fake/filename is not valid utf8 (is it a binary?)")
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("returns error if file contains invalid runes", func(t *testing.T) {
+		fileReader := mockReadFile{
+			readFileError: nil,
+			readFileBytes: []byte("\x1b[31m Red \007 Bell"),
+		}
+
+		_, err := getSecretFromFile("/fake/filename", fileReader, nil)
+		expectedErr := fmt.Errorf("/fake/filename contained disallowed characters")
+		assert.Equal(t, expectedErr, err)
+	})
+
 	t.Run("returns error if user answers no", func(t *testing.T) {
 
 		fileReader := mockReadFile{

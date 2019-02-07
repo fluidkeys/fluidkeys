@@ -126,6 +126,13 @@ func getSecretFromFile(filename string, fileReader ioutilReadFileInterface, prom
 	if len(strings.TrimSpace(secret)) == 0 {
 		return "", fmt.Errorf(filename + " is empty")
 	}
+	if !utf8.ValidString(secret) {
+		return "", fmt.Errorf(filename + " is not valid utf8 (is it a binary?)")
+	}
+	if stringutils.ContainsDisallowedRune(secret) {
+		return "", fmt.Errorf(filename + " contained disallowed characters")
+	}
+
 	out.Print("---\n")
 	out.Print(secret)
 	out.Print("---\n\n")
