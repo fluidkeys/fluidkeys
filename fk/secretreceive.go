@@ -21,12 +21,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
+	"os"
+	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
+	homedir "github.com/mitchellh/go-homedir"
+
 	"github.com/atotto/clipboard"
 	"github.com/fluidkeys/api/v1structs"
+	"github.com/fluidkeys/crypto/openpgp/packet"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	fp "github.com/fluidkeys/fluidkeys/fingerprint"
@@ -84,11 +91,23 @@ func secretReceive() exitCode {
 		out.Print(humanize.Pluralize(secretCount, "secret", "secrets") + ":\n\n")
 
 		for _, secret := range decryptedSecrets {
-			out.Print(formatSecretListItem(secret.decryptedContent))
-			if prompter.promptYesNo("Copy to clipboard?", "", nil) == true {
-				err := clipboard.WriteAll(secret.decryptedContent)
+			out.Print(formatSecretListItem(
+				secret.decryptedContent, secret.originalFilename),
+			)
+			if secret.originalFilename != "" {
+
+				err := promptAndWriteToDownloads(secret, &prompter)
 				if err != nil {
+					printFailed("Error saving file:")
 					printFailed(err.Error())
+				}
+
+			} else {
+				if prompter.promptYesNo("Copy to clipboard?", "", nil) == true {
+					err := clipboard.WriteAll(secret.decryptedContent)
+					if err != nil {
+						printFailed(err.Error())
+					}
 				}
 			}
 			if prompter.promptYesNo("Delete now?", "Y", nil) == true {
@@ -117,6 +136,29 @@ func secretReceive() exitCode {
 	return 0
 }
 
+func promptAndWriteToDownloads(secret secret, prompter promptYesNoInterface) error {
+	downloadsDir, err := getDownloadsDir()
+	if err != nil {
+		return fmt.Errorf("Error getting downloads directory: %v", err)
+	}
+
+	filename, err := getAvailableFilename(
+		downloadsDir, secret.originalFilename, &fileSafeToWriteChecker{})
+
+	if err != nil {
+		return fmt.Errorf("Error finding available filename in %s: %v", downloadsDir, err)
+	}
+
+	if prompter.promptYesNo("Save to "+filename+"?", "", nil) == true {
+		err := ioutil.WriteFile(filename, []byte(secret.decryptedContent), 0600)
+
+		if err != nil {
+			return fmt.Errorf("Error writing file %s: %v", filename, err)
+		}
+	}
+	return nil
+}
+
 func downloadEncryptedSecrets(fingerprint fp.Fingerprint, secretLister listSecretsInterface) (
 	secrets []v1structs.Secret, err error) {
 	encryptedSecrets, err := secretLister.ListSecrets(fingerprint)
@@ -142,9 +184,12 @@ func decryptSecrets(encryptedSecrets []v1structs.Secret, privateKey *pgpkey.PgpK
 	return secrets, secretErrors
 }
 
-func formatSecretListItem(decryptedContent string) (output string) {
+func formatSecretListItem(decryptedContent string, filename string) (output string) {
 	trimmedDivider := strings.Repeat(secretDividerRune, secretDividerLength-(1))
 	output = out.NoLogCharacter + trimmedDivider + "\n"
+	if filename != "" {
+		output = output + colour.File("Filename: "+filename) + "\n"
+	}
 	output = output + decryptedContent
 	if !strings.HasSuffix(decryptedContent, "\n") {
 		output = output + "\n"
@@ -166,14 +211,14 @@ func decryptAPISecret(
 		return nil, fmt.Errorf("privateKey can not be nil")
 	}
 
-	decryptedContent, err := privateKey.DecryptArmoredToString(encryptedSecret.EncryptedContent)
+	decryptedContent, literalData, err := privateKey.DecryptArmoredToString(encryptedSecret.EncryptedContent)
 	if err != nil {
 		log.Printf("Failed to decrypt secret: %s", err)
 		return nil, fmt.Errorf("error decrypting secret: %v", err)
 	}
 
 	metadata := v1structs.SecretMetadata{}
-	jsonMetadata, err := privateKey.DecryptArmored(encryptedSecret.EncryptedMetadata)
+	jsonMetadata, _, err := privateKey.DecryptArmored(encryptedSecret.EncryptedMetadata)
 	if err != nil {
 		log.Printf("Failed to decrypt secret metadata: %s", err)
 		return nil, fmt.Errorf("error decrypting secret metadata: %v", err)
@@ -192,14 +237,116 @@ func decryptAPISecret(
 	decryptedSecret := secret{
 		decryptedContent: decryptedContent,
 		UUID:             uuid,
+		originalFilename: populateOriginalFilename(literalData),
 	}
 
 	return &decryptedSecret, nil
 }
 
+func populateOriginalFilename(literalData *packet.LiteralData) string {
+	if literalData.ForEyesOnly() {
+		// don't save to disk: don't return a filename
+		return ""
+	}
+
+	if literalData.FileName != "" {
+		// strip paths, e.g. /home/someone/.bashrc -> `.bashrc`
+		return filepath.Base(literalData.FileName)
+	}
+
+	return ""
+}
+
 func countDigits(i int) (count int) {
 	iString := strconv.Itoa(i)
 	return len(iString)
+}
+
+// getAvailableFilename looks in the downloads directory for a non-existent file with the
+// requestedFilename. If the filename exists, it tries numbered alternatives, e.g.
+// `secret.txt` -> `~/Downloads/secret.txt` or `~/Downloads/secret(1).txt`
+func getAvailableFilename(
+	directory string,
+	requestedFilename string,
+	checker fileSafeToWriteInterface) (string, error) {
+
+	possibleBasenames := generateIncrementedFilenames(requestedFilename)
+	for _, possibleBasename := range possibleBasenames {
+		filenameToWrite := filepath.Join(directory, possibleBasename)
+
+		if checker.IsSafeToWrite(filenameToWrite) {
+			return filenameToWrite, nil
+		}
+	}
+	return "", fmt.Errorf("tried %s, %s, %s...",
+		possibleBasenames[0], possibleBasenames[1], possibleBasenames[2])
+}
+
+// generateIncrementedFilenames returns 11 possible basenames e.g.
+// ["file.txt", "file(1).txt", "file(2).txt" .. "file(10).txt"]
+func generateIncrementedFilenames(basename string) []string {
+	basenames := []string{
+		basename,
+	}
+
+	for i := 1; i <= 10; i += 1 {
+		beforeDot, afterDot := splitFileExtension(basename)
+
+		numberedFilename := fmt.Sprintf("%s(%d)%s", beforeDot, i, afterDot)
+		basenames = append(basenames, numberedFilename)
+	}
+	return basenames
+}
+
+func getDownloadsDir() (downloadsDir string, err error) {
+	if xdg := os.Getenv("XDG_DOWNLOAD_DIR"); xdg != "" {
+		log.Printf("using XDG_DOWNLOAD_DIR: %s", xdg)
+		downloadsDir = xdg
+	} else {
+		userDir, err := homedir.Dir()
+		if err != nil {
+			return "", err
+		}
+		downloadsDir = filepath.Join(userDir, "Downloads")
+	}
+
+	if !directoryExists(downloadsDir) {
+		return "", fmt.Errorf("directory doesn't exist or is unwritable: %s", downloadsDir)
+	}
+
+	log.Printf("downloads directory: %s\n", downloadsDir)
+	return downloadsDir, nil
+}
+
+func directoryExists(directory string) bool {
+	fileInfo, err := os.Stat(directory)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("directory doesn't exist: %s", directory)
+			return false
+		} else {
+			log.Printf("os.Stat(%s) error: %v", directory, err)
+			return false
+		}
+	}
+	return fileInfo.IsDir()
+}
+
+type fileSafeToWriteChecker struct{}
+
+func (f *fileSafeToWriteChecker) IsSafeToWrite(fullFilename string) bool {
+	if _, err := os.Stat(fullFilename); err != nil {
+		if os.IsNotExist(err) {
+			return true
+		}
+	}
+	return false
+}
+
+func splitFileExtension(basename string) (string, string) {
+	extension := path.Ext(basename)
+
+	return strings.TrimSuffix(basename, extension), extension
 }
 
 const (
@@ -209,14 +356,13 @@ const (
 
 type secret struct {
 	decryptedContent string
+
+	// originalFilename should be the (base) filename of the secret file on the sender's
+	// machine, e.g. `secret.txt`.
+	// Warning: don't trust that it's a basename, assume it might be e.g. `/etc/passwd`
+	originalFilename string
 	UUID             uuid.UUID
 }
-
-type errListSecrets struct {
-	originalError error
-}
-
-func (e errListSecrets) Error() string { return e.originalError.Error() }
 
 type errNoSecretsFound struct{}
 
@@ -228,11 +374,15 @@ type errDecryptPrivateKey struct {
 
 func (e errDecryptPrivateKey) Error() string { return e.originalError.Error() }
 
+type fileSafeToWriteInterface interface {
+	IsSafeToWrite(fullFilename string) bool
+}
+
 type listSecretsInterface interface {
 	ListSecrets(fingerprint fingerprint.Fingerprint) ([]v1structs.Secret, error)
 }
 
 type decryptorInterface interface {
-	DecryptArmored(encrypted string) (io.Reader, error)
-	DecryptArmoredToString(encrypted string) (string, error)
+	DecryptArmored(encrypted string) (io.Reader, *packet.LiteralData, error)
+	DecryptArmoredToString(encrypted string) (string, *packet.LiteralData, error)
 }

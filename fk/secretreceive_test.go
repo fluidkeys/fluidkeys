@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/fluidkeys/api/v1structs"
+	"github.com/fluidkeys/crypto/openpgp/packet"
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
@@ -82,18 +83,23 @@ func TestDownloadEncryptedSecrets(t *testing.T) {
 }
 
 type mockDecryptor struct {
-	decryptedArmoredResult         io.Reader
-	decryptedArmoredError          error
-	decryptedArmoredToStringResult string
-	decryptedArmoredToStringError  error
+	decryptedArmoredResult              io.Reader
+	decryptedArmoredLiteralData         *packet.LiteralData
+	decryptedArmoredError               error
+	decryptedArmoredToStringResult      string
+	decryptedArmoredToStringLiteralData *packet.LiteralData
+	decryptedArmoredToStringError       error
 }
 
-func (m *mockDecryptor) DecryptArmored(encrypted string) (io.Reader, error) {
-	return m.decryptedArmoredResult, m.decryptedArmoredError
+func (m *mockDecryptor) DecryptArmored(encrypted string) (
+	io.Reader, *packet.LiteralData, error) {
+	return m.decryptedArmoredResult, m.decryptedArmoredLiteralData, m.decryptedArmoredError
 }
 
-func (m *mockDecryptor) DecryptArmoredToString(encrypted string) (string, error) {
-	return m.decryptedArmoredToStringResult, m.decryptedArmoredToStringError
+func (m *mockDecryptor) DecryptArmoredToString(encrypted string) (
+	string, *packet.LiteralData, error) {
+	return m.decryptedArmoredToStringResult, m.decryptedArmoredToStringLiteralData,
+		m.decryptedArmoredToStringError
 }
 
 func TestDecryptAPISecret(t *testing.T) {
@@ -175,24 +181,133 @@ func TestDecryptAPISecret(t *testing.T) {
 		assert.Equal(t, expectedErr, err)
 	})
 
-	t.Run("populates decrypted secret", func(t *testing.T) {
+	t.Run("populates decrypted secret from stdin", func(t *testing.T) {
 		mockPrivateKey := &mockDecryptor{
 			decryptedArmoredResult: strings.NewReader(
 				`{"secretUuid": "93d5ac5b-74e5-4f87-b117-b8d7576395d8"}`,
 			),
 			decryptedArmoredToStringResult: "decrypted content",
+			decryptedArmoredToStringLiteralData: &packet.LiteralData{
+				FileName: "_CONSOLE",
+			},
 		}
 		decryptedSecret, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
 		assert.ErrorIsNil(t, err)
 
 		t.Run("with decrypted content", func(t *testing.T) {
-			assert.Equal(t, decryptedSecret.decryptedContent, "decrypted content")
+			assert.Equal(t, "decrypted content", decryptedSecret.decryptedContent)
 		})
 
 		t.Run("with decrypted uuid", func(t *testing.T) {
-			uuid, err := uuid.FromString("93d5ac5b-74e5-4f87-b117-b8d7576395d8")
+			expectedUuid, err := uuid.FromString("93d5ac5b-74e5-4f87-b117-b8d7576395d8")
 			assert.ErrorIsNil(t, err)
-			assert.Equal(t, decryptedSecret.UUID, uuid)
+			assert.Equal(t, expectedUuid, decryptedSecret.UUID)
+		})
+
+		t.Run("with an empty filename", func(t *testing.T) {
+			assert.Equal(t, "", decryptedSecret.originalFilename)
 		})
 	})
+
+	t.Run("populates decrypted secret from a file", func(t *testing.T) {
+		mockPrivateKey := &mockDecryptor{
+			decryptedArmoredResult: strings.NewReader(
+				`{"secretUuid": "93d5ac5b-74e5-4f87-b117-b8d7576395d8"}`,
+			),
+			decryptedArmoredToStringResult: "decrypted content",
+			decryptedArmoredToStringLiteralData: &packet.LiteralData{
+				FileName: "/naughty/absolute/path/example.txt",
+			},
+		}
+		decryptedSecret, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
+		assert.ErrorIsNil(t, err)
+
+		t.Run("with decrypted content", func(t *testing.T) {
+			assert.Equal(t, "decrypted content", decryptedSecret.decryptedContent)
+		})
+
+		t.Run("with decrypted uuid", func(t *testing.T) {
+			expectedUuid, err := uuid.FromString("93d5ac5b-74e5-4f87-b117-b8d7576395d8")
+			assert.ErrorIsNil(t, err)
+			assert.Equal(t, expectedUuid, decryptedSecret.UUID)
+		})
+
+		t.Run("with a matching filename reduced to basename", func(t *testing.T) {
+			assert.Equal(t, "example.txt", decryptedSecret.originalFilename)
+		})
+	})
+}
+
+type mockFileSafeToWriteChecker struct{}
+
+func (m *mockFileSafeToWriteChecker) IsSafeToWrite(path string) bool {
+	if path == "/fake/new_filename.txt" {
+		return true
+	}
+
+	if path == "/fake/existing_filename.txt" || path == "/fake/existing_filename(1).txt" {
+		return false
+	}
+
+	if strings.Contains(path, "unwritable_directory") {
+		return false
+	}
+
+	if path == "/fake/old_filename.txt.bak" {
+		return false
+	}
+
+	return true
+}
+
+func TestGetAvailableFilename(t *testing.T) {
+	mockChecker := &mockFileSafeToWriteChecker{}
+
+	t.Run("returns the same value if the filename doesn't exist", func(t *testing.T) {
+		filename, err := getAvailableFilename(
+			"/fake", "new_filename.txt", mockChecker)
+		assert.ErrorIsNil(t, err)
+
+		assert.Equal(t, "/fake/new_filename.txt", filename)
+	})
+
+	t.Run("increments a counter to find a filename that doesn't exist", func(t *testing.T) {
+		filename, err := getAvailableFilename(
+			"/fake", "existing_filename.txt", mockChecker)
+		assert.ErrorIsNil(t, err)
+		assert.Equal(t, "/fake/existing_filename(2).txt", filename)
+	})
+
+	t.Run("adds the counter before the last file extension", func(t *testing.T) {
+		filename, err := getAvailableFilename(
+			"/fake", "old_filename.txt.bak", mockChecker)
+		assert.ErrorIsNil(t, err)
+		fmt.Printf("file: %s\n", filename)
+		assert.Equal(t, "/fake/old_filename.txt(1).bak", filename)
+	})
+
+	t.Run("gives up after increment of 10", func(t *testing.T) {
+		_, err := getAvailableFilename(
+			"/unwritable_directory", "fake.txt", mockChecker)
+		assert.ErrorIsNotNil(t, err)
+		assert.Equal(t, fmt.Errorf("tried fake.txt, fake(1).txt, fake(2).txt..."), err)
+	})
+}
+
+func TestGenerateIncrementedFilenames(t *testing.T) {
+	gotFilenames := generateIncrementedFilenames("secret.min.css")
+	expected := []string{
+		"secret.min.css",
+		"secret.min(1).css",
+		"secret.min(2).css",
+		"secret.min(3).css",
+		"secret.min(4).css",
+		"secret.min(5).css",
+		"secret.min(6).css",
+		"secret.min(7).css",
+		"secret.min(8).css",
+		"secret.min(9).css",
+		"secret.min(10).css",
+	}
+	assert.Equal(t, expected, gotFilenames)
 }

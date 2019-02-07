@@ -127,6 +127,10 @@ func Waiting(message string) string {
 	return fgCyan + message + reset
 }
 
+func File(filename string) string {
+	return yellow(filename)
+}
+
 func underline(message string) string {
 	return underscore + message + reset
 }
