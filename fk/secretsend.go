@@ -83,7 +83,7 @@ https://download.fluidkeys.com#` + recipientEmail + `
 		secret, err = getSecretFromFile(filename, nil, nil)
 		basename = filepath.Base(filename)
 	} else {
-		secret, err = getSecretFromStdin()
+		secret, err = getSecretFromStdin(&stdinReader{})
 		basename = ""
 	}
 	if err != nil {
@@ -137,12 +137,12 @@ func getSecretFromFile(filename string, fileReader ioutilReadFileInterface, prom
 	return secret, nil
 }
 
-func getSecretFromStdin() (string, error) {
+func getSecretFromStdin(scanner scanUntilEOFInterface) (string, error) {
 	out.Print("\n")
 	out.Print(colour.Info(femaleSpyEmoji + "  Type or paste your message, ending by typing Ctrl-D\n"))
 	out.Print(colour.Info("   It will be end-to-end encrypted so no-one else can read it\n\n"))
 
-	secret, err := scanUntilEOF()
+	secret, err := scanner.scanUntilEOF()
 	if err != nil {
 		log.Panic(err)
 		return "", err
@@ -155,7 +155,10 @@ func getSecretFromStdin() (string, error) {
 	return secret, nil
 }
 
-func scanUntilEOF() (message string, err error) {
+
+type stdinReader struct{}
+
+func (s *stdinReader) scanUntilEOF() (message string, err error) {
 	reader := bufio.NewReader(os.Stdin)
 	var output []rune
 
@@ -217,6 +220,10 @@ func makeFileHintsForFilename(filename string) *openpgp.FileHints {
 		fileHints.FileName = filename
 	}
 	return &fileHints
+}
+
+type scanUntilEOFInterface interface {
+	scanUntilEOF() (message string, err error)
 }
 
 type ioutilReadFileInterface interface {
