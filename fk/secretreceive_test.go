@@ -321,7 +321,6 @@ func TestGetAvailableFilename(t *testing.T) {
 		filename, err := getAvailableFilename(
 			"/fake", "old_filename.txt.bak", mockChecker)
 		assert.ErrorIsNil(t, err)
-		fmt.Printf("file: %s\n", filename)
 		assert.Equal(t, "/fake/old_filename.txt(1).bak", filename)
 	})
 
