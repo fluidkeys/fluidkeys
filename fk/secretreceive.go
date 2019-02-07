@@ -40,6 +40,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"github.com/fluidkeys/fluidkeys/stringutils"
 	"github.com/gofrs/uuid"
 )
 
@@ -211,10 +212,19 @@ func decryptAPISecret(
 		return nil, fmt.Errorf("privateKey can not be nil")
 	}
 
-	decryptedContent, literalData, err := privateKey.DecryptArmoredToString(encryptedSecret.EncryptedContent)
+	decryptedContent, literalData, err := privateKey.DecryptArmoredToString(
+		encryptedSecret.EncryptedContent)
 	if err != nil {
 		log.Printf("Failed to decrypt secret: %s", err)
 		return nil, fmt.Errorf("error decrypting secret: %v", err)
+	}
+
+	if literalData.IsBinary {
+		return nil, fmt.Errorf("got binary data, expected text")
+	}
+
+	if stringutils.ContainsDisallowedRune(decryptedContent) {
+		return nil, fmt.Errorf("secret contained invalid characters")
 	}
 
 	metadata := v1structs.SecretMetadata{}
@@ -237,13 +247,13 @@ func decryptAPISecret(
 	decryptedSecret := secret{
 		decryptedContent: decryptedContent,
 		UUID:             uuid,
-		originalFilename: populateOriginalFilename(literalData),
+		originalFilename: populateOriginalFilename(*literalData),
 	}
 
 	return &decryptedSecret, nil
 }
 
-func populateOriginalFilename(literalData *packet.LiteralData) string {
+func populateOriginalFilename(literalData packet.LiteralData) string {
 	if literalData.ForEyesOnly() {
 		// don't save to disk: don't return a filename
 		return ""
