@@ -216,7 +216,7 @@ func TestDecryptAPISecret(t *testing.T) {
 			),
 			decryptedArmoredToStringResult: "decrypted content",
 			decryptedArmoredToStringLiteralData: &packet.LiteralData{
-				FileName: "example.txt",
+				FileName: "/naughty/absolute/path/example.txt",
 			},
 		}
 		decryptedSecret, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
@@ -232,7 +232,7 @@ func TestDecryptAPISecret(t *testing.T) {
 			assert.Equal(t, expectedUuid, decryptedSecret.UUID)
 		})
 
-		t.Run("with a matching filename", func(t *testing.T) {
+		t.Run("with a matching filename reduced to basename", func(t *testing.T) {
 			assert.Equal(t, "example.txt", decryptedSecret.originalFilename)
 		})
 	})

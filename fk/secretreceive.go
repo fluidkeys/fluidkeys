@@ -237,13 +237,24 @@ func decryptAPISecret(
 	decryptedSecret := secret{
 		decryptedContent: decryptedContent,
 		UUID:             uuid,
-	}
-
-	if !literalData.ForEyesOnly() {
-		decryptedSecret.originalFilename = literalData.FileName
+		originalFilename: populateOriginalFilename(literalData),
 	}
 
 	return &decryptedSecret, nil
+}
+
+func populateOriginalFilename(literalData *packet.LiteralData) string {
+	if literalData.ForEyesOnly() {
+		// don't save to disk: don't return a filename
+		return ""
+	}
+
+	if literalData.FileName != "" {
+		// strip paths, e.g. /home/someone/.bashrc -> `.bashrc`
+		return filepath.Base(literalData.FileName)
+	}
+
+	return ""
 }
 
 func countDigits(i int) (count int) {
