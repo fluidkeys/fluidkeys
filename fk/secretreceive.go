@@ -339,12 +339,6 @@ type secret struct {
 	UUID             uuid.UUID
 }
 
-type errListSecrets struct {
-	originalError error
-}
-
-func (e errListSecrets) Error() string { return e.originalError.Error() }
-
 type errNoSecretsFound struct{}
 
 func (e errNoSecretsFound) Error() string { return "" }
