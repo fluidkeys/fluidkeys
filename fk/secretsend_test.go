@@ -58,6 +58,15 @@ func (m mockReadFile) ReadFile(filename string) ([]byte, error) {
 	return m.readFileBytes, m.readFileError
 }
 
+type mockScanStdin struct {
+	scanMessage string
+	scanError   error
+}
+
+func (m *mockScanStdin) scanUntilEOF() (string, error) {
+	return m.scanMessage, m.scanError
+}
+
 type mockYesNoPrompter struct {
 	answer bool
 }
@@ -140,6 +149,60 @@ func TestGetSecretFromFile(t *testing.T) {
 		assert.Equal(t, expectedErr, err)
 	})
 
+}
+
+func TestGetSecretFromStdin(t *testing.T) {
+	t.Run("returns stdin content with nil error for valid message", func(t *testing.T) {
+		stdinScanner := &mockScanStdin{
+			scanMessage: "line 1\nline 2\nline 3",
+		}
+
+		result, err := getSecretFromStdin(stdinScanner)
+		assert.ErrorIsNil(t, err)
+		assert.Equal(t, stdinScanner.scanMessage, result)
+	})
+
+	t.Run("returns error if message is only spaces", func(t *testing.T) {
+		stdinScanner := &mockScanStdin{
+			scanMessage: "        ",
+		}
+
+		_, err := getSecretFromStdin(stdinScanner)
+		expectedErr := fmt.Errorf("empty message")
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("returns error if message is only newlines", func(t *testing.T) {
+		stdinScanner := &mockScanStdin{
+			scanMessage: "\n\n\n",
+		}
+
+		_, err := getSecretFromStdin(stdinScanner)
+		expectedErr := fmt.Errorf("empty message")
+		assert.Equal(t, expectedErr, err)
+
+	})
+
+	t.Run("returns error if stdin contained disallowed runes", func(t *testing.T) {
+		stdinScanner := &mockScanStdin{
+			scanMessage: colour.Warning("text with colour"),
+		}
+
+		_, err := getSecretFromStdin(stdinScanner)
+		expectedErr := fmt.Errorf("Secret contains disallowed characters")
+		assert.Equal(t, expectedErr, err)
+
+	})
+
+	t.Run("returns error if stdin isn't valid utf-8", func(t *testing.T) {
+		stdinScanner := &mockScanStdin{
+			scanMessage: string([]byte{255}),
+		}
+
+		_, err := getSecretFromStdin(stdinScanner)
+		expectedErr := fmt.Errorf("Secret contains disallowed characters")
+		assert.Equal(t, expectedErr, err)
+	})
 }
 
 func decryptMessageDetails(armoredEncryptedSecret string, pgpKey *pgpkey.PgpKey, t *testing.T) *openpgp.MessageDetails {
