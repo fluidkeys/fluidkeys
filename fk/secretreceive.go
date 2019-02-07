@@ -287,24 +287,38 @@ func generateIncrementedFilenames(basename string) []string {
 	return basenames
 }
 
-func getDownloadsDir() (string, error) {
-	userDir, err := homedir.Dir()
-	if err != nil {
-		return "", err
-	}
-	downloadsDir := filepath.Join(userDir, "Downloads")
-	fileInfo, err := os.Stat(downloadsDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return "", fmt.Errorf(downloadsDir + " directory doesn't exist")
-		} else {
+func getDownloadsDir() (downloadsDir string, err error) {
+	if xdg := os.Getenv("XDG_DOWNLOAD_DIR"); xdg != "" {
+		log.Printf("using XDG_DOWNLOAD_DIR: %s", xdg)
+		downloadsDir = xdg
+	} else {
+		userDir, err := homedir.Dir()
+		if err != nil {
 			return "", err
 		}
+		downloadsDir = filepath.Join(userDir, "Downloads")
 	}
-	if !fileInfo.IsDir() {
-		return "", fmt.Errorf(fileInfo.Name() + " file exists but is not a directory")
+
+	if !directoryExists(downloadsDir) {
+		return "", fmt.Errorf("directory doesn't exist or is unwritable: %s", downloadsDir)
 	}
+
+	log.Printf("downloads directory: %s\n", downloadsDir)
 	return downloadsDir, nil
+}
+
+func directoryExists(directory string) bool {
+	fileInfo, err := os.Stat(directory)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("directory doesn't exist: %s", directory)
+			return false
+		} else {
+			log.Printf("os.Stat(%s) error: %v", directory, err)
+			return false
+		}
+	}
+	return fileInfo.IsDir()
 }
 
 type fileSafeToWriteChecker struct{}
