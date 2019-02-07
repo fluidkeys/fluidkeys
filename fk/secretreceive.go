@@ -150,7 +150,7 @@ func promptAndWriteToDownloads(secret secret, prompter promptYesNoInterface) err
 	}
 
 	if prompter.promptYesNo("Save to "+filename+"?", "", nil) == true {
-		err := ioutil.WriteFile(filename, []byte(secret.decryptedContent), 0644)
+		err := ioutil.WriteFile(filename, []byte(secret.decryptedContent), 0600)
 
 		if err != nil {
 			return fmt.Errorf("Error writing file %s: %v", filename, err)
