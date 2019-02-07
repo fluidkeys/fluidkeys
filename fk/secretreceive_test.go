@@ -205,7 +205,7 @@ func TestDecryptAPISecret(t *testing.T) {
 		})
 
 		t.Run("with an empty filename", func(t *testing.T) {
-			assert.Equal(t, decryptedSecret.filename, "")
+			assert.Equal(t, decryptedSecret.originalFilename, "")
 		})
 	})
 
@@ -233,7 +233,7 @@ func TestDecryptAPISecret(t *testing.T) {
 		})
 
 		t.Run("with a matching filename", func(t *testing.T) {
-			assert.Equal(t, decryptedSecret.filename, "example.txt")
+			assert.Equal(t, decryptedSecret.originalFilename, "example.txt")
 		})
 	})
 }

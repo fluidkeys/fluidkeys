@@ -91,9 +91,11 @@ func secretReceive() exitCode {
 		out.Print(humanize.Pluralize(secretCount, "secret", "secrets") + ":\n\n")
 
 		for _, secret := range decryptedSecrets {
-			out.Print(formatSecretListItem(secret.decryptedContent, secret.filename))
-			if secret.filename != "" {
-				filenameToWrite, err := getFileNameToWrite(secret.filename)
+			out.Print(formatSecretListItem(
+				secret.decryptedContent, secret.originalFilename),
+			)
+			if secret.originalFilename != "" {
+				filenameToWrite, err := getFileNameToWrite(secret.originalFilename)
 				if err != nil {
 					printFailed("Error prompting to save file to disk:")
 					printFailed(err.Error())
@@ -219,7 +221,7 @@ func decryptAPISecret(
 	}
 
 	if !literalData.ForEyesOnly() {
-		decryptedSecret.filename = literalData.FileName
+		decryptedSecret.originalFilename = literalData.FileName
 	}
 
 	return &decryptedSecret, nil
@@ -300,7 +302,11 @@ const (
 
 type secret struct {
 	decryptedContent string
-	filename         string
+
+	// originalFilename should be the (base) filename of the secret file on the sender's
+	// machine, e.g. `secret.txt`.
+	// Warning: don't trust that it's a basename, assume it might be e.g. `/etc/passwd`
+	originalFilename string
 	UUID             uuid.UUID
 }
 
