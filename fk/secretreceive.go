@@ -247,13 +247,13 @@ func decryptAPISecret(
 	decryptedSecret := secret{
 		decryptedContent: decryptedContent,
 		UUID:             uuid,
-		originalFilename: populateOriginalFilename(literalData),
+		originalFilename: populateOriginalFilename(*literalData),
 	}
 
 	return &decryptedSecret, nil
 }
 
-func populateOriginalFilename(literalData *packet.LiteralData) string {
+func populateOriginalFilename(literalData packet.LiteralData) string {
 	if literalData.ForEyesOnly() {
 		// don't save to disk: don't return a filename
 		return ""
