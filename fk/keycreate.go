@@ -250,10 +250,10 @@ func verifyEmailMatchesKeyInAPI(
 	if err != nil {
 		return false, fmt.Errorf("Failed to load armored key: %v", err)
 	}
-	if retrievedKey.Fingerprint() == fingerprint {
-		return true, nil
+	if retrievedKey.Fingerprint() != fingerprint {
+		return false, fmt.Errorf("Retrieved key's fingerprint doesn't match")
 	}
-	return false, fmt.Errorf("Retrieved key's fingerprint doesn't match")
+	return true, nil
 }
 
 func clearScreen() {
