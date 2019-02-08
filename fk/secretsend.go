@@ -18,12 +18,10 @@
 package fk
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -151,8 +149,10 @@ func getSecretFromStdin(scanner scanUntilEOFInterface) (string, error) {
 	out.Print(colour.Info("   It will be end-to-end encrypted so no-one else can read it\n\n"))
 
 	secret, err := scanner.scanUntilEOF()
-	if err != nil {
-		log.Panic(err)
+
+	if err == errTooMuchData {
+		return "", fmt.Errorf("input was too big (max 10K)")
+	} else if err != nil {
 		return "", err
 	}
 
@@ -174,17 +174,9 @@ func isValidTextSecret(text string) bool {
 type stdinReader struct{}
 
 func (s *stdinReader) scanUntilEOF() (message string, err error) {
-	reader := bufio.NewReader(os.Stdin)
-	var output []rune
-
-	for {
-		input, _, err := reader.ReadRune()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return "", err
-		}
-		output = append(output, input)
+	output, err := readUpTo(os.Stdin, secretMaxSizeBytes)
+	if err != nil {
+		return "", err
 	}
 
 	return string(output), nil
