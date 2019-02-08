@@ -67,14 +67,6 @@ func (m *mockScanStdin) scanUntilEOF() (string, error) {
 	return m.scanMessage, m.scanError
 }
 
-type mockYesNoPrompter struct {
-	answer bool
-}
-
-func (m mockYesNoPrompter) promptYesNo(question string, defaultAnswer string, key *pgpkey.PgpKey) bool {
-	return m.answer
-}
-
 func TestGetSecretFromFile(t *testing.T) {
 	t.Run("returns the file contents as string", func(t *testing.T) {
 		fileReader := mockReadFile{
@@ -82,11 +74,7 @@ func TestGetSecretFromFile(t *testing.T) {
 			readFileBytes: []byte("hello"),
 		}
 
-		prompter := mockYesNoPrompter{
-			answer: true,
-		}
-
-		secret, err := getSecretFromFile("/fake/filename", fileReader, prompter)
+		secret, err := getSecretFromFile("/fake/filename", fileReader)
 		assert.ErrorIsNil(t, err)
 		assert.Equal(t, "hello", secret)
 	})
@@ -96,8 +84,8 @@ func TestGetSecretFromFile(t *testing.T) {
 			readFileBytes: []byte(colour.Warning("text with colour")),
 		}
 
-		_, err := getSecretFromFile("/fake/filename", fileReader, nil)
-		expectedErr := fmt.Errorf("Secret contains disallowed characters")
+		_, err := getSecretFromFile("/fake/filename", fileReader)
+		expectedErr := fmt.Errorf("/fake/filename contains disallowed characters")
 		assert.Equal(t, expectedErr, err)
 
 	})
@@ -107,8 +95,8 @@ func TestGetSecretFromFile(t *testing.T) {
 			readFileBytes: []byte{255},
 		}
 
-		_, err := getSecretFromFile("/fake/filename", fileReader, nil)
-		expectedErr := fmt.Errorf("Secret contains disallowed characters")
+		_, err := getSecretFromFile("/fake/filename", fileReader)
+		expectedErr := fmt.Errorf("/fake/filename contains disallowed characters")
 		assert.Equal(t, expectedErr, err)
 	})
 
@@ -117,7 +105,7 @@ func TestGetSecretFromFile(t *testing.T) {
 			readFileError: fmt.Errorf("permission denied"),
 		}
 
-		_, err := getSecretFromFile("/fake/filename", fileReader, nil)
+		_, err := getSecretFromFile("/fake/filename", fileReader)
 		expectedErr := fmt.Errorf("error reading file: permission denied")
 		assert.Equal(t, expectedErr, err)
 	})
@@ -128,24 +116,8 @@ func TestGetSecretFromFile(t *testing.T) {
 			readFileBytes: []byte(""),
 		}
 
-		_, err := getSecretFromFile("/fake/filename", fileReader, nil)
+		_, err := getSecretFromFile("/fake/filename", fileReader)
 		expectedErr := fmt.Errorf("/fake/filename is empty")
-		assert.Equal(t, expectedErr, err)
-	})
-
-	t.Run("returns error if user answers no", func(t *testing.T) {
-
-		fileReader := mockReadFile{
-			readFileError: nil,
-			readFileBytes: []byte("hello"),
-		}
-
-		prompter := mockYesNoPrompter{
-			answer: false,
-		}
-
-		_, err := getSecretFromFile("/fake/filename", fileReader, prompter)
-		expectedErr := fmt.Errorf("didn't accept prompt to send file")
 		assert.Equal(t, expectedErr, err)
 	})
 

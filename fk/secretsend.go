@@ -77,9 +77,25 @@ https://download.fluidkeys.com#` + recipientEmail + `
 	var secret string
 	var basename string
 	if filename != "" {
-		secret, err = getSecretFromFile(filename, nil, nil)
+		secret, err = getSecretFromFile(filename, nil)
+
+		out.Print("---\n")
+		out.Print(secret)
+		out.Print("---\n\n")
+
+		out.Print(colour.Info("   It will be end-to-end encrypted so no-one else can read it\n\n"))
+
+		prompter := interactiveYesNoPrompter{}
+
+		if !prompter.promptYesNo("Send "+filename+"?", "y", nil) {
+			return 1
+		}
+
 		basename = filepath.Base(filename)
 	} else {
+		out.Print(colour.Info(femaleSpyEmoji + "  Type or paste your message, ending by typing Ctrl-D\n"))
+		out.Print(colour.Info("   It will be end-to-end encrypted so no-one else can read it\n\n"))
+
 		secret, err = getSecretFromStdin(&stdinReader{})
 		basename = ""
 	}
@@ -106,13 +122,9 @@ https://download.fluidkeys.com#` + recipientEmail + `
 	return 0
 }
 
-func getSecretFromFile(filename string, fileReader ioutilReadFileInterface, prompter promptYesNoInterface) (string, error) {
+func getSecretFromFile(filename string, fileReader ioutilReadFileInterface) (string, error) {
 	if fileReader == nil {
 		fileReader = &ioutilReadFilePassthrough{}
-	}
-
-	if prompter == nil {
-		prompter = &interactiveYesNoPrompter{}
 	}
 
 	secretData, err := fileReader.ReadFileMaxBytes(filename, secretMaxSizeBytes)
@@ -127,27 +139,14 @@ func getSecretFromFile(filename string, fileReader ioutilReadFileInterface, prom
 	if len(strings.TrimSpace(secret)) == 0 {
 		return "", fmt.Errorf(filename + " is empty")
 	}
-
 	if !isValidTextSecret(secret) {
-		return "", errors.New("Secret contains disallowed characters")
-	}
-
-	out.Print("---\n")
-	out.Print(secret)
-	out.Print("---\n\n")
-
-	if !prompter.promptYesNo("Send "+filename+"?", "y", nil) {
-		return "", errors.New("didn't accept prompt to send file")
+		return "", fmt.Errorf(filename + " contains disallowed characters")
 	}
 
 	return secret, nil
 }
 
 func getSecretFromStdin(scanner scanUntilEOFInterface) (string, error) {
-	out.Print("\n")
-	out.Print(colour.Info(femaleSpyEmoji + "  Type or paste your message, ending by typing Ctrl-D\n"))
-	out.Print(colour.Info("   It will be end-to-end encrypted so no-one else can read it\n\n"))
-
 	secret, err := scanner.scanUntilEOF()
 
 	if err == errTooMuchData {
