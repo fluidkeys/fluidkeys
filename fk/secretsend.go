@@ -259,12 +259,13 @@ func readUpTo(source io.Reader, maxBytes int64) ([]byte, error) {
 	bytesRead, err := io.CopyN(buf, source, maxBytes+1)
 	switch err {
 	case io.EOF:
-		// case 1
-		// we should *always* hit io.EOF: the source should run out before we hit maxBytes
+		// case 1 or 2
+		// we should *always* hit io.EOF: the source should run out before maxBytes+1
 		return buf.Bytes()[:bytesRead], nil
 
 	case nil:
-		// we didn't hit EOF, so CopyN must have reached maxBytes
+		// we didn't hit EOF, so CopyN must have reached maxBytes+1, ie there was too
+		// much data
 		return nil, errTooMuchData
 
 	default:
