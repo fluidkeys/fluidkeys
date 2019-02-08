@@ -58,8 +58,6 @@ https://download.fluidkeys.com#` + recipientEmail + `
 		return 1
 	}
 
-	printSuccess("Found public key for " + recipientEmail)
-
 	pgpKey, err := pgpkey.LoadFromArmoredPublicKey(armoredPublicKey)
 	if err != nil {
 		printFailed("Couldn't load the public key:")
@@ -84,7 +82,8 @@ https://download.fluidkeys.com#` + recipientEmail + `
 		printFileDivider("")
 		out.Print("\n")
 
-		out.Print(colour.Info("   It will be end-to-end encrypted so no-one else can read it\n\n"))
+		out.Print(colour.Info("The file will be end-to-end encrypted to ") + recipientEmail + "\n")
+		out.Print(colour.Info("so no-one else can read it 🕵️\n\n"))
 
 		prompter := interactiveYesNoPrompter{}
 
@@ -94,8 +93,9 @@ https://download.fluidkeys.com#` + recipientEmail + `
 
 		basename = filepath.Base(filename)
 	} else {
-		out.Print(colour.Info(femaleSpyEmoji + "  Type or paste your message, ending by typing Ctrl-D\n"))
-		out.Print(colour.Info("   It will be end-to-end encrypted so no-one else can read it\n\n"))
+		out.Print(colour.Info("Type or paste your message, ending by typing Ctrl-D\n"))
+		out.Print(colour.Info("It will be end-to-end encrypted to ") + recipientEmail + "\n")
+		out.Print(colour.Info("so no-one else can read it 🕵️\n\n"))
 
 		secret, err = getSecretFromStdin(&stdinReader{})
 		basename = ""
@@ -274,7 +274,6 @@ func readUpTo(source io.Reader, maxBytes int64) ([]byte, error) {
 	}
 }
 
-const femaleSpyEmoji = "\xf0\x9f\x95\xb5\xef\xb8\x8f\xe2\x80\x8d\xe2\x99\x80\xef\xb8\x8f"
 const secretMaxSizeBytes = 10 * 1024
 
 var errTooMuchData error = errors.New("source had more data than maxBytes")
