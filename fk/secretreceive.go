@@ -83,12 +83,10 @@ func secretReceive() exitCode {
 			continue
 		}
 		decryptedSecrets, secretErrors := decryptSecrets(encryptedSecrets, privateKey)
-
-		out.Print("📬 " + displayName(&key) + ":\n\n")
-
 		secretCount := len(decryptedSecrets)
 
-		out.Print(humanize.Pluralize(secretCount, "secret", "secrets") + ":\n\n")
+		out.Print("📬 " + displayName(&key) + ": " +
+			humanize.Pluralize(secretCount, "secret!", "secrets!") + "\n\n")
 
 		for _, secret := range decryptedSecrets {
 			out.Print(formatSecretListItem(
