@@ -89,6 +89,8 @@ func secretReceive() exitCode {
 		out.Print("📬 " + displayName(&key) + ": " +
 			humanize.Pluralize(secretCount, "secret!", "secrets!") + "\n\n")
 
+		out.Print("💣 " + colour.Warning("Secrets self-destruct once viewed!\n\n"))
+
 		for _, secret := range decryptedSecrets {
 			out.Print(formatSecretListItem(
 				secret.decryptedContent, secret.originalFilename),
