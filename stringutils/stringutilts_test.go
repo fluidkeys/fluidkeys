@@ -30,6 +30,11 @@ func TestContainsDisallowedRunes(t *testing.T) {
 		assert.Equal(t, false, ContainsDisallowedRune(lineBreaks))
 	})
 
+	t.Run("tabs should be allowed", func(t *testing.T) {
+		tabs := "word\tword"
+		assert.Equal(t, false, ContainsDisallowedRune(tabs))
+	})
+
 	t.Run("terminal control codes should not be allowed", func(t *testing.T) {
 		invalidColorCharacters := map[string]string{
 			"reset":      "\x1b[0m",
@@ -79,7 +84,6 @@ func TestContainsDisallowedRunes(t *testing.T) {
 			"ACK":    "\006",     // Acknowledge
 			"BEL":    "\007",     // Bell
 			"BS":     "\010",     // Backspace
-			"HT":     "\011",     // Character Tabulation
 			"VT":     "\013",     // Line Tabulation
 			"FF":     "\014",     // Form Feed
 			"SO":     "\016",     // Shift-Out

@@ -4,8 +4,10 @@ package stringutils
 func ContainsDisallowedRune(input string) bool {
 	for _, r := range input {
 		switch {
-		case 0 <= r && r <= 9:
+		case 0 <= r && r <= 8:
 			return true
+		case r == '\t': // 9
+			continue
 		case 11 <= r && r <= 12:
 			return true
 		case r == '\n': // 10
