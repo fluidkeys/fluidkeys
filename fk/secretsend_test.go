@@ -54,7 +54,7 @@ type mockReadFile struct {
 	readFileError error
 }
 
-func (m mockReadFile) ReadFile(filename string) ([]byte, error) {
+func (m mockReadFile) ReadFileMaxBytes(filename string, maxBytes int64) ([]byte, error) {
 	return m.readFileBytes, m.readFileError
 }
 

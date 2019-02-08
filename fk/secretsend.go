@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -118,10 +117,14 @@ func getSecretFromFile(filename string, fileReader ioutilReadFileInterface, prom
 		prompter = &interactiveYesNoPrompter{}
 	}
 
-	secretData, err := fileReader.ReadFile(filename)
-	if err != nil {
-		return "", fmt.Errorf("error reading file: " + err.Error())
+	secretData, err := fileReader.ReadFileMaxBytes(filename, secretMaxSizeBytes)
+
+	if err == errTooMuchData {
+		return "", fmt.Errorf("file is too large (max 10K)")
+	} else if err != nil {
+		return "", fmt.Errorf("error reading file: %v", err)
 	}
+
 	secret := string(secretData)
 	if len(strings.TrimSpace(secret)) == 0 {
 		return "", fmt.Errorf(filename + " is empty")
@@ -235,14 +238,19 @@ type scanUntilEOFInterface interface {
 }
 
 type ioutilReadFileInterface interface {
-	ReadFile(filename string) ([]byte, error)
+	ReadFileMaxBytes(filename string, maxBytes int64) ([]byte, error)
 }
 
 type ioutilReadFilePassthrough struct {
 }
 
-func (r *ioutilReadFilePassthrough) ReadFile(filename string) ([]byte, error) {
-	return ioutil.ReadFile(filename)
+func (r *ioutilReadFilePassthrough) ReadFileMaxBytes(filename string, maxBytes int64) ([]byte, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	return readUpTo(f, maxBytes)
+}
 
 // readUpTo returns up to maxBytes from source, giving an error if
 // source was longer than maxBytes
@@ -274,4 +282,6 @@ func readUpTo(source io.Reader, maxBytes int64) ([]byte, error) {
 }
 
 const femaleSpyEmoji = "\xf0\x9f\x95\xb5\xef\xb8\x8f\xe2\x80\x8d\xe2\x99\x80\xef\xb8\x8f"
+const secretMaxSizeBytes = 10 * 1024
+
 var errTooMuchData error = errors.New("source had more data than maxBytes")
