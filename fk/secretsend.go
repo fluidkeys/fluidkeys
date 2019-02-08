@@ -118,7 +118,7 @@ https://download.fluidkeys.com#` + recipientEmail + `
 		return 1
 	}
 
-	printSuccess("Successfully sent secret to " + recipientEmail + "\n")
+	printSuccess("Sent. You should tell them to check Fluidkeys.\n")
 	return 0
 }
 
