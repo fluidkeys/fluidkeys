@@ -139,7 +139,9 @@ func keyCreate(email string) (exitCode, *pgpkey.PgpKey) {
 			verifiedEmailResult, err = verifyEmailMatchesKeyInAPI(
 				email, generateJob.pgpKey.Fingerprint(), client)
 			if err != nil {
-				log.Panicf("Failed to get public key: %v", err)
+				out.Print("\n\n")
+				printFailed(fmt.Sprintf("Failed to verify email: %s", err))
+				return 1, nil
 			}
 			timeLastPolled = time.Now()
 		}
@@ -248,12 +250,12 @@ func verifyEmailMatchesKeyInAPI(
 
 	retrievedKey, err := pgpkey.LoadFromArmoredPublicKey(armoredKey)
 	if err != nil {
-		return false, fmt.Errorf("Failed to load armored key: %v", err)
+		return false, fmt.Errorf("failed to load armored key: %v", err)
 	}
-	if retrievedKey.Fingerprint() == fingerprint {
-		return true, nil
+	if retrievedKey.Fingerprint() != fingerprint {
+		return false, fmt.Errorf("a key for %s is already verified\n     Please email security@fluidkeys.com and we can manually remove the old key\n", email)
 	}
-	return false, fmt.Errorf("Retrieved key's fingerprint doesn't match")
+	return true, nil
 }
 
 func clearScreen() {
