@@ -56,7 +56,7 @@ func secretReceive() exitCode {
 	out.Print(colour.Info("Downloading secrets...") + "\n\n")
 
 	sawError := false
-	deletedSecret := false
+	numSecretsDeleted := 0
 
 	secretLister := client
 
@@ -117,9 +117,9 @@ func secretReceive() exitCode {
 				log.Printf("failed to delete secret '%s': %v", secret.UUID, err)
 				printFailed("Error when secret tried to self-destruct:")
 				printFailed(err.Error())
+			} else {
+				numSecretsDeleted++
 			}
-
-			deletedSecret = true
 
 		}
 
@@ -133,8 +133,10 @@ func secretReceive() exitCode {
 		}
 	}
 
-	if deletedSecret {
-		out.Print("💥 " + colour.Warning("Secrets have self destructed!\n\n"))
+	if numSecretsDeleted > 0 {
+		deleteMessage := humanize.Pluralize(numSecretsDeleted, "secret has", "secrets have") +
+			" self destructed!"
+		out.Print("💥 " + colour.Warning(deleteMessage) + "\n\n")
 	}
 
 	if sawError {
