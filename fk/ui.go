@@ -19,6 +19,7 @@ package fk
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/out"
@@ -51,3 +52,17 @@ func printFailedAction(message string) {
 func printHeader(message string) {
 	out.Print(colour.Header(fmt.Sprintf(" %-79s", message)) + "\n\n")
 }
+
+func printFileDivider(message string) {
+	if message != "" {
+		message = " " + message + " "
+	}
+	leftHandAndMessage := strings.Repeat(fileDividerRune, 2) + colour.File(message)
+	rightHand := strings.Repeat(fileDividerRune, (fileDividerLength - len(leftHandAndMessage)))
+	out.Print(leftHandAndMessage + rightHand + "\n")
+}
+
+const (
+	fileDividerRune   = "─"
+	fileDividerLength = 80
+)
