@@ -151,6 +151,29 @@ func TestGetSecretFromFile(t *testing.T) {
 
 }
 
+func TestReadUpTo(t *testing.T) {
+	t.Run("input 4 bytes, maxLength 5 should return 4 bytes", func(t *testing.T) {
+		input := []byte("1234")
+		gotBytes, gotErr := readUpTo(bytes.NewBuffer(input), 5)
+		assert.ErrorIsNil(t, gotErr)
+		assert.Equal(t, input, gotBytes)
+	})
+
+	t.Run("input 5 bytes, maxLength 5 should return 5 bytes", func(t *testing.T) {
+		input := []byte("12345")
+		gotBytes, gotErr := readUpTo(bytes.NewBuffer(input), 5)
+		assert.ErrorIsNil(t, gotErr)
+		assert.Equal(t, input, gotBytes)
+	})
+
+	t.Run("input 6 bytes, maxLength 5 should return error: too much data", func(t *testing.T) {
+		input := []byte("123456")
+		_, gotErr := readUpTo(bytes.NewBuffer(input), 5)
+		assert.Equal(t, gotErr, errTooMuchData)
+	})
+
+}
+
 func TestGetSecretFromStdin(t *testing.T) {
 	t.Run("returns stdin content with nil error for valid message", func(t *testing.T) {
 		stdinScanner := &mockScanStdin{

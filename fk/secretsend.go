@@ -243,6 +243,35 @@ type ioutilReadFilePassthrough struct {
 
 func (r *ioutilReadFilePassthrough) ReadFile(filename string) ([]byte, error) {
 	return ioutil.ReadFile(filename)
+
+// readUpTo returns up to maxBytes from source, giving an error if
+// source was longer than maxBytes
+// there are three cases:
+//
+// 1. src < maxBytes  (OK, normal)
+// 2. src == maxBytes (OK, unusual)
+// 3. src > maxBytes  (not OK)
+//
+// in case 1) we expect to reach io.EOF
+func readUpTo(source io.Reader, maxBytes int64) ([]byte, error) {
+	buf := bytes.NewBuffer(nil)
+
+	bytesRead, err := io.CopyN(buf, source, maxBytes+1)
+	switch err {
+	case io.EOF:
+		// case 1
+		// we should *always* hit io.EOF: the source should run out before we hit maxBytes
+		return buf.Bytes()[:bytesRead], nil
+
+	case nil:
+		// we didn't hit EOF, so CopyN must have reached maxBytes
+		return nil, errTooMuchData
+
+	default:
+		// some other error occurred
+		return nil, err
+	}
 }
 
 const femaleSpyEmoji = "\xf0\x9f\x95\xb5\xef\xb8\x8f\xe2\x80\x8d\xe2\x99\x80\xef\xb8\x8f"
+var errTooMuchData error = errors.New("source had more data than maxBytes")
