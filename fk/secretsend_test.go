@@ -54,7 +54,7 @@ type mockReadFile struct {
 	readFileError error
 }
 
-func (m mockReadFile) ReadFile(filename string) ([]byte, error) {
+func (m mockReadFile) ReadFileMaxBytes(filename string, maxBytes int64) ([]byte, error) {
 	return m.readFileBytes, m.readFileError
 }
 
@@ -147,6 +147,29 @@ func TestGetSecretFromFile(t *testing.T) {
 		_, err := getSecretFromFile("/fake/filename", fileReader, prompter)
 		expectedErr := fmt.Errorf("didn't accept prompt to send file")
 		assert.Equal(t, expectedErr, err)
+	})
+
+}
+
+func TestReadUpTo(t *testing.T) {
+	t.Run("input 4 bytes, maxLength 5 should return 4 bytes", func(t *testing.T) {
+		input := []byte("1234")
+		gotBytes, gotErr := readUpTo(bytes.NewBuffer(input), 5)
+		assert.ErrorIsNil(t, gotErr)
+		assert.Equal(t, input, gotBytes)
+	})
+
+	t.Run("input 5 bytes, maxLength 5 should return 5 bytes", func(t *testing.T) {
+		input := []byte("12345")
+		gotBytes, gotErr := readUpTo(bytes.NewBuffer(input), 5)
+		assert.ErrorIsNil(t, gotErr)
+		assert.Equal(t, input, gotBytes)
+	})
+
+	t.Run("input 6 bytes, maxLength 5 should return error: too much data", func(t *testing.T) {
+		input := []byte("123456")
+		_, gotErr := readUpTo(bytes.NewBuffer(input), 5)
+		assert.Equal(t, gotErr, errTooMuchData)
 	})
 
 }

@@ -18,13 +18,10 @@
 package fk
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -118,10 +115,14 @@ func getSecretFromFile(filename string, fileReader ioutilReadFileInterface, prom
 		prompter = &interactiveYesNoPrompter{}
 	}
 
-	secretData, err := fileReader.ReadFile(filename)
-	if err != nil {
-		return "", fmt.Errorf("error reading file: " + err.Error())
+	secretData, err := fileReader.ReadFileMaxBytes(filename, secretMaxSizeBytes)
+
+	if err == errTooMuchData {
+		return "", fmt.Errorf("file is too large (max 10K)")
+	} else if err != nil {
+		return "", fmt.Errorf("error reading file: %v", err)
 	}
+
 	secret := string(secretData)
 	if len(strings.TrimSpace(secret)) == 0 {
 		return "", fmt.Errorf(filename + " is empty")
@@ -148,8 +149,10 @@ func getSecretFromStdin(scanner scanUntilEOFInterface) (string, error) {
 	out.Print(colour.Info("   It will be end-to-end encrypted so no-one else can read it\n\n"))
 
 	secret, err := scanner.scanUntilEOF()
-	if err != nil {
-		log.Panic(err)
+
+	if err == errTooMuchData {
+		return "", fmt.Errorf("input was too big (max 10K)")
+	} else if err != nil {
 		return "", err
 	}
 
@@ -171,17 +174,9 @@ func isValidTextSecret(text string) bool {
 type stdinReader struct{}
 
 func (s *stdinReader) scanUntilEOF() (message string, err error) {
-	reader := bufio.NewReader(os.Stdin)
-	var output []rune
-
-	for {
-		input, _, err := reader.ReadRune()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return "", err
-		}
-		output = append(output, input)
+	output, err := readUpTo(os.Stdin, secretMaxSizeBytes)
+	if err != nil {
+		return "", err
 	}
 
 	return string(output), nil
@@ -235,14 +230,51 @@ type scanUntilEOFInterface interface {
 }
 
 type ioutilReadFileInterface interface {
-	ReadFile(filename string) ([]byte, error)
+	ReadFileMaxBytes(filename string, maxBytes int64) ([]byte, error)
 }
 
 type ioutilReadFilePassthrough struct {
 }
 
-func (r *ioutilReadFilePassthrough) ReadFile(filename string) ([]byte, error) {
-	return ioutil.ReadFile(filename)
+func (r *ioutilReadFilePassthrough) ReadFileMaxBytes(filename string, maxBytes int64) ([]byte, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	return readUpTo(f, maxBytes)
+}
+
+// readUpTo returns up to maxBytes from source, giving an error if
+// source was longer than maxBytes
+// there are three cases:
+//
+// 1. src < maxBytes  (OK, normal)
+// 2. src == maxBytes (OK, unusual)
+// 3. src > maxBytes  (not OK)
+//
+// in case 1) we expect to reach io.EOF
+func readUpTo(source io.Reader, maxBytes int64) ([]byte, error) {
+	buf := bytes.NewBuffer(nil)
+
+	bytesRead, err := io.CopyN(buf, source, maxBytes+1)
+	switch err {
+	case io.EOF:
+		// case 1 or 2
+		// we should *always* hit io.EOF: the source should run out before maxBytes+1
+		return buf.Bytes()[:bytesRead], nil
+
+	case nil:
+		// we didn't hit EOF, so CopyN must have reached maxBytes+1, ie there was too
+		// much data
+		return nil, errTooMuchData
+
+	default:
+		// some other error occurred
+		return nil, err
+	}
 }
 
 const femaleSpyEmoji = "\xf0\x9f\x95\xb5\xef\xb8\x8f\xe2\x80\x8d\xe2\x99\x80\xef\xb8\x8f"
+const secretMaxSizeBytes = 10 * 1024
+
+var errTooMuchData error = errors.New("source had more data than maxBytes")
