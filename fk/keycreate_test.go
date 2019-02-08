@@ -67,6 +67,11 @@ func TestVerifyEmailMatchesKeyInAPI(t *testing.T) {
 			&mockGetter,
 		)
 		assert.ErrorIsNotNil(t, err)
+		assert.Equal(
+			t,
+			fmt.Errorf("a key for test2@example.com is already verified\n     Please email security@fluidkeys.com and we can manually remove the old key\n"),
+			err,
+		)
 		assertNotVerified(t, verified)
 	})
 }
