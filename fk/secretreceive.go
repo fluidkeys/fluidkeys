@@ -56,6 +56,7 @@ func secretReceive() exitCode {
 	out.Print(colour.Info("Downloading secrets...") + "\n\n")
 
 	sawError := false
+	numSecretsDeleted := 0
 
 	secretLister := client
 
@@ -83,12 +84,12 @@ func secretReceive() exitCode {
 			continue
 		}
 		decryptedSecrets, secretErrors := decryptSecrets(encryptedSecrets, privateKey)
-
-		out.Print("📬 " + displayName(&key) + ":\n\n")
-
 		secretCount := len(decryptedSecrets)
 
-		out.Print(humanize.Pluralize(secretCount, "secret", "secrets") + ":\n\n")
+		out.Print("📬 " + displayName(&key) + ": " +
+			humanize.Pluralize(secretCount, "secret!", "secrets!") + "\n\n")
+
+		out.Print("💣 " + colour.Warning("Secrets self-destruct once viewed!\n\n"))
 
 		for _, secret := range decryptedSecrets {
 			out.Print(formatSecretListItem(
@@ -110,14 +111,16 @@ func secretReceive() exitCode {
 					}
 				}
 			}
-			if prompter.promptYesNo("Delete now?", "Y", nil) == true {
-				err := client.DeleteSecret(key.Fingerprint(), secret.UUID.String())
-				if err != nil {
-					log.Printf("failed to delete secret '%s': %v", secret.UUID, err)
-					printFailed("Error trying to delete secret:")
-					printFailed(err.Error())
-				}
+
+			err := client.DeleteSecret(key.Fingerprint(), secret.UUID.String())
+			if err != nil {
+				log.Printf("failed to delete secret '%s': %v", secret.UUID, err)
+				printFailed("Error when secret tried to self-destruct:")
+				printFailed(err.Error())
+			} else {
+				numSecretsDeleted++
 			}
+
 		}
 
 		if len(secretErrors) > 0 {
@@ -128,6 +131,12 @@ func secretReceive() exitCode {
 			}
 			sawError = true
 		}
+	}
+
+	if numSecretsDeleted > 0 {
+		deleteMessage := humanize.Pluralize(numSecretsDeleted, "secret has", "secrets have") +
+			" self destructed!"
+		out.Print("💥 " + colour.Warning(deleteMessage) + "\n\n")
 	}
 
 	if sawError {
