@@ -81,7 +81,9 @@ https://download.fluidkeys.com#` + recipientEmail + `
 			return 1
 		}
 
-		out.Print(formatFileDivider(filename) + "\n")
+		basename = filepath.Base(filename)
+
+		out.Print(formatFileDivider(basename) + "\n")
 		out.Print(secret)
 		out.Print(formatFileDivider("") + "\n")
 		out.Print("\n")
@@ -91,11 +93,9 @@ https://download.fluidkeys.com#` + recipientEmail + `
 
 		prompter := interactiveYesNoPrompter{}
 
-		if !prompter.promptYesNo("Send "+filename+"?", "y", nil) {
+		if !prompter.promptYesNo("Send "+basename+"?", "y", nil) {
 			return 1
 		}
-
-		basename = filepath.Base(filename)
 	} else {
 		out.Print(colour.Info("Type or paste your message, ending by typing Ctrl-D\n"))
 		out.Print(colour.Info("It will be end-to-end encrypted to ") + recipientEmail + "\n")
