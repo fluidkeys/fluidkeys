@@ -58,8 +58,6 @@ https://download.fluidkeys.com#` + recipientEmail + `
 		return 1
 	}
 
-	printSuccess("Found public key for " + recipientEmail)
-
 	pgpKey, err := pgpkey.LoadFromArmoredPublicKey(armoredPublicKey)
 	if err != nil {
 		printFailed("Couldn't load the public key:")
@@ -77,15 +75,38 @@ https://download.fluidkeys.com#` + recipientEmail + `
 	var secret string
 	var basename string
 	if filename != "" {
-		secret, err = getSecretFromFile(filename, nil, nil)
+		secret, err = getSecretFromFile(filename, nil)
+		if err != nil {
+			printFailed("Error: " + err.Error())
+			return 1
+		}
+
 		basename = filepath.Base(filename)
+
+		out.Print(formatFileDivider(basename) + "\n")
+		out.Print(secret)
+		out.Print(formatFileDivider("") + "\n")
+		out.Print("\n")
+
+		out.Print(colour.Info("The file will be end-to-end encrypted to ") + recipientEmail + "\n")
+		out.Print(colour.Info("so no-one else can read it 🕵️\n\n"))
+
+		prompter := interactiveYesNoPrompter{}
+
+		if !prompter.promptYesNo("Send "+basename+"?", "y", nil) {
+			return 1
+		}
 	} else {
+		out.Print(colour.Info("Type or paste your message, ending by typing Ctrl-D\n"))
+		out.Print(colour.Info("It will be end-to-end encrypted to ") + recipientEmail + "\n")
+		out.Print(colour.Info("so no-one else can read it 🕵️\n\n"))
+
 		secret, err = getSecretFromStdin(&stdinReader{})
+		if err != nil {
+			printFailed("Error: " + err.Error())
+			return 1
+		}
 		basename = ""
-	}
-	if err != nil {
-		printFailed("Error: " + err.Error())
-		return 1
 	}
 
 	encryptedSecret, err := encryptSecret(secret, basename, pgpKey)
@@ -102,17 +123,13 @@ https://download.fluidkeys.com#` + recipientEmail + `
 		return 1
 	}
 
-	printSuccess("Successfully sent secret to " + recipientEmail + "\n")
+	printSuccess("Sent. You should tell them to check Fluidkeys.\n")
 	return 0
 }
 
-func getSecretFromFile(filename string, fileReader ioutilReadFileInterface, prompter promptYesNoInterface) (string, error) {
+func getSecretFromFile(filename string, fileReader ioutilReadFileInterface) (string, error) {
 	if fileReader == nil {
 		fileReader = &ioutilReadFilePassthrough{}
-	}
-
-	if prompter == nil {
-		prompter = &interactiveYesNoPrompter{}
 	}
 
 	secretData, err := fileReader.ReadFileMaxBytes(filename, secretMaxSizeBytes)
@@ -127,27 +144,14 @@ func getSecretFromFile(filename string, fileReader ioutilReadFileInterface, prom
 	if len(strings.TrimSpace(secret)) == 0 {
 		return "", fmt.Errorf(filename + " is empty")
 	}
-
 	if !isValidTextSecret(secret) {
-		return "", errors.New("Secret contains disallowed characters")
-	}
-
-	out.Print("---\n")
-	out.Print(secret)
-	out.Print("---\n\n")
-
-	if !prompter.promptYesNo("Send "+filename+"?", "y", nil) {
-		return "", errors.New("didn't accept prompt to send file")
+		return "", fmt.Errorf(filename + " contains disallowed characters")
 	}
 
 	return secret, nil
 }
 
 func getSecretFromStdin(scanner scanUntilEOFInterface) (string, error) {
-	out.Print("\n")
-	out.Print(colour.Info(femaleSpyEmoji + "  Type or paste your message, ending by typing Ctrl-D\n"))
-	out.Print(colour.Info("   It will be end-to-end encrypted so no-one else can read it\n\n"))
-
 	secret, err := scanner.scanUntilEOF()
 
 	if err == errTooMuchData {
@@ -274,7 +278,6 @@ func readUpTo(source io.Reader, maxBytes int64) ([]byte, error) {
 	}
 }
 
-const femaleSpyEmoji = "\xf0\x9f\x95\xb5\xef\xb8\x8f\xe2\x80\x8d\xe2\x99\x80\xef\xb8\x8f"
 const secretMaxSizeBytes = 10 * 1024
 
 var errTooMuchData error = errors.New("source had more data than maxBytes")
