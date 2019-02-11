@@ -53,13 +53,13 @@ func printHeader(message string) {
 	out.Print(colour.Header(fmt.Sprintf(" %-79s", message)) + "\n\n")
 }
 
-// printFileDivider prints a divider string, including a message if given, e.g.:
+// printFileDivider prints a divider string, including a filename if given, e.g.:
 // ── readme.txt ──────────────────────────────────────────────────
-func printFileDivider(message string) {
-	if message != "" {
-		message = " " + message + " "
+func printFileDivider(filename string) {
+	if filename != "" {
+		filename = " " + filename + " "
 	}
-	leftHandAndMessage := strings.Repeat(fileDividerRune, 2) + colour.File(message)
+	leftHandAndMessage := strings.Repeat(fileDividerRune, 2) + colour.File(filename)
 	rightHand := strings.Repeat(fileDividerRune, (fileDividerLength - len(leftHandAndMessage)))
 	out.Print(leftHandAndMessage + rightHand + "\n")
 }
