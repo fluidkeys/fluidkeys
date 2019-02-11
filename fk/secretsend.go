@@ -76,6 +76,10 @@ https://download.fluidkeys.com#` + recipientEmail + `
 	var basename string
 	if filename != "" {
 		secret, err = getSecretFromFile(filename, nil)
+		if err != nil {
+			printFailed("Error: " + err.Error())
+			return 1
+		}
 
 		out.Print(formatFileDivider(filename) + "\n")
 		out.Print(secret)
@@ -98,11 +102,11 @@ https://download.fluidkeys.com#` + recipientEmail + `
 		out.Print(colour.Info("so no-one else can read it 🕵️\n\n"))
 
 		secret, err = getSecretFromStdin(&stdinReader{})
+		if err != nil {
+			printFailed("Error: " + err.Error())
+			return 1
+		}
 		basename = ""
-	}
-	if err != nil {
-		printFailed("Error: " + err.Error())
-		return 1
 	}
 
 	encryptedSecret, err := encryptSecret(secret, basename, pgpKey)
