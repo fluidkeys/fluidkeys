@@ -161,6 +161,61 @@ func TestEmailsMethod(t *testing.T) {
 
 		assert.AssertEqualSliceOfStrings(t, expected, got)
 	})
+
+	t.Run("deduplicateEmails", func(t *testing.T) {
+		t.Run("deduplicates identical emails", func(t *testing.T) {
+			emails := []string{
+				"john@example.com",
+				"john@example.com",
+			}
+			expected := []string{
+				"john@example.com",
+			}
+
+			assert.Equal(t, expected, deduplicateEmails(emails))
+		})
+
+		t.Run("deduplicates case variants, choosing first occurrence", func(t *testing.T) {
+			emails := []string{
+				"John@example.com",
+				"john@example.com",
+			}
+			expected := []string{"John@example.com"}
+
+			assert.Equal(t, expected, deduplicateEmails(emails))
+
+			emails = []string{
+				"john@example.com",
+				"John@example.com",
+			}
+			expected = []string{"john@example.com"}
+
+			assert.Equal(t, expected, deduplicateEmails(emails))
+		})
+
+		t.Run("deduplicates example with multiple addresses", func(t *testing.T) {
+			emails := []string{
+				"a@example.com",
+				"a@example.com",
+				"a@EXAMPLE.com",
+				"A@example.com",
+				"A@example.com",
+
+				"B@example.com",
+				"B@example.com",
+				"b@example.com",
+				"b@example.com",
+				"b@EXAMPLE.com",
+			}
+
+			expected := []string{
+				"a@example.com",
+				"B@example.com",
+			}
+
+			assert.Equal(t, expected, deduplicateEmails(emails))
+		})
+	})
 }
 
 func TestFingerprintMethod(t *testing.T) {

@@ -360,7 +360,7 @@ func (key *PgpKey) Emails(allowUnbracketed bool) []string {
 			sortedEmails = append(sortedEmails, email)
 		}
 	}
-	return sortedEmails
+	return deduplicateEmails(sortedEmails)
 }
 
 func getEmail(identity *openpgp.Identity, allowUnbracketed bool) (string, bool) {
@@ -371,6 +371,31 @@ func getEmail(identity *openpgp.Identity, allowUnbracketed bool) (string, bool) 
 		return identity.UserId.Id, true
 	}
 	return "", false
+}
+
+// deduplicateEmails takes a slice of email addresses and returns a slice with duplicates removed.
+// A duplicate is defined as being identical when lower-cased.
+// Order is preserved: the *first* instance of a dupe will be returned first, e.g.
+//
+// [a@example.com, A@example.com,  B@example.com, b@example.com] returns
+// [a@example.com, B@example.com]
+func deduplicateEmails(emails []string) []string {
+	normalize := func(email string) string { return strings.ToLower(email) }
+
+	emailsSeen := map[string]bool{}
+	deduplicated := []string{}
+
+	for _, verbatimEmail := range emails {
+		normalizedEmail := normalize(verbatimEmail)
+
+		if _, seen := emailsSeen[normalizedEmail]; !seen {
+			emailsSeen[normalizedEmail] = true
+
+			deduplicated = append(deduplicated, verbatimEmail)
+		}
+	}
+
+	return deduplicated
 }
 
 func (key *PgpKey) Fingerprint() fingerprint.Fingerprint {
