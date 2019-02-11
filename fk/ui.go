@@ -58,26 +58,32 @@ func printHeader(message string) {
 // formatFileDivider returns a divider string, including a filename if given, e.g.:
 // ── readme.txt ──────────────────────────────────────────────────
 func formatFileDivider(filename string) string {
-	leftHandAndMessage := strings.Repeat(fileDividerRune, fileDividerPadding)
-	if filename != "" {
-		if utf8.RuneCountInString(filename) >= maxFilenameLength {
-			extension := filepath.Ext(filename)
-			remainingCharacters := maxFilenameLength - utf8.RuneCountInString(extension) - 1 // '…'
-			filename = filename[:remainingCharacters] + "…" + extension
-		}
-		leftHandAndMessage = leftHandAndMessage + " " + colour.File(filename) + " "
+	if filename == "" {
+		return strings.Repeat(fileDividerRune, fileDividerLength)
 	}
-	rightHand := strings.Repeat(fileDividerRune, (fileDividerLength - utf8.RuneCountInString(
-		colour.StripAllColourCodes(leftHandAndMessage))))
-	return leftHandAndMessage + rightHand
+
+	if utf8.RuneCountInString(filename) > maxFilenameLength {
+		extension := filepath.Ext(filename)
+		remainingCharacters := maxFilenameLength - (utf8.RuneCountInString(extension) + 1) // '…'
+		filename = filename[:remainingCharacters] + "…" + extension
+	}
+
+	leftDecoration := strings.Repeat(fileDividerRune, fileDividerMinRepeat) + " "
+
+	rightDecoration := " " + strings.Repeat(
+		fileDividerRune,
+		fileDividerLength-(utf8.RuneCountInString(leftDecoration+filename)+1),
+	)
+
+	return leftDecoration + colour.File(filename) + rightDecoration
 }
 
 const (
-	fileDividerRune    = "─"
-	fileDividerPadding = 2
-	fileDividerLength  = 80
+	fileDividerRune      = "─"
+	fileDividerMinRepeat = 2
+	fileDividerLength    = 80
 )
 
 var (
-	maxFilenameLength = fileDividerLength - (2 * (fileDividerPadding + 1))
+	maxFilenameLength = fileDividerLength - (2 * (fileDividerMinRepeat + 1))
 )
