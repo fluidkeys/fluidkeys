@@ -19,7 +19,9 @@ package fk
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/out"
@@ -53,18 +55,29 @@ func printHeader(message string) {
 	out.Print(colour.Header(fmt.Sprintf(" %-79s", message)) + "\n\n")
 }
 
-// printFileDivider prints a divider string, including a filename if given, e.g.:
+// formatFileDivider returns a divider string, including a filename if given, e.g.:
 // ── readme.txt ──────────────────────────────────────────────────
-func printFileDivider(filename string) {
+func formatFileDivider(filename string) string {
+	leftHandAndMessage := strings.Repeat(fileDividerRune, fileDividerPadding)
 	if filename != "" {
-		filename = " " + filename + " "
+		if utf8.RuneCountInString(filename) >= maxFilenameLength {
+			extension := filepath.Ext(filename)
+			remainingCharacters := maxFilenameLength - utf8.RuneCountInString(extension) - 1 // '…'
+			filename = filename[:remainingCharacters] + "…" + extension
+		}
+		leftHandAndMessage = leftHandAndMessage + " " + colour.File(filename) + " "
 	}
-	leftHandAndMessage := strings.Repeat(fileDividerRune, 2) + colour.File(filename)
-	rightHand := strings.Repeat(fileDividerRune, (fileDividerLength - len(leftHandAndMessage)))
-	out.Print(leftHandAndMessage + rightHand + "\n")
+	rightHand := strings.Repeat(fileDividerRune, (fileDividerLength - utf8.RuneCountInString(
+		colour.StripAllColourCodes(leftHandAndMessage))))
+	return leftHandAndMessage + rightHand
 }
 
 const (
-	fileDividerRune   = "─"
-	fileDividerLength = 80
+	fileDividerRune    = "─"
+	fileDividerPadding = 2
+	fileDividerLength  = 80
+)
+
+var (
+	maxFilenameLength = fileDividerLength - (2 * (fileDividerPadding + 1))
 )

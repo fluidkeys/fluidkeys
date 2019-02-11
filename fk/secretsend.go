@@ -77,9 +77,9 @@ https://download.fluidkeys.com#` + recipientEmail + `
 	if filename != "" {
 		secret, err = getSecretFromFile(filename, nil)
 
-		printFileDivider(filename)
+		out.Print(formatFileDivider(filename) + "\n")
 		out.Print(secret)
-		printFileDivider("")
+		out.Print(formatFileDivider("") + "\n")
 		out.Print("\n")
 
 		out.Print(colour.Info("The file will be end-to-end encrypted to ") + recipientEmail + "\n")
