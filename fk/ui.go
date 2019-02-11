@@ -53,6 +53,8 @@ func printHeader(message string) {
 	out.Print(colour.Header(fmt.Sprintf(" %-79s", message)) + "\n\n")
 }
 
+// printFileDivider prints a divider string, including a message if given, e.g.:
+// ── readme.txt ──────────────────────────────────────────────────
 func printFileDivider(message string) {
 	if message != "" {
 		message = " " + message + " "
