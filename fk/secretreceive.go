@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	homedir "github.com/mitchellh/go-homedir"
 
@@ -194,16 +195,17 @@ func decryptSecrets(encryptedSecrets []v1structs.Secret, privateKey *pgpkey.PgpK
 }
 
 func formatSecretListItem(decryptedContent string, filename string) (output string) {
-	trimmedDivider := strings.Repeat(secretDividerRune, secretDividerLength-(1))
-	output = out.NoLogCharacter + trimmedDivider + "\n"
-	if filename != "" {
-		output = output + colour.File("Filename: "+filename) + "\n"
+	noLogDividerLength := FileDividerLength - utf8.RuneCountInString(out.NoLogCharacter)
+	output = out.NoLogCharacter + formatFileDivider(filename, noLogDividerLength) + "\n"
+	truncatedPreivew, wasTruncated := formatFirstTwentyLines(decryptedContent)
+	output = output + truncatedPreivew
+	if wasTruncated {
+		output = output +
+			formatFileDivider("[ preview limited to 20 lines ]", FileDividerLength) + "\n\n"
+	} else {
+		output = output +
+			formatFileDivider("", FileDividerLength) + "\n\n"
 	}
-	output = output + decryptedContent
-	if !strings.HasSuffix(decryptedContent, "\n") {
-		output = output + "\n"
-	}
-	output = output + strings.Repeat(secretDividerRune, secretDividerLength) + "\n"
 	return output
 }
 
@@ -366,11 +368,6 @@ func splitFileExtension(basename string) (string, string) {
 
 	return strings.TrimSuffix(basename, extension), extension
 }
-
-const (
-	secretDividerRune   = "─"
-	secretDividerLength = 30
-)
 
 type secret struct {
 	decryptedContent string

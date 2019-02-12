@@ -55,35 +55,67 @@ func printHeader(message string) {
 	out.Print(colour.Header(fmt.Sprintf(" %-79s", message)) + "\n\n")
 }
 
-// formatFileDivider returns a divider string, including a filename if given, e.g.:
-// ── readme.txt ──────────────────────────────────────────────────
-func formatFileDivider(filename string) string {
-	if filename == "" {
-		return strings.Repeat(fileDividerRune, fileDividerLength)
+// formatFileDivider takes a message, and returns it 'decorated' with lines either side, to a
+// length of dividerLength.
+// i.e.   `end of file`
+//  ->    `── end of file ────────`
+// If the given message is longer than the divider length, it is truncated,
+// i.e.   `end of a long message`
+//  ->    `── end of a long me… ──`
+// If no message is provided, it returns a single, unbroken line of length dividerLength.
+func formatFileDivider(message string, dividerLength int) string {
+	maxMessageLength := calculateMaxMessageLength(dividerLength)
+
+	if message == "" {
+		return strings.Repeat(fileDividerRune, dividerLength)
 	}
 
-	if utf8.RuneCountInString(filename) > maxFilenameLength {
-		extension := filepath.Ext(filename)
-		remainingCharacters := maxFilenameLength - (utf8.RuneCountInString(extension) + 1) // '…'
-		filename = filename[:remainingCharacters] + "…" + extension
+	if utf8.RuneCountInString(message) > maxMessageLength {
+		extension := filepath.Ext(message)
+		if extension == "" {
+			message = message[:(maxMessageLength-1)] + "…"
+		} else {
+			remainingCharacters := maxMessageLength - (utf8.RuneCountInString(extension) + 1) // '…'
+			message = message[:remainingCharacters] + "…" + extension
+		}
 	}
 
 	leftDecoration := strings.Repeat(fileDividerRune, fileDividerMinRepeat) + " "
 
 	rightDecoration := " " + strings.Repeat(
 		fileDividerRune,
-		fileDividerLength-(utf8.RuneCountInString(leftDecoration+filename)+1),
+		dividerLength-(utf8.RuneCountInString(leftDecoration+message)+1),
 	)
 
-	return leftDecoration + colour.File(filename) + rightDecoration
+	return leftDecoration + colour.File(message) + rightDecoration
+}
+
+// formatFirstTwentyLines takes an input string and returns the first 20 lines of it plus a boolean
+// of whether it was truncated.
+// The return string always ends with a trailing new line `\n`: i.e. if input was `line 1\nline2`,
+// it returns `line 1\nline\n`
+func formatFirstTwentyLines(input string) (string, bool) {
+	lines := strings.SplitN(input, "\n", 21)
+	if len(lines) == 21 && lines[20] != "" {
+		return strings.Join(lines[0:20], "\n") + "\n", true
+	}
+	return appendNewlineIfMissing(input), false
+}
+
+func appendNewlineIfMissing(input string) string {
+	if input[len(input)-1:] == "\n" {
+		return input
+	}
+	return input + "\n"
 }
 
 const (
 	fileDividerRune      = "─"
 	fileDividerMinRepeat = 2
-	fileDividerLength    = 80
 )
 
-var (
-	maxFilenameLength = fileDividerLength - (2 * (fileDividerMinRepeat + 1))
-)
+const FileDividerLength = 80
+
+func calculateMaxMessageLength(dividerLength int) int {
+	return dividerLength - (2 * (fileDividerMinRepeat + 1))
+}
