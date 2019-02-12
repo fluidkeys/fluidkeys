@@ -197,8 +197,15 @@ func decryptSecrets(encryptedSecrets []v1structs.Secret, privateKey *pgpkey.PgpK
 func formatSecretListItem(decryptedContent string, filename string) (output string) {
 	noLogDividerLength := FileDividerLength - utf8.RuneCountInString(out.NoLogCharacter)
 	output = out.NoLogCharacter + formatFileDivider(filename, noLogDividerLength) + "\n"
-	output = output + decryptedContent
-	output = output + formatFileDivider("", FileDividerLength) + "\n\n"
+	truncatedPreivew, wasTruncated := formatFirstTwentyLines(decryptedContent)
+	output = output + truncatedPreivew
+	if wasTruncated {
+		output = output +
+			formatFileDivider("[ preview limited to 20 lines ]", FileDividerLength) + "\n\n"
+	} else {
+		output = output +
+			formatFileDivider("", FileDividerLength) + "\n\n"
+	}
 	return output
 }
 
