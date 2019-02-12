@@ -55,27 +55,32 @@ func printHeader(message string) {
 	out.Print(colour.Header(fmt.Sprintf(" %-79s", message)) + "\n\n")
 }
 
-// formatFileDivider returns a divider string, including a filename if given, e.g.:
-// ── readme.txt ──────────────────────────────────────────────────
-func formatFileDivider(filename string) string {
-	if filename == "" {
+// formatFileDivider takes a message, and returns it 'decorated' with lines either side.
+// i.e. `end of file` -> `── end of file ─────────────────────────────────────────`
+// If no message is provided, it returns a single, unbroken line.
+func formatFileDivider(message string) string {
+	if message == "" {
 		return strings.Repeat(fileDividerRune, fileDividerLength)
 	}
 
-	if utf8.RuneCountInString(filename) > maxFilenameLength {
-		extension := filepath.Ext(filename)
-		remainingCharacters := maxFilenameLength - (utf8.RuneCountInString(extension) + 1) // '…'
-		filename = filename[:remainingCharacters] + "…" + extension
+	if utf8.RuneCountInString(message) > maxMessageLength {
+		extension := filepath.Ext(message)
+		if extension == "" {
+			message = message[:(maxMessageLength-1)] + "…"
+		} else {
+			remainingCharacters := maxMessageLength - (utf8.RuneCountInString(extension) + 1) // '…'
+			message = message[:remainingCharacters] + "…" + extension
+		}
 	}
 
 	leftDecoration := strings.Repeat(fileDividerRune, fileDividerMinRepeat) + " "
 
 	rightDecoration := " " + strings.Repeat(
 		fileDividerRune,
-		fileDividerLength-(utf8.RuneCountInString(leftDecoration+filename)+1),
+		fileDividerLength-(utf8.RuneCountInString(leftDecoration+message)+1),
 	)
 
-	return leftDecoration + colour.File(filename) + rightDecoration
+	return leftDecoration + colour.File(message) + rightDecoration
 }
 
 // formatFirstTwentyLines takes an input string and returns the first 20 lines of it plus a boolean
@@ -104,5 +109,5 @@ const (
 )
 
 var (
-	maxFilenameLength = fileDividerLength - (2 * (fileDividerMinRepeat + 1))
+	maxMessageLength = fileDividerLength - (2 * (fileDividerMinRepeat + 1))
 )
