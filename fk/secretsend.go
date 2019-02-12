@@ -95,7 +95,7 @@ https://download.fluidkeys.com#` + recipientEmail + `
 		}
 		out.Print("\n")
 
-		out.Print(colour.Info("The file will be end-to-end encrypted to ") + recipientEmail + "\n")
+		out.Print(colour.Info("The file will be end-to-end encrypted to " + recipientEmail + "\n"))
 		out.Print(colour.Info("so no-one else can read it 🕵️\n\n"))
 
 		prompter := interactiveYesNoPrompter{}
@@ -105,7 +105,7 @@ https://download.fluidkeys.com#` + recipientEmail + `
 		}
 	} else {
 		out.Print(colour.Info("Type or paste your message, ending by typing Ctrl-D\n"))
-		out.Print(colour.Info("It will be end-to-end encrypted to ") + recipientEmail + "\n")
+		out.Print(colour.Info("It will be end-to-end encrypted to " + recipientEmail + "\n"))
 		out.Print(colour.Info("so no-one else can read it 🕵️\n\n"))
 
 		secret, err = getSecretFromStdin(&stdinReader{})
