@@ -78,6 +78,25 @@ func formatFileDivider(filename string) string {
 	return leftDecoration + colour.File(filename) + rightDecoration
 }
 
+// formatFirstTwentyLines takes an input string and returns the first 20 lines of it plus a boolean
+// of whether it was truncated.
+// The return string always ends with a trailing new line `\n`: i.e. if input was `line 1\nline2`,
+// it returns `line 1\nline\n`
+func formatFirstTwentyLines(input string) (string, bool) {
+	lines := strings.SplitN(input, "\n", 21)
+	if len(lines) == 21 && lines[20] != "" {
+		return strings.Join(lines[0:20], "\n") + "\n", true
+	}
+	return appendNewlineIfMissing(input), false
+}
+
+func appendNewlineIfMissing(input string) string {
+	if input[len(input)-1:] == "\n" {
+		return input
+	}
+	return input + "\n"
+}
+
 const (
 	fileDividerRune      = "─"
 	fileDividerMinRepeat = 2

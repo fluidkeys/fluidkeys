@@ -1,6 +1,7 @@
 package fk
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -104,4 +105,72 @@ func TestFormatFileDivider(t *testing.T) {
 		})
 	})
 
+}
+
+func TestFormatFirstTwentyLines(t *testing.T) {
+	t.Run("with content of less than 20 lines", func(t *testing.T) {
+		content := "line 1\nline 2\nline 3\n"
+		got, truncated := formatFirstTwentyLines(content)
+		assert.Equal(t, content, got)
+		assert.Equal(t, false, truncated)
+	})
+
+	t.Run("with content less than 20 lines, last missing a new line", func(t *testing.T) {
+		content := "line 1\nline 2"
+		got, truncated := formatFirstTwentyLines(content)
+		assert.Equal(t, "line 1\nline 2\n", got)
+		assert.Equal(t, false, truncated)
+	})
+
+	t.Run("with content of exactly 19 lines", func(t *testing.T) {
+		content := makeNLines(t, 19)
+		got, truncated := formatFirstTwentyLines(content)
+		assert.Equal(t, content, got)
+		assert.Equal(t, false, truncated)
+	})
+
+	t.Run("with content of exactly 20 lines, ending with a new line", func(t *testing.T) {
+		content := makeNLines(t, 20)
+		got, truncated := formatFirstTwentyLines(content)
+		assert.Equal(t, content, got)
+		assert.Equal(t, false, truncated)
+	})
+
+	t.Run("with 20 lines where the last is missing a trailing new line", func(t *testing.T) {
+		content := makeNLines(t, 19) + "last missing new line"
+		got, truncated := formatFirstTwentyLines(content)
+		assert.Equal(t, makeNLines(t, 19)+"last missing new line\n", got)
+		assert.Equal(t, false, truncated)
+	})
+
+	t.Run("with content of exactly 21 lines", func(t *testing.T) {
+		content := makeNLines(t, 21)
+		got, truncated := formatFirstTwentyLines(content)
+		assert.Equal(t, makeNLines(t, 20), got)
+		assert.Equal(t, true, truncated)
+	})
+
+	t.Run("with content of a hundred lines", func(t *testing.T) {
+		content := makeNLines(t, 100)
+		got, truncated := formatFirstTwentyLines(content)
+		assert.Equal(t, makeNLines(t, 20), got)
+		assert.Equal(t, true, truncated)
+	})
+
+	t.Run("with content buried beneath lots of new lines", func(t *testing.T) {
+		content := strings.Repeat("\n", 25) + "some content"
+		got, truncated := formatFirstTwentyLines(content)
+		assert.Equal(t, strings.Repeat("\n", 20), got)
+		assert.Equal(t, true, truncated)
+	})
+}
+
+func makeNLines(t *testing.T, numberOfLines int) string {
+	t.Helper()
+
+	lines := []string{}
+	for i := 0; i < numberOfLines; i++ {
+		lines = append(lines, fmt.Sprintf("line %d", i+1))
+	}
+	return strings.Join(lines, "\n") + "\n"
 }
