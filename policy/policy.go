@@ -149,6 +149,10 @@ const (
 	// encryption subkey. These are short-lived so don't need to be as
 	// large as the primary key.
 	EncryptionSubkeyRsaKeyBits = 2048
+
+	// SecretMaxSizeBytes is the maximum allowable size of the plaintext of a secret
+	// sent with `fk secret send ...`
+	SecretMaxSizeBytes = 10 * 1024
 )
 
 // NextExpiryTime returns the expiry time in UTC, according to the policy:
