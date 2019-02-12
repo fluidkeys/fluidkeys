@@ -1,7 +1,7 @@
 #!/bin/sh -eu
 
 VERSION_FILE="src/VERSION"
-FLUIDKEYS_GO="fluidkeys/main.go"
+FLUIDKEYS_GO="fk/main.go"
 DEBIAN_CONTROL="pkg/debian/DEBIAN/control"
 
 check_git_has_no_unstaged_changes() {
