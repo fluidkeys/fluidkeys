@@ -13,95 +13,92 @@ import (
 
 func TestFormatFileDivider(t *testing.T) {
 	t.Run("with no filename provided", func(t *testing.T) {
-		divider := formatFileDivider("")
+		divider := formatFileDivider("", 20)
 		assert.Equal(
 			t,
-			"────────────────────────────────────────────────────────────────────────────────",
+			"────────────────────",
 			divider,
 		)
-		assert.Equal(t, 80, utf8.RuneCountInString(colour.StripAllColourCodes(divider)))
+		assert.Equal(t, 20, utf8.RuneCountInString(colour.StripAllColourCodes(divider)))
 	})
 
 	t.Run("with a short filename provided", func(t *testing.T) {
-		divider := formatFileDivider("example.txt")
+		divider := formatFileDivider("example.txt", 20)
 		assert.Equal(
 			t,
-			"── "+colour.File("example.txt")+
-				" ─────────────────────────────────────────────────────────────────",
+			"── "+colour.File("example.txt")+" ─────",
 			divider,
 		)
-		assert.Equal(t, 80, utf8.RuneCountInString(colour.StripAllColourCodes(divider)))
+		assert.Equal(t, 20, utf8.RuneCountInString(colour.StripAllColourCodes(divider)))
 	})
 
 	t.Run("with a long filename provided", func(t *testing.T) {
-		divider := formatFileDivider("example1234567890123456789012345678901234567890123456789012345678901234567890.txt")
+		divider := formatFileDivider("example1234567890.txt", 20)
 		assert.Equal(
 			t,
-			"── "+
-				colour.File("example12345678901234567890123456789012345678901234567890123456789012….txt")+
-				" ──",
+			"── "+colour.File("example12….txt")+" ──",
 			divider,
 		)
-		assert.Equal(t, 80, utf8.RuneCountInString(colour.StripAllColourCodes(divider)))
+		assert.Equal(t, 20, utf8.RuneCountInString(colour.StripAllColourCodes(divider)))
 
 		t.Run("with no file extension", func(t *testing.T) {
-			divider := formatFileDivider("example1234567890123456789012345678901234567890123456789012345678901234567890")
+			divider := formatFileDivider("example1234567890", 20)
 			assert.Equal(
 				t,
-				"── "+colour.File("example123456789012345678901234567890123456789012345678901234567890123456…")+" ──",
+				"── "+colour.File("example123456…")+" ──",
 				divider,
 			)
-			assert.Equal(t, 80, utf8.RuneCountInString(colour.StripAllColourCodes(divider)))
+			assert.Equal(t, 20, utf8.RuneCountInString(colour.StripAllColourCodes(divider)))
 		})
 
 		t.Run("filename is 1 less than maxMessageLength", func(t *testing.T) {
 			// should not be truncated
-			filename := strings.Repeat("a", maxMessageLength-1)
-			divider := formatFileDivider(filename)
+			filename := strings.Repeat("a", calculateMaxMessageLength(20-1))
+			divider := formatFileDivider(filename, 20)
 
 			assert.Equal(
 				t,
 				"── "+colour.File(filename)+" ───", // note: 3 runes on right
 				divider,
 			)
-			assert.Equal(t, 80, utf8.RuneCountInString(colour.StripAllColourCodes(divider)))
+			assert.Equal(t, 20, utf8.RuneCountInString(colour.StripAllColourCodes(divider)))
 		})
 
 		t.Run("filename is exactly maxMessageLength", func(t *testing.T) {
 			// should not be truncated
-			filename := strings.Repeat("a", maxMessageLength)
-			divider := formatFileDivider(filename)
+			filename := strings.Repeat("a", calculateMaxMessageLength(20))
+			divider := formatFileDivider(filename, 20)
 
 			assert.Equal(
 				t,
 				"── "+colour.File(filename)+" ──",
 				divider,
 			)
-			assert.Equal(t, 80, utf8.RuneCountInString(colour.StripAllColourCodes(divider)))
+			assert.Equal(t, 20, utf8.RuneCountInString(colour.StripAllColourCodes(divider)))
 		})
 
 		t.Run("filename is 1 more than maxMessageLength", func(t *testing.T) {
-			filename := strings.Repeat("a", maxMessageLength+1)
-			divider := formatFileDivider(filename)
+			filename := strings.Repeat("a", calculateMaxMessageLength(20+1))
+			divider := formatFileDivider(filename, 20)
 
 			assert.Equal(
 				t,
-				"── "+colour.File(filename[0:maxMessageLength-1]+"…")+" ──",
+				"── "+colour.File(filename[0:calculateMaxMessageLength(20-1)]+"…")+" ──",
 				divider,
 			)
-			assert.Equal(t, 80, utf8.RuneCountInString(colour.StripAllColourCodes(divider)))
+			assert.Equal(t, 20, utf8.RuneCountInString(colour.StripAllColourCodes(divider)))
 		})
 
 		t.Run("filename is 100 more than maxMessageLength", func(t *testing.T) {
-			filename := strings.Repeat("a", maxMessageLength+100)
-			divider := formatFileDivider(filename)
+			filename := strings.Repeat("a", calculateMaxMessageLength(20+100))
+			divider := formatFileDivider(filename, 20)
 
 			assert.Equal(
 				t,
-				"── "+colour.File(filename[0:maxMessageLength-1]+"…")+" ──",
+				"── "+colour.File(filename[0:calculateMaxMessageLength(20-1)]+"…")+" ──",
 				divider,
 			)
-			assert.Equal(t, 80, utf8.RuneCountInString(colour.StripAllColourCodes(divider)))
+			assert.Equal(t, 20, utf8.RuneCountInString(colour.StripAllColourCodes(divider)))
 		})
 	})
 

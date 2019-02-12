@@ -55,12 +55,19 @@ func printHeader(message string) {
 	out.Print(colour.Header(fmt.Sprintf(" %-79s", message)) + "\n\n")
 }
 
-// formatFileDivider takes a message, and returns it 'decorated' with lines either side.
-// i.e. `end of file` -> `── end of file ─────────────────────────────────────────`
-// If no message is provided, it returns a single, unbroken line.
-func formatFileDivider(message string) string {
+// formatFileDivider takes a message, and returns it 'decorated' with lines either side, to a
+// length of dividerLength.
+// i.e.   `end of file`
+//  ->    `── end of file ────────`
+// If the given message is longer than the divider length, it is truncated,
+// i.e.   `end of a long message`
+//  ->    `── end of a long me… ──`
+// If no message is provided, it returns a single, unbroken line of length dividerLength.
+func formatFileDivider(message string, dividerLength int) string {
+	maxMessageLength := calculateMaxMessageLength(dividerLength)
+
 	if message == "" {
-		return strings.Repeat(fileDividerRune, fileDividerLength)
+		return strings.Repeat(fileDividerRune, dividerLength)
 	}
 
 	if utf8.RuneCountInString(message) > maxMessageLength {
@@ -77,7 +84,7 @@ func formatFileDivider(message string) string {
 
 	rightDecoration := " " + strings.Repeat(
 		fileDividerRune,
-		fileDividerLength-(utf8.RuneCountInString(leftDecoration+message)+1),
+		dividerLength-(utf8.RuneCountInString(leftDecoration+message)+1),
 	)
 
 	return leftDecoration + colour.File(message) + rightDecoration
@@ -105,9 +112,10 @@ func appendNewlineIfMissing(input string) string {
 const (
 	fileDividerRune      = "─"
 	fileDividerMinRepeat = 2
-	fileDividerLength    = 80
 )
 
-var (
-	maxMessageLength = fileDividerLength - (2 * (fileDividerMinRepeat + 1))
-)
+const FileDividerLength = 80
+
+func calculateMaxMessageLength(dividerLength int) int {
+	return dividerLength - (2 * (fileDividerMinRepeat + 1))
+}

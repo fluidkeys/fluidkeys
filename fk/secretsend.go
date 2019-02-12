@@ -83,9 +83,15 @@ https://download.fluidkeys.com#` + recipientEmail + `
 
 		basename = filepath.Base(filename)
 
-		out.Print(formatFileDivider(basename) + "\n")
-		out.Print(secret)
-		out.Print(formatFileDivider("") + "\n")
+		truncatedPreview, wasTruncated := formatFirstTwentyLines(secret)
+
+		out.Print(formatFileDivider(basename, FileDividerLength) + "\n")
+		out.Print(truncatedPreview)
+		if wasTruncated {
+			out.Print(formatFileDivider("[ preview limited to 20 lines ]", FileDividerLength) + "\n")
+		} else {
+			out.Print(formatFileDivider("", FileDividerLength) + "\n")
+		}
 		out.Print("\n")
 
 		out.Print(colour.Info("The file will be end-to-end encrypted to ") + recipientEmail + "\n")
