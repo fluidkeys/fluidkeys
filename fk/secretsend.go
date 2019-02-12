@@ -132,7 +132,7 @@ func getSecretFromFile(filename string, fileReader ioutilReadFileInterface) (str
 		fileReader = &ioutilReadFilePassthrough{}
 	}
 
-	secretData, err := fileReader.ReadFileMaxBytes(filename, secretMaxSizeBytes)
+	secretData, err := fileReader.ReadFileMaxBytes(filename, SecretMaxSizeBytes)
 
 	if err == errTooMuchData {
 		return "", fmt.Errorf("file is too large (max 10K)")
@@ -178,7 +178,7 @@ func isValidTextSecret(text string) bool {
 type stdinReader struct{}
 
 func (s *stdinReader) scanUntilEOF() (message string, err error) {
-	output, err := readUpTo(os.Stdin, secretMaxSizeBytes)
+	output, err := readUpTo(os.Stdin, SecretMaxSizeBytes)
 	if err != nil {
 		return "", err
 	}
@@ -278,6 +278,7 @@ func readUpTo(source io.Reader, maxBytes int64) ([]byte, error) {
 	}
 }
 
-const secretMaxSizeBytes = 10 * 1024
+// SecretMaxSizeBytes is the maximum allowable size of the plaintext of a secret.
+const SecretMaxSizeBytes = 10 * 1024
 
 var errTooMuchData error = errors.New("source had more data than maxBytes")
