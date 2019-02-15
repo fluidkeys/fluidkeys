@@ -40,9 +40,13 @@ func Parse(fp string) (Fingerprint, error) {
 	var nilFingerprint Fingerprint
 	withoutSpaces := strings.Replace(fp, " ", "", -1)
 
+	if withoutSpaces == "" {
+		return nilFingerprint, fmt.Errorf("invalid fingerprint: empty")
+	}
+
 	expectedPattern := `^(0x)?[A-Fa-f0-9]{40}$`
 	if matched, err := regexp.MatchString(expectedPattern, withoutSpaces); !matched || err != nil {
-		return nilFingerprint, fmt.Errorf("fingerprint doesn't match pattern '%v', err=%v", expectedPattern, err)
+		return nilFingerprint, fmt.Errorf("invalid v4 fingerprint: not 40 hex characters")
 	}
 
 	withoutLeading0x := strings.TrimPrefix(withoutSpaces, "0x")
@@ -67,6 +71,16 @@ func MustParse(fp string) Fingerprint {
 		log.Panic(err)
 	}
 	return result
+}
+
+func (f *Fingerprint) UnmarshalText(text []byte) error {
+	parsed, err := Parse(string(text))
+	if err != nil {
+		return err
+	}
+
+	*f = parsed
+	return nil
 }
 
 // FromBytes takes 20 bytes and returns a Fingerprint.
