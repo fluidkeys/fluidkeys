@@ -2,90 +2,90 @@ package fingerprint
 
 import (
 	"fmt"
+	"github.com/fluidkeys/fluidkeys/assert"
 	"testing"
 )
 
 func TestFingerprint(t *testing.T) {
 	var tests = []struct {
-		inputString       string
-		expectedOutput    string
-		shouldReturnError bool
+		inputString    string
+		expectedOutput string
+		expectedError  error
 	}{
 		{
 			"A999B7498D1A8DC473E53C92309F635DAD1B5517",
 			"A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
-			false,
+			nil, // good fingerprint: no error
 		},
 		{
 			"A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
 			"A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
-			false,
+			nil, // good fingerprint: no error
 		},
 		{
 			`0xA999B7498D1A8DC473E53C92309F635DAD1B5517`,
 			"A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
-			false,
+			nil, // good fingerprint: no error
 		},
 		{
 			`0C10 C4A2 6E9B 1B46 E713  C8D2 BEBF 0628 DAFF 9F4B`,
 			`0C10 C4A2 6E9B 1B46 E713  C8D2 BEBF 0628 DAFF 9F4B`,
-			false,
+			nil, // good fingerprint: no error
 		},
 		{
 			"a999b7498d1a8dc473e53c92309f635dad1b5517",
 			"A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
-			false,
+			nil, // good fingerprint: no error
 		},
 		{
+			// too long
 			"DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFD",
 			"",
-			true, // error: too long
+			fmt.Errorf("invalid v4 fingerprint: not 40 hex characters"),
 		},
 		{
+			// too short
 			"DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEE",
 			"",
-			true, // error: too long
+			fmt.Errorf("invalid v4 fingerprint: not 40 hex characters"),
 		},
 		{
+			// contains bad character G
 			"DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFG",
 			"",
-			true, // error, contains bad character G
+			fmt.Errorf("invalid v4 fingerprint: not 40 hex characters"),
 		},
 		{
 			"",
 			"",
-			true, // error, empty
+			fmt.Errorf("invalid fingerprint: empty"),
 		},
 	}
 
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("Fingerprint.FromString(%v)", test.inputString), func(t *testing.T) {
-			fingerprint, err := Parse(test.inputString)
+		t.Run(fmt.Sprintf("fingerprint.Parse(%v)", test.inputString), func(t *testing.T) {
+			fingerprint, gotError := Parse(test.inputString)
 
-			var gotError bool = err != nil
+			assert.Equal(t, test.expectedError, gotError)
 
-			if gotError != test.shouldReturnError {
-				t.Errorf("expected shouldReturnError=%v, got err=%v", test.shouldReturnError, err)
+			if gotError == nil {
+				assert.Equal(t, test.expectedOutput, fingerprint.String())
 			}
 
-			if test.shouldReturnError {
-				if err == nil {
-					t.Errorf("expected shouldReturnError=%v, got err=%v", test.shouldReturnError, err)
-				}
+		})
+	}
 
-			} else {
+	for _, test := range tests {
 
-				if err != nil {
-					t.Fatalf("expected shouldReturnError=%v, got err=%v", test.shouldReturnError, err)
-				}
+		t.Run(fmt.Sprintf("Fingerprint.UnmarshalText(%v)", test.inputString), func(t *testing.T) {
+			f := Fingerprint{}
+			gotError := f.UnmarshalText([]byte(test.inputString))
 
-				gotOutput := fingerprint.String()
+			assert.Equal(t, test.expectedError, gotError)
 
-				if test.expectedOutput != gotOutput {
-					t.Errorf("expected output='%s', got='%s'", test.expectedOutput, gotOutput)
-				}
+			if gotError == nil {
+				assert.Equal(t, test.expectedOutput, f.String())
 			}
-
 		})
 	}
 
