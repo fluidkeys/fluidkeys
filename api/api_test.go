@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fluidkeys/fluidkeys/exampledata"
+
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 
@@ -68,6 +70,130 @@ func TestGetPublicKey(t *testing.T) {
 		_, err := client.GetPublicKey("abby@example.com")
 
 		assert.ErrorIsNotNil(t, err)
+	})
+}
+
+func TestGetPublicKeyByFingerprint(t *testing.T) {
+	t.Run("responds with a good armored pgp key with matching fingerprint", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, exampledata.ExamplePublicKey4)
+		}
+		mux.HandleFunc(
+			"/key/"+exampledata.ExampleFingerprint4.Hex()+".asc",
+			mockResponseHandler,
+		)
+
+		key, err := client.GetPublicKeyByFingerprint(exampledata.ExampleFingerprint4)
+
+		assert.ErrorIsNil(t, err)
+		assert.Equal(t, exampledata.ExampleFingerprint4, key.Fingerprint())
+	})
+
+	t.Run("responds with an armored pgp key with the wrong fingerprint", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, exampledata.ExamplePublicKey3)
+		}
+		mux.HandleFunc(
+			"/key/"+exampledata.ExampleFingerprint4.Hex()+".asc",
+			mockResponseHandler,
+		)
+
+		_, err := client.GetPublicKeyByFingerprint(exampledata.ExampleFingerprint4)
+
+		assert.ErrorIsNotNil(t, err)
+		assert.Equal(t, fmt.Errorf("requested key BB3C 44BF 188D 56E6 35F4  A092 F73D 2F05 "+
+			"33D7 F9D6 but got back 7C18 DE4D E478 1356 8B24  3AC8 719B D63E F03B DC20"), err)
+	})
+
+	t.Run("empty response body", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, "")
+		}
+		mux.HandleFunc(
+			"/key/"+exampledata.ExampleFingerprint4.Hex()+".asc",
+			mockResponseHandler,
+		)
+
+		_, err := client.GetPublicKeyByFingerprint(exampledata.ExampleFingerprint4)
+
+		assert.ErrorIsNotNil(t, err)
+		assert.Equal(t, fmt.Errorf("got http 200, but with empty body"), err)
+	})
+
+	t.Run("404 gives a specific error", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(w, "")
+		}
+		mux.HandleFunc(
+			"/key/"+exampledata.ExampleFingerprint4.Hex()+".asc",
+			mockResponseHandler,
+		)
+
+		_, err := client.GetPublicKeyByFingerprint(exampledata.ExampleFingerprint4)
+
+		assert.ErrorIsNotNil(t, err)
+		assert.Equal(t, ErrPublicKeyNotFound, err)
+	})
+
+	t.Run("responds with http 500 (unexpected http code)", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, "")
+		}
+		mux.HandleFunc(
+			"/key/"+exampledata.ExampleFingerprint4.Hex()+".asc",
+			mockResponseHandler,
+		)
+
+		_, err := client.GetPublicKeyByFingerprint(exampledata.ExampleFingerprint4)
+
+		assert.ErrorIsNotNil(t, err)
+		assert.Equal(t, fmt.Errorf("API error: 500"), err)
+	})
+
+	t.Run("responds with junk", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, "junk body")
+		}
+		mux.HandleFunc(
+			"/key/"+exampledata.ExampleFingerprint4.Hex()+".asc",
+			mockResponseHandler,
+		)
+
+		_, err := client.GetPublicKeyByFingerprint(exampledata.ExampleFingerprint4)
+
+		assert.ErrorIsNotNil(t, err)
+		assert.Equal(t, fmt.Errorf("failed to load armored key: error reading armored key ring: "+
+			"openpgp: invalid argument: no armored data found"), err)
 	})
 }
 

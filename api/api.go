@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -89,6 +90,57 @@ func (c *Client) GetPublicKey(email string) (string, error) {
 	}
 
 	return decodedJSON.ArmoredPublicKey, nil
+}
+
+// GetPublicKeyByFingerprint attempts to get a single armored public key.
+func (c *Client) GetPublicKeyByFingerprint(fp fingerprint.Fingerprint) (*pgpkey.PgpKey, error) {
+	path := fmt.Sprintf("key/%s.asc", fp.Hex())
+	request, err := c.newRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := c.client.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	if !isSuccess(response.StatusCode) {
+		if response != nil && response.StatusCode == http.StatusNotFound {
+			return nil, ErrPublicKeyNotFound
+		}
+		return nil, makeErrorForAPIResponse(response)
+	}
+
+	if response.Body == nil {
+		return nil, fmt.Errorf("got http %d, but with missing body", response.StatusCode)
+	}
+
+	bodyData, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %v", err)
+	}
+	if len(bodyData) == 0 {
+		return nil, fmt.Errorf("got http %d, but with empty body", response.StatusCode)
+	}
+
+	retrievedKey, err := pgpkey.LoadFromArmoredPublicKey(string(bodyData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to load armored key: %v", err)
+	}
+
+	if retrievedKey.Fingerprint() != fp {
+		log.Printf("danger: requested key %s from API but got back key %s\n",
+			fp, retrievedKey.Fingerprint())
+
+		return nil, fmt.Errorf(
+			"requested key %s but got back %s",
+			fp, retrievedKey.Fingerprint(),
+		)
+	}
+
+	return retrievedKey, nil
 }
 
 // CreateSecret creates a secret for the given recipient
