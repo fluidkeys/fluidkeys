@@ -64,8 +64,8 @@ Configuration file: %s
 
 Usage:
 	fk setup
-	fk team sync
 	fk setup <email>
+	fk team sync [--cron-output]
 	fk secret send <recipient-email>
 	fk secret send [<filename>] --to=<email>
 	fk secret receive
