@@ -28,11 +28,13 @@ func TestGetPublicKey(t *testing.T) {
 	defer teardown()
 
 	t.Run("with valid JSON response", func(t *testing.T) {
-		mux.HandleFunc("/email/jane@example.com/key", func(w http.ResponseWriter, r *http.Request) {
-			testMethod(t, r, "GET")
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
 			w.Header().Add("Content-Type", "application/json")
 			fmt.Fprint(w, `{"armoredPublicKey": "---- BEGIN PGP PUBLIC KEY..."}`)
-		})
+		}
+
+		mux.HandleFunc("/email/jane@example.com/key", mockResponseHandler)
 
 		armoredPublicKey, err := client.GetPublicKey("jane@example.com")
 
@@ -45,9 +47,11 @@ func TestGetPublicKey(t *testing.T) {
 	})
 
 	t.Run("with empty response", func(t *testing.T) {
-		mux.HandleFunc("/email/joe@example.com/key", func(w http.ResponseWriter, r *http.Request) {
-			testMethod(t, r, "GET")
-		})
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
+			// empty response
+		}
+		mux.HandleFunc("/email/joe@example.com/key", mockResponseHandler)
 
 		armoredPublicKey, err := client.GetPublicKey("joe@example.com")
 
@@ -60,12 +64,13 @@ func TestGetPublicKey(t *testing.T) {
 	})
 
 	t.Run("with a server error", func(t *testing.T) {
-		mux.HandleFunc("/email/abby@example.com/key", func(w http.ResponseWriter, r *http.Request) {
-			testMethod(t, r, "GET")
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Header().Add("Content-Type", "application/json")
 			fmt.Fprint(w, `{"detail": "Key not found"}`)
-		})
+		}
+		mux.HandleFunc("/email/abby@example.com/key", mockResponseHandler)
 
 		_, err := client.GetPublicKey("abby@example.com")
 
@@ -206,16 +211,17 @@ func TestCreateSecret(t *testing.T) {
 		ArmoredEncryptedSecret: "---- BEGIN PGP MESSAGE...",
 	}
 
-	mux.HandleFunc("/secrets", func(w http.ResponseWriter, r *http.Request) {
+	mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+		assertClientSentVerb(t, "POST", r.Method)
 		v := new(v1structs.SendSecretRequest)
 		json.NewDecoder(r.Body).Decode(v)
-		testMethod(t, r, "POST")
 		if !reflect.DeepEqual(v, input) {
 			t.Errorf("Request body = %+v, want %+v", v, input)
 		}
 
 		w.WriteHeader(201)
-	})
+	}
+	mux.HandleFunc("/secrets", mockResponseHandler)
 
 	fingerprint, err := fingerprint.Parse("ABAB ABAB ABAB ABAB ABAB  ABAB ABAB ABAB ABAB ABAB")
 	if err != nil {
@@ -278,8 +284,8 @@ func setup() (client *Client, mux *http.ServeMux, serverURL string, teardown fun
 	return client, mux, server.URL, server.Close
 }
 
-func testMethod(t *testing.T, r *http.Request, want string) {
-	if got := r.Method; got != want {
-		t.Errorf("Request method: %v, want %v", got, want)
+func assertClientSentVerb(t *testing.T, expectedVerb string, gotVerb string) {
+	if gotVerb != expectedVerb {
+		t.Errorf("Expected request verb: %s, got %s", expectedVerb, gotVerb)
 	}
 }
