@@ -89,17 +89,21 @@ Options:
 
 	ensureCrontabStateMatchesConfig()
 
+	var code exitCode
+
 	switch getSubcommand(args, []string{"key", "secret", "setup"}) {
 	case "key":
-		return keySubcommand(args)
+		code = keySubcommand(args)
 	case "secret":
-		return secretSubcommand(args)
+		code = secretSubcommand(args)
 	case "setup":
-		return setupSubcommand(args)
+		code = setupSubcommand(args)
 	default:
 		out.Print("unhandled subcommand")
-		return 1
+		code = 1
 	}
+
+	return code
 }
 
 func ensureCrontabStateMatchesConfig() {
