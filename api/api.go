@@ -52,6 +52,7 @@ type Client struct {
 	UserAgent string       // User agent used when communicating with the  API.
 }
 
+// ErrPublicKeyNotFound means the response was OK, but no key was found
 var ErrPublicKeyNotFound = fmt.Errorf("Public key not found")
 
 // NewClient returns a new Fluidkeys Server API client.
