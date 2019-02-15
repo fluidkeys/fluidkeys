@@ -207,11 +207,7 @@ func keySubcommand(args docopt.Opts) exitCode {
 		if err != nil {
 			log.Panic(err)
 		}
-		cronOutput, err := args.Bool("--cron-output")
-		if err != nil {
-			log.Panic(err)
-		}
-		os.Exit(keyMaintain(dryRun, automatic, cronOutput))
+		os.Exit(keyMaintain(dryRun, automatic))
 	case "upload":
 		os.Exit(keyUpload())
 	}
