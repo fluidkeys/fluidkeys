@@ -85,6 +85,13 @@ push_to_origin() {
     set +x  # disable command echo
 }
 
+print_aur_flag_url() {
+  echo
+  echo "Notify the Arch User Repository package of this new release:"
+  echo
+  echo "https://aur.archlinux.org/pkgbase/fluidkeys/flag-comment/"
+}
+
 check_git_has_no_unstaged_changes
 checkout_master
 check_local_master_equals_remote_master
@@ -96,3 +103,4 @@ make_upversion_commit
 make_signed_tag
 instruct_git_push
 push_to_origin
+print_aur_flag_url
