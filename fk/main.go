@@ -193,11 +193,14 @@ func keySubcommand(args docopt.Opts) exitCode {
 	}) {
 	case "create":
 		exitCode, _ := keyCreate("")
-		os.Exit(exitCode)
+		return exitCode
+
 	case "from-gpg":
-		os.Exit(keyFromGpg())
+		return keyFromGpg()
+
 	case "list":
-		os.Exit(keyList())
+		return keyList()
+
 	case "maintain":
 		dryRun, err := args.Bool("--dry-run")
 		if err != nil {
@@ -207,9 +210,10 @@ func keySubcommand(args docopt.Opts) exitCode {
 		if err != nil {
 			log.Panic(err)
 		}
-		os.Exit(keyMaintain(dryRun, automatic))
+		return keyMaintain(dryRun, automatic)
+
 	case "upload":
-		os.Exit(keyUpload())
+		return keyUpload()
 	}
 	log.Panicf("keySubcommand got unexpected arguments: %v", args)
 	panic(nil)
