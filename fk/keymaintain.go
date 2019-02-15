@@ -34,7 +34,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/status"
 )
 
-func keyMaintain(dryRun bool, automatic bool, cronOutput bool) exitCode {
+func keyMaintain(dryRun bool, automatic bool) exitCode {
 	keys, err := loadPgpKeys()
 	if err != nil {
 		log.Panic(err)
@@ -54,14 +54,7 @@ func keyMaintain(dryRun bool, automatic bool, cronOutput bool) exitCode {
 			passwordPrompter = &interactivePasswordPrompter{}
 		}
 
-		if cronOutput {
-			out.SetOutputToBuffer()
-		}
-		exitCode := runKeyMaintain(keys, yesNoPrompter, passwordPrompter)
-		if exitCode != 0 {
-			out.PrintTheBuffer()
-		}
-		return exitCode
+		return runKeyMaintain(keys, yesNoPrompter, passwordPrompter)
 	}
 }
 

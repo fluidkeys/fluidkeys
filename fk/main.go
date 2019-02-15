@@ -89,17 +89,40 @@ Options:
 
 	ensureCrontabStateMatchesConfig()
 
+	cronOutput, err := args.Bool("--cron-output")
+	if err != nil {
+		log.Panic(err)
+	}
+
+	if cronOutput {
+		out.SetOutputToBuffer()
+	}
+	var code exitCode
+
 	switch getSubcommand(args, []string{"key", "secret", "setup"}) {
 	case "key":
-		return keySubcommand(args)
+		code = keySubcommand(args)
+
 	case "secret":
-		return secretSubcommand(args)
+		code = secretSubcommand(args)
+
 	case "setup":
-		return setupSubcommand(args)
+		code = setupSubcommand(args)
+
 	default:
 		out.Print("unhandled subcommand")
-		return 1
+		code = 1
 	}
+
+	if cronOutput && code != 0 {
+		// cron treats no output to stdout as success. if a command outputs anything
+		// it treats this as a failure and typically sends an email.
+		// so, when running in cron mode, only print anything to terminal in the event of
+		// an error, eg the command was unsuccessful.
+		out.PrintTheBuffer()
+	}
+
+	return code
 }
 
 func ensureCrontabStateMatchesConfig() {
@@ -170,11 +193,14 @@ func keySubcommand(args docopt.Opts) exitCode {
 	}) {
 	case "create":
 		exitCode, _ := keyCreate("")
-		os.Exit(exitCode)
+		return exitCode
+
 	case "from-gpg":
-		os.Exit(keyFromGpg())
+		return keyFromGpg()
+
 	case "list":
-		os.Exit(keyList())
+		return keyList()
+
 	case "maintain":
 		dryRun, err := args.Bool("--dry-run")
 		if err != nil {
@@ -184,13 +210,10 @@ func keySubcommand(args docopt.Opts) exitCode {
 		if err != nil {
 			log.Panic(err)
 		}
-		cronOutput, err := args.Bool("--cron-output")
-		if err != nil {
-			log.Panic(err)
-		}
-		os.Exit(keyMaintain(dryRun, automatic, cronOutput))
+		return keyMaintain(dryRun, automatic)
+
 	case "upload":
-		os.Exit(keyUpload())
+		return keyUpload()
 	}
 	log.Panicf("keySubcommand got unexpected arguments: %v", args)
 	panic(nil)
