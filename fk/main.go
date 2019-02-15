@@ -89,18 +89,37 @@ Options:
 
 	ensureCrontabStateMatchesConfig()
 
+	cronOutput, err := args.Bool("--cron-output")
+	if err != nil {
+		log.Panic(err)
+	}
+
+	if cronOutput {
+		out.SetOutputToBuffer()
+	}
 	var code exitCode
 
 	switch getSubcommand(args, []string{"key", "secret", "setup"}) {
 	case "key":
 		code = keySubcommand(args)
+
 	case "secret":
 		code = secretSubcommand(args)
+
 	case "setup":
 		code = setupSubcommand(args)
+
 	default:
 		out.Print("unhandled subcommand")
 		code = 1
+	}
+
+	if cronOutput && code != 0 {
+		// cron treats no output to stdout as success. if a command outputs anything
+		// it treats this as a failure and typically sends an email.
+		// so, when running in cron mode, only print anything to terminal in the event of
+		// an error, eg the command was unsuccessful.
+		out.PrintTheBuffer()
 	}
 
 	return code
