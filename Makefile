@@ -28,6 +28,10 @@ test:
 	./script/test_dep_gopkg_files
 	./script/test_discover_dbus_session_address
 
+.PHONY: test_lint
+test_lint:
+	gometalinter --config .gometalinter.json ./...
+
 .PHONY: run
 run: $(MAIN_GO_FILES)
 	go run $<

@@ -1,0 +1,39 @@
+{
+    "Enable": [
+	"vet",
+	"deadcode",
+	"dupl",
+	"errcheck",
+	"gochecknoglobals",
+	"goconst",
+	"gocyclo",
+	"goimports",
+	"golint",
+	"gosec",
+	"gotype",
+	"gotypex",
+	"ineffassign",
+	"interfacer",
+	"lll",
+	"maligned",
+	"nakedret",
+	"staticcheck",
+	"structcheck",
+	"unconvert",
+	"unparam",
+	"varcheck"
+    ],
+    "Disable": [
+	"safesql",
+	"gochecknoinits",
+	"misspell",
+	"unparam",
+	"dupl",
+	"gochecknoglobals",
+	"lll"
+    ],
+    "VendoredLinters": true,
+    "Skip": [
+	"vendor"
+    ]
+}
