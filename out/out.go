@@ -49,7 +49,7 @@ func Load(logDirectory string) error {
 
 	logFilename = filepath.Join(logDirectory, "debug.log")
 
-	if f, err := os.OpenFile(logFilename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); err != nil {
+	if f, err := os.OpenFile(logFilename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600); err != nil {
 		return fmt.Errorf("failed to open '%s' for writing: %v", logFilename, err)
 	} else {
 		// configure global logger to output to this file
