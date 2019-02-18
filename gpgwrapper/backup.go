@@ -22,6 +22,8 @@ import (
 	"os/exec"
 )
 
+// BackupHomeDir makes a .tar backup file of the user's GnuPG directory
+// to the given filepath
 func (g *GnuPG) BackupHomeDir(filepath string) (string, error) {
 	cmd := "tar"
 	gpgHomeDir, err := g.HomeDir()
