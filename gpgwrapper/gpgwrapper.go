@@ -297,8 +297,13 @@ func (g *GnuPG) run(textToSend string, arguments ...string) (
 			return
 		}
 
-		io.WriteString(stdin, textToSend)
-		stdin.Close()
+		if _, err = io.WriteString(stdin, textToSend); err != nil {
+			return "", "", fmt.Errorf("failed to write text to stdin: %v", err)
+		}
+
+		if err := stdin.Close(); err != nil {
+			return "", "", fmt.Errorf("failed to close stdin: %v", err)
+		}
 	}
 
 	if err = cmd.Start(); err != nil {

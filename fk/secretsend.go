@@ -216,8 +216,12 @@ func encryptSecret(secret string, filename string, pgpKey *pgpkey.PgpKey) (strin
 		return "", err
 	}
 
-	pgpWriteCloser.Close()
-	message.Close()
+	if err := pgpWriteCloser.Close(); err != nil {
+		return "", fmt.Errorf("error closing encrypt writer: %v", err)
+	}
+	if err := message.Close(); err != nil {
+		return "", fmt.Errorf("error closing armorer: %v", err)
+	}
 	return buffer.String(), nil
 }
 
