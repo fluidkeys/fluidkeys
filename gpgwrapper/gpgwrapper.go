@@ -35,15 +35,15 @@ import (
 	"github.com/mitchellh/go-homedir"
 )
 
-var ErrNoVersionStringFound = errors.New("version string not found in GPG output")
-var ErrNoHomeDirectoryStringFound = errors.New("home directory string not found in GPG output")
+var errNoVersionStringFound = errors.New("version string not found in GPG output")
+var errNoHomeDirectoryStringFound = errors.New("home directory string not found in GPG output")
 
 func ErrProblemExecutingGPG(gpgStdout string, arguments ...string) error {
 	return fmt.Errorf("error executing GPG with %s: %s", arguments, gpgStdout)
 }
 
-var VersionRegexp = regexp.MustCompile(`gpg \(GnuPG.*\) (\d+\.\d+\.\d+)`)
-var HomeRegexp = regexp.MustCompile(`Home: +([^\r\n]+)`)
+var versionRegexp = regexp.MustCompile(`gpg \(GnuPG.*\) (\d+\.\d+\.\d+)`)
+var homeRegexp = regexp.MustCompile(`Home: +([^\r\n]+)`)
 
 type GnuPG struct {
 	// fullGpgPath is the full path (e.g. /usr/bin/gpg2) to the GnuPG binary.
@@ -95,16 +95,16 @@ func (g *GnuPG) Version() (string, error) {
 	return version, nil
 }
 
-// Returns the GnuPG home directory, e.g. "/Users/jane/.gnupg"
+// HomeDir returns the GnuPG home directory, e.g. "/Users/jane/.gnupg"
 func (g *GnuPG) HomeDir() (string, error) {
 	outString, _, err := g.run("", "--version")
 	if err != nil {
 		return "", err
 	}
 
-	match := HomeRegexp.FindStringSubmatch(outString)
+	match := homeRegexp.FindStringSubmatch(outString)
 	if match == nil {
-		return "", ErrNoHomeDirectoryStringFound
+		return "", errNoHomeDirectoryStringFound
 	}
 
 	if fullPath, err := homedir.Expand(match[1]); err != nil {
@@ -263,10 +263,10 @@ func checkValidExportPrivateOutput(stdout string, stderr string) (string, error)
 }
 
 func parseVersionString(gpgStdout string) (string, error) {
-	match := VersionRegexp.FindStringSubmatch(gpgStdout)
+	match := versionRegexp.FindStringSubmatch(gpgStdout)
 
 	if match == nil {
-		return "", ErrNoVersionStringFound
+		return "", errNoVersionStringFound
 	}
 
 	return match[1], nil

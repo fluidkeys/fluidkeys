@@ -86,12 +86,12 @@ https://download.fluidkeys.com#` + recipientEmail + `
 
 		truncatedPreview, wasTruncated := formatFirstTwentyLines(secret)
 
-		out.Print(formatFileDivider(basename, FileDividerLength) + "\n")
+		out.Print(formatFileDivider(basename, fileDividerLength) + "\n")
 		out.Print(truncatedPreview)
 		if wasTruncated {
-			out.Print(formatFileDivider("[ preview limited to 20 lines ]", FileDividerLength) + "\n")
+			out.Print(formatFileDivider("[ preview limited to 20 lines ]", fileDividerLength) + "\n")
 		} else {
-			out.Print(formatFileDivider("", FileDividerLength) + "\n")
+			out.Print(formatFileDivider("", fileDividerLength) + "\n")
 		}
 		out.Print("\n")
 

@@ -241,12 +241,12 @@ func runKeyMaintain(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwor
 }
 
 func addImportExportActions(keytask *keyTask, passwordPrompter promptForPasswordInterface) {
-	keytask.actions = prepend(keytask.actions, LoadPrivateKeyFromGnupg{passwordGetter: passwordPrompter})
-	keytask.actions = append(keytask.actions, PushIntoGnupg{})
-	keytask.actions = append(keytask.actions, UpdateBackupZIP{})
+	keytask.actions = prepend(keytask.actions, loadPrivateKeyFromGnupg{passwordGetter: passwordPrompter})
+	keytask.actions = append(keytask.actions, pushIntoGnupg{})
+	keytask.actions = append(keytask.actions, updateBackupZIP{})
 
 	if Config.ShouldPublishToAPI(keytask.key.Fingerprint()) {
-		keytask.actions = append(keytask.actions, PublishToAPI{})
+		keytask.actions = append(keytask.actions, publishToAPI{})
 	}
 }
 
@@ -469,15 +469,15 @@ func moveCursorUpLines(numLines int) {
 	}
 }
 
-type LoadPrivateKeyFromGnupg struct {
+type loadPrivateKeyFromGnupg struct {
 	passwordGetter promptForPasswordInterface
 }
 
-func (a LoadPrivateKeyFromGnupg) String() string {
+func (a loadPrivateKeyFromGnupg) String() string {
 	return "Load private key from " + colour.CommandLineCode("gpg")
 }
 
-func (a LoadPrivateKeyFromGnupg) Enact(key *pgpkey.PgpKey, now time.Time, returnPassword *string) error {
+func (a loadPrivateKeyFromGnupg) Enact(key *pgpkey.PgpKey, now time.Time, returnPassword *string) error {
 	if returnPassword == nil {
 		return fmt.Errorf("returnPassword was nil, but it's required")
 	}
@@ -493,20 +493,20 @@ func (a LoadPrivateKeyFromGnupg) Enact(key *pgpkey.PgpKey, now time.Time, return
 
 }
 
-func (a LoadPrivateKeyFromGnupg) SortOrder() int {
+func (a loadPrivateKeyFromGnupg) SortOrder() int {
 	return 0 // unimportant since actions are already sorted
 }
 
-type PushIntoGnupg struct {
+type pushIntoGnupg struct {
 }
 
-func (a PushIntoGnupg) String() string {
+func (a pushIntoGnupg) String() string {
 	return "Store updated key in " + colour.CommandLineCode("gpg")
 }
 
 type passwordMap = map[fingerprint.Fingerprint]string
 
-func (a PushIntoGnupg) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
+func (a pushIntoGnupg) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
 	if password == nil {
 		return fmt.Errorf("password was nil, but it's required")
 	}
@@ -514,18 +514,18 @@ func (a PushIntoGnupg) Enact(key *pgpkey.PgpKey, now time.Time, password *string
 	return pushPrivateKeyBackToGpg(key, *password, &gpg)
 }
 
-func (a PushIntoGnupg) SortOrder() int {
+func (a pushIntoGnupg) SortOrder() int {
 	return 0 // unimportant since actions are already sorted
 }
 
-type UpdateBackupZIP struct {
+type updateBackupZIP struct {
 }
 
-func (a UpdateBackupZIP) String() string {
+func (a updateBackupZIP) String() string {
 	return "Make backup ZIP file"
 }
 
-func (a UpdateBackupZIP) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
+func (a updateBackupZIP) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
 	if password == nil {
 		return fmt.Errorf("password was nil, but it's required")
 	}
@@ -533,21 +533,21 @@ func (a UpdateBackupZIP) Enact(key *pgpkey.PgpKey, now time.Time, password *stri
 	return err
 }
 
-func (a UpdateBackupZIP) SortOrder() int {
+func (a updateBackupZIP) SortOrder() int {
 	return 0 // unimportant since actions are already sorted
 }
 
-type PublishToAPI struct {
+type publishToAPI struct {
 }
 
-func (a PublishToAPI) String() string {
+func (a publishToAPI) String() string {
 	return "Upload updated key to Fluidkeys"
 }
 
-func (a PublishToAPI) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
+func (a publishToAPI) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
 	return publishKeyToAPI(key)
 }
 
-func (a PublishToAPI) SortOrder() int {
+func (a publishToAPI) SortOrder() int {
 	return 0 // unimportant since actions are already sorted
 }

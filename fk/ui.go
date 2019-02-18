@@ -114,7 +114,7 @@ const (
 	fileDividerMinRepeat = 2
 )
 
-const FileDividerLength = 80
+const fileDividerLength = 80
 
 func calculateMaxMessageLength(dividerLength int) int {
 	return dividerLength - (2 * (fileDividerMinRepeat + 1))

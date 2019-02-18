@@ -40,12 +40,12 @@ import (
 const DicewareNumberOfWords int = 6
 const DicewareSeparator string = "."
 
-type DicewarePassword struct {
+type dicewarePassword struct {
 	words     []string
 	separator string
 }
 
-func (d DicewarePassword) AsString() string {
+func (d dicewarePassword) AsString() string {
 	return strings.Join(d.words, d.separator)
 }
 
@@ -204,14 +204,14 @@ func generatePgpKey(email string, channel chan generatePgpKeyResult) {
 	channel <- generatePgpKeyResult{key, err}
 }
 
-func generatePassword(numberOfWords int, separator string) DicewarePassword {
-	return DicewarePassword{
+func generatePassword(numberOfWords int, separator string) dicewarePassword {
+	return dicewarePassword{
 		words:     diceware.MustGenerate(numberOfWords),
 		separator: separator,
 	}
 }
 
-func displayPassword(password DicewarePassword) {
+func displayPassword(password dicewarePassword) {
 	out.Print(out.NoLogCharacter + "   " + colour.Info(password.AsString()) + "\n\n")
 	out.Print("The password will be saved to your " + Keyring.Name() +
 		" so you don't have to keep\ntyping it.\n\n")
@@ -220,7 +220,7 @@ func displayPassword(password DicewarePassword) {
 	promptForInput("Press enter when you've saved the password. ")
 }
 
-func userConfirmedRandomWord(password DicewarePassword) bool {
+func userConfirmedRandomWord(password dicewarePassword) bool {
 	clearScreen()
 	rand.Seed(time.Now().UnixNano())
 	randomIndex := rand.Intn(len(password.words))
