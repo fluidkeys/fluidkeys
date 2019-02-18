@@ -20,10 +20,9 @@ package gpgwrapper
 import (
 	"fmt"
 	"os/exec"
-	"time"
 )
 
-func (g *GnuPG) BackupHomeDir(filepath string, now time.Time) (string, error) {
+func (g *GnuPG) BackupHomeDir(filepath string) (string, error) {
 	cmd := "tar"
 	gpgHomeDir, err := g.HomeDir()
 	if err != nil {
