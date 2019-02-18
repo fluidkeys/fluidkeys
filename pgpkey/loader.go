@@ -17,9 +17,12 @@
 
 package pgpkey
 
+// Loader provides a simple accessor method for loading private keys
 type Loader struct {
 }
 
+// LoadFromArmoredEncryptedPrivateKey takes an asci armored private key and password, and passes
+// it along to LoadFromArmoredEncryptedPrivateKey
 func (f *Loader) LoadFromArmoredEncryptedPrivateKey(armoredKey string, password string) (*PgpKey, error) {
 	return LoadFromArmoredEncryptedPrivateKey(armoredKey, password)
 }

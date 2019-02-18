@@ -45,6 +45,7 @@ func ErrProblemExecutingGPG(gpgStdout string, arguments ...string) error {
 var versionRegexp = regexp.MustCompile(`gpg \(GnuPG.*\) (\d+\.\d+\.\d+)`)
 var homeRegexp = regexp.MustCompile(`Home: +([^\r\n]+)`)
 
+// GnuPG provides an interface to the user's installation of GnuPG
 type GnuPG struct {
 	// fullGpgPath is the full path (e.g. /usr/bin/gpg2) to the GnuPG binary.
 	// It is set during Load.
@@ -69,6 +70,7 @@ type SecretKeyListing struct {
 	Created time.Time
 }
 
+// Load returns a pointer to an interface to the user's installation of GPG
 func Load() (*GnuPG, error) {
 	gpgBinary, err := findGpgBinary()
 	if err != nil {
@@ -77,7 +79,7 @@ func Load() (*GnuPG, error) {
 	return &GnuPG{fullGpgPath: gpgBinary}, nil
 }
 
-// Returns the GnuPG version string, e.g. "1.2.3"
+// Version returns the GnuPG version string, e.g. "1.2.3"
 func (g *GnuPG) Version() (string, error) {
 	outString, _, err := g.run("", "--version")
 
@@ -114,7 +116,7 @@ func (g *GnuPG) HomeDir() (string, error) {
 	}
 }
 
-// Checks whether GPG is working
+// IsWorking checks whether GPG is working
 func (g *GnuPG) IsWorking() bool {
 	_, err := g.Version()
 
@@ -125,7 +127,7 @@ func (g *GnuPG) IsWorking() bool {
 	return true
 }
 
-// Import an armored key into the GPG key ring
+// ImportArmoredKey imports the given armored key into the GPG key ring
 func (g *GnuPG) ImportArmoredKey(armoredKey string) error {
 	_, _, err := g.run(armoredKey, "--import")
 	if err != nil {
@@ -137,6 +139,7 @@ func (g *GnuPG) ImportArmoredKey(armoredKey string) error {
 	return nil
 }
 
+// ListSecretKeys lists the secret(private) keys in the users key ring.
 func (g *GnuPG) ListSecretKeys() ([]SecretKeyListing, error) {
 	args := []string{
 		"--with-colons",

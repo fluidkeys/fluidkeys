@@ -64,6 +64,7 @@ func load(fluidkeysDirectory string, helper fileFunctionsInterface) (*Config, er
 	return config, nil
 }
 
+// Config represents a user's configuration of Fluidkeys
 type Config struct {
 	parsedConfig   tomlConfig
 	parsedMetadata toml.MetaData
@@ -72,10 +73,12 @@ type Config struct {
 	filename string
 }
 
+// GetFilename returns the filename where the given config is stored
 func (c *Config) GetFilename() string {
 	return c.filename
 }
 
+// RunFromCron returns whether the user's config allows Fluidkeys to be run from cron
 func (c *Config) RunFromCron() bool {
 	if !c.parsedMetadata.IsDefined("run_from_cron") {
 		c.parsedConfig.RunFromCron = defaultRunFromCron
@@ -96,6 +99,8 @@ func (c *Config) ShouldStorePassword(fingerprint fingerprint.Fingerprint) bool {
 	return c.getConfig(fingerprint).StorePassword
 }
 
+// SetStorePassword sets whether the password for the given key should be
+// stored in the user's login keyring
 func (c *Config) SetStorePassword(fingerprint fingerprint.Fingerprint, value bool) error {
 	return c.setProperty(fingerprint, storePassword, value)
 }
@@ -119,7 +124,7 @@ func (c *Config) ShouldPublishToAPI(fingerprint fingerprint.Fingerprint) bool {
 	return c.getConfig(fingerprint).PublishToAPI
 }
 
-// SetShouldPublishToAPI sets whether the given key should be uploaded to the
+// SetPublishToAPI sets whether the given key should be uploaded to the
 // Fluidkeys directory to allow others to search for it by email address.
 func (c *Config) SetPublishToAPI(fingerprint fingerprint.Fingerprint, value bool) error {
 	return c.setProperty(fingerprint, publishToAPI, value)

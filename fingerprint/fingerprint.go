@@ -73,6 +73,7 @@ func MustParse(fp string) Fingerprint {
 	return result
 }
 
+// UnmarshalText implements encoding.TextUnmarshaler.
 func (f *Fingerprint) UnmarshalText(text []byte) error {
 	parsed, err := Parse(string(text))
 	if err != nil {
@@ -102,12 +103,11 @@ func Contains(haystack []Fingerprint, needle Fingerprint) bool {
 	return false
 }
 
-// Return a human-friendly version of the fingerprint, which should be a 40
+// String return a human-friendly version of the fingerprint, which should be a 40
 // character hex string.
 // `AB01 AB01 AB01 AB01 AB01  AB01 AB01 AB01 AB01 AB01`
 // String() returns the fingerprint in the "human friendly" format, for example
 // `AB01 AB01 AB01 AB01 AB01  AB01 AB01 AB01 AB01 AB01`
-
 func (f Fingerprint) String() string {
 	f.assertIsSet()
 	b := f.fingerprintBytes
@@ -119,10 +119,9 @@ func (f Fingerprint) String() string {
 	)
 }
 
-// Return the fingerprint as uppercase hex (20 bytes, 40 characters) without
+// Hex return the fingerprint as uppercase hex (20 bytes, 40 characters) without
 // spaces, for example:
 // `AB01AB01AB01AB01AB01AB01AB01AB01AB01AB01`
-
 func (f Fingerprint) Hex() string {
 	f.assertIsSet()
 	b := f.fingerprintBytes
@@ -144,9 +143,9 @@ func (f Fingerprint) Bytes() [20]byte {
 	return f.fingerprintBytes
 }
 
+// IsSet returns whether the fingerprint has been parsed correctly, and therefore is set
 func (f Fingerprint) IsSet() bool {
 	return f.isSet
-
 }
 
 func (f Fingerprint) assertIsSet() {
