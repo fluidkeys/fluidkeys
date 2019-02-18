@@ -28,6 +28,11 @@ test:
 	./script/test_make_install
 	./script/test_dep_gopkg_files
 	./script/test_discover_dbus_session_address
+	make test_gosec
+
+.PHONY: test_gosec
+test_gosec:
+	gosec ./...
 
 .PHONY: test_lint
 test_lint:
