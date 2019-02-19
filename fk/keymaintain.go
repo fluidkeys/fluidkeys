@@ -457,7 +457,7 @@ func tryEnableMaintainAutomatically(key *pgpkey.PgpKey, password string) (err er
 		return
 	}
 
-	if _, err = scheduler.Enable(); err != nil {
+	if _, err = scheduler.Enable(nil); err != nil {
 		return
 	}
 	return nil

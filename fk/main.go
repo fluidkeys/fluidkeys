@@ -135,7 +135,7 @@ func ensureCrontabStateMatchesConfig() {
 	}
 
 	if shouldEnable {
-		crontabWasAdded, err := scheduler.Enable()
+		crontabWasAdded, err := scheduler.Enable(nil)
 		if err != nil {
 			log.Panic(err)
 		}
@@ -145,7 +145,7 @@ func ensureCrontabStateMatchesConfig() {
 				Config.GetFilename()))
 		}
 	} else {
-		crontabWasRemoved, err := scheduler.Disable()
+		crontabWasRemoved, err := scheduler.Disable(nil)
 		if err != nil {
 			log.Panic(err)
 		}
