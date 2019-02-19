@@ -379,7 +379,7 @@ func makeGnupgBackup(now time.Time) (string, error) {
 		return "", err
 	}
 
-	filename, err := gpg.BackupHomeDir(filepath, now)
+	filename, err := gpg.BackupHomeDir(filepath)
 	if err != nil {
 		return "", fmt.Errorf("failed to call gpg.BackupHomeDir: %v", err)
 	}
