@@ -184,6 +184,10 @@ func TestCapitalize(t *testing.T) {
 			"Capital Hill",
 		},
 		{
+			"🐞 emoji",
+			"🐞 emoji",
+		},
+		{
 			"| pipe",
 			"| pipe",
 		},
