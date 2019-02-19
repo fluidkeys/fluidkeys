@@ -11,7 +11,7 @@ import (
 
 func TestMakeBackupFile(t *testing.T) {
 	zipData := bytes.NewBuffer(nil)
-	WriteZipData(zipData, exampleSlug, examplePublicKey, examplePrivateKey, exampleRevocationCert)
+	writeZipData(zipData, exampleSlug, examplePublicKey, examplePrivateKey, exampleRevocationCert)
 	readerAt := bytes.NewReader(zipData.Bytes())
 	zipReader, err := zip.NewReader(readerAt, int64(len(zipData.Bytes())))
 

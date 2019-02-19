@@ -70,15 +70,14 @@ func OutputZipBackupFile(
 	}
 	defer backupZipFile.Close()
 
-	err = WriteZipData(backupZipFile, keySlug, publicKey, privateKey, revocationCert)
+	err = writeZipData(backupZipFile, keySlug, publicKey, privateKey, revocationCert)
 	if err != nil {
-		return "", fmt.Errorf("WriteZipData failed: %v", err)
+		return "", fmt.Errorf("writeZipData failed: %v", err)
 	}
 	return filename, nil
 }
 
-// Write ZIP data to the given `w` io.Writer
-func WriteZipData(w io.Writer, uniqueSlug string, armoredPublicKey string, armoredPrivateKey string, armoredRevocationCert string) (err error) {
+func writeZipData(w io.Writer, uniqueSlug string, armoredPublicKey string, armoredPrivateKey string, armoredRevocationCert string) (err error) {
 	zipWriter := zip.NewWriter(w)
 	defer zipWriter.Close()
 

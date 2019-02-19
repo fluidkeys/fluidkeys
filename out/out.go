@@ -38,14 +38,14 @@ const NoLogCharacter string = "🤫"
 func init() {
 	// this is necessary for tests to use out.Print (they don't init
 	// through the main function)
-	SetOutputToTerminal()
+	setOutputToTerminal()
 }
 
 func Load(logDirectory string) error {
 	if logDirectory == "" {
 		return fmt.Errorf("missing log directory")
 	}
-	SetOutputToTerminal()
+	setOutputToTerminal()
 
 	logFilename = filepath.Join(logDirectory, "debug.log")
 
@@ -60,10 +60,6 @@ func Load(logDirectory string) error {
 
 func GetLogFilename() string {
 	return logFilename
-}
-
-func SetOutputToTerminal() {
-	outputter = &terminalOutputter{}
 }
 
 func SetOutputToBuffer() {
@@ -88,6 +84,10 @@ func PrintTheBuffer() {
 	if theBufferOutputter, ok := outputter.(*bufferOutputter); ok {
 		theBufferOutputter.printTheBuffer()
 	}
+}
+
+func setOutputToTerminal() {
+	outputter = &terminalOutputter{}
 }
 
 // splitIntoLogLines takes an output message (with newlines) and returns a

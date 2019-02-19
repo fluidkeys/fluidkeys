@@ -30,7 +30,7 @@ func TestParseGPGOutputVersion(t *testing.T) {
 	t.Run("test output not containing a version number", func(t *testing.T) {
 		gpgOutput := "foo\ngpg\nbar"
 		_, err := parseVersionString(gpgOutput)
-		assertError(t, err, ErrNoVersionStringFound)
+		assertError(t, err, errNoVersionStringFound)
 	})
 }
 

@@ -48,7 +48,7 @@ func deduplicateAndOrder(actions []KeyAction) []KeyAction {
 			actionsSeen[actionAsString] = true
 		}
 	}
-	sort.Sort(ByActionType(deduped))
+	sort.Sort(byActionType(deduped))
 	return deduped
 }
 
