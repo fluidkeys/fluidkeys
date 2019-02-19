@@ -8,6 +8,7 @@ endif
 DEB=pkg/debian
 SECRETS_ID_RSA=.secret/download-fluidkeys-com.id_rsa
 MAIN_GO_FILES=cmd/fk/main.go
+ALL_GO_FILES=$(shell find . -name '*.go')
 
 # `make compile` should populate build/ with all files that will
 # ultimately be installed to PREFIX (/usr/local), for example
@@ -16,7 +17,7 @@ MAIN_GO_FILES=cmd/fk/main.go
 compile: build/bin/fk
 
 
-build/bin/fk: $(MAIN_GO_FILES)
+build/bin/fk: $(MAIN_GO_FILES) $(ALL_GO_FILES)
 	go build -o $@ $(MAIN_GO_FILES)
 
 .PHONY: test
