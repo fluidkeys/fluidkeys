@@ -24,21 +24,27 @@ import (
 	"log"
 	"os/exec"
 	"strings"
-	"syscall"
 )
 
 // Enable adds cron lines to the user's crontab and returns whether the
 // crontab was updated.
-func Enable() (crontabWasAdded bool, err error) {
-	currentCrontab, err := getCurrentCrontab()
+func Enable(crontab runCrontabInterface) (crontabWasAdded bool, err error) {
+	if crontab == nil {
+		crontab = &systemCrontab{}
+	}
+
+	currentCrontab, err := crontab.get()
 	if err != nil {
 		return false, fmt.Errorf("error getting crontab: %v", err)
 	}
 
 	if !hasFluidkeysCronLines(currentCrontab) {
 		newCrontab := addCrontabLinesWithoutRepeating(currentCrontab)
-		err = writeCrontab(newCrontab)
-		return true, err
+		err = crontab.set(newCrontab)
+		if err != nil {
+			return false, err
+		}
+		return true, nil
 	}
 
 	return false, nil
@@ -47,61 +53,81 @@ func Enable() (crontabWasAdded bool, err error) {
 // Disable parses the crontab (output of `crontab -l`) and removes Fluidkeys'
 // cron lines if present.
 // If the remaining crontab is empty, the crontab is removed with `crontab -r`
-func Disable() (cronLinesWereRemoved bool, err error) {
-	currentCrontab, err := getCurrentCrontab()
+func Disable(crontab runCrontabInterface) (cronLinesWereRemoved bool, err error) {
+	if crontab == nil {
+		crontab = &systemCrontab{}
+	}
+
+	currentCrontab, err := crontab.get()
 	if err != nil {
 		return false, fmt.Errorf("error getting crontab: %v", err)
 	}
 
 	if hasFluidkeysCronLines(currentCrontab) {
 		newCrontab := removeCrontabLines(currentCrontab)
-		err = writeCrontab(newCrontab)
-		return true, err
+		err = crontab.set(newCrontab)
+
+		if err != nil {
+			return false, err
+		}
+		return true, nil
 	}
 	return false, nil
 }
 
 func hasFluidkeysCronLines(crontab string) bool {
-	return strings.Contains(crontab, cronLines)
+	return strings.Contains(crontab, CronLines)
 }
 
-func getCurrentCrontab() (string, error) {
-	output, err := runCrontab("-l")
-	if err != nil {
-		if isExitStatusOne(err) && strings.Contains(output, "no crontab for") {
-			return "", nil
-		}
+type systemCrontab struct{}
+
+func (s *systemCrontab) get() (string, error) {
+	output, err := s.runCrontab("-l")
+
+	if s.isNoCrontabError(output, err) {
+		return "", nil
 	}
+
 	return output, err
 }
 
-func writeCrontab(newCrontab string) error {
+func (s *systemCrontab) set(newCrontab string) error {
 	f, err := ioutil.TempFile("", "")
 	if err != nil {
-		return err
+		return fmt.Errorf("error opening temp file: %v", err)
 	}
 
 	if _, err := io.WriteString(f, newCrontab); err != nil {
-		return fmt.Errorf("error writing crontab: %v", err)
+		return fmt.Errorf("error writing to temp file: %v", err)
 	}
 	if err := f.Close(); err != nil {
-		return fmt.Errorf("error closing crontab: %v", err)
+		return fmt.Errorf("error closing temp file: %v", err)
 	}
 
-	_, err = runCrontab(f.Name())
-	return err
+	if _, err := s.runCrontab(f.Name()); err != nil {
+		return fmt.Errorf("error updating crontab: %v", err)
+	}
+	return nil
 }
 
-func isExitStatusOne(err error) bool {
-	if exiterr, ok := err.(*exec.ExitError); ok {
-		if _, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-			return true
-		}
+// isNoCrontabError returns true if and only if the error looks like a failure from `crontab -l`
+// of the form "no crontab for foo"
+func (s *systemCrontab) isNoCrontabError(cronOutput string, err error) bool {
+	if err == nil {
+		return false
+	}
+
+	return isExitError(err) && strings.Contains(cronOutput, "no crontab for")
+}
+
+func isExitError(err error) bool {
+	if _, ok := err.(*exec.ExitError); ok {
+		return true
 	}
 	return false
 }
 
-func runCrontab(arguments ...string) (string, error) {
+func (*systemCrontab) runCrontab(arguments ...string) (string, error) {
 	log.Printf("Running `%s %s`", crontab, strings.Join(arguments, " "))
 	cmd := exec.Command(crontab, arguments...)
 
@@ -116,15 +142,17 @@ func runCrontab(arguments ...string) (string, error) {
 }
 
 func addCrontabLinesWithoutRepeating(crontab string) string {
-	return removeCrontabLines(crontab) + cronLines
+	return removeCrontabLines(crontab) + CronLines
 }
 
 func removeCrontabLines(crontab string) string {
-	return strings.Replace(crontab, cronLines, "", -1)
+	return strings.Replace(crontab, CronLines, "", -1)
 }
 
 const crontab string = "crontab"
-const cronLines string = `
+
+// CronLines is the string Fluidkeys adds to a user's crontab to run itself
+const CronLines string = `
 # Fluidkeys added the following line. To disable, edit your Fluidkeys configuration file.
 @hourly /usr/local/bin/fk key maintain automatic --cron-output
 `

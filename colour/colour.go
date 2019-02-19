@@ -103,8 +103,16 @@ func Error(message string) string {
 	return red(message)
 }
 
+func ErrorDetail(message string) string {
+	return dim + message + reset
+}
+
 func TableHeader(message string) string {
 	return bright + blue(message)
+}
+
+func Cmd(message string) string {
+	return CommandLineCode(message)
 }
 
 func CommandLineCode(message string) string {

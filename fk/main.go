@@ -41,6 +41,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/scheduler"
+	"github.com/fluidkeys/fluidkeys/ui"
 )
 
 const Version = "0.4.0"
@@ -135,9 +136,24 @@ func ensureCrontabStateMatchesConfig() {
 	}
 
 	if shouldEnable {
-		crontabWasAdded, err := scheduler.Enable()
+		crontabWasAdded, err := scheduler.Enable(nil)
 		if err != nil {
-			log.Panic(err)
+			out.Print(ui.FormatFailure(
+				"Failed to schedule automatic key maintenance and rotation", []string{
+					"Fluidkeys manages your key by running itself periodically with cron.",
+					"Something prevented Fluidkeys from adding itself to your crontab."},
+				err,
+			))
+
+			out.Print("To fix this, run " + colour.Cmd("crontab -e") + " and add these lines:\n\n")
+			out.Print(formatFileDivider("crontab", 80))
+			out.Print(scheduler.CronLines)
+			out.Print(formatFileDivider("", 80))
+			out.Print("\n\n")
+
+			// don't carry on: they need to fix this problem first.
+			// if automatic key maintenance isn't working, Fluidkeys can't work
+			os.Exit(1)
 		}
 
 		if crontabWasAdded {
@@ -145,9 +161,20 @@ func ensureCrontabStateMatchesConfig() {
 				Config.GetFilename()))
 		}
 	} else {
-		crontabWasRemoved, err := scheduler.Disable()
+		crontabWasRemoved, err := scheduler.Disable(nil)
 		if err != nil {
-			log.Panic(err)
+			out.Print(ui.FormatWarning(
+				"Failed to remove Fluidkeys from crontab", []string{
+					"Fluidkeys tried to remove itself from crontab but something prevented it.",
+				},
+				err,
+			))
+
+			out.Print("To fix this, run " + colour.Cmd("crontab -e") + " and remove these lines:\n\n")
+			out.Print(formatFileDivider("crontab", 80))
+			out.Print(scheduler.CronLines)
+			out.Print(formatFileDivider("", 80))
+			out.Print("\n\n")
 		}
 
 		if crontabWasRemoved {
