@@ -24,7 +24,6 @@ import (
 	"log"
 	"os/exec"
 	"strings"
-	"syscall"
 )
 
 // Enable adds cron lines to the user's crontab and returns whether the
@@ -34,14 +33,14 @@ func Enable(crontab runCrontabInterface) (crontabWasAdded bool, err error) {
 		crontab = &systemCrontab{}
 	}
 
-	currentCrontab, err := getCurrentCrontab(crontab)
+	currentCrontab, err := crontab.get()
 	if err != nil {
 		return false, fmt.Errorf("error getting crontab: %v", err)
 	}
 
 	if !hasFluidkeysCronLines(currentCrontab) {
 		newCrontab := addCrontabLinesWithoutRepeating(currentCrontab)
-		err = writeCrontab(newCrontab, crontab)
+		err = crontab.set(newCrontab)
 		if err != nil {
 			return false, err
 		}
@@ -59,14 +58,14 @@ func Disable(crontab runCrontabInterface) (cronLinesWereRemoved bool, err error)
 		crontab = &systemCrontab{}
 	}
 
-	currentCrontab, err := getCurrentCrontab(crontab)
+	currentCrontab, err := crontab.get()
 	if err != nil {
 		return false, fmt.Errorf("error getting crontab: %v", err)
 	}
 
 	if hasFluidkeysCronLines(currentCrontab) {
 		newCrontab := removeCrontabLines(currentCrontab)
-		err = writeCrontab(newCrontab, crontab)
+		err = crontab.set(newCrontab)
 
 		if err != nil {
 			return false, err
@@ -80,17 +79,19 @@ func hasFluidkeysCronLines(crontab string) bool {
 	return strings.Contains(crontab, CronLines)
 }
 
-func getCurrentCrontab(crontab runCrontabInterface) (string, error) {
-	output, err := crontab.runCrontab("-l")
-	if err != nil {
-		if isExitStatusOne(err) && strings.Contains(output, "no crontab for") {
-			return "", nil
-		}
+type systemCrontab struct{}
+
+func (s *systemCrontab) get() (string, error) {
+	output, err := s.runCrontab("-l")
+
+	if s.isNoCrontabError(output, err) {
+		return "", nil
 	}
+
 	return output, err
 }
 
-func writeCrontab(newCrontab string, crontab runCrontabInterface) error {
+func (s *systemCrontab) set(newCrontab string) error {
 	f, err := ioutil.TempFile("", "")
 	if err != nil {
 		return fmt.Errorf("error opening temp file: %v", err)
@@ -103,22 +104,28 @@ func writeCrontab(newCrontab string, crontab runCrontabInterface) error {
 		return fmt.Errorf("error closing temp file: %v", err)
 	}
 
-	if _, err := crontab.runCrontab(f.Name()); err != nil {
+	if _, err := s.runCrontab(f.Name()); err != nil {
 		return fmt.Errorf("error updating crontab: %v", err)
 	}
 	return nil
 }
 
-func isExitStatusOne(err error) bool {
-	if exiterr, ok := err.(*exec.ExitError); ok {
-		if _, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-			return true
-		}
+// isNoCrontabError returns true if and only if the error looks like a failure from `crontab -l`
+// of the form "no crontab for foo"
+func (s *systemCrontab) isNoCrontabError(cronOutput string, err error) bool {
+	if err == nil {
+		return false
+	}
+
+	return isExitError(err) && strings.Contains(cronOutput, "no crontab for")
+}
+
+func isExitError(err error) bool {
+	if _, ok := err.(*exec.ExitError); ok {
+		return true
 	}
 	return false
 }
-
-type systemCrontab struct{}
 
 func (*systemCrontab) runCrontab(arguments ...string) (string, error) {
 	log.Printf("Running `%s %s`", crontab, strings.Join(arguments, " "))

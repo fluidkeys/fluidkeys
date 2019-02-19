@@ -1,6 +1,6 @@
 package scheduler
 
 type runCrontabInterface interface {
-	runCrontab(arguments ...string) (string, error)
+	get() (string, error)
+	set(newCrontab string) error
 }
-
