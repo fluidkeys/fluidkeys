@@ -42,7 +42,10 @@ func Enable(crontab runCrontabInterface) (crontabWasAdded bool, err error) {
 	if !hasFluidkeysCronLines(currentCrontab) {
 		newCrontab := addCrontabLinesWithoutRepeating(currentCrontab)
 		err = writeCrontab(newCrontab, crontab)
-		return true, err
+		if err != nil {
+			return false, err
+		}
+		return true, nil
 	}
 
 	return false, nil
@@ -64,7 +67,11 @@ func Disable(crontab runCrontabInterface) (cronLinesWereRemoved bool, err error)
 	if hasFluidkeysCronLines(currentCrontab) {
 		newCrontab := removeCrontabLines(currentCrontab)
 		err = writeCrontab(newCrontab, crontab)
-		return true, err
+
+		if err != nil {
+			return false, err
+		}
+		return true, nil
 	}
 	return false, nil
 }
