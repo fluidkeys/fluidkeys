@@ -41,7 +41,10 @@ func getDecryptedPrivateKeyAndPassword(publicKey *pgpkey.PgpKey, prompter prompt
 		log.Printf("looked for password in Keyring but couldn't find one")
 	} else {
 		log.Printf("key isn't supposed to have password saved (purging from Keyring)")
-		Keyring.PurgePassword(publicKey.Fingerprint())
+		if err := Keyring.PurgePassword(publicKey.Fingerprint()); err != nil {
+			log.Printf("failed to purge password: %v", err)
+		}
+
 	}
 
 	if password, err := prompter.promptForPassword(publicKey); err != nil {
@@ -56,7 +59,10 @@ func tryPassword(password string, publicKey *pgpkey.PgpKey, prompter promptForPa
 		if shouldStore {
 			// save back the password since we've confirmed that it
 			// was correct.
-			Keyring.SavePassword(publicKey.Fingerprint(), password)
+			err := Keyring.SavePassword(publicKey.Fingerprint(), password)
+			if err != nil {
+				log.Printf("got good password but failed to save it: %v", err)
+			}
 		}
 		return privateKey, password, nil
 

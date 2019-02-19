@@ -255,7 +255,9 @@ func signText(bytesToSign []byte, key *pgpkey.PgpKey) (armoredSigned string, err
 		return "", err
 	}
 
-	armorWriteCloser.Close()
+	if err := armorWriteCloser.Close(); err != nil {
+		return "", err
+	}
 	return armorOutBuffer.String(), nil
 }
 

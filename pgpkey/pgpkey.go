@@ -123,7 +123,9 @@ func (key *PgpKey) Armor() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error calling key.Serialize(..): %v", err)
 	}
-	armor.Close()
+	if err := armor.Close(); err != nil {
+		return "", fmt.Errorf("failed to close armorer: %v", err)
+	}
 
 	return buf.String(), nil
 }
@@ -152,7 +154,9 @@ func (key *PgpKey) ArmorPrivate(passwordToEncryptWith string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error calling key.SerializePrivate: %v", err)
 	}
-	armor.Close()
+	if err := armor.Close(); err != nil {
+		return "", fmt.Errorf("failed to close armorer: %v", err)
+	}
 
 	return buf.String(), nil
 }
@@ -172,8 +176,12 @@ func (key *PgpKey) ArmorRevocationCertificate(now time.Time) (string, error) {
 		return "", err
 	}
 
-	signature.Serialize(armor)
-	armor.Close()
+	if err := signature.Serialize(armor); err != nil {
+		return "", fmt.Errorf("failed to serialize signature: %v", err)
+	}
+	if err := armor.Close(); err != nil {
+		return "", fmt.Errorf("failed to close armorer: %v", err)
+	}
 	return buf.String(), nil
 }
 
@@ -197,7 +205,9 @@ func (key *PgpKey) GetRevocationSignature(reason uint8, reasonText string, now t
 		return nil, fmt.Errorf("failed to make key revocation hash: %v", err)
 	}
 
-	sig.Sign(h, key.PrivateKey, &config)
+	if err := sig.Sign(h, key.PrivateKey, &config); err != nil {
+		return nil, fmt.Errorf("failed to create signature: %v", err)
+	}
 	return sig, nil
 }
 

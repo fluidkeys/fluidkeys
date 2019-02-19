@@ -94,7 +94,9 @@ func (db *Database) GetFingerprintsImportedIntoGnuPG() ([]fingerprint.Fingerprin
 
 	var databaseMessage DatabaseMessage
 
-	json.Unmarshal(byteValue, &databaseMessage)
+	if err := json.Unmarshal(byteValue, &databaseMessage); err != nil {
+		return nil, fmt.Errorf("error loading json: %v", err)
+	}
 
 	var fingerprints []fingerprint.Fingerprint
 

@@ -19,6 +19,7 @@ package scheduler
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os/exec"
@@ -80,8 +81,12 @@ func writeCrontab(newCrontab string) error {
 		return err
 	}
 
-	f.Write([]byte(newCrontab))
-	f.Close()
+	if _, err := io.WriteString(f, newCrontab); err != nil {
+		return fmt.Errorf("error writing crontab: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("error closing crontab: %v", err)
+	}
 
 	_, err = runCrontab(f.Name())
 	return err

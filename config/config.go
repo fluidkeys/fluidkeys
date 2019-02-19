@@ -218,7 +218,9 @@ func parse(r io.Reader) (*Config, error) {
 }
 
 func (c *Config) serialize(w io.Writer) error {
-	w.Write([]byte(defaultConfigFile))
+	if _, err := io.WriteString(w, defaultConfigFile); err != nil {
+		return err
+	}
 	encoder := toml.NewEncoder(w)
 	return encoder.Encode(c.parsedConfig)
 }
