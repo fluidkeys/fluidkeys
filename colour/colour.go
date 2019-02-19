@@ -112,10 +112,6 @@ func TableHeader(message string) string {
 }
 
 func Cmd(message string) string {
-	return CommandLineCode(message)
-}
-
-func CommandLineCode(message string) string {
 	return bright + blue(message)
 }
 
