@@ -86,18 +86,20 @@ func getCurrentCrontab(crontab runCrontabInterface) (string, error) {
 func writeCrontab(newCrontab string, crontab runCrontabInterface) error {
 	f, err := ioutil.TempFile("", "")
 	if err != nil {
-		return err
+		return fmt.Errorf("error opening temp file: %v", err)
 	}
 
 	if _, err := io.WriteString(f, newCrontab); err != nil {
-		return fmt.Errorf("error writing crontab: %v", err)
+		return fmt.Errorf("error writing to temp file: %v", err)
 	}
 	if err := f.Close(); err != nil {
-		return fmt.Errorf("error closing crontab: %v", err)
+		return fmt.Errorf("error closing temp file: %v", err)
 	}
 
-	_, err = crontab.runCrontab(f.Name())
-	return err
+	if _, err := crontab.runCrontab(f.Name()); err != nil {
+		return fmt.Errorf("error updating crontab: %v", err)
+	}
+	return nil
 }
 
 func isExitStatusOne(err error) bool {
