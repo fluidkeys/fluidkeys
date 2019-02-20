@@ -51,6 +51,7 @@ func load(allowedBackends []externalkeyring.BackendType) (*Keyring, error) {
 	}, nil
 }
 
+// Keyring provides accessor methods for the user's system's keyring.
 type Keyring struct {
 	realKeyring externalkeyring.Keyring
 	backendType externalkeyring.BackendType

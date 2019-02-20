@@ -41,6 +41,7 @@ func init() {
 	setOutputToTerminal()
 }
 
+// Load sets log to output to 'debug.log' in the given directory
 func Load(logDirectory string) error {
 	if logDirectory == "" {
 		return fmt.Errorf("missing log directory")
@@ -58,14 +59,24 @@ func Load(logDirectory string) error {
 	return nil
 }
 
+// GetLogFilename returns the full filename of the log file
 func GetLogFilename() string {
 	return logFilename
 }
 
+// SetOutputToTerminal directs output to the user's terminal, so it's printed immediately
+func SetOutputToTerminal() {
+	outputter = &terminalOutputter{}
+}
+
+// SetOutputToBuffer directs output to an internal buffer rather than printing to terminal.
+// Use PrintTheBuffer to actually output and empty the buffer.
 func SetOutputToBuffer() {
 	outputter = &bufferOutputter{}
 }
 
+// Print takes a given message and passes it to the outputter for printing
+// whilst logging each line.
 func Print(message string) {
 	outputter.print(message)
 
@@ -76,10 +87,12 @@ func Print(message string) {
 	}
 }
 
+// PrintDontLog takes a given message and *only* passes it to the outputter for printing.
 func PrintDontLog(message string) {
 	outputter.print(message)
 }
 
+// PrintTheBuffer is a method that wraps printing the buffer on the outputter.
 func PrintTheBuffer() {
 	if theBufferOutputter, ok := outputter.(*bufferOutputter); ok {
 		theBufferOutputter.printTheBuffer()
@@ -123,6 +136,8 @@ func (o *terminalOutputter) print(message string) {
 	fmt.Print(message)
 }
 
+// bufferOutputter holds a buffer that can be added to with print, and printed
+// out with printTheBuffer
 type bufferOutputter struct {
 	buffer string
 }

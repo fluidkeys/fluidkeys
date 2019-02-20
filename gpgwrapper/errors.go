@@ -17,6 +17,7 @@
 
 package gpgwrapper
 
+// BadPasswordError represents an error from gpg that the passphrase was incorrect
 type BadPasswordError struct {
 }
 

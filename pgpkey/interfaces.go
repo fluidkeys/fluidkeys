@@ -17,10 +17,22 @@
 
 package pgpkey
 
+// LoadFromArmoredEncryptedPrivateKeyInterface provides and interface to the
+// LoadFromArmoredEncryptedPrivateKey method
+//
+// LoadFromArmoredEncryptedPrivateKey takes an encrypted, asci armored
+// private key and a password and returns a pointer to a PgpKey with:
+//
+// * a decrypted PrivateKey.
+// * all subkeys decrypted
 type LoadFromArmoredEncryptedPrivateKeyInterface interface {
 	LoadFromArmoredEncryptedPrivateKey(string, string) (*PgpKey, error)
 }
 
+// ArmorInterface is the interface to the Armor and ArmorPrivate methods.
+//
+// Armor returns the public part of a key in armored format.
+// ArmorPrivate returns the private part of a key in armored format.
 type ArmorInterface interface {
 	Armor() (string, error)
 	ArmorPrivate(string) (string, error)

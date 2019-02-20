@@ -31,6 +31,8 @@ const (
 	BZIP2                             = 3
 )
 
+// Name takes a given compressionAlgorithm and returns a human friendly
+// string describing it
 func Name(compressionAlgorithm CompressionAlgorithm) string {
 	switch compressionAlgorithm {
 	case Uncompressed:

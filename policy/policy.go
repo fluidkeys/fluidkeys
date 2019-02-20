@@ -40,7 +40,6 @@ var (
 	//
 	// https://tools.ietf.org/html/rfc4880#section-9.2
 	// https://help.riseup.net/en/security/message-security/openpgp/best-practices
-
 	AdvertiseCipherPreferences = []uint8{
 		symmetric.AES256,
 		symmetric.AES192,
