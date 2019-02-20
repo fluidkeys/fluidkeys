@@ -45,7 +45,7 @@ func ErrProblemExecutingGPG(gpgStdout string, arguments ...string) error {
 var versionRegexp = regexp.MustCompile(`gpg \(GnuPG.*\) (\d+\.\d+\.\d+)`)
 var homeRegexp = regexp.MustCompile(`Home: +([^\r\n]+)`)
 
-// GnuPG provides an interface to the user's installation of GnuPG
+// GnuPG provides methods to access the user's installation of GnuPG
 type GnuPG struct {
 	// fullGpgPath is the full path (e.g. /usr/bin/gpg2) to the GnuPG binary.
 	// It is set during Load.
@@ -70,7 +70,7 @@ type SecretKeyListing struct {
 	Created time.Time
 }
 
-// Load returns a pointer to an interface to the user's installation of GPG
+// Load find's the user's gpg binary and returns a GnuPG struct referencing it
 func Load() (*GnuPG, error) {
 	gpgBinary, err := findGpgBinary()
 	if err != nil {
