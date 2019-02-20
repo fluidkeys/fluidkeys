@@ -65,7 +65,7 @@ func loadTeamRoster(filename string) (*Team, error) {
 		return nil, fmt.Errorf("error reading %s: %v", filename, err)
 	}
 
-	team, err := parse(reader)
+	team, err := Parse(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func loadTeamRoster(filename string) (*Team, error) {
 	return team, nil
 }
 
-func parse(r io.Reader) (*Team, error) {
+func Parse(r io.Reader) (*Team, error) {
 	var parsedTeam Team
 	metadata, err := toml.DecodeReader(r, &parsedTeam)
 
