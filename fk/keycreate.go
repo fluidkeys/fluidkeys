@@ -174,8 +174,17 @@ func keyCreate(email string) (exitCode, *pgpkey.PgpKey) {
 		log.Panicf("failed to record fingerprint imported into gpg: %v", err)
 	}
 
-	if err := tryEnableMaintainAutomatically(generateJob.pgpKey, password.AsString()); err == nil {
+	printCheckboxPending("Store password in " + Keyring.Name())
+
+	if err := tryStorePassword(generateJob.pgpKey.Fingerprint(), password.AsString()); err == nil {
 		printCheckboxSuccess("Store password in " + Keyring.Name())
+	} else {
+		printCheckboxFailure("Store password in "+Keyring.Name(), err)
+	}
+
+	printCheckboxPending("Automatically rotate key each month using cron")
+
+	if err := tryMaintainAutomatically(generateJob.pgpKey.Fingerprint()); err == nil {
 		printCheckboxSuccess("Automatically rotate key each month using cron")
 	} else {
 		printCheckboxFailure("Automatically rotate key each month using cron", err)

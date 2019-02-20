@@ -343,7 +343,14 @@ func promptAndTurnOnMaintainAutomatically(prompter promptYesNoInterface, keyTask
 	out.Print("This requires storing the password in the system keyring.\n\n")
 
 	if prompter.promptYesNo(promptMaintainAutomatically, "", keyTask.key) == true {
-		if err := tryEnableMaintainAutomatically(keyTask.key, keyTask.password); err == nil {
+		if err := tryStorePassword(keyTask.key.Fingerprint(), keyTask.password); err == nil {
+			printSuccess("Stored password in " + Keyring.Name())
+		} else {
+			printFailed("Failed to store password in " + Keyring.Name())
+			return
+		}
+
+		if err := tryMaintainAutomatically(keyTask.key.Fingerprint()); err == nil {
 			printSuccess("Successfully set up automatic maintenance")
 			out.Print("\n")
 		} else {
@@ -445,20 +452,22 @@ func formatKeyActions(keyTask keyTask) (header string) {
 	return
 }
 
-func tryEnableMaintainAutomatically(key *pgpkey.PgpKey, password string) (err error) {
-	if err = Keyring.SavePassword(key.Fingerprint(), password); err != nil {
-		return
+func tryStorePassword(fpr fingerprint.Fingerprint, password string) error {
+	if err := Config.SetStorePassword(fpr, true); err != nil {
+		return err
 	}
+	if err := Keyring.SavePassword(fpr, password); err != nil {
+		return err
+	}
+	return nil
+}
 
-	if err = Config.SetStorePassword(key.Fingerprint(), true); err != nil {
-		return
+func tryMaintainAutomatically(fpr fingerprint.Fingerprint) error {
+	if err := Config.SetMaintainAutomatically(fpr, true); err != nil {
+		return err
 	}
-	if err = Config.SetMaintainAutomatically(key.Fingerprint(), true); err != nil {
-		return
-	}
-
-	if _, err = scheduler.Enable(nil); err != nil {
-		return
+	if _, err := scheduler.Enable(nil); err != nil {
+		return err
 	}
 	return nil
 }
