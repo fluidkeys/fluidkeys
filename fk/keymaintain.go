@@ -400,7 +400,7 @@ func printCheckboxSkipped(actionText string) {
 }
 
 func printCheckboxFailure(actionText string, err error) {
-	out.Print(fmt.Sprintf("     %s %s\n", colour.Error("[!]"), actionText))
+	out.Print(fmt.Sprintf("     [%s] %s\n", colour.Error("✗"), actionText))
 	out.Print(fmt.Sprintf("         %s\n", colour.Error(fmt.Sprintf("%s", err))))
 }
 
