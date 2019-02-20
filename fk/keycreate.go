@@ -161,10 +161,10 @@ func keyCreate(email string) (exitCode, *pgpkey.PgpKey) {
 
 	out.Print("🛠️  Carrying out the following tasks:\n\n")
 
-	printSuccessfulAction("Generate key for " + email)
+	printCheckboxSuccess("Generate key for " + email)
 
 	if err = pushPrivateKeyBackToGpg(generateJob.pgpKey, password.AsString(), &gpg); err == nil {
-		printSuccessfulAction("Store key in gpg")
+		printCheckboxSuccess("Store key in gpg")
 	} else {
 		log.Panicf("error pushing key back to gpg: %v", err)
 	}
@@ -175,21 +175,21 @@ func keyCreate(email string) (exitCode, *pgpkey.PgpKey) {
 	}
 
 	if err := tryEnableMaintainAutomatically(generateJob.pgpKey, password.AsString()); err == nil {
-		printSuccessfulAction("Store password in " + Keyring.Name())
-		printSuccessfulAction("Automatically rotate key each month using cron")
+		printCheckboxSuccess("Store password in " + Keyring.Name())
+		printCheckboxSuccess("Automatically rotate key each month using cron")
 	} else {
-		printFailedAction("Setup automatic maintenance")
+		printCheckboxFailure("Automatically rotate key each month using cron", err)
 	}
 
 	filename, err := backupzip.OutputZipBackupFile(fluidkeysDirectory, generateJob.pgpKey, password.AsString())
 	if err != nil {
-		printFailedAction("Make a backup ZIP file")
+		printCheckboxFailure("Make a backup ZIP file", err)
 	}
 	directory, _ := filepath.Split(filename)
-	printSuccessfulAction("Make a backup ZIP file in")
+	printCheckboxSuccess("Make a backup ZIP file in")
 	out.Print("        " + directory + "\n")
 
-	printSuccessfulAction("Register " + email + " so others can send you secrets")
+	printCheckboxSuccess("Register " + email + " so others can send you secrets")
 	out.Print("\n")
 
 	printSuccess("Successfully created key and registered " + email)

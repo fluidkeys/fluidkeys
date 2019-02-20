@@ -43,14 +43,6 @@ func printWarning(message string) {
 	out.Print(" " + colour.Warning("▸   "+message) + "\n")
 }
 
-func printSuccessfulAction(message string) {
-	out.Print("    [" + colour.Success("✔") + "] " + message + "\n")
-}
-
-func printFailedAction(message string) {
-	out.Print("    [" + colour.Failure("✘") + "] " + message + "\n")
-}
-
 func printHeader(message string) {
 	out.Print(colour.Header(fmt.Sprintf(" %-79s", message)) + "\n\n")
 }
