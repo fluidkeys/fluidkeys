@@ -345,7 +345,7 @@ func secretSubcommand(args docopt.Opts) exitCode {
 
 				printFailed("That doesn't look like an email address.")
 				out.Print("     Were you trying to send a file?\n\n")
-				out.Print("     > " + colour.CommandLineCode(
+				out.Print("     > " + colour.Cmd(
 					"fk secret send "+emailAddress+" --to=<email>\n\n"))
 				return 1
 			} else {
@@ -356,7 +356,7 @@ func secretSubcommand(args docopt.Opts) exitCode {
 				printFailed("That format is deprecated and will be removed.")
 				out.Print("     Please run this command next time:\n")
 
-				out.Print("     > " + colour.CommandLineCode(
+				out.Print("     > " + colour.Cmd(
 					"fk secret send --to="+emailAddress+"\n\n"))
 			}
 		} else if emailAddress, err = args.String("--to"); err != nil {

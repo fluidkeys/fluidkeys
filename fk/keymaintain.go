@@ -82,11 +82,11 @@ func runKeyMaintainDryRun(keys []pgpkey.PgpKey) exitCode {
 		out.Print("You’ll be asked to confirm for each key.\n\n")
 	}
 
-	out.Print("Before running these actions, Fluidkeys makes a backup of " + colour.CommandLineCode("gpg") + ".\n")
+	out.Print("Before running these actions, Fluidkeys makes a backup of " + colour.Cmd("gpg") + ".\n")
 	out.Print(colour.Warning("Changes can only be undone by restoring from the backup.\n\n"))
 
 	out.Print("Fix these issues by running:\n")
-	out.Print("    " + colour.CommandLineCode("fk key maintain") + "\n\n")
+	out.Print("    " + colour.Cmd("fk key maintain") + "\n\n")
 	return 0
 }
 
@@ -102,7 +102,7 @@ type keyTask struct {
 }
 
 var (
-	promptBackupAndRunActions   = "Make a backup of " + colour.CommandLineCode("gpg") + " and run these actions?"
+	promptBackupAndRunActions   = "Make a backup of " + colour.Cmd("gpg") + " and run these actions?"
 	promptRunActions            = "Run these actions?"
 	promptMaintainAutomatically = "Automatically maintain this key from now on?"
 )
@@ -233,7 +233,7 @@ func runKeyMaintain(keys []pgpkey.PgpKey, prompter promptYesNoInterface, passwor
 					humanize.Pluralize(numKeysNotPublished, "key hasn't", "keys haven't")+
 					" been uploaded to Fluidkeys.\n\n")))
 			out.Print("Make sure others can send you secrets by running:\n")
-			out.Print("    " + colour.CommandLineCode("fk key upload") + "\n\n")
+			out.Print("    " + colour.Cmd("fk key upload") + "\n\n")
 		}
 
 		return 0
@@ -339,7 +339,7 @@ func backupGpg() error {
 
 func promptAndTurnOnMaintainAutomatically(prompter promptYesNoInterface, keyTask keyTask) {
 
-	out.Print("Fluidkeys can maintain this key automatically using " + colour.CommandLineCode("cron") + ".\n")
+	out.Print("Fluidkeys can maintain this key automatically using " + colour.Cmd("cron") + ".\n")
 	out.Print("This requires storing the password in the system keyring.\n\n")
 
 	if prompter.promptYesNo(promptMaintainAutomatically, "", keyTask.key) == true {
@@ -474,7 +474,7 @@ type loadPrivateKeyFromGnupg struct {
 }
 
 func (a loadPrivateKeyFromGnupg) String() string {
-	return "Load private key from " + colour.CommandLineCode("gpg")
+	return "Load private key from " + colour.Cmd("gpg")
 }
 
 func (a loadPrivateKeyFromGnupg) Enact(key *pgpkey.PgpKey, now time.Time, returnPassword *string) error {
@@ -501,7 +501,7 @@ type pushIntoGnupg struct {
 }
 
 func (a pushIntoGnupg) String() string {
-	return "Store updated key in " + colour.CommandLineCode("gpg")
+	return "Store updated key in " + colour.Cmd("gpg")
 }
 
 type passwordMap = map[fingerprint.Fingerprint]string

@@ -64,7 +64,7 @@ func setup(email string) exitCode {
 	time.Sleep(3 * time.Second)
 
 	out.Print("🛎️  You've got a new secret. Read it by running:\n\n")
-	out.Print(colour.CommandLineCode("fk secret receive") + "\n\n")
+	out.Print(colour.Cmd("fk secret receive") + "\n\n")
 
 	return 0
 }

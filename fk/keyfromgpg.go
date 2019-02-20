@@ -40,9 +40,9 @@ func keyFromGpg() exitCode {
 	}
 
 	if len(availableKeys) == 0 {
-		out.Print(fmt.Sprintf("No new keys found with " + colour.CommandLineCode("gpg --list-secret-keys") + "\n\n"))
+		out.Print(fmt.Sprintf("No new keys found with " + colour.Cmd("gpg --list-secret-keys") + "\n\n"))
 		out.Print("See the keys you've already connected by running:\n")
-		out.Print("    " + colour.CommandLineCode("fk key list") + "\n\n")
+		out.Print("    " + colour.Cmd("fk key list") + "\n\n")
 
 		return 1
 	}
@@ -77,7 +77,7 @@ func keyFromGpg() exitCode {
 	out.Print(formatKeyWarnings(keyTask))
 
 	out.Print("Fluidkeys can fix these issues. See how by running:\n")
-	out.Print("    " + colour.CommandLineCode("fk key maintain --dry-run") + "\n\n")
+	out.Print("    " + colour.Cmd("fk key maintain --dry-run") + "\n\n")
 
 	return 0
 }
@@ -108,7 +108,7 @@ func keysAvailableToGetFromGpg() ([]gpgwrapper.SecretKeyListing, error) {
 
 func formatListedKeysForImportingFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) string {
 	str := "Found " + humanize.Pluralize(len(secretKeyListings), "key", "keys") +
-		" with " + colour.CommandLineCode("gpg --list-secret-keys") + ":\n\n"
+		" with " + colour.Cmd("gpg --list-secret-keys") + ":\n\n"
 	for index, key := range secretKeyListings {
 		str += printSecretKeyListing(index+1, key)
 	}
