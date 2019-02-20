@@ -64,12 +64,13 @@ func GetLogFilename() string {
 	return logFilename
 }
 
-// SetOutputToTerminal sets the outputter to terminalOutputter
+// SetOutputToTerminal directs output to the user's terminal, so it's printed immediately
 func SetOutputToTerminal() {
 	outputter = &terminalOutputter{}
 }
 
-// SetOutputToBuffer sets the outputter to bufferOutputter
+// SetOutputToBuffer directs output to an internal buffer rather than printing to terminal.
+// Use PrintTheBuffer to actually output and empty the buffer.
 func SetOutputToBuffer() {
 	outputter = &bufferOutputter{}
 }
