@@ -46,19 +46,19 @@ func teamSync() exitCode {
 
 		for email, person := range team.People {
 			if person.Fingerprint == nil {
-				printFailedAction("no fingerprint for " + email)
+				printCheckboxSkipped("no fingerprint for " + email)
 				sawError = true
 				continue
 			}
 
 			err := getAndImportKeyToGpg(*person.Fingerprint)
 			if err != nil {
-				printFailedAction("Failed: " + err.Error())
+				printCheckboxFailure("Fail to fetch key", err)
 				sawError = true
 				continue
 			}
 
-			printSuccessfulAction(email)
+			printCheckboxSuccess(email)
 		}
 	}
 
