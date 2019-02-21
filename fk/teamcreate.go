@@ -111,14 +111,36 @@ func teamCreate() exitCode {
 		teamMemberEmails = append(teamMemberEmails, memberEmail)
 	}
 
+	printHeader("Searching gpg for existings keys")
+
+	for _, teamMemberEmail := range teamMemberEmails {
+		printCheckboxPending(teamMemberEmail)
+
+		publicKeyListings, err := gpg.ListPublicKeys(teamMemberEmail)
+		if err != nil {
+			printCheckboxFailure(teamMemberEmail, err)
+		}
+		switch {
+		case len(publicKeyListings) == 0:
+			printCheckboxSkipped(
+				colour.Disabled(teamMemberEmail + " no key found, you can invite them later"))
+
+		case len(publicKeyListings) > 1:
+			printCheckboxSkipped(fmt.Sprintf("%s\nmultiple keys found: skipping", teamMemberEmail))
+
+		case len(publicKeyListings) == 1:
+			printCheckboxSuccess(
+				fmt.Sprintf("%s\n%*sfound key %s", teamMemberEmail, 9, " ",
+					publicKeyListings[0].Fingerprint))
+
+		}
+	}
+	out.Print("\n")
+
 	printHeader("Finishing setup")
 
 	out.Print("You've indicated you want setup " + teamName + " using your key\n")
 	out.Print(fmt.Sprintf("%s\n", key.Fingerprint()))
-	out.Print("With the following members:\n\n")
-	for _, memberEmail := range teamMemberEmails {
-		out.Print(memberEmail + "\n")
-	}
 
 	out.Print(ui.FormatWarning("Teams are not currently implemented", []string{
 		"This feature is coming soon.",
