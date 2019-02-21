@@ -25,12 +25,12 @@ import (
 
 func teamSubcommand(args docopt.Opts) exitCode {
 	switch getSubcommand(args, []string{
-		"sync", "setup",
+		"sync", "create",
 	}) {
 
 	case "sync":
 		return teamSync()
-	case "setup":
+	case "create":
 		return teamCreate()
 	}
 	log.Panicf("secretSubcommand got unexpected arguments: %v", args)
