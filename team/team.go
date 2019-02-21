@@ -15,7 +15,7 @@ import (
 // roster.toml
 // Returns a slice of Team
 func LoadTeams(fluidkeysDirectory string) ([]Team, error) {
-	teamRosters, err := findTeamRosters(filepath.Join(fluidkeysDirectory, "teams"))
+	teamRosters, err := findTeamRosters(getTeamDirectory(fluidkeysDirectory))
 	if err != nil {
 		return nil, err
 	}
@@ -67,6 +67,10 @@ func (t *Team) GetPersonForFingerprint(fpr fingerprint.Fingerprint) (*Person, er
 	}
 
 	return nil, fmt.Errorf("person not found")
+}
+
+func getTeamDirectory(fluidkeysDirectory string) string {
+	return filepath.Join(fluidkeysDirectory, "teams")
 }
 
 func findTeamRosters(directory string) ([]string, error) {

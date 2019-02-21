@@ -1,8 +1,11 @@
 package team
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"regexp"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 )
@@ -36,6 +39,41 @@ func (t *Team) serialize(w io.Writer) error {
 	}
 	encoder := toml.NewEncoder(w)
 	return encoder.Encode(t)
+}
+
+func (t Team) subDirectory() string {
+	slug := slugify(t.Name)
+
+	if slug == "" {
+		return t.UUID.String()
+	}
+
+	return slug + "-" + t.UUID.String()
+}
+
+func slugify(input string) string {
+	slug := strings.TrimSpace(input)
+	slug = strings.ToLower(slug)
+
+	var subs = map[rune]string{
+		'&': "and",
+		'@': "a",
+	}
+	var buffer bytes.Buffer
+	for _, char := range slug {
+		if subChar, ok := subs[char]; ok {
+			buffer.WriteString(subChar)
+		} else {
+			buffer.WriteRune(char)
+		}
+	}
+	slug = buffer.String()
+
+	slug = regexp.MustCompile("[^a-z0-9-_]").ReplaceAllString(slug, "-")
+	slug = regexp.MustCompile("-+").ReplaceAllString(slug, "-")
+	slug = strings.Trim(slug, "-_")
+
+	return slug
 }
 
 const defaultRosterFile = `# Fluidkeys team roster

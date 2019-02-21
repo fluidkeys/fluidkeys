@@ -2,6 +2,7 @@ package team
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -84,6 +85,88 @@ name = "Kiffix"
 		err := testTeam.serialize(output)
 		assert.ErrorIsNotNil(t, err)
 	})
+}
+
+func TestSlugify(t *testing.T) {
+	var tests = []struct {
+		input    string
+		expected string
+	}{
+		{
+			"Hello world",
+			"hello-world",
+		},
+		{
+			"Marks & Spencers",
+			"marks-and-spencers",
+		},
+		{
+			"Digit@l Wizards",
+			"digital-wizards",
+		},
+		{
+			"Between [Worlds]",
+			"between-worlds",
+		},
+		{
+			"--Future--",
+			"future",
+		},
+		{
+			"😁 Happy Cleaners 💦",
+			"happy-cleaners",
+		},
+		{
+			"déjà vu",
+			"d-j-vu",
+		},
+		{
+			"\n\000\037 \041\176\177\200\377\n",
+			"",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("slugifying `%s`", test.input), func(t *testing.T) {
+			assert.Equal(t, test.expected, slugify(test.input))
+		})
+	}
+}
+
+func TestSubDirectory(t *testing.T) {
+	var tests = []struct {
+		team     Team
+		expected string
+	}{
+		{
+			Team{
+				Name: "kiffix",
+				UUID: uuid.Must(uuid.FromString("6caa3730-2ca3-47b9-b671-5dc326100431")),
+			},
+			"kiffix-6caa3730-2ca3-47b9-b671-5dc326100431",
+		},
+		{
+			Team{
+				Name: "😁 Happy Cleaners 💦",
+				UUID: uuid.Must(uuid.FromString("6caa3730-2ca3-47b9-b671-5dc326100431")),
+			},
+			"happy-cleaners-6caa3730-2ca3-47b9-b671-5dc326100431",
+		},
+		{
+			Team{
+				Name: "😁",
+				UUID: uuid.Must(uuid.FromString("6caa3730-2ca3-47b9-b671-5dc326100431")),
+			},
+			"6caa3730-2ca3-47b9-b671-5dc326100431",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("get directory for `%s`", test.team.Name), func(t *testing.T) {
+
+			assert.Equal(t, test.expected, test.team.subDirectory())
+		})
+	}
 }
 
 const validRoster = `# Fluidkeys team roster
