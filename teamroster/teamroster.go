@@ -109,7 +109,7 @@ func Parse(r io.Reader) (*Team, error) {
 
 }
 
-func (t *Team) serialize(w io.Writer) error {
+func serialize(t Team, w io.Writer) error {
 	if _, err := io.WriteString(w, defaultRosterFile); err != nil {
 		return err
 	}

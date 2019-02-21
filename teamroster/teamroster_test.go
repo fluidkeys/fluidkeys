@@ -22,8 +22,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fluidkeys/fluidkeys/exampledata"
-
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/gofrs/uuid"
@@ -51,27 +49,24 @@ func TestParse(t *testing.T) {
 }
 
 func TestSerialize(t *testing.T) {
-	testTeam := Team{
-		Name: "Kiffix",
-		UUID: uuid.Must(uuid.FromString("6caa3730-2ca3-47b9-b671-5dc326100431")),
-		People: []Person{
-			Person{
-				Email:       "test2@example.com",
-				Fingerprint: exampledata.ExampleFingerprint2,
+	t.Run("from a valid team struct", func(t *testing.T) {
+		testTeam := Team{
+			Name: "Kiffix",
+			UUID: uuid.Must(uuid.FromString("6caa3730-2ca3-47b9-b671-5dc326100431")),
+			People: []Person{
+				{
+					Email:       "test2@example.com",
+					Fingerprint: fingerprint.MustParse("7C18 DE4D E478 1356 8B24  3AC8 719B D63E F03B DC20"),
+				},
+				{
+					Email:       "test3@example.com",
+					Fingerprint: fingerprint.MustParse("7C18 DE4D E478 1356 8B24  3AC8 719B D63E F03B DC20"),
+				},
 			},
-			Person{
-				Email:       "test3@example.com",
-				Fingerprint: exampledata.ExampleFingerprint3,
-			},
-		},
-	}
-
-	t.Run("from an empty config file", func(t *testing.T) {
-		_, err := Parse(strings.NewReader(""))
-		assert.ErrorIsNil(t, err)
+		}
 
 		output := bytes.NewBuffer(nil)
-		err = testTeam.serialize(output)
+		err := serialize(testTeam, output)
 		assert.ErrorIsNil(t, err)
 
 		expected := `# Fluidkeys team roster
