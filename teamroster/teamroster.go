@@ -65,7 +65,7 @@ func loadTeamRoster(filename string) (*Team, error) {
 		return nil, fmt.Errorf("error reading %s: %v", filename, err)
 	}
 
-	team, err := parse(reader)
+	team, err := Parse(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,8 @@ func loadTeamRoster(filename string) (*Team, error) {
 	return team, nil
 }
 
-func parse(r io.Reader) (*Team, error) {
+// Parse parses the team roster's TOML data, returning a Team or an error
+func Parse(r io.Reader) (*Team, error) {
 	var parsedTeam Team
 	metadata, err := toml.DecodeReader(r, &parsedTeam)
 
@@ -99,12 +100,14 @@ func fileExists(filename string) bool {
 	return false
 }
 
+// Team represents a group of people in Fluidkeys
 type Team struct {
 	UUID   uuid.UUID         `toml:uuid`
 	Name   string            `toml:name`
 	People map[string]Person `toml:people`
 }
 
+// Fingerprints returns the key fingerprints for all people in the team
 func (t *Team) Fingerprints() []fingerprint.Fingerprint {
 	fps := []fingerprint.Fingerprint{}
 
@@ -117,6 +120,7 @@ func (t *Team) Fingerprints() []fingerprint.Fingerprint {
 	return fps
 }
 
+// Person represents a human team member
 type Person struct {
 	Fingerprint *fingerprint.Fingerprint
 }
