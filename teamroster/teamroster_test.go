@@ -18,8 +18,11 @@
 package teamroster
 
 import (
+	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/fluidkeys/fluidkeys/exampledata"
 
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
@@ -45,6 +48,45 @@ func TestParse(t *testing.T) {
 
 	assert.Equal(t, uuid.Must(uuid.FromString("38be2a70-23d8-11e9-bafd-7f97f2e239a3")), team.UUID)
 	assert.Equal(t, "Fluidkeys CIC", team.Name)
+}
+
+func TestSerialize(t *testing.T) {
+	testTeam := Team{
+		Name: "Kiffix",
+		UUID: uuid.Must(uuid.FromString("6caa3730-2ca3-47b9-b671-5dc326100431")),
+		People: []Person{
+			Person{
+				Email:       "test2@example.com",
+				Fingerprint: exampledata.ExampleFingerprint2,
+			},
+			Person{
+				Email:       "test3@example.com",
+				Fingerprint: exampledata.ExampleFingerprint3,
+			},
+		},
+	}
+
+	t.Run("from an empty config file", func(t *testing.T) {
+		_, err := Parse(strings.NewReader(""))
+		assert.ErrorIsNil(t, err)
+
+		output := bytes.NewBuffer(nil)
+		err = testTeam.serialize(output)
+		assert.ErrorIsNil(t, err)
+
+		expected := `# Fluidkeys team roster
+
+uuid = "6caa3730-2ca3-47b9-b671-5dc326100431"
+name = "Kiffix"
+
+[[person]]
+email = "test2@example.com"
+
+[[person]]
+email = "test3@example.com
+`
+		assert.Equal(t, expected, output.String())
+	})
 }
 
 const validRoster = `# Fluidkeys team roster

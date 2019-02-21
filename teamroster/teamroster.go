@@ -92,6 +92,14 @@ func Parse(r io.Reader) (*Team, error) {
 
 }
 
+func (t *Team) serialize(w io.Writer) error {
+	if _, err := io.WriteString(w, defaultRosterFile); err != nil {
+		return err
+	}
+	encoder := toml.NewEncoder(w)
+	return encoder.Encode(t)
+}
+
 func fileExists(filename string) bool {
 	if fileinfo, err := os.Stat(filename); err == nil {
 		// path/to/whatever exists
@@ -122,3 +130,6 @@ type Person struct {
 	Email       string
 	Fingerprint fingerprint.Fingerprint
 }
+
+const defaultRosterFile = `# Fluidkeys team roster
+`
