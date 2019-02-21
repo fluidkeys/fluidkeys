@@ -35,7 +35,7 @@ func TestParseListSecretKeys(t *testing.T) {
 			t.Fatalf("expected 2 secret keys, got %d: %v", len(result), result)
 		}
 
-		expectedFirst := SecretKeyListing{
+		expectedFirst := KeyListing{
 			Fingerprint: fingerprint.MustParse("A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517"),
 			Created:     time.Date(2014, 10, 31, 21, 34, 34, 0, time.UTC), // 31 October 2014 21:34:34
 			Uids: []string{
@@ -44,7 +44,7 @@ func TestParseListSecretKeys(t *testing.T) {
 			},
 		}
 
-		expectedSecond := SecretKeyListing{
+		expectedSecond := KeyListing{
 			Fingerprint: fingerprint.MustParse("B79F 0840 DEF1 2EBB A72F  F72D 7327 A44C 2157 A758"),
 			Created:     time.Date(2018, 9, 4, 16, 15, 46, 0, time.UTC), // Tue Sep  4 17:15:46 BST 2018
 			Uids:        []string{"<paul@fluidkeys.com>"},

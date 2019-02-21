@@ -54,8 +54,8 @@ type GnuPG struct {
 	homeDir string
 }
 
-// SecretKeyListing refers to a key parsed from running `gpg --list-secret-keys`
-type SecretKeyListing struct {
+// KeyListing refers to a key parsed from running `gpg --list-[secret]-keys`
+type KeyListing struct {
 
 	// Fingerprint is the human-readable format of the fingerprint of the
 	// primary key, for example:
@@ -140,7 +140,7 @@ func (g *GnuPG) ImportArmoredKey(armoredKey string) error {
 }
 
 // ListSecretKeys lists the secret(private) keys in the users key ring.
-func (g *GnuPG) ListSecretKeys() ([]SecretKeyListing, error) {
+func (g *GnuPG) ListSecretKeys() ([]KeyListing, error) {
 	args := []string{
 		"--with-colons",
 		"--with-fingerprint",
