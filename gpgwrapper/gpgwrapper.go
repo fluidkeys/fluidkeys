@@ -155,6 +155,30 @@ func (g *GnuPG) ListSecretKeys() ([]KeyListing, error) {
 	return parseListSecretKeys(outString)
 }
 
+// ListPublicKeys lists the public keys in the users key ring that match a given search string.
+func (g *GnuPG) ListPublicKeys(searchString string) ([]KeyListing, error) {
+	if searchString == "" {
+		return nil, fmt.Errorf("no search string provided")
+	}
+	args := []string{
+		"--with-colons",
+		"--with-fingerprint",
+		"--fixed-list-mode",
+		"--list-keys",
+		searchString,
+	}
+
+	stdOut, stdErr, err := g.run("", args...)
+	if err != nil {
+		if strings.Contains(stdErr, noPublicKey) {
+			return []KeyListing{}, nil
+		}
+		return nil, err
+	}
+
+	return parseListPublicKeys(stdOut)
+}
+
 // ExportPublicKey returns 1 ascii armored public key for the given
 // fingerprint
 func (g *GnuPG) ExportPublicKey(fingerprint fingerprint.Fingerprint) (string, error) {
@@ -415,4 +439,5 @@ const (
 	loopbackUnsupported       = `setting pinentry mode 'loopback' failed: Not supported`
 	badPassphrase             = "Bad passphrase"
 	noPassphrase              = "No passphrase given"
+	noPublicKey               = "error reading key: No public key"
 )
