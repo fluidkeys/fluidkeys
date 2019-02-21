@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/fluidkeys/fluidkeys/assert"
+	"github.com/fluidkeys/fluidkeys/exampledata"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
@@ -135,6 +136,47 @@ func TestListSecretKeys(t *testing.T) {
 	}
 
 	assertEqual(t, expectedKey, secretKeys[0])
+
+}
+
+func TestListPublicKeys(t *testing.T) {
+
+	gpg := makeGpgWithTempHome(t)
+	gpg.ImportArmoredKey(exampledata.ExamplePublicKey2)
+	gpg.ImportArmoredKey(exampledata.ExamplePublicKey3)
+
+	t.Run("returns only the keys matching a given search string", func(t *testing.T) {
+		publicKeys, err := gpg.ListPublicKeys("TEST2@example.com")
+		if err != nil {
+			t.Fatalf("error calling gpg.ListPublicKeys(): %v", err)
+		}
+
+		if len(publicKeys) != 1 {
+			t.Fatalf("expected 1 public key, got %d: %v", len(publicKeys), publicKeys)
+		}
+
+		expectedKey := KeyListing{
+			Fingerprint: exampledata.ExampleFingerprint2,
+			Uids:        []string{"<test2@example.com>"},
+			Created:     time.Date(2018, 9, 10, 10, 26, 53, 0, time.UTC),
+		}
+
+		assertEqual(t, expectedKey, publicKeys[0])
+	})
+
+	t.Run("returns an error given an empty search string", func(t *testing.T) {
+		_, err := gpg.ListPublicKeys("")
+		assert.ErrorIsNotNil(t, err)
+	})
+
+	t.Run("doesn't return an error if it can't find a matching key", func(t *testing.T) {
+		publicKeys, err := gpg.ListPublicKeys("test4@example.com")
+		assert.ErrorIsNil(t, err)
+
+		if len(publicKeys) != 0 {
+			t.Fatalf("expected 0 public keys, got %d: %v", len(publicKeys), publicKeys)
+		}
+	})
 
 }
 
