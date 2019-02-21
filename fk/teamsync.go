@@ -44,21 +44,15 @@ func teamSync() exitCode {
 
 		out.Print("Fetching keys and importing into gpg:\n\n")
 
-		for email, person := range team.People {
-			if person.Fingerprint == nil {
-				printCheckboxSkipped("no fingerprint for " + email)
-				sawError = true
-				continue
-			}
-
-			err := getAndImportKeyToGpg(*person.Fingerprint)
+		for _, person := range team.People {
+			err := getAndImportKeyToGpg(person.Fingerprint)
 			if err != nil {
 				printCheckboxFailure("Fail to fetch key", err)
 				sawError = true
 				continue
 			}
 
-			printCheckboxSuccess(email)
+			printCheckboxSuccess(person.Email)
 		}
 	}
 
