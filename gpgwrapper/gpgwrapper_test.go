@@ -128,7 +128,7 @@ func TestListSecretKeys(t *testing.T) {
 		t.Fatalf("expected 1 secret key, got %d: %v", len(secretKeys), secretKeys)
 	}
 
-	expectedKey := SecretKeyListing{
+	expectedKey := KeyListing{
 		Fingerprint: fingerprint.MustParse("C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6"),
 		Uids:        []string{"test@example.com"},
 		Created:     time.Date(2018, 8, 22, 12, 8, 23, 0, time.UTC),
@@ -291,7 +291,7 @@ func TestUnquoteColons(t *testing.T) {
 	}
 }
 
-func assertEqual(t *testing.T, expected SecretKeyListing, got SecretKeyListing) {
+func assertEqual(t *testing.T, expected KeyListing, got KeyListing) {
 	t.Helper()
 	if expected.Fingerprint != got.Fingerprint {
 		t.Fatalf("fingerprints don't match, expected '%s', got '%s'",

@@ -82,16 +82,16 @@ func keyFromGpg() exitCode {
 	return 0
 }
 
-// keysAvailableToGetFromGpg returns a filtered slice of SecretKeyListings, removing
+// keysAvailableToGetFromGpg returns a filtered slice of KeyListings, removing
 // any keys that Fluidkeys is already managing.
-func keysAvailableToGetFromGpg() ([]gpgwrapper.SecretKeyListing, error) {
+func keysAvailableToGetFromGpg() ([]gpgwrapper.KeyListing, error) {
 
 	importedFingerprints, err := db.GetFingerprintsImportedIntoGnuPG()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get fingerprints from database: %v\n", err)
 	}
 
-	var availableKeys []gpgwrapper.SecretKeyListing
+	var availableKeys []gpgwrapper.KeyListing
 
 	allGpgKeys, err := gpg.ListSecretKeys()
 	if err != nil {
@@ -106,16 +106,16 @@ func keysAvailableToGetFromGpg() ([]gpgwrapper.SecretKeyListing, error) {
 	return availableKeys, nil
 }
 
-func formatListedKeysForImportingFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) string {
-	str := "Found " + humanize.Pluralize(len(secretKeyListings), "key", "keys") +
+func formatListedKeysForImportingFromGpg(keyListings []gpgwrapper.KeyListing) string {
+	str := "Found " + humanize.Pluralize(len(keyListings), "key", "keys") +
 		" with " + colour.Cmd("gpg --list-secret-keys") + ":\n\n"
-	for index, key := range secretKeyListings {
+	for index, key := range keyListings {
 		str += printSecretKeyListing(index+1, key)
 	}
 	return str
 }
 
-func printSecretKeyListing(listNumber int, key gpgwrapper.SecretKeyListing) string {
+func printSecretKeyListing(listNumber int, key gpgwrapper.KeyListing) string {
 	formattedListNumber := colour.Info(fmt.Sprintf("%-4s", (strconv.Itoa(listNumber) + ".")))
 	output := fmt.Sprintf("%s%s\n", formattedListNumber, key.Fingerprint)
 	output += fmt.Sprintf("    Created on %s\n", key.Created.Format("2 January 2006"))
@@ -126,10 +126,10 @@ func printSecretKeyListing(listNumber int, key gpgwrapper.SecretKeyListing) stri
 	return output
 }
 
-func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing) *gpgwrapper.SecretKeyListing {
+func promptForKeyToImportFromGpg(keyListings []gpgwrapper.KeyListing) *gpgwrapper.KeyListing {
 	var selectedKey int
-	if len(secretKeyListings) == 1 {
-		onlyKey := secretKeyListings[0]
+	if len(keyListings) == 1 {
+		onlyKey := keyListings[0]
 		prompter := interactiveYesNoPrompter{}
 
 		if prompter.promptYesNo("Connect this key?", "y", nil) {
@@ -138,14 +138,14 @@ func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing
 			return nil
 		}
 	} else {
-		invalidEntry := fmt.Sprintf("Please select between 1 and %v.\n", len(secretKeyListings))
+		invalidEntry := fmt.Sprintf("Please select between 1 and %v.\n", len(keyListings))
 		for validInput := false; !validInput; {
-			rangePrompt := colour.Info(fmt.Sprintf("[1-%v]", len(secretKeyListings)))
+			rangePrompt := colour.Info(fmt.Sprintf("[1-%v]", len(keyListings)))
 			input := promptForInput(fmt.Sprintf(promptWhichKeyFromGPG + " " + rangePrompt + " "))
 			if integerSelected, err := strconv.Atoi(input); err != nil {
 				out.Print(invalidEntry)
 			} else {
-				if (integerSelected >= 1) && (integerSelected <= len(secretKeyListings)) {
+				if (integerSelected >= 1) && (integerSelected <= len(keyListings)) {
 					selectedKey = integerSelected - 1
 					validInput = true
 				} else {
@@ -153,6 +153,6 @@ func promptForKeyToImportFromGpg(secretKeyListings []gpgwrapper.SecretKeyListing
 				}
 			}
 		}
-		return &secretKeyListings[selectedKey]
+		return &keyListings[selectedKey]
 	}
 }

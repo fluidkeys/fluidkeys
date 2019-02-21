@@ -26,12 +26,11 @@ import (
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
-// Parse the output of --with-colons --list-secret keys and return only valid
-// keys (not revoked, not expired) as []SecretKeyListing
+// parseListSecretKeys parses the output of --with-colons --list-secret keys and return only valid
+// keys (not revoked, not expired) as []KeyListing
 // For the format of the colon-delimited string, see:
 // https://github.com/gpg/gnupg/blob/master/doc/DETAILS
-
-func parseListSecretKeys(colonDelimitedString string) ([]SecretKeyListing, error) {
+func parseListSecretKeys(colonDelimitedString string) ([]KeyListing, error) {
 	parser := listSecretKeysParser{}
 
 	for _, line := range strings.Split(colonDelimitedString, "\n") {
@@ -50,8 +49,8 @@ func parseListSecretKeys(colonDelimitedString string) ([]SecretKeyListing, error
 // partial key is checked for validity and added to Keys.
 
 type listSecretKeysParser struct {
-	partialKey *SecretKeyListing
-	keys       []SecretKeyListing
+	partialKey *KeyListing
+	keys       []KeyListing
 }
 
 // Adds a line to the parser, which builds up its internal Keys field.
@@ -77,7 +76,7 @@ func (p *listSecretKeysParser) PushLine(cols []string) {
 // Keys() returns the list of keys that have been accumulated so far.
 // It should be called when all lines have been pushed with `PushLine`, else
 // keys may be missing, or, worse, they may have missing UIDs.
-func (p *listSecretKeysParser) Keys() []SecretKeyListing {
+func (p *listSecretKeysParser) Keys() []KeyListing {
 	p.end()
 	return p.keys
 }
@@ -105,7 +104,7 @@ func (p *listSecretKeysParser) handleSecretPrimaryKeyLine(cols []string) {
 		return
 	}
 
-	p.partialKey = &SecretKeyListing{
+	p.partialKey = &KeyListing{
 		Created: *createdTime,
 	}
 
