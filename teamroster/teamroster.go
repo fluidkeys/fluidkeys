@@ -102,9 +102,9 @@ func fileExists(filename string) bool {
 
 // Team represents a group of people in Fluidkeys
 type Team struct {
-	UUID   uuid.UUID         `toml:uuid`
-	Name   string            `toml:name`
-	People map[string]Person `toml:people`
+	UUID   uuid.UUID `toml:"uuid"`
+	Name   string    `toml:"name"`
+	People []Person  `toml:"person"`
 }
 
 // Fingerprints returns the key fingerprints for all people in the team
@@ -112,15 +112,13 @@ func (t *Team) Fingerprints() []fingerprint.Fingerprint {
 	fps := []fingerprint.Fingerprint{}
 
 	for _, person := range t.People {
-
-		if person.Fingerprint != nil {
-			fps = append(fps, *person.Fingerprint)
-		}
+		fps = append(fps, person.Fingerprint)
 	}
 	return fps
 }
 
 // Person represents a human team member
 type Person struct {
-	Fingerprint *fingerprint.Fingerprint
+	Email       string
+	Fingerprint fingerprint.Fingerprint
 }
