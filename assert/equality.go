@@ -89,3 +89,12 @@ func AssertEqualTimes(t *testing.T, expected time.Time, got time.Time) {
 	}
 
 }
+
+// EqualStrings compares two strings and if they're not the same, prints them back formatted
+// for convenient eyeballing.
+func EqualStrings(t *testing.T, expected string, got string) {
+	t.Helper()
+	if expected != got {
+		t.Fatalf("expected:\n----\n%s\n----\ngot:\n----\n%s\n----\n", expected, got)
+	}
+}

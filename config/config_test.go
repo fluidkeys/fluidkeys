@@ -2,7 +2,6 @@ package config
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -192,7 +191,7 @@ func TestSerialize(t *testing.T) {
 			"    store_password = true\n" +
 			"    maintain_automatically = false\n" +
 			"    publish_to_api = false\n"
-		assertEqualStrings(t, expected, output.String())
+		assert.EqualStrings(t, expected, output.String())
 	})
 }
 
@@ -429,14 +428,6 @@ func makeTempDir(t *testing.T) string {
 		t.Fatalf("Failed to create temp GnuPG dir: %v", err)
 	}
 	return dir
-}
-
-func assertEqualStrings(t *testing.T, expected string, got string) {
-	t.Helper()
-	if expected != got {
-		fmt.Printf("expected:\n----\n%s\n----\ngot:\n----\n%s\n----\n", expected, got)
-		t.Fatalf("strings weren't equal")
-	}
 }
 
 const exampleTomlDocument string = `
