@@ -34,6 +34,31 @@ func Load(fluidkeysDirectory string) ([]Team, error) {
 	return teams, nil
 }
 
+// Validate asserts that the team roster has no email addresses or fingerprints that are
+// listed more than once.
+func (t *Team) Validate() error {
+	if t.UUID == uuid.Nil {
+		return fmt.Errorf("invalid roster: invalid UUID")
+	}
+
+	emailsSeen := map[string]bool{} // look for multiple email addresses
+	for _, person := range t.People {
+		if _, alreadySeen := emailsSeen[person.Email]; alreadySeen {
+			return fmt.Errorf("email listed more than once: %s", person.Email)
+		}
+		emailsSeen[person.Email] = true
+	}
+
+	fingerprintsSeen := map[fingerprint.Fingerprint]bool{}
+	for _, person := range t.People {
+		if _, alreadySeen := fingerprintsSeen[person.Fingerprint]; alreadySeen {
+			return fmt.Errorf("fingerprint listed more than once: %s", person.Fingerprint)
+		}
+		fingerprintsSeen[person.Fingerprint] = true
+	}
+	return nil
+}
+
 func findTeamRosters(directory string) ([]string, error) {
 	teamSubdirs, err := ioutil.ReadDir(directory)
 	if err != nil {
