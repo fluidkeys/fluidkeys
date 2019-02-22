@@ -119,6 +119,6 @@ func (t *Team) Fingerprints() []fingerprint.Fingerprint {
 
 // Person represents a human team member
 type Person struct {
-	Email       string
-	Fingerprint fingerprint.Fingerprint
+	Email       string                  `toml:"email"`
+	Fingerprint fingerprint.Fingerprint `toml:"fingerprint"`
 }
