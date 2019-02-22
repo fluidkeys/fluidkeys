@@ -18,14 +18,18 @@
 package team
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/fluidkeys/assert"
+	"github.com/fluidkeys/fluidkeys/exampledata"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/gofrs/uuid"
 )
 
@@ -135,10 +139,16 @@ func TestGetPersonForFingerprint(t *testing.T) {
 	})
 }
 
-func TestSave(t *testing.T) {
+func TestSignAndSave(t *testing.T) {
 	dir, err := ioutil.TempDir("", "fluidkey.team_test_directory.")
 	if err != nil {
 		t.Fatalf("error creating temporary directory")
+	}
+
+	signingKey, err := pgpkey.LoadFromArmoredEncryptedPrivateKey(
+		exampledata.ExamplePrivateKey2, "test2")
+	if err != nil {
+		t.Fatalf("couldn't load signing key")
 	}
 
 	t.Run("for a valid team", func(t *testing.T) {
@@ -153,7 +163,7 @@ func TestSave(t *testing.T) {
 			},
 		}
 
-		err = Save(validTeam, dir)
+		err = SignAndSave(validTeam, dir, signingKey)
 		assert.ErrorIsNil(t, err)
 
 		t.Run("creates a team subdirectory", func(t *testing.T) {
@@ -173,9 +183,34 @@ func TestSave(t *testing.T) {
 			}
 		})
 
+		t.Run("writes roster.toml.asc (armored signature)", func(t *testing.T) {
+			expectedFilename := filepath.Join(
+				dir, "teams", "kiffix-74bb40b4-3510-11e9-968e-53c38df634be", "roster.toml.asc")
+			if !fileExists(expectedFilename) {
+				t.Fatalf(expectedFilename + " doesn't exist")
+			}
+		})
+
+		t.Run("write a valid signature", func(t *testing.T) {
+			teamSubdir := filepath.Join(dir, "teams", "kiffix-74bb40b4-3510-11e9-968e-53c38df634be")
+			rosterFilepath := filepath.Join(teamSubdir, "roster.toml")
+			roster, err := ioutil.ReadFile(rosterFilepath)
+			if err != nil {
+				t.Fatalf("couldn't read " + rosterFilepath)
+			}
+
+			signatureFilepath := filepath.Join(teamSubdir, "roster.toml.asc")
+			signature, err := ioutil.ReadFile(signatureFilepath)
+			if err != nil {
+				t.Fatalf("couldn't read " + signatureFilepath)
+			}
+
+			verifyRosterSignature(t, roster, signature, signingKey)
+		})
+
 		t.Run("returns an error if the subdir already exists", func(t *testing.T) {
 			// re-run Save, since a directory already exists
-			err = Save(validTeam, dir)
+			err = SignAndSave(validTeam, dir, signingKey)
 			assert.ErrorIsNotNil(t, err)
 		})
 	})
@@ -191,7 +226,19 @@ func TestSave(t *testing.T) {
 			},
 		}
 
-		err := Save(invalidTeam, dir)
+		err := SignAndSave(invalidTeam, dir, signingKey)
 		assert.Equal(t, fmt.Errorf("invalid team: invalid roster: invalid UUID"), err)
 	})
+}
+
+func verifyRosterSignature(
+	t *testing.T, roster []byte, armoredSignature []byte, signerKey *pgpkey.PgpKey) {
+	var keyring openpgp.EntityList = []*openpgp.Entity{&signerKey.Entity}
+	if _, err := openpgp.CheckArmoredDetachedSignature(
+		keyring,
+		bytes.NewReader(roster),
+		bytes.NewReader(armoredSignature),
+	); err != nil {
+		t.Fatalf("signature is invalid")
+	}
 }
