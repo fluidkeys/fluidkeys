@@ -25,3 +25,18 @@ func Parse(r io.Reader) (*Team, error) {
 	return &parsedTeam, nil
 
 }
+
+func (t *Team) serialize(w io.Writer) error {
+	err := t.Validate()
+	if err != nil {
+		return fmt.Errorf("invalid team: %v", err)
+	}
+	if _, err := io.WriteString(w, defaultRosterFile); err != nil {
+		return err
+	}
+	encoder := toml.NewEncoder(w)
+	return encoder.Encode(t)
+}
+
+const defaultRosterFile = `# Fluidkeys team roster
+`
