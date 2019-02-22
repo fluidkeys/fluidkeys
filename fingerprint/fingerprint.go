@@ -84,6 +84,12 @@ func (f *Fingerprint) UnmarshalText(text []byte) error {
 	return nil
 }
 
+// MarshalText implements encoding.TextUnmarshaler, converting a Fingerprint into bytes for
+// encoders like JSON, TOML etc.
+func (f Fingerprint) MarshalText() ([]byte, error) {
+	return []byte(f.Hex()), nil
+}
+
 // FromBytes takes 20 bytes and returns a Fingerprint.
 func FromBytes(bytes [20]byte) Fingerprint {
 	return Fingerprint{
