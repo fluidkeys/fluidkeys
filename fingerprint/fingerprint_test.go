@@ -1,9 +1,11 @@
 package fingerprint
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/fluidkeys/fluidkeys/assert"
 	"testing"
+
+	"github.com/fluidkeys/fluidkeys/assert"
 )
 
 func TestFingerprint(t *testing.T) {
@@ -88,6 +90,37 @@ func TestFingerprint(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("TextMarshaler interface (using JSON package)", func(t *testing.T) {
+		fp := MustParse("A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517")
+
+		t.Run("with Fingerprint value (not pointer)", func(t *testing.T) {
+			got, err := json.Marshal(fp)
+			assert.ErrorIsNil(t, err)
+
+			expected := "\"A999B7498D1A8DC473E53C92309F635DAD1B5517\""
+			assert.Equal(t, expected, string(got))
+		})
+
+		t.Run("with *Fingerprint (pointer)", func(t *testing.T) {
+			var p *Fingerprint = &fp
+			got, err := json.Marshal(p)
+			assert.ErrorIsNil(t, err)
+
+			expected := "\"A999B7498D1A8DC473E53C92309F635DAD1B5517\""
+			assert.Equal(t, expected, string(got))
+		})
+
+		t.Run("with *Fingerprint of nil", func(t *testing.T) {
+			var p *Fingerprint
+			p = nil
+			got, err := json.Marshal(p)
+			assert.ErrorIsNil(t, err)
+
+			expected := "null"
+			assert.Equal(t, expected, string(got))
+		})
+	})
 
 	t.Run("FromBytes function", func(t *testing.T) {
 
