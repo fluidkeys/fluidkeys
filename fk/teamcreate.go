@@ -27,6 +27,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/stringutils"
+	"github.com/fluidkeys/fluidkeys/team"
 	"github.com/fluidkeys/fluidkeys/ui"
 )
 
@@ -76,6 +77,14 @@ func teamCreate() exitCode {
 		colour.Cmd("fk key create") + "\n")
 	out.Print("\n")
 	key := promptForTeamEmail(keys)
+
+	email, err := key.Email()
+	if err != nil {
+		out.Print(ui.FormatFailure("Couldn't get email address for key", nil, err))
+		return 1
+	}
+
+	teamMembers := []team.Person{{Email: email, Fingerprint: key.Fingerprint()}}
 
 	printHeader("What's your team name?")
 
@@ -129,6 +138,10 @@ func teamCreate() exitCode {
 			printCheckboxSkipped(fmt.Sprintf("%s\nmultiple keys found: skipping", teamMemberEmail))
 
 		case len(publicKeyListings) == 1:
+			teamMembers = append(teamMembers, team.Person{
+				Email:       teamMemberEmail,
+				Fingerprint: publicKeyListings[0].Fingerprint,
+			})
 			printCheckboxSuccess(
 				fmt.Sprintf("%s\n%*sfound key %s", teamMemberEmail, 9, " ",
 					publicKeyListings[0].Fingerprint))
