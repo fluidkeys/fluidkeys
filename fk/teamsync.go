@@ -26,11 +26,11 @@ import (
 	fp "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
-	"github.com/fluidkeys/fluidkeys/teamroster"
+	"github.com/fluidkeys/fluidkeys/team"
 )
 
 func teamSync() exitCode {
-	teams, err := teamroster.Load(fluidkeysDirectory)
+	teams, err := team.LoadTeams(fluidkeysDirectory)
 	if err != nil {
 		log.Panic(err)
 	}

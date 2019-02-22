@@ -1,22 +1,20 @@
-package teamroster
+package team
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 
-	"github.com/BurntSushi/toml"
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/gofrs/uuid"
 )
 
-// Load scans the fluidkeys/teams directory for subdirectories, enters them and tries to load
+// LoadTeams scans the fluidkeys/teams directory for subdirectories, enters them and tries to load
 // roster.toml
 // Returns a slice of Team
-func Load(fluidkeysDirectory string) ([]Team, error) {
+func LoadTeams(fluidkeysDirectory string) ([]Team, error) {
 	teamRosters, err := findTeamRosters(filepath.Join(fluidkeysDirectory, "teams"))
 	if err != nil {
 		return nil, err
@@ -32,6 +30,43 @@ func Load(fluidkeysDirectory string) ([]Team, error) {
 		teams = append(teams, *team)
 	}
 	return teams, nil
+}
+
+// Validate asserts that the team roster has no email addresses or fingerprints that are
+// listed more than once.
+func (t *Team) Validate() error {
+	if t.UUID == uuid.Nil {
+		return fmt.Errorf("invalid roster: invalid UUID")
+	}
+
+	emailsSeen := map[string]bool{} // look for multiple email addresses
+	for _, person := range t.People {
+		if _, alreadySeen := emailsSeen[person.Email]; alreadySeen {
+			return fmt.Errorf("email listed more than once: %s", person.Email)
+		}
+		emailsSeen[person.Email] = true
+	}
+
+	fingerprintsSeen := map[fingerprint.Fingerprint]bool{}
+	for _, person := range t.People {
+		if _, alreadySeen := fingerprintsSeen[person.Fingerprint]; alreadySeen {
+			return fmt.Errorf("fingerprint listed more than once: %s", person.Fingerprint)
+		}
+		fingerprintsSeen[person.Fingerprint] = true
+	}
+	return nil
+}
+
+// GetPersonForFingerprint takes a fingerprint and returns the person in the team with the
+// matching fingperint.
+func (t *Team) GetPersonForFingerprint(fpr fingerprint.Fingerprint) (*Person, error) {
+	for _, person := range t.People {
+		if person.Fingerprint == fpr {
+			return &person, nil
+		}
+	}
+
+	return nil, fmt.Errorf("person not found")
 }
 
 func findTeamRosters(directory string) ([]string, error) {
@@ -70,26 +105,12 @@ func loadTeamRoster(filename string) (*Team, error) {
 		return nil, err
 	}
 
-	return team, nil
-}
-
-// Parse parses the team roster's TOML data, returning a Team or an error
-func Parse(r io.Reader) (*Team, error) {
-	var parsedTeam Team
-	metadata, err := toml.DecodeReader(r, &parsedTeam)
-
+	err = team.Validate()
 	if err != nil {
-		return nil, fmt.Errorf("error in toml.DecodeReader: %v", err)
+		return nil, fmt.Errorf("error validating team: %v", err)
 	}
 
-	if len(metadata.Undecoded()) > 0 {
-		// found config variables that we don't know how to match to
-		// the Team structure
-		return nil, fmt.Errorf("encountered unrecognised config keys: %v", metadata.Undecoded())
-	}
-
-	return &parsedTeam, nil
-
+	return team, nil
 }
 
 func fileExists(filename string) bool {
