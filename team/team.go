@@ -11,10 +11,10 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-// Load scans the fluidkeys/teams directory for subdirectories, enters them and tries to load
+// LoadTeams scans the fluidkeys/teams directory for subdirectories, enters them and tries to load
 // roster.toml
 // Returns a slice of Team
-func Load(fluidkeysDirectory string) ([]Team, error) {
+func LoadTeams(fluidkeysDirectory string) ([]Team, error) {
 	teamRosters, err := findTeamRosters(filepath.Join(fluidkeysDirectory, "teams"))
 	if err != nil {
 		return nil, err

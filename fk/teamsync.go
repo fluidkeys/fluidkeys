@@ -30,7 +30,7 @@ import (
 )
 
 func teamSync() exitCode {
-	teams, err := team.Load(fluidkeysDirectory)
+	teams, err := team.LoadTeams(fluidkeysDirectory)
 	if err != nil {
 		log.Panic(err)
 	}
