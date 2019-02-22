@@ -78,7 +78,7 @@ func TestGetFluidkeysDirectory(t *testing.T) {
 
 func TestPromptForWhichGpgKey(t *testing.T) {
 	t.Run("pluarlises the word key in the sentence", func(t *testing.T) {
-		secretKeyListings := []gpgwrapper.SecretKeyListing{
+		secretKeyListings := []gpgwrapper.KeyListing{
 			exampleSecretKey,
 		}
 
@@ -90,7 +90,7 @@ func TestPromptForWhichGpgKey(t *testing.T) {
 			t.Errorf("expected '%s', got '%s'", expectedFirstLineReturn, actualFirstLineReturn)
 		}
 
-		secretKeyListings = []gpgwrapper.SecretKeyListing{
+		secretKeyListings = []gpgwrapper.KeyListing{
 			exampleSecretKey,
 			exampleSecretKey,
 			exampleSecretKey,
@@ -106,8 +106,8 @@ func TestPromptForWhichGpgKey(t *testing.T) {
 	})
 
 	t.Run("prints a correctly formatted secret key", func(t *testing.T) {
-		secretKeyListings := []gpgwrapper.SecretKeyListing{
-			gpgwrapper.SecretKeyListing{
+		secretKeyListings := []gpgwrapper.KeyListing{
+			gpgwrapper.KeyListing{
 				Fingerprint: fingerprint.MustParse("BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB"),
 				Uids: []string{
 					"Chat Wannamaker<chat2@example.com>",
@@ -133,7 +133,7 @@ func TestPromptForWhichGpgKey(t *testing.T) {
 	})
 }
 
-var exampleSecretKey = gpgwrapper.SecretKeyListing{
+var exampleSecretKey = gpgwrapper.KeyListing{
 	Fingerprint: fingerprint.MustParse("BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB"),
 	Uids: []string{
 		"Chat Wannamaker<chat2@example.com>",

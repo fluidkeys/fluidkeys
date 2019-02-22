@@ -54,8 +54,8 @@ type GnuPG struct {
 	homeDir string
 }
 
-// SecretKeyListing refers to a key parsed from running `gpg --list-secret-keys`
-type SecretKeyListing struct {
+// KeyListing refers to a key parsed from running `gpg --list-[secret]-keys`
+type KeyListing struct {
 
 	// Fingerprint is the human-readable format of the fingerprint of the
 	// primary key, for example:
@@ -140,7 +140,7 @@ func (g *GnuPG) ImportArmoredKey(armoredKey string) error {
 }
 
 // ListSecretKeys lists the secret(private) keys in the users key ring.
-func (g *GnuPG) ListSecretKeys() ([]SecretKeyListing, error) {
+func (g *GnuPG) ListSecretKeys() ([]KeyListing, error) {
 	args := []string{
 		"--with-colons",
 		"--with-fingerprint",
@@ -153,6 +153,30 @@ func (g *GnuPG) ListSecretKeys() ([]SecretKeyListing, error) {
 	}
 
 	return parseListSecretKeys(outString)
+}
+
+// ListPublicKeys lists the public keys in the users key ring that match a given search string.
+func (g *GnuPG) ListPublicKeys(searchString string) ([]KeyListing, error) {
+	if searchString == "" {
+		return nil, fmt.Errorf("no search string provided")
+	}
+	args := []string{
+		"--with-colons",
+		"--with-fingerprint",
+		"--fixed-list-mode",
+		"--list-keys",
+		searchString,
+	}
+
+	stdOut, stdErr, err := g.run("", args...)
+	if err != nil {
+		if strings.Contains(stdErr, noPublicKey) {
+			return []KeyListing{}, nil
+		}
+		return nil, err
+	}
+
+	return parseListPublicKeys(stdOut)
 }
 
 // ExportPublicKey returns 1 ascii armored public key for the given
@@ -415,4 +439,5 @@ const (
 	loopbackUnsupported       = `setting pinentry mode 'loopback' failed: Not supported`
 	badPassphrase             = "Bad passphrase"
 	noPassphrase              = "No passphrase given"
+	noPublicKey               = "error reading key: No public key"
 )
