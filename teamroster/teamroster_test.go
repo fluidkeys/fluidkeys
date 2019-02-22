@@ -18,6 +18,7 @@
 package teamroster
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -45,6 +46,80 @@ func TestParse(t *testing.T) {
 
 	assert.Equal(t, uuid.Must(uuid.FromString("38be2a70-23d8-11e9-bafd-7f97f2e239a3")), team.UUID)
 	assert.Equal(t, "Fluidkeys CIC", team.Name)
+}
+
+func TestValidateRoster(t *testing.T) {
+	t.Run("with valid roster, returns no error", func(t *testing.T) {
+		team := Team{
+			Name: "Kiffix",
+			UUID: uuid.Must(uuid.NewV4()),
+			People: []Person{
+				{
+					Email:       "test@example.com",
+					Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+				},
+			},
+		}
+
+		err := team.ValidateRoster()
+		assert.ErrorIsNil(t, err)
+	})
+
+	t.Run("missing UUID", func(t *testing.T) {
+		team := Team{
+			Name: "Kiffix",
+			People: []Person{
+				{
+					Email:       "test@example.com",
+					Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+				},
+			},
+		}
+
+		err := team.ValidateRoster()
+		assert.Equal(t, fmt.Errorf("invalid roster: invalid UUID"), err)
+	})
+
+	t.Run("with duplicated email address", func(t *testing.T) {
+		team := Team{
+			Name: "Kiffix",
+			UUID: uuid.Must(uuid.NewV4()),
+			People: []Person{
+				{
+					Email:       "test@example.com",
+					Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+				},
+				{
+					Email:       "test@example.com",
+					Fingerprint: fingerprint.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
+				},
+			},
+		}
+
+		err := team.ValidateRoster()
+		assert.Equal(t, fmt.Errorf("email listed more than once: test@example.com"), err)
+	})
+
+	t.Run("with duplicated fingerprint", func(t *testing.T) {
+		team := Team{
+			Name: "Kiffix",
+			UUID: uuid.Must(uuid.NewV4()),
+			People: []Person{
+				{
+					Email:       "test@example.com",
+					Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+				},
+				{
+					Email:       "another@example.com",
+					Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+				},
+			},
+		}
+
+		err := team.ValidateRoster()
+		assert.Equal(t, fmt.Errorf("fingerprint listed more than once: "+
+			"AAAA BBBB AAAA BBBB AAAA  AAAA BBBB AAAA BBBB AAAA"), err)
+	})
 }
 
 const validRoster = `# Fluidkeys team roster
