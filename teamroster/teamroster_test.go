@@ -18,6 +18,7 @@
 package teamroster
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -45,6 +46,38 @@ func TestParse(t *testing.T) {
 
 	assert.Equal(t, uuid.Must(uuid.FromString("38be2a70-23d8-11e9-bafd-7f97f2e239a3")), team.UUID)
 	assert.Equal(t, "Fluidkeys CIC", team.Name)
+}
+
+func TestGetPersonForFingerprint(t *testing.T) {
+	personOne := Person{
+		Email:       "test@example.com",
+		Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+	}
+	personTwo := Person{
+		Email:       "another@example.com",
+		Fingerprint: fingerprint.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
+	}
+
+	team := Team{
+		Name:   "Kiffix",
+		UUID:   uuid.Must(uuid.NewV4()),
+		People: []Person{personOne, personTwo},
+	}
+
+	t.Run("with a team member with matching fingerprint", func(t *testing.T) {
+		got, err := team.GetPersonForFingerprint(fingerprint.MustParse(
+			"AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"))
+
+		assert.ErrorIsNil(t, err)
+		assert.Equal(t, &personOne, got)
+	})
+
+	t.Run("with no matching fingerprints", func(t *testing.T) {
+		_, err := team.GetPersonForFingerprint(fingerprint.MustParse(
+			"EEEEFFFFEEEEFFFFEEEEFFFFEEEEFFFFEEEEFFFF"))
+
+		assert.Equal(t, fmt.Errorf("person not found"), err)
+	})
 }
 
 const validRoster = `# Fluidkeys team roster

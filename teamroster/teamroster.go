@@ -34,6 +34,18 @@ func Load(fluidkeysDirectory string) ([]Team, error) {
 	return teams, nil
 }
 
+// GetPersonForFingerprint takes a fingerprint and returns the person in the team with the
+// matching fingperint.
+func (t *Team) GetPersonForFingerprint(fpr fingerprint.Fingerprint) (*Person, error) {
+	for _, person := range t.People {
+		if person.Fingerprint == fpr {
+			return &person, nil
+		}
+	}
+
+	return nil, fmt.Errorf("person not found")
+}
+
 func findTeamRosters(directory string) ([]string, error) {
 	teamSubdirs, err := ioutil.ReadDir(directory)
 	if err != nil {
