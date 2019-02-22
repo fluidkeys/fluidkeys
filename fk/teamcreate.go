@@ -19,6 +19,7 @@ package fk
 
 import (
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"unicode/utf8"
 
@@ -29,6 +30,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/stringutils"
 	"github.com/fluidkeys/fluidkeys/team"
 	"github.com/fluidkeys/fluidkeys/ui"
+	"github.com/gofrs/uuid"
 )
 
 func teamCreate() exitCode {
@@ -152,8 +154,25 @@ func teamCreate() exitCode {
 
 	printHeader("Finishing setup")
 
-	out.Print("You've indicated you want setup " + teamName + " using your key\n")
-	out.Print(fmt.Sprintf("%s\n", key.Fingerprint()))
+	uuid, err := uuid.NewV4()
+	if err != nil {
+		out.Print(ui.FormatFailure("Error creating UUID for team", nil, err))
+		return 1
+	}
+
+	t := team.Team{
+		UUID:   uuid,
+		Name:   teamName,
+		People: teamMembers,
+	}
+
+	printCheckboxPending("Create team roster")
+	err = team.Save(t, fluidkeysDirectory)
+	if err != nil {
+		printCheckboxFailure("Create team roster", err)
+	}
+	printCheckboxSuccess("Create team roster in \n" +
+		filepath.Join(fluidkeysDirectory, "teams"))
 
 	out.Print(ui.FormatWarning("Teams are not currently implemented", []string{
 		"This feature is coming soon.",

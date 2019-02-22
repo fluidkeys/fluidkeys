@@ -19,6 +19,9 @@ package team
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/fluidkeys/fluidkeys/assert"
@@ -129,5 +132,66 @@ func TestGetPersonForFingerprint(t *testing.T) {
 			"EEEEFFFFEEEEFFFFEEEEFFFFEEEEFFFFEEEEFFFF"))
 
 		assert.Equal(t, fmt.Errorf("person not found"), err)
+	})
+}
+
+func TestSave(t *testing.T) {
+	dir, err := ioutil.TempDir("", "fluidkey.team_test_directory.")
+	if err != nil {
+		t.Fatalf("error creating temporary directory")
+	}
+
+	t.Run("for a valid team", func(t *testing.T) {
+		validTeam := Team{
+			Name: "Kiffix",
+			UUID: uuid.Must(uuid.FromString("74bb40b4-3510-11e9-968e-53c38df634be")),
+			People: []Person{
+				{
+					Email:       "test@example.com",
+					Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+				},
+			},
+		}
+
+		err = Save(validTeam, dir)
+		assert.ErrorIsNil(t, err)
+
+		t.Run("creates a team subdirectory", func(t *testing.T) {
+			expectedRosterDirectory := filepath.Join(
+				dir, "teams", "kiffix-74bb40b4-3510-11e9-968e-53c38df634be",
+			)
+			if _, err := os.Stat(expectedRosterDirectory); os.IsNotExist(err) {
+				t.Fatalf(expectedRosterDirectory + " doesn't exist")
+			}
+		})
+
+		t.Run("writes a roster.toml file", func(t *testing.T) {
+			expectedFilename := filepath.Join(
+				dir, "teams", "kiffix-74bb40b4-3510-11e9-968e-53c38df634be", "roster.toml")
+			if !fileExists(expectedFilename) {
+				t.Fatalf(expectedFilename + " doesn't exist")
+			}
+		})
+
+		t.Run("returns an error if the subdir already exists", func(t *testing.T) {
+			// re-run Save, since a directory already exists
+			err = Save(validTeam, dir)
+			assert.ErrorIsNotNil(t, err)
+		})
+	})
+
+	t.Run("returns an error for invalid team", func(t *testing.T) {
+		invalidTeam := Team{
+			Name: "Missing UUID",
+			People: []Person{
+				{
+					Email:       "test@example.com",
+					Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+				},
+			},
+		}
+
+		err := Save(invalidTeam, dir)
+		assert.Equal(t, fmt.Errorf("invalid team: invalid roster: invalid UUID"), err)
 	})
 }
