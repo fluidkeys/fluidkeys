@@ -73,7 +73,8 @@ func MustParse(fp string) Fingerprint {
 	return result
 }
 
-// UnmarshalText implements encoding.TextUnmarshaler.
+// UnmarshalText implements encoding.TextUnmarshaler which can parse (unmarshal) a textual
+// version of itself. It allows JSON / toml etc decoders to create a Fingerprint from a string.
 func (f *Fingerprint) UnmarshalText(text []byte) error {
 	parsed, err := Parse(string(text))
 	if err != nil {
