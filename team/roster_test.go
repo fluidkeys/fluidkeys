@@ -11,7 +11,7 @@ import (
 
 func TestParse(t *testing.T) {
 	reader := strings.NewReader(validRoster)
-	team, err := Parse(reader)
+	team, err := parse(reader)
 
 	assert.ErrorIsNil(t, err)
 	expectedPeople := []Person{

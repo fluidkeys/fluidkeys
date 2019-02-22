@@ -88,7 +88,7 @@ func loadTeamRoster(filename string) (*Team, error) {
 		return nil, fmt.Errorf("error reading %s: %v", filename, err)
 	}
 
-	team, err := Parse(reader)
+	team, err := parse(reader)
 	if err != nil {
 		return nil, err
 	}
