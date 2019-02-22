@@ -93,6 +93,11 @@ func loadTeamRoster(filename string) (*Team, error) {
 		return nil, err
 	}
 
+	err = team.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("error validating team: %v", err)
+	}
+
 	return team, nil
 }
 
