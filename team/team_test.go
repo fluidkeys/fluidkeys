@@ -99,3 +99,35 @@ func TestValidate(t *testing.T) {
 			"AAAA BBBB AAAA BBBB AAAA  AAAA BBBB AAAA BBBB AAAA"), err)
 	})
 }
+
+func TestGetPersonForFingerprint(t *testing.T) {
+	personOne := Person{
+		Email:       "test@example.com",
+		Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+	}
+	personTwo := Person{
+		Email:       "another@example.com",
+		Fingerprint: fingerprint.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
+	}
+
+	team := Team{
+		Name:   "Kiffix",
+		UUID:   uuid.Must(uuid.NewV4()),
+		People: []Person{personOne, personTwo},
+	}
+
+	t.Run("with a team member with matching fingerprint", func(t *testing.T) {
+		got, err := team.GetPersonForFingerprint(fingerprint.MustParse(
+			"AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"))
+
+		assert.ErrorIsNil(t, err)
+		assert.Equal(t, &personOne, got)
+	})
+
+	t.Run("with no matching fingerprints", func(t *testing.T) {
+		_, err := team.GetPersonForFingerprint(fingerprint.MustParse(
+			"EEEEFFFFEEEEFFFFEEEEFFFFEEEEFFFFEEEEFFFF"))
+
+		assert.Equal(t, fmt.Errorf("person not found"), err)
+	})
+}
