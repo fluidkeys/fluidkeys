@@ -1,8 +1,11 @@
 package team
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"regexp"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 )
@@ -25,3 +28,53 @@ func Parse(r io.Reader) (*Team, error) {
 	return &parsedTeam, nil
 
 }
+
+func (t *Team) serialize(w io.Writer) error {
+	err := t.Validate()
+	if err != nil {
+		return fmt.Errorf("invalid team: %v", err)
+	}
+	if _, err := io.WriteString(w, defaultRosterFile); err != nil {
+		return err
+	}
+	encoder := toml.NewEncoder(w)
+	return encoder.Encode(t)
+}
+
+func (t Team) subDirectory() string {
+	slug := slugify(t.Name)
+
+	if slug == "" {
+		return t.UUID.String()
+	}
+
+	return slug + "-" + t.UUID.String()
+}
+
+func slugify(input string) string {
+	slug := strings.TrimSpace(input)
+	slug = strings.ToLower(slug)
+
+	var subs = map[rune]string{
+		'&': "and",
+		'@': "a",
+	}
+	var buffer bytes.Buffer
+	for _, char := range slug {
+		if subChar, ok := subs[char]; ok {
+			buffer.WriteString(subChar)
+		} else {
+			buffer.WriteRune(char)
+		}
+	}
+	slug = buffer.String()
+
+	slug = regexp.MustCompile("[^a-z0-9-_]").ReplaceAllString(slug, "-")
+	slug = regexp.MustCompile("-+").ReplaceAllString(slug, "-")
+	slug = strings.Trim(slug, "-_")
+
+	return slug
+}
+
+const defaultRosterFile = `# Fluidkeys team roster
+`

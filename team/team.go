@@ -1,6 +1,7 @@
 package team
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -9,13 +10,14 @@ import (
 
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/gofrs/uuid"
+	"github.com/natefinch/atomic"
 )
 
 // LoadTeams scans the fluidkeys/teams directory for subdirectories, enters them and tries to load
 // roster.toml
 // Returns a slice of Team
 func LoadTeams(fluidkeysDirectory string) ([]Team, error) {
-	teamRosters, err := findTeamRosters(filepath.Join(fluidkeysDirectory, "teams"))
+	teamRosters, err := findTeamRosters(getTeamDirectory(fluidkeysDirectory))
 	if err != nil {
 		return nil, err
 	}
@@ -30,6 +32,37 @@ func LoadTeams(fluidkeysDirectory string) ([]Team, error) {
 		teams = append(teams, *team)
 	}
 	return teams, nil
+}
+
+// Save validates the given team then tries to create a toml team roster in a subdirectory of the
+// given directory.
+func Save(team Team, fluidkeysDirectory string) error {
+	err := team.Validate()
+	if err != nil {
+		return fmt.Errorf("invalid team: %v", err)
+	}
+	rosterDirectory := filepath.Join(
+		getTeamDirectory(fluidkeysDirectory), // ~/.config/fluidkeys/teams
+		team.subDirectory(),                  // fluidkeys-inc-4367436743
+	)
+	if _, err := os.Stat(rosterDirectory); !os.IsNotExist(err) {
+		return fmt.Errorf("path already exists at %s", rosterDirectory)
+	}
+	if err = os.MkdirAll(rosterDirectory, 0700); err != nil {
+		return fmt.Errorf("failed to make directory %s", rosterDirectory)
+	}
+
+	roster := bytes.NewBuffer(nil)
+	if err := team.serialize(roster); err != nil {
+		return fmt.Errorf("failed to serialize team roster: %v", err)
+	}
+
+	rosterFilename := filepath.Join(rosterDirectory, "roster.toml")
+	if err = atomic.WriteFile(rosterFilename, roster); err != nil {
+		return fmt.Errorf("failed write team roster: %v", err)
+	}
+
+	return nil
 }
 
 // Validate asserts that the team roster has no email addresses or fingerprints that are
@@ -67,6 +100,10 @@ func (t *Team) GetPersonForFingerprint(fpr fingerprint.Fingerprint) (*Person, er
 	}
 
 	return nil, fmt.Errorf("person not found")
+}
+
+func getTeamDirectory(fluidkeysDirectory string) string {
+	return filepath.Join(fluidkeysDirectory, "teams")
 }
 
 func findTeamRosters(directory string) ([]string, error) {
