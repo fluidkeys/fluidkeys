@@ -166,12 +166,16 @@ func teamCreate() exitCode {
 		People: teamMembers,
 	}
 
-	printCheckboxPending("Create team roster")
-	err = team.Save(t, fluidkeysDirectory)
+	out.Print("\nSigning team roster requires you to unlock your key\n\n")
+
+	privateKey, _, err := getDecryptedPrivateKeyAndPassword(key, &interactivePasswordPrompter{})
+
+	printCheckboxPending("Create and sign team roster")
+	err = team.SignAndSave(t, fluidkeysDirectory, privateKey)
 	if err != nil {
-		printCheckboxFailure("Create team roster", err)
+		printCheckboxFailure("Create and sign team roster", err)
 	}
-	printCheckboxSuccess("Create team roster in \n" +
+	printCheckboxSuccess("Create and sign team roster in \n" +
 		filepath.Join(fluidkeysDirectory, "teams"))
 
 	out.Print(ui.FormatWarning("Teams are not currently implemented", []string{

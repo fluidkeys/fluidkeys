@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/fluidkeys/fluidkeys/pgpkey"
+
 	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/gofrs/uuid"
 	"github.com/natefinch/atomic"
@@ -34,9 +36,9 @@ func LoadTeams(fluidkeysDirectory string) ([]Team, error) {
 	return teams, nil
 }
 
-// Save validates the given team then tries to create a toml team roster in a subdirectory of the
-// given directory.
-func Save(team Team, fluidkeysDirectory string) error {
+// SignAndSave validates the given team then tries to make a toml team roster in a subdirectory of
+// the given directory with accompanying signature from the signing key.
+func SignAndSave(team Team, fluidkeysDirectory string, signingKey *pgpkey.PgpKey) error {
 	err := team.Validate()
 	if err != nil {
 		return fmt.Errorf("invalid team: %v", err)
@@ -58,8 +60,19 @@ func Save(team Team, fluidkeysDirectory string) error {
 	}
 
 	rosterFilename := filepath.Join(rosterDirectory, "roster.toml")
+	signatureFilename := rosterFilename + ".asc"
+
+	signature, err := signingKey.MakeArmoredDetachedSignature(roster.Bytes())
+	if err != nil {
+		return fmt.Errorf("failed to sign team roster: %v", err)
+	}
+
 	if err = atomic.WriteFile(rosterFilename, roster); err != nil {
 		return fmt.Errorf("failed write team roster: %v", err)
+	}
+	err = atomic.WriteFile(signatureFilename, bytes.NewBufferString(signature))
+	if err != nil {
+		return fmt.Errorf("failed write signature: %v", err)
 	}
 
 	return nil
