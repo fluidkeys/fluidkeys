@@ -176,7 +176,7 @@ func teamCreate() exitCode {
 		printCheckboxFailure("Create and sign team roster", err)
 	}
 	printCheckboxSuccess("Create and sign team roster in \n" +
-		filepath.Join(fluidkeysDirectory, "teams"))
+		"         " + filepath.Join(fluidkeysDirectory, "teams")) // account for checkbox indent
 
 	out.Print(ui.FormatWarning("Teams are not currently implemented", []string{
 		"This feature is coming soon.",
