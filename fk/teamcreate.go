@@ -171,7 +171,7 @@ func teamCreate() exitCode {
 	privateKey, _, err := getDecryptedPrivateKeyAndPassword(key, &interactivePasswordPrompter{})
 
 	printCheckboxPending("Create and sign team roster")
-	err = team.SignAndSave(t, fluidkeysDirectory, privateKey)
+	roster, signature, err := team.SignAndSave(t, fluidkeysDirectory, privateKey)
 	if err != nil {
 		printCheckboxFailure("Create and sign team roster", err)
 	}
