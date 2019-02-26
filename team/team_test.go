@@ -208,10 +208,31 @@ func TestSignAndSave(t *testing.T) {
 			verifyRosterSignature(t, roster, signature, signingKey)
 		})
 
-		t.Run("returns an error if the subdir already exists", func(t *testing.T) {
-			// re-run Save, since a directory already exists
+		t.Run("allows the file to be overwritten", func(t *testing.T) {
+			validTeam := Team{
+				Name: "Kiffix",
+				UUID: uuid.Must(uuid.FromString("74bb40b4-3510-11e9-968e-53c38df634be")),
+				People: []Person{
+					{
+						Email:       "test@example.com",
+						Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+					},
+					{
+						Email:       "new-member@example.com",
+						Fingerprint: fingerprint.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
+					},
+				},
+			}
+
+			// re-run Save, since a roster
 			err = SignAndSave(validTeam, dir, signingKey)
-			assert.ErrorIsNotNil(t, err)
+			assert.ErrorIsNil(t, err)
+
+			rosterDirectory := filepath.Join(
+				dir, "teams", "kiffix-74bb40b4-3510-11e9-968e-53c38df634be")
+
+			files, _ := ioutil.ReadDir(rosterDirectory)
+			assert.Equal(t, 2, len(files)) // still only roster.toml and roster.toml.asc
 		})
 	})
 
