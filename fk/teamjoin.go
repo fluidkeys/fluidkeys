@@ -29,47 +29,11 @@ import (
 )
 
 func teamJoin(teamUUID uuid.UUID) exitCode {
-	keys, err := loadPgpKeys()
-	if err != nil {
-		out.Print(ui.FormatFailure("Error loading pgp keys", nil, err))
-		return 1
+
+	pgpKey, code := getKeyForTeam()
+	if code != 0 {
+		return code
 	}
-
-	var pgpKey *pgpkey.PgpKey
-
-	switch len(keys) {
-	case 0: // no key yet, create one and use that
-		var code exitCode
-		if code, pgpKey = keyCreate(""); code != 0 {
-			return code
-		}
-
-	case 1: // one key in Fluidkeys, confirm it's OK to use that one
-		printHeader("Confirm your team email address")
-
-		if err := printEmailsWithNumbers(keys); err != nil {
-			return 1 // TODO: message
-		}
-
-		out.Print(ifNotYourTeamEmail)
-
-		if answer := promptConfirmThisKey(&keys[0]); !answer {
-			return 1
-		}
-		pgpKey = &keys[0]
-
-	default: // multiple keys in Fluidkeys, prompt which one to use for the team
-		printHeader("Which is your team email address?")
-
-		if err := printEmailsWithNumbers(keys); err != nil {
-			return 1 // TODO: message
-		}
-
-		out.Print(ifEmailNotListed)
-		pgpKey = promptForKeyByNumber(keys)
-	}
-
-	printHeader("Requesting to join team")
 
 	email, err := pgpKey.Email()
 	if err != nil {
@@ -77,11 +41,57 @@ func teamJoin(teamUUID uuid.UUID) exitCode {
 		return 1
 	}
 
+	printHeader("Requesting to join team")
+
 	out.Print(email)
 	out.Print("\n")
 
 	out.Print(ui.FormatFailure("Not implemented", nil, nil))
 	return 1
+}
+
+func getKeyForTeam() (*pgpkey.PgpKey, exitCode) {
+	var pgpKey *pgpkey.PgpKey
+
+	keys, err := loadPgpKeys()
+	if err != nil {
+		out.Print(ui.FormatFailure("Error loading pgp keys", nil, err))
+		return nil, 1
+	}
+
+	switch len(keys) {
+	case 0: // no key yet, create one and use that
+		var code exitCode
+		if code, pgpKey = keyCreate(""); code != 0 {
+			return nil, code
+		}
+
+	case 1: // one key in Fluidkeys, confirm it's OK to use that one
+		printHeader("Confirm your team email address")
+
+		if err := printEmailsWithNumbers(keys); err != nil {
+			return nil, 1 // no need to print as the function prints its own errors
+		}
+
+		out.Print(ifNotYourTeamEmail)
+
+		if answer := promptConfirmThisKey(&keys[0]); !answer {
+			// if they said no, just exit without printing anything
+			return nil, 1
+		}
+		pgpKey = &keys[0]
+
+	default: // multiple keys in Fluidkeys, prompt which one to use for the team
+		printHeader("Which is your team email address?")
+
+		if err := printEmailsWithNumbers(keys); err != nil {
+			return nil, 1 // no need to print as the function prints its own errors
+		}
+
+		out.Print(ifEmailNotListed)
+		pgpKey = promptForKeyByNumber(keys)
+	}
+	return pgpKey, 0
 }
 
 func printEmailsWithNumbers(keys []pgpkey.PgpKey) error {
