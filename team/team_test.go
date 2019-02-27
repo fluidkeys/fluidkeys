@@ -224,30 +224,29 @@ name = "Kiffix"
 		})
 
 		t.Run("allows the file to be overwritten", func(t *testing.T) {
-			updatedTeam := Team{
-				Name: "Kiffix",
-				UUID: uuid.Must(uuid.FromString("74bb40b4-3510-11e9-968e-53c38df634be")),
-				People: []Person{
-					{
-						Email:       "test@example.com",
-						Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
-					},
-					{
-						Email:       "new-member@example.com",
-						Fingerprint: fingerprint.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
-					},
-				},
-			}
+			updatedTeam := validTeam
+			updatedTeam.People = []Person{validTeam.People[0]}
 
 			// re-run Save, since a roster
-			_, _, err = SignAndSave(updatedTeam, dir, signingKey)
+			updatedRoster, updatedSignature, err := SignAndSave(updatedTeam, dir, signingKey)
 			assert.ErrorIsNil(t, err)
 
-			rosterDirectory := filepath.Join(
-				dir, "teams", "kiffix-74bb40b4-3510-11e9-968e-53c38df634be")
-
-			files, _ := ioutil.ReadDir(rosterDirectory)
+			files, _ := ioutil.ReadDir(teamSubdir)
 			assert.Equal(t, 2, len(files)) // still only roster.toml and roster.toml.asc
+
+			t.Run("read back roster matches return value of SignAndSave", func(t *testing.T) {
+				readBackRoster, err := ioutil.ReadFile(rosterFilename)
+				assert.ErrorIsNil(t, err)
+
+				assert.Equal(t, updatedRoster, string(readBackRoster))
+			})
+
+			t.Run("read back signature matches return value of SignAndSave", func(t *testing.T) {
+				readBackSignature, err := ioutil.ReadFile(signatureFilename)
+				assert.ErrorIsNil(t, err)
+
+				assert.Equal(t, updatedSignature, string(readBackSignature))
+			})
 		})
 	})
 
