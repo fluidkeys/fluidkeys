@@ -171,18 +171,27 @@ func teamCreate() exitCode {
 	privateKey, _, err := getDecryptedPrivateKeyAndPassword(key, &interactivePasswordPrompter{})
 
 	printCheckboxPending("Create and sign team roster")
-	err = team.SignAndSave(t, fluidkeysDirectory, privateKey)
+	roster, signature, err := team.SignAndSave(t, fluidkeysDirectory, privateKey)
 	if err != nil {
 		printCheckboxFailure("Create and sign team roster", err)
 	}
 	printCheckboxSuccess("Create and sign team roster in \n" +
 		"         " + filepath.Join(fluidkeysDirectory, "teams")) // account for checkbox indent
 
-	out.Print(ui.FormatWarning("Teams are not currently implemented", []string{
-		"This feature is coming soon.",
-	}, nil))
+	action := "Upload team roster to Fluidkeys"
+	printCheckboxPending(action)
+	signerFingerprint := privateKey.Fingerprint()
+	err = client.UpsertTeam(roster, signature, &signerFingerprint)
+	if err != nil {
+		printCheckboxFailure(action, err)
+	}
+	printCheckboxSuccess(action)
+	out.Print("\n")
 
-	return 1
+	printSuccess("Successfully created " + teamName)
+	out.Print("\n")
+
+	return 0
 }
 
 func validateTeamName(teamName string) (string, error) {

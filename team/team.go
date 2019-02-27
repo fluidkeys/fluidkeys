@@ -38,42 +38,45 @@ func LoadTeams(fluidkeysDirectory string) ([]Team, error) {
 
 // SignAndSave validates the given team then tries to make a toml team roster in a subdirectory of
 // the given directory with accompanying signature from the signing key.
-func SignAndSave(team Team, fluidkeysDirectory string, signingKey *pgpkey.PgpKey) error {
-	err := team.Validate()
+// If successful, it returns the roster and signature as strings.
+func SignAndSave(team Team, fluidkeysDirectory string, signingKey *pgpkey.PgpKey) (roster string,
+	signature string, err error) {
+
+	err = team.Validate()
 	if err != nil {
-		return fmt.Errorf("invalid team: %v", err)
+		return "", "", fmt.Errorf("invalid team: %v", err)
 	}
 	rosterDirectory := filepath.Join(
 		getTeamDirectory(fluidkeysDirectory), // ~/.config/fluidkeys/teams
 		team.subDirectory(),                  // fluidkeys-inc-4367436743
 	)
-
 	if err = os.MkdirAll(rosterDirectory, 0700); err != nil {
-		return fmt.Errorf("failed to make directory %s", rosterDirectory)
+		return "", "", fmt.Errorf("failed to make directory %s", rosterDirectory)
 	}
 
-	roster := bytes.NewBuffer(nil)
-	if err := team.serialize(roster); err != nil {
-		return fmt.Errorf("failed to serialize team roster: %v", err)
+	rBuf := bytes.NewBuffer(nil)
+	if err := team.serialize(rBuf); err != nil {
+		return "", "", fmt.Errorf("failed to serialize team roster: %v", err)
 	}
+	roster = rBuf.String()
 
 	rosterFilename := filepath.Join(rosterDirectory, "roster.toml")
 	signatureFilename := rosterFilename + ".asc"
 
-	signature, err := signingKey.MakeArmoredDetachedSignature(roster.Bytes())
+	signature, err = signingKey.MakeArmoredDetachedSignature([]byte(roster))
 	if err != nil {
-		return fmt.Errorf("failed to sign team roster: %v", err)
+		return "", "", fmt.Errorf("failed to sign team roster: %v", err)
 	}
 
-	if err = atomic.WriteFile(rosterFilename, roster); err != nil {
-		return fmt.Errorf("failed write team roster: %v", err)
+	if err = atomic.WriteFile(rosterFilename, bytes.NewBufferString(roster)); err != nil {
+		return "", "", fmt.Errorf("failed write team roster: %v", err)
 	}
 	err = atomic.WriteFile(signatureFilename, bytes.NewBufferString(signature))
 	if err != nil {
-		return fmt.Errorf("failed write signature: %v", err)
+		return "", "", fmt.Errorf("failed write signature: %v", err)
 	}
 
-	return nil
+	return roster, signature, nil
 }
 
 // Validate asserts that the team roster has no email addresses or fingerprints that are

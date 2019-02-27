@@ -263,6 +263,75 @@ func TestDecodeErrorResponse(t *testing.T) {
 	})
 }
 
+func TestUpsertTeam(t *testing.T) {
+	input := &v1structs.UpsertTeamRequest{
+		TeamRoster:               "# Fluidkeys team roster...",
+		ArmoredDetachedSignature: "---- BEGIN PGP MESSAGE...",
+	}
+
+	fingerprint, err := fingerprint.Parse("ABAB ABAB ABAB ABAB ABAB  ABAB ABAB ABAB ABAB ABAB")
+	if err != nil {
+		t.Fatalf("Couldn't parse fingerprint: %s\n", err)
+	}
+
+	t.Run("with valid JSON response", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "POST", r.Method)
+			v := new(v1structs.UpsertTeamRequest)
+			json.NewDecoder(r.Body).Decode(v)
+			if !reflect.DeepEqual(v, input) {
+				t.Errorf("Request body = %+v, want %+v", v, input)
+			}
+
+			w.WriteHeader(201)
+		}
+		mux.HandleFunc("/teams", mockResponseHandler)
+
+		err = client.UpsertTeam(
+			"# Fluidkeys team roster...",
+			"---- BEGIN PGP MESSAGE...",
+			&fingerprint,
+		)
+		assert.ErrorIsNil(t, err)
+	})
+
+	t.Run("returns error when missing the signing fingerprint", func(t *testing.T) {
+		client, _, _, teardown := setup()
+		defer teardown()
+
+		err := client.UpsertTeam(
+			"# Fluidkeys team roster...",
+			"---- BEGIN PGP MESSAGE...",
+			nil,
+		)
+		assert.Equal(t, fmt.Errorf("missing signer fingerprint"), err)
+	})
+
+	t.Run("passes up server errors", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "POST", r.Method)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Header().Add("Content-Type", "application/json")
+			fmt.Fprint(w, `{"detail": "signing key not in roster"}`)
+		}
+		mux.HandleFunc("/teams", mockResponseHandler)
+
+		err = client.UpsertTeam(
+			"# Fluidkeys team roster...",
+			"---- BEGIN PGP MESSAGE...",
+			&fingerprint,
+		)
+
+		assert.Equal(t, fmt.Errorf("API error: 500 signing key not in roster"), err)
+	})
+}
+
 // setup sets up a test HTTP server along with a fluidkeysServer.Client that is
 // configured to talk to that test server. Tests should register handlers on
 // mux which provide mock responses for the API method being tested.
