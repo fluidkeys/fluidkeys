@@ -101,7 +101,7 @@ func teamCreate() exitCode {
 		}
 	}
 
-	printHeader("Finishing setup")
+	printHeader("Creating signed team roster")
 
 	uuid, err := uuid.NewV4()
 	if err != nil {
@@ -115,16 +115,38 @@ func teamCreate() exitCode {
 		People: teamMembers,
 	}
 
-	out.Print("\nSigning team roster requires you to unlock your key\n\n")
+	err = t.Validate()
+	if err != nil {
+		out.Print(ui.FormatFailure("Something went wrong, invalid team", nil, err))
+		return 1
+	}
+	roster, err := t.Roster()
+	if err != nil {
+		out.Print(ui.FormatFailure("Failed to create roster", nil, err))
+		return 1
+	}
+
+	out.Print("Create team roster with you in it:\n\n")
+
+	out.Print(formatFileDivider("roster.toml", 80) + "\n")
+	out.Print(roster)
+	out.Print(formatFileDivider("", 80) + "\n")
+
+	out.Print("\n")
+
+	prompter := interactiveYesNoPrompter{}
+	if !prompter.promptYesNo("Sign and upload the roster to Fluidkeys now?", "", nil) {
+		return 1
+	}
 
 	privateKey, _, err := getDecryptedPrivateKeyAndPassword(key, &interactivePasswordPrompter{})
 
-	printCheckboxPending("Create and sign team roster")
+	printCheckboxPending("Create signed team roster")
 	roster, signature, err := team.SignAndSave(t, fluidkeysDirectory, privateKey)
 	if err != nil {
-		printCheckboxFailure("Create and sign team roster", err)
+		printCheckboxFailure("Create signed team roster", err)
 	}
-	printCheckboxSuccess("Create and sign team roster in \n" +
+	printCheckboxSuccess("Create signed team roster in \n" +
 		"         " + filepath.Join(fluidkeysDirectory, "teams")) // account for checkbox indent
 
 	action := "Upload team roster to Fluidkeys"
