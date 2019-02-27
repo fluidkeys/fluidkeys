@@ -47,9 +47,7 @@ func SignAndSave(team Team, fluidkeysDirectory string, signingKey *pgpkey.PgpKey
 		getTeamDirectory(fluidkeysDirectory), // ~/.config/fluidkeys/teams
 		team.subDirectory(),                  // fluidkeys-inc-4367436743
 	)
-	if _, err := os.Stat(rosterDirectory); !os.IsNotExist(err) {
-		return fmt.Errorf("path already exists at %s", rosterDirectory)
-	}
+
 	if err = os.MkdirAll(rosterDirectory, 0700); err != nil {
 		return fmt.Errorf("failed to make directory %s", rosterDirectory)
 	}
