@@ -135,6 +135,10 @@ func File(filename string) string {
 	return yellow(filename)
 }
 
+func Instruction(message string) string {
+	return bright + blue(message)
+}
+
 func underline(message string) string {
 	return underscore + message + reset
 }
