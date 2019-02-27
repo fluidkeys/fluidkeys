@@ -228,7 +228,7 @@ name = "Kiffix"
 		})
 
 		t.Run("allows the file to be overwritten", func(t *testing.T) {
-			validTeam := Team{
+			updatedTeam := Team{
 				Name: "Kiffix",
 				UUID: uuid.Must(uuid.FromString("74bb40b4-3510-11e9-968e-53c38df634be")),
 				People: []Person{
@@ -244,7 +244,7 @@ name = "Kiffix"
 			}
 
 			// re-run Save, since a roster
-			_, _, err = SignAndSave(validTeam, dir, signingKey)
+			_, _, err = SignAndSave(updatedTeam, dir, signingKey)
 			assert.ErrorIsNil(t, err)
 
 			rosterDirectory := filepath.Join(
