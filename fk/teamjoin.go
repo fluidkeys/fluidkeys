@@ -18,12 +18,131 @@
 package fk
 
 import (
+	"fmt"
+	"strconv"
+
+	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/out"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/ui"
 	"github.com/gofrs/uuid"
 )
 
 func teamJoin(teamUUID uuid.UUID) exitCode {
+
+	pgpKey, code := getKeyForTeam()
+	if code != 0 {
+		return code
+	}
+
+	email, err := pgpKey.Email()
+	if err != nil {
+		out.Print(ui.FormatFailure("Error getting email for key", nil, err))
+		return 1
+	}
+
+	printHeader("Requesting to join team")
+
+	out.Print(email)
+	out.Print("\n")
+
 	out.Print(ui.FormatFailure("Not implemented", nil, nil))
 	return 1
 }
+
+func getKeyForTeam() (*pgpkey.PgpKey, exitCode) {
+	var pgpKey *pgpkey.PgpKey
+
+	keys, err := loadPgpKeys()
+	if err != nil {
+		out.Print(ui.FormatFailure("Error loading pgp keys", nil, err))
+		return nil, 1
+	}
+
+	switch len(keys) {
+	case 0: // no key yet, create one and use that
+		var code exitCode
+		if code, pgpKey = keyCreate(""); code != 0 {
+			return nil, code
+		}
+
+	case 1: // one key in Fluidkeys, confirm it's OK to use that one
+		printHeader("Confirm your team email address")
+
+		if err := printEmailsWithNumbers(keys); err != nil {
+			return nil, 1 // no need to print as the function prints its own errors
+		}
+
+		out.Print(ifNotYourTeamEmail)
+
+		if answer := promptConfirmThisKey(&keys[0]); !answer {
+			// if they said no, just exit without printing anything
+			return nil, 1
+		}
+		pgpKey = &keys[0]
+
+	default: // multiple keys in Fluidkeys, prompt which one to use for the team
+		printHeader("Which is your team email address?")
+
+		if err := printEmailsWithNumbers(keys); err != nil {
+			return nil, 1 // no need to print as the function prints its own errors
+		}
+
+		out.Print(ifEmailNotListed)
+		pgpKey = promptForKeyByNumber(keys)
+	}
+	return pgpKey, 0
+}
+
+func printEmailsWithNumbers(keys []pgpkey.PgpKey) error {
+	for index, key := range keys {
+		email, err := key.Email()
+		if err != nil {
+			out.Print(ui.FormatFailure(
+				"Failed to get email for key", []string{
+					fmt.Sprintf("%s has no identities with email addresses", key.Fingerprint()),
+				},
+				err,
+			))
+		}
+		formattedListNumber := colour.Info(fmt.Sprintf("%-4s", (strconv.Itoa(index+1) + ".")))
+		out.Print(fmt.Sprintf("%s%s\n", formattedListNumber, email))
+	}
+	out.Print("\n")
+	return nil
+}
+
+func promptConfirmThisKey(key *pgpkey.PgpKey) bool {
+	prompter := interactiveYesNoPrompter{}
+	return prompter.promptYesNo("Is this your team email?", "y", nil)
+}
+
+func promptForKeyByNumber(keys []pgpkey.PgpKey) *pgpkey.PgpKey {
+	invalidEntry := fmt.Sprintf("Please select between 1 and %v.\n", len(keys))
+
+	inRange := func(selected int) bool {
+		return 1 <= selected && selected <= len(keys)
+	}
+
+	for {
+		rangePrompt := colour.Info(fmt.Sprintf("[1-%v]", len(keys)))
+		input := promptForInput(fmt.Sprintf("Which is your team email? " + rangePrompt + " "))
+		if integerSelected, err := strconv.Atoi(input); err != nil {
+			out.Print(invalidEntry)
+
+		} else if !inRange(integerSelected) {
+			out.Print(invalidEntry)
+
+		} else {
+			return &keys[integerSelected-1]
+		}
+	}
+}
+
+var (
+	ifEmailNotListed = "If your team email address isn't listed, quit and run " +
+		colour.Cmd("fk key create") + "\n\n"
+
+	ifNotYourTeamEmail = "If this is not the email you use in your team, quit and run " +
+		colour.Cmd("fk key create") + "\n\n"
+)
