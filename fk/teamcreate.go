@@ -20,13 +20,11 @@ package fk
 import (
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"unicode/utf8"
 
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/emailutils"
 	"github.com/fluidkeys/fluidkeys/out"
-	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/stringutils"
 	"github.com/fluidkeys/fluidkeys/team"
 	"github.com/fluidkeys/fluidkeys/ui"
@@ -41,44 +39,10 @@ func teamCreate() exitCode {
 	out.Print("This makes it easy to send secrets to one another and use other popular\n")
 	out.Print("PGP tools.\n\n")
 
-	printHeader("Which is your team email address?")
-
-	keys, err := loadPgpKeys()
-	if err != nil {
-		out.Print(ui.FormatFailure("Error loading pgp keys", nil, err))
-		return 1
+	key, code := getKeyForTeam()
+	if code != 0 {
+		return code
 	}
-
-	if len(keys) == 0 {
-		out.Print(ui.FormatWarning(
-			"No keys found in fluidkeys", []string{
-				"Before creating a team you must create a key by running ",
-				"    " + colour.Cmd("fk setup"),
-			},
-			nil,
-		))
-		return 1
-	}
-
-	for index, key := range keys {
-		email, err := key.Email()
-		if err != nil {
-			out.Print(ui.FormatFailure(
-				"Failed to get email for key", []string{
-					fmt.Sprintf("%s has no identities with email addresses", key.Fingerprint()),
-				},
-				err,
-			))
-		}
-		formattedListNumber := colour.Info(fmt.Sprintf("%-4s", (strconv.Itoa(index+1) + ".")))
-		out.Print(fmt.Sprintf("%s%s\n", formattedListNumber, email))
-	}
-
-	out.Print("\n")
-	out.Print("If your team email address isn't listed, quit and run " +
-		colour.Cmd("fk key create") + "\n")
-	out.Print("\n")
-	key := promptForTeamEmail(keys)
 
 	email, err := key.Email()
 	if err != nil {
@@ -202,33 +166,4 @@ func validateTeamName(teamName string) (string, error) {
 		return "", fmt.Errorf("Team name contained invalid characters")
 	}
 	return teamName, nil
-}
-
-func promptForTeamEmail(keys []pgpkey.PgpKey) *pgpkey.PgpKey {
-	var selectedKey int
-	if len(keys) == 1 {
-		onlyKey := keys[0]
-		prompter := interactiveYesNoPrompter{}
-		if prompter.promptYesNo("Is this your team email?", "y", nil) {
-			return &onlyKey
-		}
-		return nil
-	} else {
-		invalidEntry := fmt.Sprintf("Please select between 1 and %v.\n", len(keys))
-		for validInput := false; !validInput; {
-			rangePrompt := colour.Info(fmt.Sprintf("[1-%v]", len(keys)))
-			input := promptForInput(fmt.Sprintf("Which is your team email? " + rangePrompt + " "))
-			if integerSelected, err := strconv.Atoi(input); err != nil {
-				out.Print(invalidEntry)
-			} else {
-				if (integerSelected >= 1) && (integerSelected <= len(keys)) {
-					selectedKey = integerSelected - 1
-					validInput = true
-				} else {
-					out.Print(invalidEntry)
-				}
-			}
-		}
-		return &keys[selectedKey]
-	}
 }
