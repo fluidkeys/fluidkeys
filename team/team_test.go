@@ -145,6 +145,12 @@ func TestSignAndSave(t *testing.T) {
 		t.Fatalf("error creating temporary directory")
 	}
 
+	teamSubdir := filepath.Join(
+		dir, "teams", "kiffix-74bb40b4-3510-11e9-968e-53c38df634be",
+	)
+	rosterFilename := filepath.Join(teamSubdir, "roster.toml")
+	signatureFilename := filepath.Join(teamSubdir, "roster.toml.asc")
+
 	signingKey, err := pgpkey.LoadFromArmoredEncryptedPrivateKey(
 		exampledata.ExamplePrivateKey2, "test2")
 	if err != nil {
@@ -167,42 +173,32 @@ func TestSignAndSave(t *testing.T) {
 		assert.ErrorIsNil(t, err)
 
 		t.Run("creates a team subdirectory", func(t *testing.T) {
-			expectedRosterDirectory := filepath.Join(
-				dir, "teams", "kiffix-74bb40b4-3510-11e9-968e-53c38df634be",
-			)
-			if _, err := os.Stat(expectedRosterDirectory); os.IsNotExist(err) {
-				t.Fatalf(expectedRosterDirectory + " doesn't exist")
+			if _, err := os.Stat(teamSubdir); os.IsNotExist(err) {
+				t.Fatalf(teamSubdir + " wasn't created (doesn't exist)")
 			}
 		})
 
 		t.Run("writes a roster.toml file", func(t *testing.T) {
-			expectedFilename := filepath.Join(
-				dir, "teams", "kiffix-74bb40b4-3510-11e9-968e-53c38df634be", "roster.toml")
-			if !fileExists(expectedFilename) {
-				t.Fatalf(expectedFilename + " doesn't exist")
+			if !fileExists(rosterFilename) {
+				t.Fatalf(rosterFilename + " wasn't written (doesn't exist)")
 			}
 		})
 
 		t.Run("writes roster.toml.asc (armored signature)", func(t *testing.T) {
-			expectedFilename := filepath.Join(
-				dir, "teams", "kiffix-74bb40b4-3510-11e9-968e-53c38df634be", "roster.toml.asc")
-			if !fileExists(expectedFilename) {
-				t.Fatalf(expectedFilename + " doesn't exist")
+			if !fileExists(signatureFilename) {
+				t.Fatalf(signatureFilename + " wasn't written (doesn't exist)")
 			}
 		})
 
 		t.Run("write a valid signature", func(t *testing.T) {
-			teamSubdir := filepath.Join(dir, "teams", "kiffix-74bb40b4-3510-11e9-968e-53c38df634be")
-			rosterFilepath := filepath.Join(teamSubdir, "roster.toml")
-			roster, err := ioutil.ReadFile(rosterFilepath)
+			roster, err := ioutil.ReadFile(rosterFilename)
 			if err != nil {
-				t.Fatalf("couldn't read " + rosterFilepath)
+				t.Fatalf("couldn't read " + rosterFilename)
 			}
 
-			signatureFilepath := filepath.Join(teamSubdir, "roster.toml.asc")
-			readSignature, err := ioutil.ReadFile(signatureFilepath)
+			readSignature, err := ioutil.ReadFile(signatureFilename)
 			if err != nil {
-				t.Fatalf("couldn't read " + signatureFilepath)
+				t.Fatalf("couldn't read " + signatureFilename)
 			}
 
 			verifyRosterSignature(t, roster, readSignature, signingKey)
@@ -223,7 +219,7 @@ name = "Kiffix"
 			}
 		})
 
-		t.Run("returns the signature", func(t *testing.T) {
+		t.Run("returns the signature, and the sig is valid", func(t *testing.T) {
 			verifyRosterSignature(t, []byte(roster), []byte(signature), signingKey)
 		})
 
