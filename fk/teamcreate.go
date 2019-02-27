@@ -24,7 +24,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/fluidkeys/fluidkeys/colour"
-	"github.com/fluidkeys/fluidkeys/emailutils"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/stringutils"
@@ -101,56 +100,6 @@ func teamCreate() exitCode {
 			printWarning(err.Error())
 		}
 	}
-
-	printHeader("Who would you like to invite into " + teamName + "?")
-
-	out.Print("One by one, add the emails of the people you'd like to invite to join.\n")
-	out.Print("You can always invite others later.\n\n")
-	out.Print("Finish by entering a blank address\n\n")
-
-	var teamMemberEmails []string
-
-	for {
-		memberEmail := promptForInput("[email] : ")
-		if memberEmail == "" {
-			break
-		}
-		if !emailutils.RoughlyValidateEmail(memberEmail) {
-			printWarning("Not a valid email address")
-			continue
-		}
-		teamMemberEmails = append(teamMemberEmails, memberEmail)
-	}
-
-	printHeader("Searching gpg for existings keys")
-
-	for _, teamMemberEmail := range teamMemberEmails {
-		printCheckboxPending(teamMemberEmail)
-
-		publicKeyListings, err := gpg.ListPublicKeys(teamMemberEmail)
-		if err != nil {
-			printCheckboxFailure(teamMemberEmail, err)
-		}
-		switch {
-		case len(publicKeyListings) == 0:
-			printCheckboxSkipped(
-				colour.Disabled(teamMemberEmail + " no key found, you can invite them later"))
-
-		case len(publicKeyListings) > 1:
-			printCheckboxSkipped(fmt.Sprintf("%s\nmultiple keys found: skipping", teamMemberEmail))
-
-		case len(publicKeyListings) == 1:
-			teamMembers = append(teamMembers, team.Person{
-				Email:       teamMemberEmail,
-				Fingerprint: publicKeyListings[0].Fingerprint,
-			})
-			printCheckboxSuccess(
-				fmt.Sprintf("%s\n%*sfound key %s", teamMemberEmail, 9, " ",
-					publicKeyListings[0].Fingerprint))
-
-		}
-	}
-	out.Print("\n")
 
 	printHeader("Finishing setup")
 
