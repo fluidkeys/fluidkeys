@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"regexp"
 	"strings"
 
@@ -62,9 +63,15 @@ func slugify(input string) string {
 	var buffer bytes.Buffer
 	for _, char := range slug {
 		if subChar, ok := subs[char]; ok {
-			buffer.WriteString(subChar)
+			_, err := buffer.WriteString(subChar)
+			if err != nil {
+				log.Panic(err)
+			}
 		} else {
-			buffer.WriteRune(char)
+			_, err := buffer.WriteRune(char)
+			if err != nil {
+				log.Panic(err)
+			}
 		}
 	}
 	slug = buffer.String()
