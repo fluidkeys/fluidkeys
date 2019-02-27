@@ -11,6 +11,25 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+// Roster returns the team as a toml formatted string. You should validate the team
+// prior to this function.
+func (t Team) Roster() (roster string, err error) {
+	err = t.Validate()
+	if err != nil {
+		return "", fmt.Errorf("invalid team: %v", err)
+	}
+
+	buffer := bytes.NewBuffer(nil)
+	if _, err := io.WriteString(buffer, defaultRosterFile); err != nil {
+		return "", fmt.Errorf("failed to write default header: %v", err)
+	}
+	encoder := toml.NewEncoder(buffer)
+	if err := encoder.Encode(t); err != nil {
+		return "", fmt.Errorf("failed to encode: %v", err)
+	}
+	return buffer.String(), nil
+}
+
 // Parse parses the team roster's TOML data, returning a Team or an error
 func Parse(r io.Reader) (*Team, error) {
 	var parsedTeam Team
@@ -27,19 +46,6 @@ func Parse(r io.Reader) (*Team, error) {
 	}
 
 	return &parsedTeam, nil
-
-}
-
-func (t *Team) serialize(w io.Writer) error {
-	err := t.Validate()
-	if err != nil {
-		return fmt.Errorf("invalid team: %v", err)
-	}
-	if _, err := io.WriteString(w, defaultRosterFile); err != nil {
-		return err
-	}
-	encoder := toml.NewEncoder(w)
-	return encoder.Encode(t)
 }
 
 func (t Team) subDirectory() string {

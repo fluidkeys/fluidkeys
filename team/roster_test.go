@@ -1,7 +1,6 @@
 package team
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 	"testing"
@@ -34,7 +33,7 @@ func TestParse(t *testing.T) {
 	assert.Equal(t, "Fluidkeys CIC", team.Name)
 }
 
-func TestSerialize(t *testing.T) {
+func TestRoster(t *testing.T) {
 	t.Run("for a valid team", func(t *testing.T) {
 		testTeam := Team{
 			Name: "Kiffix",
@@ -51,8 +50,7 @@ func TestSerialize(t *testing.T) {
 			},
 		}
 
-		output := bytes.NewBuffer(nil)
-		err := testTeam.serialize(output)
+		got, err := testTeam.Roster()
 		assert.ErrorIsNil(t, err)
 
 		expected := `# Fluidkeys team roster
@@ -67,7 +65,7 @@ name = "Kiffix"
   email = "test3@example.com"
   fingerprint = "7C18DE4DE47813568B243AC8719BD63EF03BDC20"
 `
-		assert.Equal(t, expected, output.String())
+		assert.Equal(t, expected, got)
 	})
 
 	t.Run("for a invalid team (same person twice)", func(t *testing.T) {
@@ -81,8 +79,7 @@ name = "Kiffix"
 			People: []Person{person, person},
 		}
 
-		output := bytes.NewBuffer(nil)
-		err := testTeam.serialize(output)
+		_, err := testTeam.Roster()
 		assert.ErrorIsNotNil(t, err)
 	})
 }
