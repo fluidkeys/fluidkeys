@@ -39,8 +39,8 @@ func LoadTeams(fluidkeysDirectory string) ([]Team, error) {
 // SignAndSave validates the given team then tries to make a toml team roster in a subdirectory of
 // the given directory with accompanying signature from the signing key.
 // If successful, it returns the roster and signature as strings.
-func SignAndSave(team Team, fluidkeysDirectory string, signingKey *pgpkey.PgpKey) (roster string,
-	signature string, err error) {
+func SignAndSave(team Team, fluidkeysDirectory string, signingKey *pgpkey.PgpKey) (
+	roster string, signature string, err error) {
 
 	err = team.Validate()
 	if err != nil {
@@ -54,11 +54,10 @@ func SignAndSave(team Team, fluidkeysDirectory string, signingKey *pgpkey.PgpKey
 		return "", "", fmt.Errorf("failed to make directory %s", rosterDirectory)
 	}
 
-	rBuf := bytes.NewBuffer(nil)
-	if err := team.serialize(rBuf); err != nil {
-		return "", "", fmt.Errorf("failed to serialize team roster: %v", err)
+	roster, err = team.Roster()
+	if err != nil {
+		return "", "", err
 	}
-	roster = rBuf.String()
 
 	rosterFilename := filepath.Join(rosterDirectory, "roster.toml")
 	signatureFilename := rosterFilename + ".asc"
