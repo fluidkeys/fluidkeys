@@ -69,7 +69,7 @@ func keyCreate(email string) (exitCode, *pgpkey.PgpKey) {
 	out.Print("\n")
 
 	if email == "" {
-		printHeader("What's your email address?")
+		printHeader("What's your team email address?")
 
 		out.Print("This is how other people using Fluidkeys will find you.\n\n")
 		out.Print("We'll send you an email to verify your address.\n\n")
