@@ -23,7 +23,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/fluidkeys/fluidkeys/colour"
-	"github.com/fluidkeys/fluidkeys/emailutils"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/stringutils"
 	"github.com/fluidkeys/fluidkeys/team"
@@ -66,57 +65,7 @@ func teamCreate() exitCode {
 		}
 	}
 
-	printHeader("Who would you like to invite into " + teamName + "?")
-
-	out.Print("One by one, add the emails of the people you'd like to invite to join.\n")
-	out.Print("You can always invite others later.\n\n")
-	out.Print("Finish by entering a blank address\n\n")
-
-	var teamMemberEmails []string
-
-	for {
-		memberEmail := promptForInput("[email] : ")
-		if memberEmail == "" {
-			break
-		}
-		if !emailutils.RoughlyValidateEmail(memberEmail) {
-			printWarning("Not a valid email address")
-			continue
-		}
-		teamMemberEmails = append(teamMemberEmails, memberEmail)
-	}
-
-	printHeader("Searching gpg for existings keys")
-
-	for _, teamMemberEmail := range teamMemberEmails {
-		printCheckboxPending(teamMemberEmail)
-
-		publicKeyListings, err := gpg.ListPublicKeys(teamMemberEmail)
-		if err != nil {
-			printCheckboxFailure(teamMemberEmail, err)
-		}
-		switch {
-		case len(publicKeyListings) == 0:
-			printCheckboxSkipped(
-				colour.Disabled(teamMemberEmail + " no key found, you can invite them later"))
-
-		case len(publicKeyListings) > 1:
-			printCheckboxSkipped(fmt.Sprintf("%s\nmultiple keys found: skipping", teamMemberEmail))
-
-		case len(publicKeyListings) == 1:
-			teamMembers = append(teamMembers, team.Person{
-				Email:       teamMemberEmail,
-				Fingerprint: publicKeyListings[0].Fingerprint,
-			})
-			printCheckboxSuccess(
-				fmt.Sprintf("%s\n%*sfound key %s", teamMemberEmail, 9, " ",
-					publicKeyListings[0].Fingerprint))
-
-		}
-	}
-	out.Print("\n")
-
-	printHeader("Finishing setup")
+	printHeader("Creating signed team roster")
 
 	uuid, err := uuid.NewV4()
 	if err != nil {
@@ -130,16 +79,38 @@ func teamCreate() exitCode {
 		People: teamMembers,
 	}
 
-	out.Print("\nSigning team roster requires you to unlock your key\n\n")
+	err = t.Validate()
+	if err != nil {
+		out.Print(ui.FormatFailure("Something went wrong, invalid team", nil, err))
+		return 1
+	}
+	roster, err := t.Roster()
+	if err != nil {
+		out.Print(ui.FormatFailure("Failed to create roster", nil, err))
+		return 1
+	}
+
+	out.Print("Create team roster with you in it:\n\n")
+
+	out.Print(formatFileDivider("roster.toml", 80) + "\n")
+	out.Print(roster)
+	out.Print(formatFileDivider("", 80) + "\n")
+
+	out.Print("\n")
+
+	prompter := interactiveYesNoPrompter{}
+	if !prompter.promptYesNo("Sign and upload the roster to Fluidkeys now?", "", nil) {
+		return 1
+	}
 
 	privateKey, _, err := getDecryptedPrivateKeyAndPassword(key, &interactivePasswordPrompter{})
 
-	printCheckboxPending("Create and sign team roster")
+	printCheckboxPending("Create signed team roster")
 	roster, signature, err := team.SignAndSave(t, fluidkeysDirectory, privateKey)
 	if err != nil {
-		printCheckboxFailure("Create and sign team roster", err)
+		printCheckboxFailure("Create signed team roster", err)
 	}
-	printCheckboxSuccess("Create and sign team roster in \n" +
+	printCheckboxSuccess("Create signed team roster in \n" +
 		"         " + filepath.Join(fluidkeysDirectory, "teams")) // account for checkbox indent
 
 	action := "Upload team roster to Fluidkeys"
@@ -154,6 +125,37 @@ func teamCreate() exitCode {
 
 	printSuccess("Successfully created " + teamName)
 	out.Print("\n")
+
+	printHeader("Invite people to join the team")
+
+	out.Print(formatFileDivider("Invitation to join "+t.Name, 80) + "\n\n")
+
+	out.Print(`Join ` + t.Name + ` on Fluidkeys
+
+I've created a team on Fluidkeys to make it simple for us to share passwords
+and secrets securely.
+
+Join now:
+
+1. download Fluidkeys from https://download.fluidkeys.com
+
+2. join the team by running:
+
+> fk team join ` + t.UUID.String() + `
+
+`)
+	out.Print(formatFileDivider("", 80) + "\n\n")
+
+	out.Print(colour.Instruction("👆 Copy the invitation above and send it to your team.") + "\n\n")
+
+	promptForInput("Press enter to continue. ")
+
+	out.Print(ui.FormatInfo("You'll need to authorize requests to join the team with "+
+		colour.Cmd("fk team authorize"), []string{
+		"If you're already using gpg with your team, you can pre-authorise them now",
+		"by running " + colour.Cmd("fk team from-gpg"),
+	},
+	))
 
 	return 0
 }

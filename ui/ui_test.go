@@ -170,6 +170,47 @@ func TestFormatWarning(t *testing.T) {
 	}
 }
 
+func TestFormatInfo(t *testing.T) {
+	var tests = []struct {
+		name     string
+		input    testCase
+		expected string
+	}{
+		{
+			"with only a headline",
+			testCase{
+				headline:   "Here's some helpful info",
+				extralines: nil,
+			},
+			"\n" + colour.Info("│") + " ℹ️  Here's some helpful info\n" +
+				"\n",
+		},
+		{
+			"with a headline and two extra lines",
+			testCase{
+				headline: "Here's some helpful info",
+				extralines: []string{
+					"First extra line",
+					"Second extra line",
+				},
+				err: nil,
+			},
+			"\n" + colour.Info("│") + " ℹ️  Here's some helpful info\n" +
+				colour.Info("│ ") + "\n" +
+				colour.Info("│ ") + "First extra line\n" +
+				colour.Info("│ ") + "Second extra line\n" +
+				"\n",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("FormatWarning %s", test.name), func(t *testing.T) {
+			got := FormatInfo(test.input.headline, test.input.extralines)
+			assert.Equal(t, test.expected, got)
+		})
+	}
+}
+
 func TestCapitalize(t *testing.T) {
 	var tests = []struct {
 		input    string

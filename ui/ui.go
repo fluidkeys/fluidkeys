@@ -68,6 +68,25 @@ func FormatWarning(headline string, extraLines []string, err error) string {
 	return msg
 }
 
+// FormatInfo prints a formatted info message. It should be used for useful information that you
+// want to draw to the readers attention
+func FormatInfo(headline string, extraLines []string) string {
+	msg := ""
+
+	msg += "\n"
+	msg += colour.Info("│") + " ℹ️  " + headline + "\n"
+
+	if len(extraLines) > 0 {
+		extraLines = append([]string{""}, extraLines...) // prepend a "" to extraLines
+	}
+
+	for _, line := range extraLines {
+		msg += colour.Info("│ ") + line + "\n"
+	}
+	msg += "\n"
+	return msg
+}
+
 // capitalize returns text with the first rune capitalized
 func capitalize(text string) string {
 	switch len([]rune(text)) {
