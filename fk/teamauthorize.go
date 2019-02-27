@@ -18,42 +18,11 @@
 package fk
 
 import (
-	"log"
-
-	"github.com/docopt/docopt-go"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/ui"
-	"github.com/gofrs/uuid"
 )
 
-func teamSubcommand(args docopt.Opts) exitCode {
-	switch getSubcommand(args, []string{
-		"authorize", "create", "join", "sync",
-	}) {
-
-	case "join":
-		id, err := args.String("<uuid>")
-		if err != nil {
-			log.Panic(err)
-		}
-
-		teamUUID, err := uuid.FromString(id)
-		if err != nil {
-			out.Print(ui.FormatFailure("Invalid UUID", nil, err))
-			return 1
-		}
-
-		return teamJoin(teamUUID)
-
-	case "sync":
-		return teamSync()
-
-	case "create":
-		return teamCreate()
-
-	case "authorize":
-		return teamAuthorize()
-	}
-	log.Panicf("secretSubcommand got unexpected arguments: %v", args)
-	panic(nil)
+func teamAuthorize() exitCode {
+	out.Print(ui.FormatFailure("Not implemented", nil, nil))
+	return 1
 }
