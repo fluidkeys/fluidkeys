@@ -162,6 +162,37 @@ func teamCreate() exitCode {
 	printSuccess("Successfully created " + teamName)
 	out.Print("\n")
 
+	printHeader("Invite people to join the team")
+
+	out.Print(formatFileDivider("Invitation to join "+t.Name, 80) + "\n\n")
+
+	out.Print(`Join ` + t.Name + ` on Fluidkeys
+
+I've created a team on Fluidkeys to make it simple for us to share passwords
+and secrets securely.
+
+Join now:
+
+1. download Fluidkeys from https://download.fluidkeys.com
+
+2. join the team by running:
+
+> fk team join ` + t.UUID.String() + `
+
+`)
+	out.Print(formatFileDivider("", 80) + "\n\n")
+
+	out.Print(colour.Instruction("👆 Copy the invitation above and send it to your team.") + "\n\n")
+
+	promptForInput("Press enter to continue. ")
+
+	out.Print(ui.FormatInfo("You'll need to authorize requests to join the team with "+
+		colour.Cmd("fk team authorize"), []string{
+		"If you're already using gpg with your team, you can pre-authorise them now",
+		"by running " + colour.Cmd("fk team from-gpg"),
+	},
+	))
+
 	return 0
 }
 
