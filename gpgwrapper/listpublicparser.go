@@ -20,7 +20,7 @@ package gpgwrapper
 import (
 	"strings"
 
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 // parseListPublicKeys parses the output of --with-colons --list-keys and returns only valid keys
@@ -119,7 +119,7 @@ func (p *listPublicKeysParser) handleFingerprintLine(cols []string) {
 		// interested in
 		return
 	}
-	fingerprint, err := fingerprint.Parse(cols[9])
+	fingerprint, err := fpr.Parse(cols[9])
 	if err != nil {
 		return
 	}

@@ -8,7 +8,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/exampledata"
 
 	"github.com/fluidkeys/fluidkeys/assert"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/gofrs/uuid"
 )
 
@@ -20,11 +20,11 @@ func TestParse(t *testing.T) {
 	expectedPeople := []Person{
 		{
 			Email:       "paul@fluidkeys.com",
-			Fingerprint: fingerprint.MustParse("B79F0840DEF12EBBA72FF72D7327A44C2157A758"),
+			Fingerprint: fpr.MustParse("B79F0840DEF12EBBA72FF72D7327A44C2157A758"),
 		},
 		{
 			Email:       "ian@fluidkeys.com",
-			Fingerprint: fingerprint.MustParse("E63AF0E74EB5DE3FB72DC981C991709318ECBDE7"),
+			Fingerprint: fpr.MustParse("E63AF0E74EB5DE3FB72DC981C991709318ECBDE7"),
 		},
 	}
 	assert.Equal(t, expectedPeople, team.People)

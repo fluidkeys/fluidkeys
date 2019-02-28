@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/fluidkeys/fluidkeys/colour"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 )
 
@@ -108,7 +108,7 @@ func TestPromptForWhichGpgKey(t *testing.T) {
 	t.Run("prints a correctly formatted secret key", func(t *testing.T) {
 		secretKeyListings := []gpgwrapper.KeyListing{
 			gpgwrapper.KeyListing{
-				Fingerprint: fingerprint.MustParse("BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB"),
+				Fingerprint: fpr.MustParse("BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB"),
 				Uids: []string{
 					"Chat Wannamaker<chat2@example.com>",
 					"Chat Rulez<chat3@example.com>",
@@ -134,7 +134,7 @@ func TestPromptForWhichGpgKey(t *testing.T) {
 }
 
 var exampleSecretKey = gpgwrapper.KeyListing{
-	Fingerprint: fingerprint.MustParse("BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB"),
+	Fingerprint: fpr.MustParse("BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB"),
 	Uids: []string{
 		"Chat Wannamaker<chat2@example.com>",
 		"Chat Rulez<chat3@example.com>",

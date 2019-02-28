@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 // parseListSecretKeys parses the output of --with-colons --list-secret keys and return only valid
@@ -124,7 +124,7 @@ func (p *listSecretKeysParser) handleFingerprintLine(cols []string) {
 		// interested in
 		return
 	}
-	fingerprint, err := fingerprint.Parse(cols[9])
+	fingerprint, err := fpr.Parse(cols[9])
 	if err != nil {
 		return
 	}

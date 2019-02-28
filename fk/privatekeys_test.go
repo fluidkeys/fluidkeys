@@ -6,7 +6,7 @@ import (
 
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/exampledata"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
@@ -16,7 +16,7 @@ type mockExportPrivateKey struct {
 	returnError  error
 }
 
-func (m *mockExportPrivateKey) ExportPrivateKey(fingerprint fingerprint.Fingerprint, password string) (string, error) {
+func (m *mockExportPrivateKey) ExportPrivateKey(fingerprint fpr.Fingerprint, password string) (string, error) {
 	return m.returnString, m.returnError
 }
 

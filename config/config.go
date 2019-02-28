@@ -26,7 +26,7 @@ import (
 	"path"
 
 	"github.com/BurntSushi/toml"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/natefinch/atomic"
 )
 
@@ -69,7 +69,7 @@ type Config struct {
 	parsedConfig   tomlConfig
 	parsedMetadata toml.MetaData
 
-	// keyConfigs map[fingerprint.Fingerprint]key
+	// keyConfigs map[fpr.Fingerprint]key
 	filename string
 }
 
@@ -95,42 +95,42 @@ func (c *Config) RunFromCron() bool {
 // be stored in the system keyring when successfully entered (avoiding future
 // password prompts).
 // The default is false.
-func (c *Config) ShouldStorePassword(fingerprint fingerprint.Fingerprint) bool {
+func (c *Config) ShouldStorePassword(fingerprint fpr.Fingerprint) bool {
 	return c.getConfig(fingerprint).StorePassword
 }
 
 // SetStorePassword sets whether the password for the given key should be
 // stored in the user's login keyring
-func (c *Config) SetStorePassword(fingerprint fingerprint.Fingerprint, value bool) error {
+func (c *Config) SetStorePassword(fingerprint fpr.Fingerprint, value bool) error {
 	return c.setProperty(fingerprint, storePassword, value)
 }
 
 // ShouldMaintainAutomatically returns whether the given key should be
 // maintained in the background. The default is false.
-func (c *Config) ShouldMaintainAutomatically(fingerprint fingerprint.Fingerprint) bool {
+func (c *Config) ShouldMaintainAutomatically(fingerprint fpr.Fingerprint) bool {
 	return c.getConfig(fingerprint).MaintainAutomatically
 }
 
 // SetMaintainAutomatically sets whether the given key should be maintained in the
 // background.
-func (c *Config) SetMaintainAutomatically(fingerprint fingerprint.Fingerprint, value bool) error {
+func (c *Config) SetMaintainAutomatically(fingerprint fpr.Fingerprint, value bool) error {
 	return c.setProperty(fingerprint, maintainAutomatically, value)
 }
 
 // ShouldPublishToAPI returns whether the given key should be uploaded to the
 // Fluidkeys directory to allow others to search for it by email address.
 // The default is false.
-func (c *Config) ShouldPublishToAPI(fingerprint fingerprint.Fingerprint) bool {
+func (c *Config) ShouldPublishToAPI(fingerprint fpr.Fingerprint) bool {
 	return c.getConfig(fingerprint).PublishToAPI
 }
 
 // SetPublishToAPI sets whether the given key should be uploaded to the
 // Fluidkeys directory to allow others to search for it by email address.
-func (c *Config) SetPublishToAPI(fingerprint fingerprint.Fingerprint, value bool) error {
+func (c *Config) SetPublishToAPI(fingerprint fpr.Fingerprint, value bool) error {
 	return c.setProperty(fingerprint, publishToAPI, value)
 }
 
-func (c *Config) setProperty(fingerprint fingerprint.Fingerprint, property keyConfigProperty, value interface{}) error {
+func (c *Config) setProperty(fingerprint fpr.Fingerprint, property keyConfigProperty, value interface{}) error {
 	if c.parsedConfig.PgpKeys == nil { // initialize the map if empty
 		c.parsedConfig.PgpKeys = make(map[string]key)
 	}
@@ -174,11 +174,11 @@ func (c *Config) save() error {
 
 // getConfig returns a `key` struct for the given Fingerprint
 // If no config is found for the fingerprint, return the default config
-func (c *Config) getConfig(fp fingerprint.Fingerprint) key {
-	keyConfigs := make(map[fingerprint.Fingerprint]key)
+func (c *Config) getConfig(fingerprint fpr.Fingerprint) key {
+	keyConfigs := make(map[fpr.Fingerprint]key)
 
 	for configFingerprint, keyConfig := range c.parsedConfig.PgpKeys {
-		parsedFingerprint, err := fingerprint.Parse(configFingerprint)
+		parsedFingerprint, err := fpr.Parse(configFingerprint)
 		if err != nil {
 			log.Panicf("got invalid openpgp fingerprint: '%s'", configFingerprint)
 		}
@@ -186,7 +186,7 @@ func (c *Config) getConfig(fp fingerprint.Fingerprint) key {
 		keyConfigs[parsedFingerprint] = keyConfig
 	}
 
-	if keyConfig, inMap := keyConfigs[fp]; inMap {
+	if keyConfig, inMap := keyConfigs[fingerprint]; inMap {
 		return keyConfig
 	} else {
 		return defaultKeyConfig()
@@ -203,7 +203,7 @@ func parse(r io.Reader) (*Config, error) {
 
 	// validate fingerprints
 	for configFingerprint, _ := range parsedConfig.PgpKeys {
-		_, err := fingerprint.Parse(configFingerprint)
+		_, err := fpr.Parse(configFingerprint)
 		if err != nil {
 			return nil, fmt.Errorf("got invalid openpgp fingerprint: '%s'", configFingerprint)
 		}

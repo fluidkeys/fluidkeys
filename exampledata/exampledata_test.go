@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	"github.com/fluidkeys/crypto/openpgp"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 func TestArmoredKeys(t *testing.T) {
 	var tests = []struct {
 		name                string
 		armoredKey          string
-		expectedFingerprint fingerprint.Fingerprint
+		expectedFingerprint fpr.Fingerprint
 	}{
 		{
 			`public key 2`,
@@ -51,7 +51,7 @@ func TestArmoredKeys(t *testing.T) {
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%s fingerprint", test.name), func(t *testing.T) {
 			entity, _ := loadKey(test.armoredKey)
-			gotFingerprint := fingerprint.FromBytes(entity.PrimaryKey.Fingerprint)
+			gotFingerprint := fpr.FromBytes(entity.PrimaryKey.Fingerprint)
 
 			if gotFingerprint != test.expectedFingerprint {
 				t.Errorf("loaded %s, expected fingerprint '%s', got '%s'", test.name, test.expectedFingerprint, gotFingerprint)

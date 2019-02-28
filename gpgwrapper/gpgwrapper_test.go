@@ -9,7 +9,7 @@ import (
 
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/exampledata"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 func TestParseGPGOutputVersion(t *testing.T) {
@@ -130,7 +130,7 @@ func TestListSecretKeys(t *testing.T) {
 	}
 
 	expectedKey := KeyListing{
-		Fingerprint: fingerprint.MustParse("C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6"),
+		Fingerprint: fpr.MustParse("C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6"),
 		Uids:        []string{"test@example.com"},
 		Created:     time.Date(2018, 8, 22, 12, 8, 23, 0, time.UTC),
 	}
@@ -186,7 +186,7 @@ func TestExportPublicKey(t *testing.T) {
 	gpg.ImportArmoredKey(ExamplePrivateKey)
 
 	t.Run("with a valid fingerprint", func(t *testing.T) {
-		_, err := gpg.ExportPublicKey(fingerprint.MustParse("8FBC 0768 76F2 B042 AE2B  A37B 0BBD 7E7E 5B85 C8D3"))
+		_, err := gpg.ExportPublicKey(fpr.MustParse("8FBC 0768 76F2 B042 AE2B  A37B 0BBD 7E7E 5B85 C8D3"))
 
 		if err != nil {
 			t.Errorf("Failed to run ExportPublicKey: %v", err)
@@ -195,7 +195,7 @@ func TestExportPublicKey(t *testing.T) {
 	})
 
 	t.Run("with an invalid fingerprint", func(t *testing.T) {
-		_, err := gpg.ExportPublicKey(fingerprint.MustParse("0000 0000 0000 0000 0000 0000 0000 0000 0000 0000"))
+		_, err := gpg.ExportPublicKey(fpr.MustParse("0000 0000 0000 0000 0000 0000 0000 0000 0000 0000"))
 
 		if err == nil {
 			t.Errorf("ExportPublicKey should have returned an error but didnt")
@@ -209,7 +209,7 @@ func TestExportPrivateKey(t *testing.T) {
 	gpg.ImportArmoredKey(ExamplePrivateKey)
 
 	t.Run("with a valid fingerprint and password", func(t *testing.T) {
-		_, err := gpg.ExportPrivateKey(fingerprint.MustParse("C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6"), "foo")
+		_, err := gpg.ExportPrivateKey(fpr.MustParse("C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6"), "foo")
 
 		if err != nil {
 			t.Errorf("Failed to run ExportPrivateKey: %v", err)
@@ -233,7 +233,7 @@ func TestExportPrivateKey(t *testing.T) {
 			t.Skip()
 		}
 
-		output, err := gpg.ExportPrivateKey(fingerprint.MustParse("C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6"), "wrong password")
+		output, err := gpg.ExportPrivateKey(fpr.MustParse("C16B 89AC 31CD F3B7 8DA3  3AAE 1D20 FC95 4793 5FC6"), "wrong password")
 
 		if err == nil {
 			t.Errorf("ExportPrivateKey should have returned an error but didnt. output: %s", output)
@@ -245,7 +245,7 @@ func TestExportPrivateKey(t *testing.T) {
 	})
 
 	t.Run("with an invalid fingerprint", func(t *testing.T) {
-		_, err := gpg.ExportPrivateKey(fingerprint.MustParse("0000 0000 0000 0000 0000 0000 0000 0000 0000 0000"), "bar")
+		_, err := gpg.ExportPrivateKey(fpr.MustParse("0000 0000 0000 0000 0000 0000 0000 0000 0000 0000"), "bar")
 
 		if err == nil {
 			t.Errorf("ExportPrivateKey should have returned an error but didnt")

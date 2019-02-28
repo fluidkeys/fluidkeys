@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	externalkeyring "github.com/fluidkeys/keyring"
 )
 
@@ -59,28 +59,29 @@ type Keyring struct {
 
 // SavePassword stores the given password in the keyring against the key and
 // returns any error encountered in the underlying keyring.
-func (k *Keyring) SavePassword(fp fingerprint.Fingerprint, newPassword string) error {
+func (k *Keyring) SavePassword(fingerprint fpr.Fingerprint, newPassword string) error {
 	if k.noBackend() {
 		return nil
 	}
 
 	shouldStorePassword := false
 
-	currentPassword, got := k.LoadPassword(fp)
+	currentPassword, got := k.LoadPassword(fingerprint)
 
 	if !got {
-		log.Printf("SavePassword: keyring has no password saved for %s, saving now", fp.Hex())
+		log.Printf("SavePassword: keyring has no password saved for %s, saving now",
+			fingerprint.Hex())
 		shouldStorePassword = true
 	} else if currentPassword != newPassword {
-		log.Printf("SavePassword: updating existing password in keyring for %s", fp.Hex())
+		log.Printf("SavePassword: updating existing password in keyring for %s", fingerprint.Hex())
 		shouldStorePassword = true
 	}
 
 	if shouldStorePassword {
 		return k.realKeyring.Set(
 			externalkeyring.Item{
-				Key:   makeKeyringKey(fp),
-				Label: makeKeyringLabel(fp),
+				Key:   makeKeyringKey(fingerprint),
+				Label: makeKeyringLabel(fingerprint),
 				Data:  []byte(newPassword),
 			},
 		)
@@ -91,15 +92,15 @@ func (k *Keyring) SavePassword(fp fingerprint.Fingerprint, newPassword string) e
 
 // LoadPassword attempts to load a password from the keyring for the given key
 // and returns (password, gotPassword).
-func (k *Keyring) LoadPassword(fp fingerprint.Fingerprint) (password string, gotPassword bool) {
+func (k *Keyring) LoadPassword(fingerprint fpr.Fingerprint) (password string, gotPassword bool) {
 	if k.noBackend() {
 		return "", false
 	}
 
-	item, err := k.realKeyring.Get(makeKeyringKey(fp))
+	item, err := k.realKeyring.Get(makeKeyringKey(fingerprint))
 	if err != nil {
 		if isNotFoundError(err) {
-			log.Printf("keyring returned isNotFoundError for %s: %v", fp.Hex(), err)
+			log.Printf("keyring returned isNotFoundError for %s: %v", fingerprint.Hex(), err)
 			return "", false
 		} else {
 			log.Printf("unexpected error getting password from keyring: %v", err)
@@ -115,12 +116,12 @@ func (k *Keyring) LoadPassword(fp fingerprint.Fingerprint) (password string, got
 // encounters one with the underlying keyring.
 // If the keyring announces the key wasn't found, PurgePassword swallows
 // that particular error.
-func (k *Keyring) PurgePassword(fp fingerprint.Fingerprint) error {
+func (k *Keyring) PurgePassword(fingerprint fpr.Fingerprint) error {
 	if k.noBackend() {
 		return nil
 	}
 
-	err := k.realKeyring.Remove(makeKeyringKey(fp))
+	err := k.realKeyring.Remove(makeKeyringKey(fingerprint))
 	if err != nil && !isNotFoundError(err) {
 		// ignore the is-not-found error since it means the password
 		// is already purged
@@ -150,12 +151,12 @@ func isNotFoundError(err error) bool {
 	return err == externalkeyring.ErrKeyNotFound
 }
 
-func makeKeyringKey(fp fingerprint.Fingerprint) string {
-	return fmt.Sprintf("fluidkeys.pgpkey.%s", fp.Hex())
+func makeKeyringKey(fingerprint fpr.Fingerprint) string {
+	return fmt.Sprintf("fluidkeys.pgpkey.%s", fingerprint.Hex())
 }
 
-func makeKeyringLabel(fp fingerprint.Fingerprint) string {
-	return fmt.Sprintf("Fluidkeys password for PGP key %s", fp.Hex())
+func makeKeyringLabel(fingerprint fpr.Fingerprint) string {
+	return fmt.Sprintf("Fluidkeys password for PGP key %s", fingerprint.Hex())
 }
 
 const keyringServiceName string = "login"

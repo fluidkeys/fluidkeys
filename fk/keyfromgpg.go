@@ -22,7 +22,7 @@ import (
 	"strconv"
 
 	"github.com/fluidkeys/fluidkeys/colour"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
@@ -99,7 +99,7 @@ func keysAvailableToGetFromGpg() ([]gpgwrapper.KeyListing, error) {
 	}
 
 	for _, key := range allGpgKeys {
-		if !fingerprint.Contains(importedFingerprints, key.Fingerprint) {
+		if !fpr.Contains(importedFingerprints, key.Fingerprint) {
 			availableKeys = append(availableKeys, key)
 		}
 	}
