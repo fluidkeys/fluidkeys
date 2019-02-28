@@ -184,7 +184,7 @@ func TestGetSecretFromStdin(t *testing.T) {
 		}
 
 		_, err := getSecretFromStdin(stdinScanner)
-		expectedErr := fmt.Errorf("Secret contains disallowed characters")
+		expectedErr := errSecretContainsDisallowedCharacters
 		assert.Equal(t, expectedErr, err)
 
 	})
@@ -195,7 +195,7 @@ func TestGetSecretFromStdin(t *testing.T) {
 		}
 
 		_, err := getSecretFromStdin(stdinScanner)
-		expectedErr := fmt.Errorf("Secret contains disallowed characters")
+		expectedErr := errSecretContainsDisallowedCharacters
 		assert.Equal(t, expectedErr, err)
 	})
 }

@@ -172,7 +172,7 @@ func getSecretFromStdin(scanner scanUntilEOFInterface) (string, error) {
 	}
 
 	if !isValidTextSecret(secret) {
-		return "", errors.New("Secret contains disallowed characters")
+		return "", errSecretContainsDisallowedCharacters
 	}
 
 	return secret, nil
@@ -289,4 +289,7 @@ func readUpTo(source io.Reader, maxBytes int64) ([]byte, error) {
 	}
 }
 
-var errTooMuchData error = errors.New("source had more data than maxBytes")
+var (
+	errTooMuchData                        = errors.New("source had more data than maxBytes")
+	errSecretContainsDisallowedCharacters = errors.New("secret contains disallowed characters")
+)

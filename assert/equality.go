@@ -18,19 +18,37 @@
 package assert
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
 )
 
-// assert.Equal aims to test equality of any two objects, and call t.Fatalf
-// if they're not equal
+// Equal aims to test equality of any two objects, and call t.Fatalf if they're not equal
 func Equal(t *testing.T, expected interface{}, got interface{}) {
 	t.Helper()
 
-	if !reflect.DeepEqual(expected, got) {
-		t.Fatalf("expected %v got %v", expected, got)
+	if !isEqual(expected, got) {
+		msg := fmt.Sprintf("expected `%v` got `%v`", expected, got)
+		if len(msg) < 50 {
+			t.Fatalf(msg)
+		} else {
+			t.Fatalf("\n--- expected ---\n%v\n--- got ---\n%v\n--- end ---\n", expected, got)
+		}
 	}
+}
+
+func isEqual(a interface{}, b interface{}) bool {
+	if aAsError, ok := a.(error); ok {
+		if bAsError, ok := b.(error); ok {
+			if reflect.TypeOf(a) != reflect.TypeOf(b) {
+				return false
+			}
+			return aAsError.Error() == bAsError.Error() // compare on error string
+		}
+	}
+
+	return reflect.DeepEqual(a, b)
 }
 
 // EqualSliceOfStrings tells whether a and b contain the same elements.
