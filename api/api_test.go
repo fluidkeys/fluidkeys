@@ -408,6 +408,65 @@ func TestGetTeamName(t *testing.T) {
 	})
 }
 
+func TestCreateRequestToJoinTeam(t *testing.T) {
+	expectedRequest := &v1structs.RequestToJoinTeamRequest{TeamEmail: "jane@example.com"}
+	fingerprint, err := fingerprint.Parse("ABAB ABAB ABAB ABAB ABAB  ABAB ABAB ABAB ABAB ABAB")
+	if err != nil {
+		t.Fatalf("Couldn't parse fingerprint: %s\n", err)
+	}
+	mockTeamUUID := uuid.Must(uuid.NewV4())
+
+	t.Run("with valid JSON response", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "POST", r.Method)
+			gotRequest := new(v1structs.RequestToJoinTeamRequest)
+			json.NewDecoder(r.Body).Decode(gotRequest)
+			assert.Equal(t, expectedRequest, gotRequest)
+			w.WriteHeader(http.StatusCreated)
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/teams/%s", mockTeamUUID),
+			mockResponseHandler,
+		)
+
+		err = client.CreateRequestToJoinTeam(
+			mockTeamUUID,
+			fingerprint,
+			"jane@example.com",
+		)
+		assert.NoError(t, err)
+	})
+
+	t.Run("passes up server errors", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "POST", r.Method)
+			gotRequest := new(v1structs.RequestToJoinTeamRequest)
+			json.NewDecoder(r.Body).Decode(gotRequest)
+			assert.Equal(t, expectedRequest, gotRequest)
+
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"detail": "can't write to database"}`)
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/teams/%s", mockTeamUUID),
+			mockResponseHandler,
+		)
+
+		err = client.CreateRequestToJoinTeam(
+			mockTeamUUID,
+			fingerprint,
+			"jane@example.com",
+		)
+		assert.Equal(t, fmt.Errorf("API error: 500 can't write to database"), err)
+	})
+}
+
 // setup sets up a test HTTP server along with a fluidkeysServer.Client that is
 // configured to talk to that test server. Tests should register handlers on
 // mux which provide mock responses for the API method being tested.

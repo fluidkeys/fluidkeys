@@ -252,6 +252,28 @@ func (c *Client) GetTeamName(teamUUID uuid.UUID) (string, error) {
 	return decodedJSON.Name, nil
 }
 
+// CreateRequestToJoinTeam posts a request to join the team identified by the UUID with the
+// given fingerprint and email
+func (c *Client) CreateRequestToJoinTeam(
+	teamUUID uuid.UUID, fpr fingerprint.Fingerprint, email string) (err error) {
+
+	path := fmt.Sprintf("teams/%s", teamUUID)
+	requestToJoinTeamRequest := v1structs.RequestToJoinTeamRequest{TeamEmail: email}
+
+	request, err := c.newRequest("POST", path, requestToJoinTeamRequest)
+	if err != nil {
+		return err
+	}
+	request.Header.Add("authorization", authorization(fpr))
+
+	_, err = c.do(request, nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func makeUpsertPublicKeySignedData(armoredPublicKey string, privateKey *pgpkey.PgpKey) (armoredSignedJSON string, err error) {
 	publicKeyHash := fmt.Sprintf("%X", sha256.Sum256([]byte(armoredPublicKey)))
 
