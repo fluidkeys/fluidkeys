@@ -84,6 +84,11 @@ type SecretMetadata struct {
 	SecretUUID string `json:"secretUuid"`
 }
 
+// GetTeamResponse is the JSON structure returned by the get team API endpoint.
+type GetTeamResponse struct {
+	Name string `json:"name"`
+}
+
 // UpsertTeamRequest is the JSON structure containing a signed team roster.
 type UpsertTeamRequest struct {
 	// TeamRoster describes the members and configuration of a team.
@@ -95,6 +100,26 @@ type UpsertTeamRequest struct {
 	//
 	// > gpg --armor --output roster.toml.sig --detach-sig roster.toml
 	ArmoredDetachedSignature string `json:"armoredDetachedSignature"`
+}
+
+// RequestToJoinTeamRequest is the JSON structure used for requests to the request to join team
+// API enndpoint.
+type RequestToJoinTeamRequest struct {
+	TeamEmail string `json:"teamEmail"`
+}
+
+// ListRequestsToJoinTeamResponse is the JSON structure returned by the list requests to join team
+// API endpoint.
+type ListRequestsToJoinTeamResponse struct {
+	Requests []RequestToJoinTeam `json:"requests"`
+}
+
+// RequestToJoinTeam is the JSON structure containg the data for a request to join a team returned
+// by the list requests to join team API endpoint.
+type RequestToJoinTeam struct {
+	UUID        string `json:"uuid"`
+	Fingerprint string `json:"fingerprint"`
+	Email       string `json:"email"`
 }
 
 // ErrorResponse is the JSON structure returned when the API encounters an
