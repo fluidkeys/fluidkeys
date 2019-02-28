@@ -38,7 +38,7 @@ func TestGetPublicKey(t *testing.T) {
 
 		armoredPublicKey, err := client.GetPublicKey("jane@example.com")
 
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		want := "---- BEGIN PGP PUBLIC KEY..."
 		if armoredPublicKey != want {
@@ -55,7 +55,7 @@ func TestGetPublicKey(t *testing.T) {
 
 		armoredPublicKey, err := client.GetPublicKey("joe@example.com")
 
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		want := ""
 		if armoredPublicKey != want {
@@ -95,7 +95,7 @@ func TestGetPublicKeyByFingerprint(t *testing.T) {
 
 		key, err := client.GetPublicKeyByFingerprint(exampledata.ExampleFingerprint4)
 
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, exampledata.ExampleFingerprint4, key.Fingerprint())
 	})
 
@@ -232,7 +232,7 @@ func TestCreateSecret(t *testing.T) {
 		fingerprint,
 		"---- BEGIN PGP MESSAGE...",
 	)
-	assert.ErrorIsNil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestDecodeErrorResponse(t *testing.T) {
@@ -295,7 +295,7 @@ func TestUpsertTeam(t *testing.T) {
 			"---- BEGIN PGP MESSAGE...",
 			&fingerprint,
 		)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 	})
 
 	t.Run("returns error when missing the signing fingerprint", func(t *testing.T) {

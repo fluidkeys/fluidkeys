@@ -72,7 +72,7 @@ func TestLoadPrivateKey(t *testing.T) {
 		key, err := loadPrivateKey(exampledata.ExampleFingerprint2, "test2", &mockGpg, &mockLoader)
 
 		t.Run("doesn't get an error", func(t *testing.T) {
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 		})
 
 		t.Run("key is not nil", func(t *testing.T) {
@@ -209,7 +209,7 @@ func TestPushPrivateKeyBackToGpg(t *testing.T) {
 		}
 
 		err := pushPrivateKeyBackToGpg(&mockKey, "[irrelevant]", &mockImporter)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 	})
 
 	t.Run("returns an error if key.Armor() returns an error", func(t *testing.T) {

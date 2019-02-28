@@ -15,7 +15,7 @@ func TestLoad(t *testing.T) {
 
 	t.Run("Load returns a keyring", func(t *testing.T) {
 		keyring, err := Load()
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		if keyring == nil {
 			t.Fatalf("Load returned a nil Keyring")
 		}
@@ -25,14 +25,14 @@ func TestLoad(t *testing.T) {
 		noBackends := []externalkeyring.BackendType{}
 		keyring, err := load(noBackends)
 
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		if keyring == nil {
 			t.Fatalf("Load returned a nil Keyring")
 		}
 
 		t.Run("dummy SavePassword returns nil error", func(t *testing.T) {
 			err := keyring.SavePassword(exampleFingerprint, "foo")
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 		})
 
 		t.Run("dummy LoadPassword returns nil error", func(t *testing.T) {
@@ -42,7 +42,7 @@ func TestLoad(t *testing.T) {
 
 		t.Run("dummy PurgePassword returns nil error", func(t *testing.T) {
 			err := keyring.PurgePassword(exampleFingerprint)
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 		})
 
 	})
@@ -54,7 +54,7 @@ func TestSavePassword(t *testing.T) {
 		keyring.SavePassword(exampleFingerprint, "password")
 
 		item, err := keyring.realKeyring.Get(makeKeyringKey(exampleFingerprint))
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		assert.Equal(t, "fluidkeys.pgpkey.AAAA1111AAAA1111AAAAAAAA1111AAAA1111AAAA", item.Key)
 		assert.Equal(t, "Fluidkeys password for PGP key AAAA1111AAAA1111AAAAAAAA1111AAAA1111AAAA", item.Label)
@@ -87,10 +87,10 @@ func TestPurgePassword(t *testing.T) {
 		keyring.SavePassword(exampleFingerprint, "foo")
 		err := keyring.PurgePassword(exampleFingerprint)
 
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		keyringKeys, err := keyring.realKeyring.Keys()
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, 0, len(keyringKeys))
 	})
 
@@ -98,7 +98,7 @@ func TestPurgePassword(t *testing.T) {
 		keyring := makeTestKeyring()
 		err := keyring.PurgePassword(exampleFingerprint)
 
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 	})
 }
 

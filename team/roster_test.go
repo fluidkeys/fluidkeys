@@ -16,7 +16,7 @@ func TestParse(t *testing.T) {
 	reader := strings.NewReader(validRoster)
 	team, err := Parse(reader)
 
-	assert.ErrorIsNil(t, err)
+	assert.NoError(t, err)
 	expectedPeople := []Person{
 		{
 			Email:       "paul@fluidkeys.com",
@@ -51,7 +51,7 @@ func TestRoster(t *testing.T) {
 		}
 
 		got, err := testTeam.Roster()
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		expected := `# Fluidkeys team roster
 uuid = "6caa3730-2ca3-47b9-b671-5dc326100431"

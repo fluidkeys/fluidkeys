@@ -27,7 +27,7 @@ func TestVerifyEmailMatchesKeyInAPI(t *testing.T) {
 			&mockGetter,
 		)
 
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		assertVerified(t, verified)
 	})
 
@@ -52,7 +52,7 @@ func TestVerifyEmailMatchesKeyInAPI(t *testing.T) {
 			&mockGetter,
 		)
 		t.Run("swallows the error", func(t *testing.T) {
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 		})
 		assertNotVerified(t, verified)
 

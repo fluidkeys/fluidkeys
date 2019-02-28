@@ -19,7 +19,8 @@ package assert
 
 import "testing"
 
-func ErrorIsNil(t *testing.T, got error) {
+// NoError asserts that the given error is nil
+func NoError(t *testing.T, got error) {
 	t.Helper()
 	if got != nil {
 		t.Fatalf("got an error but didnt want one '%s'", got)

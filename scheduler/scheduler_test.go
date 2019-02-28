@@ -16,7 +16,7 @@ func TestEnable(t *testing.T) {
 		}
 
 		gotWasChanged, gotError := Enable(mock)
-		assert.ErrorIsNil(t, gotError)
+		assert.NoError(t, gotError)
 		assert.Equal(t, true, gotWasChanged)
 		assert.Equal(t, "# existing crontab"+CronLines, mock.setCapturedCrontab)
 	})
@@ -29,7 +29,7 @@ func TestEnable(t *testing.T) {
 		}
 
 		gotWasChanged, gotError := Enable(mock)
-		assert.ErrorIsNil(t, gotError)
+		assert.NoError(t, gotError)
 		assert.Equal(t, false, gotWasChanged)
 		assert.Equal(t, false, mock.setWasCalled())
 	})
@@ -65,7 +65,7 @@ func TestDisable(t *testing.T) {
 		}
 
 		gotWasChanged, gotError := Disable(mock)
-		assert.ErrorIsNil(t, gotError)
+		assert.NoError(t, gotError)
 		assert.Equal(t, true, gotWasChanged)
 		assert.Equal(t, "# existing crontab\n\n# more lines", mock.setCapturedCrontab)
 	})
@@ -78,7 +78,7 @@ func TestDisable(t *testing.T) {
 		}
 
 		gotWasChanged, gotError := Disable(mock)
-		assert.ErrorIsNil(t, gotError)
+		assert.NoError(t, gotError)
 		assert.Equal(t, false, gotWasChanged)
 		assert.Equal(t, false, mock.setWasCalled())
 	})

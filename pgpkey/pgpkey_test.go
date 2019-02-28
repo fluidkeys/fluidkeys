@@ -49,12 +49,12 @@ func TestSlugMethod(t *testing.T) {
 
 	t.Run("test slug method for multiple email addresses", func(t *testing.T) {
 		pgpKey, err := LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		assert.Equal(t, 3, len(pgpKey.Identities))
 
 		slug, err := pgpKey.Slug()
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		assertEqual(t, "2018-09-10-test3-example-com-7C18DE4DE47813568B243AC8719BD63EF03BDC20", slug)
 	})
 }
@@ -74,7 +74,7 @@ func TestEmailMethod(t *testing.T) {
 
 	t.Run("returns error when there are no identities", func(t *testing.T) {
 		pgpKey, err := LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		// remove all identities
 		pgpKey.Identities = make(map[string]*openpgp.Identity)
@@ -87,7 +87,7 @@ func TestEmailMethod(t *testing.T) {
 
 	t.Run("with 3 valid identities ", func(t *testing.T) {
 		pgpKey, err := LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, 3, len(pgpKey.Identities))
 
 		t.Run("if no identities are primary choose the oldest signature", func(t *testing.T) {
@@ -97,7 +97,7 @@ func TestEmailMethod(t *testing.T) {
 			setIsPrimary(false, pgpKey.Identities, "unbracketedemail@example.com")
 
 			email, err := pgpKey.Email()
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 
 			assertEqual(t, "test3@example.com", email) // this has the oldest sig of all 3
 		})
@@ -107,7 +107,7 @@ func TestEmailMethod(t *testing.T) {
 			setIsPrimary(false, pgpKey.Identities, "unbracketedemail@example.com")
 
 			email, err := pgpKey.Email()
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 
 			assertEqual(t, "another@example.com", email) // 2nd identity
 		})
@@ -118,7 +118,7 @@ func TestEmailMethod(t *testing.T) {
 			setIsPrimary(true, pgpKey.Identities, "unbracketedemail@example.com")
 
 			email, err := pgpKey.Email()
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 
 			assertEqual(t, "another@example.com", email) // this has the oldest sig of the 2
 		})
@@ -136,7 +136,7 @@ func setIsPrimary(isPrimary bool, identities map[string]*openpgp.Identity, ident
 
 func TestEmailsMethod(t *testing.T) {
 	pgpKey, err := LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
-	assert.ErrorIsNil(t, err)
+	assert.NoError(t, err)
 
 	setIsPrimary(false, pgpKey.Identities, "<test3@example.com>")
 	setIsPrimary(true, pgpKey.Identities, "Example Name <another@example.com>")
@@ -1131,7 +1131,7 @@ func TestSubkey(t *testing.T) {
 		wantSubkey := pgpKey.Subkeys[0]
 
 		gotSubkey, error := pgpKey.Subkey(wantSubkey.PublicKey.KeyId)
-		assert.ErrorIsNil(t, error)
+		assert.NoError(t, error)
 
 		if *gotSubkey != wantSubkey {
 			t.Fatalf(

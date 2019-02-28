@@ -78,7 +78,7 @@ func TestDownloadEncryptedSecrets(t *testing.T) {
 		}
 
 		gotSecrets, err := downloadEncryptedSecrets(fingerprint, &secretLister)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, mockSecrets, gotSecrets)
 	})
 }
@@ -197,7 +197,7 @@ func TestDecryptAPISecret(t *testing.T) {
 			},
 		}
 		decryptedSecret, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		t.Run("with decrypted content", func(t *testing.T) {
 			assert.Equal(t, "decrypted content", decryptedSecret.decryptedContent)
@@ -205,7 +205,7 @@ func TestDecryptAPISecret(t *testing.T) {
 
 		t.Run("with decrypted uuid", func(t *testing.T) {
 			expectedUuid, err := uuid.FromString("93d5ac5b-74e5-4f87-b117-b8d7576395d8")
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, expectedUuid, decryptedSecret.UUID)
 		})
 
@@ -225,7 +225,7 @@ func TestDecryptAPISecret(t *testing.T) {
 			},
 		}
 		decryptedSecret, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		t.Run("with decrypted content", func(t *testing.T) {
 			assert.Equal(t, "decrypted content", decryptedSecret.decryptedContent)
@@ -233,7 +233,7 @@ func TestDecryptAPISecret(t *testing.T) {
 
 		t.Run("with decrypted uuid", func(t *testing.T) {
 			expectedUuid, err := uuid.FromString("93d5ac5b-74e5-4f87-b117-b8d7576395d8")
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, expectedUuid, decryptedSecret.UUID)
 		})
 
@@ -318,7 +318,7 @@ func TestGetAvailableFilename(t *testing.T) {
 	t.Run("returns the same value if the filename doesn't exist", func(t *testing.T) {
 		filename, err := getAvailableFilename(
 			"/fake", "new_filename.txt", mockChecker)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		assert.Equal(t, "/fake/new_filename.txt", filename)
 	})
@@ -326,14 +326,14 @@ func TestGetAvailableFilename(t *testing.T) {
 	t.Run("increments a counter to find a filename that doesn't exist", func(t *testing.T) {
 		filename, err := getAvailableFilename(
 			"/fake", "existing_filename.txt", mockChecker)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, "/fake/existing_filename(2).txt", filename)
 	})
 
 	t.Run("adds the counter before the last file extension", func(t *testing.T) {
 		filename, err := getAvailableFilename(
 			"/fake", "old_filename.txt.bak", mockChecker)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, "/fake/old_filename.txt(1).bak", filename)
 	})
 
