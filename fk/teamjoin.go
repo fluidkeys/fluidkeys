@@ -50,11 +50,18 @@ func teamJoin(teamUUID uuid.UUID) exitCode {
 
 	printHeader("Requesting to join team")
 
-	out.Print(email)
-	out.Print("\n")
+	action := "Create request to join " + teamName
+	printCheckboxPending("action")
+	err = client.RequestToJoinTeam(teamUUID, pgpKey.Fingerprint(), email)
+	if err != nil {
+		printCheckboxFailure(action, err)
+	}
+	printCheckboxSuccess(action)
+	out.Print("\n\n")
 
-	out.Print(ui.FormatFailure("Not implemented", nil, nil))
-	return 1
+	out.Print("Your team admin will need to authorize your request for Fluidkeys " +
+		"to start working.\n\n")
+	return 0
 }
 
 func getKeyForTeam() (*pgpkey.PgpKey, exitCode) {
