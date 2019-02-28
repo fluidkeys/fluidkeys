@@ -29,6 +29,13 @@ import (
 )
 
 func teamJoin(teamUUID uuid.UUID) exitCode {
+	teamName, err := client.GetTeamName(teamUUID)
+	if err != nil {
+		out.Print(ui.FormatFailure("Couldn't request to join team", nil, err))
+		return 1
+	}
+	out.Print("\n")
+	out.Print("You're joining the team " + teamName + "\n\n")
 
 	pgpKey, code := getKeyForTeam()
 	if code != 0 {
