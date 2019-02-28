@@ -19,14 +19,16 @@ package assert
 
 import "testing"
 
-func ErrorIsNil(t *testing.T, got error) {
+// NoError tests that got is nil and calls t.Fatal if not
+func NoError(t *testing.T, got error) {
 	t.Helper()
 	if got != nil {
 		t.Fatalf("got an error but didnt want one '%s'", got)
 	}
 }
 
-func ErrorIsNotNil(t *testing.T, got error) {
+// GotError tests that got is an error (not nil) and calls t.Fatal if not
+func GotError(t *testing.T, got error) {
 	t.Helper()
 	if got == nil {
 		t.Fatalf("expected an error, but got none")
