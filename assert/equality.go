@@ -29,7 +29,12 @@ func Equal(t *testing.T, expected interface{}, got interface{}) {
 	t.Helper()
 
 	if !isEqual(expected, got) {
-		t.Fatalf("expected %v got %v", expected, got)
+		msg := fmt.Sprintf("expected `%v` got `%v`", expected, got)
+		if len(msg) < 50 {
+			t.Fatalf(msg)
+		} else {
+			t.Fatalf("\n--- expected ---\n%v\n--- got ---\n%v\n--- end ---\n", expected, got)
+		}
 	}
 }
 
