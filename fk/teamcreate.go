@@ -115,8 +115,7 @@ func teamCreate() exitCode {
 
 	action := "Upload team roster to Fluidkeys"
 	printCheckboxPending(action)
-	signerFingerprint := privateKey.Fingerprint()
-	err = client.UpsertTeam(roster, signature, &signerFingerprint)
+	err = client.UpsertTeam(roster, signature, privateKey.Fingerprint())
 	if err != nil {
 		printCheckboxFailure(action, err)
 	}
