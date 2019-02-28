@@ -11,14 +11,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gofrs/uuid"
-
-	"github.com/fluidkeys/fluidkeys/exampledata"
-
-	"github.com/fluidkeys/fluidkeys/assert"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
-
 	"github.com/fluidkeys/api/v1structs"
+	"github.com/fluidkeys/fluidkeys/assert"
+	"github.com/fluidkeys/fluidkeys/exampledata"
+	"github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/gofrs/uuid"
 )
 
 // String is a helper routine that allocates a new string value
@@ -393,6 +390,89 @@ func TestGetTeamName(t *testing.T) {
 
 		assert.GotError(t, err)
 		assert.Equal(t, fmt.Errorf("API error: 500"), err)
+	})
+}
+
+func TestRequestToJoinTeam(t *testing.T) {
+	expectedRequest := &v1structs.RequestToJoinTeamRequest{TeamEmail: "jane@example.com"}
+	fingerprint, err := fingerprint.Parse("ABAB ABAB ABAB ABAB ABAB  ABAB ABAB ABAB ABAB ABAB")
+	if err != nil {
+		t.Fatalf("Couldn't parse fingerprint: %s\n", err)
+	}
+	mockTeamUUID := uuid.Must(uuid.NewV4())
+
+	t.Run("with valid JSON response", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "POST", r.Method)
+			gotRequest := new(v1structs.RequestToJoinTeamRequest)
+			json.NewDecoder(r.Body).Decode(gotRequest)
+			assert.Equal(t, expectedRequest, gotRequest)
+			w.WriteHeader(http.StatusCreated)
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/team/%s/requests-to-join", mockTeamUUID),
+			mockResponseHandler,
+		)
+
+		err = client.RequestToJoinTeam(
+			mockTeamUUID,
+			fingerprint,
+			"jane@example.com",
+		)
+		assert.NoError(t, err)
+	})
+
+	t.Run("with a conflicting response status", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "POST", r.Method)
+			gotRequest := new(v1structs.RequestToJoinTeamRequest)
+			json.NewDecoder(r.Body).Decode(gotRequest)
+			assert.Equal(t, expectedRequest, gotRequest)
+			w.WriteHeader(http.StatusConflict)
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/team/%s/requests-to-join", mockTeamUUID),
+			mockResponseHandler,
+		)
+
+		err = client.RequestToJoinTeam(
+			mockTeamUUID,
+			fingerprint,
+			"jane@example.com",
+		)
+		assert.Equal(t, fmt.Errorf("already got request to join team for jane@example.com"), err)
+	})
+
+	t.Run("passes up server errors", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "POST", r.Method)
+			gotRequest := new(v1structs.RequestToJoinTeamRequest)
+			json.NewDecoder(r.Body).Decode(gotRequest)
+			assert.Equal(t, expectedRequest, gotRequest)
+
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, `{"detail": "can't write to database"}`)
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/team/%s/requests-to-join", mockTeamUUID),
+			mockResponseHandler,
+		)
+
+		err = client.RequestToJoinTeam(
+			mockTeamUUID,
+			fingerprint,
+			"jane@example.com",
+		)
+		assert.Equal(t, fmt.Errorf("API error: 500 can't write to database"), err)
 	})
 }
 
