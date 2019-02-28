@@ -18,17 +18,17 @@ func TestLoad(t *testing.T) {
 	t.Run("Load actually works from a real config file", func(t *testing.T) {
 		tmpdir := makeTempDir(t)
 		err := ioutil.WriteFile(path.Join(tmpdir, "config.toml"), []byte(exampleTomlDocument), 0600)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		config, err := Load(tmpdir)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		assert.Equal(t, 0, len(config.parsedMetadata.Undecoded()))
 	})
 
 	t.Run("default config file actually parses", func(t *testing.T) {
 		_, err := parse(strings.NewReader(defaultConfigFile))
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 	})
 
 	t.Run("load successfully if file is present and reads OK", func(t *testing.T) {
@@ -38,7 +38,7 @@ func TestLoad(t *testing.T) {
 			TomlContents:      exampleTomlDocument,
 		}
 		config, err := load("/tmp/", &mockFileHelper)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		t.Run("Config has filename set correctly", func(t *testing.T) {
 			assert.Equal(t, "/tmp/config.toml", config.filename)
@@ -53,7 +53,7 @@ func TestLoad(t *testing.T) {
 			TomlContents:               exampleTomlDocument,
 		}
 		_, err := load("/tmp/", &mockFileHelper)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 	})
 
 	t.Run("load writes out default file content with correct mode if file is missing", func(t *testing.T) {
@@ -64,7 +64,7 @@ func TestLoad(t *testing.T) {
 			TomlContents:               exampleTomlDocument,
 		}
 		_, err := load("/tmp/", &mockFileHelper)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, defaultConfigFile, string(mockFileHelper.IoutilWriteFileGotData))
 		assert.Equal(t, os.FileMode(0600), mockFileHelper.IoutilWriteFileGotMode)
 	})
@@ -75,7 +75,7 @@ func TestLoad(t *testing.T) {
 			IoutilWriteFileReturnError: os.ErrPermission,
 		}
 		_, err := load("/tmp/", &mockFileHelper)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		assert.Equal(t, "/tmp/config.toml didn't exist and failed to create it: permission denied", err.Error())
 	})
 
@@ -85,7 +85,7 @@ func TestLoad(t *testing.T) {
 			OsOpenReturnError: os.ErrPermission, // file couldn't be read
 		}
 		_, err := load("/tmp/", &mockFileHelper)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		assert.Equal(t, "error reading /tmp/config.toml: permission denied", err.Error())
 	})
 
@@ -94,7 +94,7 @@ func TestLoad(t *testing.T) {
 			TomlContents: "invalid toml content",
 		}
 		_, err := load("/tmp/", &mockFileHelper)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		assert.Equal(t, "error parsing /tmp/config.toml: error in toml.DecodeReader: Near line 1 (last key parsed 'invalid'): expected key separator '=', but got 't' instead", err.Error())
 	})
 }
@@ -104,7 +104,7 @@ func TestParse(t *testing.T) {
 	t.Run("with valid example config.toml", func(t *testing.T) {
 		str := strings.NewReader(exampleTomlDocument)
 		config, err := parse(str)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		t.Run("parsedMetadata.IsDefined('keys') should be true", func(t *testing.T) {
 			assert.Equal(t, true, config.parsedMetadata.IsDefined("pgpkeys"))
 		})
@@ -157,7 +157,7 @@ func TestParse(t *testing.T) {
 		[pgpkeys.invalid-fingerprint]
 		store_password = false
 		`))
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 
 	t.Run("return an error if an unrecognised config variable is encountered", func(t *testing.T) {
@@ -166,7 +166,7 @@ func TestParse(t *testing.T) {
 		[pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
 		unrecognised_option = false
 		`))
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		assert.Equal(t, "encountered unrecognised config keys: [pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111.unrecognised_option]", err.Error())
 	})
 }
@@ -176,13 +176,13 @@ func TestSerialize(t *testing.T) {
 
 	t.Run("from an empty config file", func(t *testing.T) {
 		emptyConfig, err := parse(strings.NewReader(""))
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		emptyConfig.SetStorePassword(testFingerprint, true)
 
 		output := bytes.NewBuffer(nil)
 		err = emptyConfig.serialize(output)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		expected := defaultConfigFile +
 			"run_from_cron = false\n" +
@@ -205,7 +205,7 @@ func TestGetConfig(t *testing.T) {
 		[pgpkeys.0xAAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
 		store_password = true  # use a non-default value to test this
 		`))
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		keyConfig := config.getConfig(fingerprint)
 		// store_password = true would show that it hasn't returned the default value
@@ -217,7 +217,7 @@ func TestGetConfig(t *testing.T) {
 		[pgpkeys."AAAA 1111 AAAA 1111 AAAA 1111 AAAA 1111 AAAA 1111"]
 		store_password = true  # use a non-default value to test this
 		`))
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		keyConfig := config.getConfig(fingerprint)
 		// store_password = true would show that it hasn't returned the default value
@@ -233,13 +233,13 @@ func TestSettersAndGetters(t *testing.T) {
 
 		t.Run("true", func(t *testing.T) {
 			err := config.SetMaintainAutomatically(testFingerprint, true)
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, true, config.ShouldMaintainAutomatically(testFingerprint))
 		})
 
 		t.Run("false", func(t *testing.T) {
 			err := config.SetMaintainAutomatically(testFingerprint, false)
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, false, config.ShouldMaintainAutomatically(testFingerprint))
 		})
 	})
@@ -249,13 +249,13 @@ func TestSettersAndGetters(t *testing.T) {
 
 		t.Run("true", func(t *testing.T) {
 			err := config.SetStorePassword(testFingerprint, true)
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, true, config.ShouldStorePassword(testFingerprint))
 		})
 
 		t.Run("false", func(t *testing.T) {
 			err := config.SetStorePassword(testFingerprint, false)
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, false, config.ShouldStorePassword(testFingerprint))
 		})
 	})
@@ -265,13 +265,13 @@ func TestSettersAndGetters(t *testing.T) {
 
 		t.Run("true", func(t *testing.T) {
 			err := config.SetPublishToAPI(testFingerprint, true)
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, true, config.ShouldPublishToAPI(testFingerprint))
 		})
 
 		t.Run("false", func(t *testing.T) {
 			err := config.SetPublishToAPI(testFingerprint, false)
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, false, config.ShouldPublishToAPI(testFingerprint))
 		})
 	})
@@ -282,7 +282,7 @@ func TestShouldStorePasswordInKeyring(t *testing.T) {
 
 	t.Run("default to false for missing whole [pgpkeys] table", func(t *testing.T) {
 		config, err := parse(strings.NewReader(""))
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		got := config.ShouldStorePassword(testFingerprint)
 		assert.Equal(t, false, got)
@@ -293,7 +293,7 @@ func TestShouldStorePasswordInKeyring(t *testing.T) {
 		[pgpkeys.0000000000000000000000000000000000000000]
 		store_password = false
 		`))
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		got := config.ShouldStorePassword(testFingerprint)
 		assert.Equal(t, false, got)
@@ -304,7 +304,7 @@ func TestShouldStorePasswordInKeyring(t *testing.T) {
 		[pgpkeys]
 		[pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
 		`))
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		got := config.ShouldStorePassword(testFingerprint)
 		assert.Equal(t, false, got)
@@ -316,7 +316,7 @@ func TestShouldStorePasswordInKeyring(t *testing.T) {
 		[pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
 		store_password = false
 		`))
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		got := config.ShouldStorePassword(testFingerprint)
 		assert.Equal(t, false, got)
@@ -328,7 +328,7 @@ func TestShouldStorePasswordInKeyring(t *testing.T) {
 		[pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
 		store_password = true
 		`))
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		got := config.ShouldStorePassword(testFingerprint)
 		assert.Equal(t, true, got)
@@ -340,7 +340,7 @@ func TestShouldMaintainAutomaticallyInKeyring(t *testing.T) {
 
 	t.Run("default to false for missing whole [pgpkeys] table", func(t *testing.T) {
 		config, err := parse(strings.NewReader(""))
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		got := config.ShouldMaintainAutomatically(testFingerprint)
 		assert.Equal(t, false, got)
@@ -351,7 +351,7 @@ func TestShouldMaintainAutomaticallyInKeyring(t *testing.T) {
 		[pgpkeys.0000000000000000000000000000000000000000]
 		maintain_automatically = false
 		`))
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		got := config.ShouldMaintainAutomatically(testFingerprint)
 		assert.Equal(t, false, got)
@@ -362,7 +362,7 @@ func TestShouldMaintainAutomaticallyInKeyring(t *testing.T) {
 		[pgpkeys]
 		[pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
 		`))
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		got := config.ShouldMaintainAutomatically(testFingerprint)
 		assert.Equal(t, false, got)
@@ -374,7 +374,7 @@ func TestShouldMaintainAutomaticallyInKeyring(t *testing.T) {
 		[pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
 		maintain_automatically = false
 		`))
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		got := config.ShouldMaintainAutomatically(testFingerprint)
 		assert.Equal(t, false, got)
@@ -386,7 +386,7 @@ func TestShouldMaintainAutomaticallyInKeyring(t *testing.T) {
 		[pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
 		maintain_automatically = true
 		`))
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		got := config.ShouldMaintainAutomatically(testFingerprint)
 		assert.Equal(t, true, got)

@@ -49,12 +49,12 @@ func TestSlugMethod(t *testing.T) {
 
 	t.Run("test slug method for multiple email addresses", func(t *testing.T) {
 		pgpKey, err := LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		assert.Equal(t, 3, len(pgpKey.Identities))
 
 		slug, err := pgpKey.Slug()
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		assertEqual(t, "2018-09-10-test3-example-com-7C18DE4DE47813568B243AC8719BD63EF03BDC20", slug)
 	})
 }
@@ -74,7 +74,7 @@ func TestEmailMethod(t *testing.T) {
 
 	t.Run("returns error when there are no identities", func(t *testing.T) {
 		pgpKey, err := LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		// remove all identities
 		pgpKey.Identities = make(map[string]*openpgp.Identity)
@@ -82,12 +82,12 @@ func TestEmailMethod(t *testing.T) {
 		assert.Equal(t, 0, len(pgpKey.Identities))
 
 		_, err = pgpKey.Email()
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 
 	t.Run("with 3 valid identities ", func(t *testing.T) {
 		pgpKey, err := LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, 3, len(pgpKey.Identities))
 
 		t.Run("if no identities are primary choose the oldest signature", func(t *testing.T) {
@@ -97,7 +97,7 @@ func TestEmailMethod(t *testing.T) {
 			setIsPrimary(false, pgpKey.Identities, "unbracketedemail@example.com")
 
 			email, err := pgpKey.Email()
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 
 			assertEqual(t, "test3@example.com", email) // this has the oldest sig of all 3
 		})
@@ -107,7 +107,7 @@ func TestEmailMethod(t *testing.T) {
 			setIsPrimary(false, pgpKey.Identities, "unbracketedemail@example.com")
 
 			email, err := pgpKey.Email()
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 
 			assertEqual(t, "another@example.com", email) // 2nd identity
 		})
@@ -118,7 +118,7 @@ func TestEmailMethod(t *testing.T) {
 			setIsPrimary(true, pgpKey.Identities, "unbracketedemail@example.com")
 
 			email, err := pgpKey.Email()
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 
 			assertEqual(t, "another@example.com", email) // this has the oldest sig of the 2
 		})
@@ -136,7 +136,7 @@ func setIsPrimary(isPrimary bool, identities map[string]*openpgp.Identity, ident
 
 func TestEmailsMethod(t *testing.T) {
 	pgpKey, err := LoadFromArmoredPublicKey(exampledata.ExamplePublicKey3)
-	assert.ErrorIsNil(t, err)
+	assert.NoError(t, err)
 
 	setIsPrimary(false, pgpKey.Identities, "<test3@example.com>")
 	setIsPrimary(true, pgpKey.Identities, "Example Name <another@example.com>")
@@ -1032,7 +1032,7 @@ func TestRefreshUserIdSelfSignatures(t *testing.T) {
 
 	t.Run("fails if private key isn't present", func(t *testing.T) {
 		err := publicKeyOnly.RefreshUserIdSelfSignatures(now)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 }
 
@@ -1079,12 +1079,12 @@ func TestRefreshSubkeyBindingSignature(t *testing.T) {
 
 	t.Run("fails with invalid Subkeyid", func(t *testing.T) {
 		err := publicKeyOnly.RefreshSubkeyBindingSignature(0x0000000000000000, now)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 
 	t.Run("fails if private key isn't present", func(t *testing.T) {
 		err := publicKeyOnly.RefreshSubkeyBindingSignature(0x409F66EB6D1336A7, now)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 }
 
@@ -1131,7 +1131,7 @@ func TestSubkey(t *testing.T) {
 		wantSubkey := pgpKey.Subkeys[0]
 
 		gotSubkey, error := pgpKey.Subkey(wantSubkey.PublicKey.KeyId)
-		assert.ErrorIsNil(t, error)
+		assert.NoError(t, error)
 
 		if *gotSubkey != wantSubkey {
 			t.Fatalf(
@@ -1144,7 +1144,7 @@ func TestSubkey(t *testing.T) {
 
 	t.Run("errors if passed an invalid KeyId", func(t *testing.T) {
 		gotSubkey, error := pgpKey.Subkey(uint64(0xF423F))
-		assert.ErrorIsNotNil(t, error)
+		assert.GotError(t, error)
 		if gotSubkey != nil {
 			t.Fatalf("expected no subkey, but got %v\n", gotSubkey.PublicKey.KeyIdString())
 		}
@@ -1224,16 +1224,16 @@ func TestMethodsRequiringDecryptedPrivateKey(t *testing.T) {
 		}
 
 		_, err = pgpKey.ArmorPrivate("password")
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 
 		err = pgpKey.UpdateExpiryForAllUserIds(time.Now(), time.Now())
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 
 		err = pgpKey.CreateNewEncryptionSubkey(time.Now(), time.Now(), mockRandom)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 
 		err = pgpKey.UpdateSubkeyValidUntil(999, time.Now(), time.Now())
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 
 	t.Run("error when passed onlt a public key", func(t *testing.T) {
@@ -1243,16 +1243,16 @@ func TestMethodsRequiringDecryptedPrivateKey(t *testing.T) {
 		}
 
 		_, err = pgpKey.ArmorPrivate("password")
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 
 		err = pgpKey.UpdateExpiryForAllUserIds(time.Now(), time.Now())
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 
 		err = pgpKey.CreateNewEncryptionSubkey(time.Now(), time.Now(), mockRandom)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 
 		err = pgpKey.UpdateSubkeyValidUntil(999, time.Now(), time.Now())
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 }
 

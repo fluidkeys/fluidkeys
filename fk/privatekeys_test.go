@@ -72,7 +72,7 @@ func TestLoadPrivateKey(t *testing.T) {
 		key, err := loadPrivateKey(exampledata.ExampleFingerprint2, "test2", &mockGpg, &mockLoader)
 
 		t.Run("doesn't get an error", func(t *testing.T) {
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 		})
 
 		t.Run("key is not nil", func(t *testing.T) {
@@ -169,7 +169,7 @@ func TestLoadPrivateKey(t *testing.T) {
 		_, err := loadPrivateKey(exampledata.ExampleFingerprint2, "irrelevant for this test", &mockGpg, &mockLoader)
 
 		t.Run("returns an error", func(t *testing.T) {
-			assert.ErrorIsNotNil(t, err)
+			assert.GotError(t, err)
 		})
 	})
 
@@ -185,7 +185,7 @@ func TestLoadPrivateKey(t *testing.T) {
 		}
 
 		_, err := loadPrivateKey(exampledata.ExampleFingerprint2, "irrelevant", &mockGpg, &mockLoader)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 }
 
@@ -209,7 +209,7 @@ func TestPushPrivateKeyBackToGpg(t *testing.T) {
 		}
 
 		err := pushPrivateKeyBackToGpg(&mockKey, "[irrelevant]", &mockImporter)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 	})
 
 	t.Run("returns an error if key.Armor() returns an error", func(t *testing.T) {
@@ -224,7 +224,7 @@ func TestPushPrivateKeyBackToGpg(t *testing.T) {
 			returnError: nil,
 		}
 		err := pushPrivateKeyBackToGpg(&mockKey, "[irrelevant]", &mockImporter)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 
 	t.Run("returns an error if key.ArmorPrivate() returns an error", func(t *testing.T) {
@@ -239,7 +239,7 @@ func TestPushPrivateKeyBackToGpg(t *testing.T) {
 			returnError: nil,
 		}
 		err := pushPrivateKeyBackToGpg(&mockKey, "[irrelevant]", &mockImporter)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 
 	t.Run("returns an error if ImportedArmoredKey() returns an error", func(t *testing.T) {
@@ -254,6 +254,6 @@ func TestPushPrivateKeyBackToGpg(t *testing.T) {
 			returnError: fmt.Errorf("some error in ImportedArmoredKey"),
 		}
 		err := pushPrivateKeyBackToGpg(&mockKey, "[irrelevant]", &mockImporter)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 }

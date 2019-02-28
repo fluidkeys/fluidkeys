@@ -166,12 +166,12 @@ func TestListPublicKeys(t *testing.T) {
 
 	t.Run("returns an error given an empty search string", func(t *testing.T) {
 		_, err := gpg.ListPublicKeys("")
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 
 	t.Run("doesn't return an error if it can't find a matching key", func(t *testing.T) {
 		publicKeys, err := gpg.ListPublicKeys("test4@example.com")
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		if len(publicKeys) != 0 {
 			t.Fatalf("expected 0 public keys, got %d: %v", len(publicKeys), publicKeys)
@@ -357,7 +357,7 @@ func assertEqual(t *testing.T, expected KeyListing, got KeyListing) {
 
 func makeGpgWithTempHome(t *testing.T) GnuPG {
 	gpgBinary, err := findGpgBinary()
-	assert.ErrorIsNil(t, err)
+	assert.NoError(t, err)
 
 	return GnuPG{fullGpgPath: gpgBinary, homeDir: makeTempGnupgHome(t)}
 }

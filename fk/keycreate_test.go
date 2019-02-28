@@ -27,7 +27,7 @@ func TestVerifyEmailMatchesKeyInAPI(t *testing.T) {
 			&mockGetter,
 		)
 
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		assertVerified(t, verified)
 	})
 
@@ -39,7 +39,7 @@ func TestVerifyEmailMatchesKeyInAPI(t *testing.T) {
 			exampledata.ExampleFingerprint2,
 			&mockGetter,
 		)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		assertNotVerified(t, verified)
 	})
 
@@ -52,7 +52,7 @@ func TestVerifyEmailMatchesKeyInAPI(t *testing.T) {
 			&mockGetter,
 		)
 		t.Run("swallows the error", func(t *testing.T) {
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 		})
 		assertNotVerified(t, verified)
 
@@ -66,7 +66,7 @@ func TestVerifyEmailMatchesKeyInAPI(t *testing.T) {
 			exampledata.ExampleFingerprint2,
 			&mockGetter,
 		)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		assert.Equal(
 			t,
 			fmt.Errorf("a key for test2@example.com is already verified\n     Please email security@fluidkeys.com and we can manually remove the old key\n"),
