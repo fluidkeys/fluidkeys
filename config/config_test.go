@@ -75,7 +75,7 @@ func TestLoad(t *testing.T) {
 			IoutilWriteFileReturnError: os.ErrPermission,
 		}
 		_, err := load("/tmp/", &mockFileHelper)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		assert.Equal(t, "/tmp/config.toml didn't exist and failed to create it: permission denied", err.Error())
 	})
 
@@ -85,7 +85,7 @@ func TestLoad(t *testing.T) {
 			OsOpenReturnError: os.ErrPermission, // file couldn't be read
 		}
 		_, err := load("/tmp/", &mockFileHelper)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		assert.Equal(t, "error reading /tmp/config.toml: permission denied", err.Error())
 	})
 
@@ -94,7 +94,7 @@ func TestLoad(t *testing.T) {
 			TomlContents: "invalid toml content",
 		}
 		_, err := load("/tmp/", &mockFileHelper)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		assert.Equal(t, "error parsing /tmp/config.toml: error in toml.DecodeReader: Near line 1 (last key parsed 'invalid'): expected key separator '=', but got 't' instead", err.Error())
 	})
 }
@@ -157,7 +157,7 @@ func TestParse(t *testing.T) {
 		[pgpkeys.invalid-fingerprint]
 		store_password = false
 		`))
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 
 	t.Run("return an error if an unrecognised config variable is encountered", func(t *testing.T) {
@@ -166,7 +166,7 @@ func TestParse(t *testing.T) {
 		[pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111]
 		unrecognised_option = false
 		`))
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		assert.Equal(t, "encountered unrecognised config keys: [pgpkeys.AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111.unrecognised_option]", err.Error())
 	})
 }

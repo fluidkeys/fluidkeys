@@ -168,7 +168,7 @@ func TestDecryptAPISecret(t *testing.T) {
 			decryptedArmoredToStringLiteralData: &packet.LiteralData{},
 		}
 		_, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		expectedErr := fmt.Errorf("error decoding secret metadata: " +
 			"invalid character 'i' looking for beginning of value")
 		assert.Equal(t, expectedErr, err)
@@ -180,7 +180,7 @@ func TestDecryptAPISecret(t *testing.T) {
 			decryptedArmoredToStringLiteralData: &packet.LiteralData{},
 		}
 		_, err := decryptAPISecret(encryptedSecret, mockPrivateKey)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		expectedErr := fmt.Errorf("error decoding secret metadata: " +
 			"uuid: incorrect UUID length: invalid uuid")
 		assert.Equal(t, expectedErr, err)
@@ -340,7 +340,7 @@ func TestGetAvailableFilename(t *testing.T) {
 	t.Run("gives up after increment of 10", func(t *testing.T) {
 		_, err := getAvailableFilename(
 			"/unwritable_directory", "fake.txt", mockChecker)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		assert.Equal(t, fmt.Errorf("tried fake.txt, fake(1).txt, fake(2).txt..."), err)
 	})
 }

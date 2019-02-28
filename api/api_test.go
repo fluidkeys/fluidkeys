@@ -74,7 +74,7 @@ func TestGetPublicKey(t *testing.T) {
 
 		_, err := client.GetPublicKey("abby@example.com")
 
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 }
 
@@ -115,7 +115,7 @@ func TestGetPublicKeyByFingerprint(t *testing.T) {
 
 		_, err := client.GetPublicKeyByFingerprint(exampledata.ExampleFingerprint4)
 
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		assert.Equal(t, fmt.Errorf("requested key BB3C 44BF 188D 56E6 35F4  A092 F73D 2F05 "+
 			"33D7 F9D6 but got back 7C18 DE4D E478 1356 8B24  3AC8 719B D63E F03B DC20"), err)
 	})
@@ -136,7 +136,7 @@ func TestGetPublicKeyByFingerprint(t *testing.T) {
 
 		_, err := client.GetPublicKeyByFingerprint(exampledata.ExampleFingerprint4)
 
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		assert.Equal(t, fmt.Errorf("got http 200, but with empty body"), err)
 	})
 
@@ -156,7 +156,7 @@ func TestGetPublicKeyByFingerprint(t *testing.T) {
 
 		_, err := client.GetPublicKeyByFingerprint(exampledata.ExampleFingerprint4)
 
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		assert.Equal(t, ErrPublicKeyNotFound, err)
 	})
 
@@ -176,7 +176,7 @@ func TestGetPublicKeyByFingerprint(t *testing.T) {
 
 		_, err := client.GetPublicKeyByFingerprint(exampledata.ExampleFingerprint4)
 
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		assert.Equal(t, fmt.Errorf("API error: 500"), err)
 	})
 
@@ -196,7 +196,7 @@ func TestGetPublicKeyByFingerprint(t *testing.T) {
 
 		_, err := client.GetPublicKeyByFingerprint(exampledata.ExampleFingerprint4)
 
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 		assert.Equal(t, fmt.Errorf("failed to load armored key: error reading armored key ring: "+
 			"openpgp: invalid argument: no armored data found"), err)
 	})

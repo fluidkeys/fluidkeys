@@ -169,7 +169,7 @@ func TestLoadPrivateKey(t *testing.T) {
 		_, err := loadPrivateKey(exampledata.ExampleFingerprint2, "irrelevant for this test", &mockGpg, &mockLoader)
 
 		t.Run("returns an error", func(t *testing.T) {
-			assert.ErrorIsNotNil(t, err)
+			assert.GotError(t, err)
 		})
 	})
 
@@ -185,7 +185,7 @@ func TestLoadPrivateKey(t *testing.T) {
 		}
 
 		_, err := loadPrivateKey(exampledata.ExampleFingerprint2, "irrelevant", &mockGpg, &mockLoader)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 }
 
@@ -224,7 +224,7 @@ func TestPushPrivateKeyBackToGpg(t *testing.T) {
 			returnError: nil,
 		}
 		err := pushPrivateKeyBackToGpg(&mockKey, "[irrelevant]", &mockImporter)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 
 	t.Run("returns an error if key.ArmorPrivate() returns an error", func(t *testing.T) {
@@ -239,7 +239,7 @@ func TestPushPrivateKeyBackToGpg(t *testing.T) {
 			returnError: nil,
 		}
 		err := pushPrivateKeyBackToGpg(&mockKey, "[irrelevant]", &mockImporter)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 
 	t.Run("returns an error if ImportedArmoredKey() returns an error", func(t *testing.T) {
@@ -254,6 +254,6 @@ func TestPushPrivateKeyBackToGpg(t *testing.T) {
 			returnError: fmt.Errorf("some error in ImportedArmoredKey"),
 		}
 		err := pushPrivateKeyBackToGpg(&mockKey, "[irrelevant]", &mockImporter)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 }

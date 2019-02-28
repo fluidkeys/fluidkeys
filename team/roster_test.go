@@ -80,7 +80,7 @@ name = "Kiffix"
 		}
 
 		_, err := testTeam.Roster()
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 }
 

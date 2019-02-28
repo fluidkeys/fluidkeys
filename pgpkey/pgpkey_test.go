@@ -82,7 +82,7 @@ func TestEmailMethod(t *testing.T) {
 		assert.Equal(t, 0, len(pgpKey.Identities))
 
 		_, err = pgpKey.Email()
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 
 	t.Run("with 3 valid identities ", func(t *testing.T) {
@@ -1032,7 +1032,7 @@ func TestRefreshUserIdSelfSignatures(t *testing.T) {
 
 	t.Run("fails if private key isn't present", func(t *testing.T) {
 		err := publicKeyOnly.RefreshUserIdSelfSignatures(now)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 }
 
@@ -1079,12 +1079,12 @@ func TestRefreshSubkeyBindingSignature(t *testing.T) {
 
 	t.Run("fails with invalid Subkeyid", func(t *testing.T) {
 		err := publicKeyOnly.RefreshSubkeyBindingSignature(0x0000000000000000, now)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 
 	t.Run("fails if private key isn't present", func(t *testing.T) {
 		err := publicKeyOnly.RefreshSubkeyBindingSignature(0x409F66EB6D1336A7, now)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 }
 
@@ -1144,7 +1144,7 @@ func TestSubkey(t *testing.T) {
 
 	t.Run("errors if passed an invalid KeyId", func(t *testing.T) {
 		gotSubkey, error := pgpKey.Subkey(uint64(0xF423F))
-		assert.ErrorIsNotNil(t, error)
+		assert.GotError(t, error)
 		if gotSubkey != nil {
 			t.Fatalf("expected no subkey, but got %v\n", gotSubkey.PublicKey.KeyIdString())
 		}
@@ -1224,16 +1224,16 @@ func TestMethodsRequiringDecryptedPrivateKey(t *testing.T) {
 		}
 
 		_, err = pgpKey.ArmorPrivate("password")
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 
 		err = pgpKey.UpdateExpiryForAllUserIds(time.Now(), time.Now())
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 
 		err = pgpKey.CreateNewEncryptionSubkey(time.Now(), time.Now(), mockRandom)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 
 		err = pgpKey.UpdateSubkeyValidUntil(999, time.Now(), time.Now())
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 
 	t.Run("error when passed onlt a public key", func(t *testing.T) {
@@ -1243,16 +1243,16 @@ func TestMethodsRequiringDecryptedPrivateKey(t *testing.T) {
 		}
 
 		_, err = pgpKey.ArmorPrivate("password")
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 
 		err = pgpKey.UpdateExpiryForAllUserIds(time.Now(), time.Now())
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 
 		err = pgpKey.CreateNewEncryptionSubkey(time.Now(), time.Now(), mockRandom)
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 
 		err = pgpKey.UpdateSubkeyValidUntil(999, time.Now(), time.Now())
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 }
 

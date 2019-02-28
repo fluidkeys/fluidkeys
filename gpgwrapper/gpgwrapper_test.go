@@ -166,7 +166,7 @@ func TestListPublicKeys(t *testing.T) {
 
 	t.Run("returns an error given an empty search string", func(t *testing.T) {
 		_, err := gpg.ListPublicKeys("")
-		assert.ErrorIsNotNil(t, err)
+		assert.GotError(t, err)
 	})
 
 	t.Run("doesn't return an error if it can't find a matching key", func(t *testing.T) {
