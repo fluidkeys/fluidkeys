@@ -25,7 +25,7 @@ func TestEncryptSecret(t *testing.T) {
 
 	t.Run("with an empty filename", func(t *testing.T) {
 		armoredEncryptedSecret, err := encryptSecret(secret, "", pgpKey)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		messageDetails := decryptMessageDetails(armoredEncryptedSecret, pgpKey, t)
 		assertMessageBodyMatchesSecretContent(messageDetails.UnverifiedBody, secret, t)
@@ -37,7 +37,7 @@ func TestEncryptSecret(t *testing.T) {
 
 	t.Run("with a filename", func(t *testing.T) {
 		armoredEncryptedSecret, err := encryptSecret(secret, "secret.txt", pgpKey)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		messageDetails := decryptMessageDetails(armoredEncryptedSecret, pgpKey, t)
 		assertMessageBodyMatchesSecretContent(messageDetails.UnverifiedBody, secret, t)
@@ -75,7 +75,7 @@ func TestGetSecretFromFile(t *testing.T) {
 		}
 
 		secret, err := getSecretFromFile("/fake/filename", fileReader)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, "hello", secret)
 	})
 
@@ -127,14 +127,14 @@ func TestReadUpTo(t *testing.T) {
 	t.Run("input 4 bytes, maxLength 5 should return 4 bytes", func(t *testing.T) {
 		input := []byte("1234")
 		gotBytes, gotErr := readUpTo(bytes.NewBuffer(input), 5)
-		assert.ErrorIsNil(t, gotErr)
+		assert.NoError(t, gotErr)
 		assert.Equal(t, input, gotBytes)
 	})
 
 	t.Run("input 5 bytes, maxLength 5 should return 5 bytes", func(t *testing.T) {
 		input := []byte("12345")
 		gotBytes, gotErr := readUpTo(bytes.NewBuffer(input), 5)
-		assert.ErrorIsNil(t, gotErr)
+		assert.NoError(t, gotErr)
 		assert.Equal(t, input, gotBytes)
 	})
 
@@ -153,7 +153,7 @@ func TestGetSecretFromStdin(t *testing.T) {
 		}
 
 		result, err := getSecretFromStdin(stdinScanner)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, stdinScanner.scanMessage, result)
 	})
 

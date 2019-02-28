@@ -14,7 +14,7 @@ func TestRecordFingerprintImportedIntoGnuPG(t *testing.T) {
 		fingerprint := exampleFingerprintA
 		database := New(makeTempDirectory(t))
 		err := database.RecordFingerprintImportedIntoGnuPG(fingerprint)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		importedFingerprints, err := database.GetFingerprintsImportedIntoGnuPG()
 		assertContains(t, importedFingerprints, fingerprint)
@@ -26,9 +26,9 @@ func TestRecordFingerprintImportedIntoGnuPG(t *testing.T) {
 		database := New(makeTempDirectory(t))
 
 		err := database.RecordFingerprintImportedIntoGnuPG(existingFingerprint)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		err = database.RecordFingerprintImportedIntoGnuPG(newFingerprint)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		importedFingerprints, err := database.GetFingerprintsImportedIntoGnuPG()
 		assertContains(t, importedFingerprints, existingFingerprint)
@@ -40,9 +40,9 @@ func TestRecordFingerprintImportedIntoGnuPG(t *testing.T) {
 		database := New(makeTempDirectory(t))
 
 		err := database.RecordFingerprintImportedIntoGnuPG(fingerprint)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		err = database.RecordFingerprintImportedIntoGnuPG(fingerprint)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		importedFingerprints, err := database.GetFingerprintsImportedIntoGnuPG()
 		if len(importedFingerprints) != 1 {
@@ -57,10 +57,10 @@ func TestGetFingerprintsImportedIntoGnuPG(t *testing.T) {
 		database := New(makeTempDirectory(t))
 		fingerprint := exampleFingerprintA
 		err := database.RecordFingerprintImportedIntoGnuPG(fingerprint)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		importedFingerprints, err := database.GetFingerprintsImportedIntoGnuPG()
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		assertContains(t, importedFingerprints, fingerprint)
 	})
 

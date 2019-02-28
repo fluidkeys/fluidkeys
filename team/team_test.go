@@ -47,7 +47,7 @@ func TestValidate(t *testing.T) {
 		}
 
 		err := team.Validate()
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 	})
 
 	t.Run("missing UUID", func(t *testing.T) {
@@ -127,7 +127,7 @@ func TestGetPersonForFingerprint(t *testing.T) {
 		got, err := team.GetPersonForFingerprint(fingerprint.MustParse(
 			"AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"))
 
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, &personOne, got)
 	})
 
@@ -170,7 +170,7 @@ func TestSignAndSave(t *testing.T) {
 		}
 
 		roster, signature, err := SignAndSave(validTeam, dir, signingKey)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 
 		t.Run("creates a team subdirectory", func(t *testing.T) {
 			if _, err := os.Stat(teamSubdir); os.IsNotExist(err) {
@@ -229,21 +229,21 @@ name = "Kiffix"
 
 			// re-run Save, since a roster
 			updatedRoster, updatedSignature, err := SignAndSave(updatedTeam, dir, signingKey)
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 
 			files, _ := ioutil.ReadDir(teamSubdir)
 			assert.Equal(t, 2, len(files)) // still only roster.toml and roster.toml.asc
 
 			t.Run("read back roster matches return value of SignAndSave", func(t *testing.T) {
 				readBackRoster, err := ioutil.ReadFile(rosterFilename)
-				assert.ErrorIsNil(t, err)
+				assert.NoError(t, err)
 
 				assert.Equal(t, updatedRoster, string(readBackRoster))
 			})
 
 			t.Run("read back signature matches return value of SignAndSave", func(t *testing.T) {
 				readBackSignature, err := ioutil.ReadFile(signatureFilename)
-				assert.ErrorIsNil(t, err)
+				assert.NoError(t, err)
 
 				assert.Equal(t, updatedSignature, string(readBackSignature))
 			})

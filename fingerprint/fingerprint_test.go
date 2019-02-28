@@ -96,7 +96,7 @@ func TestFingerprint(t *testing.T) {
 
 		t.Run("with Fingerprint value (not pointer)", func(t *testing.T) {
 			got, err := json.Marshal(fp)
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 
 			expected := "\"A999B7498D1A8DC473E53C92309F635DAD1B5517\""
 			assert.Equal(t, expected, string(got))
@@ -105,7 +105,7 @@ func TestFingerprint(t *testing.T) {
 		t.Run("with *Fingerprint (pointer)", func(t *testing.T) {
 			var p *Fingerprint = &fp
 			got, err := json.Marshal(p)
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 
 			expected := "\"A999B7498D1A8DC473E53C92309F635DAD1B5517\""
 			assert.Equal(t, expected, string(got))
@@ -115,7 +115,7 @@ func TestFingerprint(t *testing.T) {
 			var p *Fingerprint
 			p = nil
 			got, err := json.Marshal(p)
-			assert.ErrorIsNil(t, err)
+			assert.NoError(t, err)
 
 			expected := "null"
 			assert.Equal(t, expected, string(got))

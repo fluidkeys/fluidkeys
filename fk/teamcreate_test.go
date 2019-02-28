@@ -14,7 +14,7 @@ func TestValidateTeamName(t *testing.T) {
 		teamName := "Kiffix"
 
 		got, err := validateTeamName(teamName)
-		assert.ErrorIsNil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, teamName, got)
 	})
 
