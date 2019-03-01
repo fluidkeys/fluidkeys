@@ -55,6 +55,7 @@ func teamJoin(teamUUID uuid.UUID) exitCode {
 	err = client.RequestToJoinTeam(teamUUID, pgpKey.Fingerprint(), email)
 	if err != nil {
 		printCheckboxFailure(action, err)
+		return 1
 	}
 	printCheckboxSuccess(action)
 	out.Print("\n\n")
