@@ -55,6 +55,9 @@ type Client struct {
 // ErrPublicKeyNotFound means the response was OK, but no key was found
 var ErrPublicKeyNotFound = fmt.Errorf("Public key not found")
 
+// ErrTeamNotFound means the response was OK, but no team was found
+var ErrTeamNotFound = fmt.Errorf("Team not found")
+
 // NewClient returns a new Fluidkeys Server API client.
 func NewClient(fluidkeysVersion string) *Client {
 	apiURL, got := os.LookupEnv("FLUIDKEYS_API_URL") // e.g. http://localhost:4747/v1/
@@ -228,6 +231,25 @@ func (c *Client) UpsertPublicKey(armoredPublicKey string, privateKey *pgpkey.Pgp
 	decodedUpsertResponse := new(v1structs.UpsertPublicKeyResponse)
 	_, err = c.do(request, &decodedUpsertResponse)
 	return err
+}
+
+// GetTeamName attempts to get the team name
+func (c *Client) GetTeamName(teamUUID uuid.UUID) (string, error) {
+	path := fmt.Sprintf("team/%s", teamUUID)
+	request, err := c.newRequest("GET", path, nil)
+	if err != nil {
+		return "", err
+	}
+	decodedJSON := new(v1structs.GetTeamResponse)
+	response, err := c.do(request, &decodedJSON)
+	if err != nil {
+		if response != nil && response.StatusCode == http.StatusNotFound {
+			return "", ErrTeamNotFound
+		}
+		return "", err
+	}
+
+	return decodedJSON.Name, nil
 }
 
 func makeUpsertPublicKeySignedData(armoredPublicKey string, privateKey *pgpkey.PgpKey) (armoredSignedJSON string, err error) {

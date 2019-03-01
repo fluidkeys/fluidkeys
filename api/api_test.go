@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gofrs/uuid"
+
 	"github.com/fluidkeys/fluidkeys/exampledata"
 
 	"github.com/fluidkeys/fluidkeys/assert"
@@ -329,6 +331,80 @@ func TestUpsertTeam(t *testing.T) {
 		)
 
 		assert.Equal(t, fmt.Errorf("API error: 500 signing key not in roster"), err)
+	})
+}
+
+func TestGetTeamName(t *testing.T) {
+	t.Run("parses the name from a good response", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		teamUUID := uuid.Must(uuid.NewV4())
+		teamResponse, err := json.Marshal(v1structs.GetTeamResponse{
+			Name: "Kiffix Ltd",
+		})
+		if err != nil {
+			t.Fatalf("failed to encode team response into JSON")
+		}
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
+			w.Header().Add("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, string(teamResponse))
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/team/%s", teamUUID),
+			mockResponseHandler,
+		)
+
+		got, err := client.GetTeamName(teamUUID)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "Kiffix Ltd", got)
+	})
+
+	t.Run("404 returns a specific type of error", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		unknownUUID := uuid.Must(uuid.NewV4())
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
+			w.Header().Add("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/team/%s", unknownUUID),
+			mockResponseHandler,
+		)
+
+		_, err := client.GetTeamName(unknownUUID)
+
+		assert.Equal(t, ErrTeamNotFound, err)
+	})
+
+	t.Run("responds with http 500 (unexpected http code)", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		teamUUID := uuid.Must(uuid.NewV4())
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
+			w.Header().Add("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/team/%s", teamUUID),
+			mockResponseHandler,
+		)
+
+		_, err := client.GetTeamName(teamUUID)
+
+		assert.GotError(t, err)
+		assert.Equal(t, fmt.Errorf("API error: 500"), err)
 	})
 }
 
