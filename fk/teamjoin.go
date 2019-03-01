@@ -60,8 +60,8 @@ func teamJoin(teamUUID uuid.UUID) exitCode {
 	printCheckboxSuccess(action)
 	out.Print("\n\n")
 
-	out.Print("Your team admin will need to authorize your request for Fluidkeys " +
-		"to start working.\n\n")
+	out.Print("Your team admin will need to authorize your request for Fluidkeys to\n" +
+		"start working.\n\n")
 	return 0
 }
 
