@@ -295,21 +295,9 @@ func TestUpsertTeam(t *testing.T) {
 		err = client.UpsertTeam(
 			"# Fluidkeys team roster...",
 			"---- BEGIN PGP MESSAGE...",
-			&fingerprint,
+			fingerprint,
 		)
 		assert.NoError(t, err)
-	})
-
-	t.Run("returns error when missing the signing fingerprint", func(t *testing.T) {
-		client, _, _, teardown := setup()
-		defer teardown()
-
-		err := client.UpsertTeam(
-			"# Fluidkeys team roster...",
-			"---- BEGIN PGP MESSAGE...",
-			nil,
-		)
-		assert.Equal(t, fmt.Errorf("missing signer fingerprint"), err)
 	})
 
 	t.Run("passes up server errors", func(t *testing.T) {
@@ -327,7 +315,7 @@ func TestUpsertTeam(t *testing.T) {
 		err = client.UpsertTeam(
 			"# Fluidkeys team roster...",
 			"---- BEGIN PGP MESSAGE...",
-			&fingerprint,
+			fingerprint,
 		)
 
 		assert.Equal(t, fmt.Errorf("API error: 500 signing key not in roster"), err)

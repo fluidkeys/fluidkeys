@@ -165,11 +165,7 @@ func (c *Client) CreateSecret(recipientFingerprint fingerprint.Fingerprint, armo
 // UpsertTeam takes a roster, signature and fingerprint to sign the request and attempts to
 // create a secret for the given recipient
 func (c *Client) UpsertTeam(roster string, rosterSignature string,
-	signerFingerprint *fingerprint.Fingerprint) error {
-	if signerFingerprint == nil {
-		return fmt.Errorf("missing signer fingerprint")
-	}
-
+	signerFingerprint fingerprint.Fingerprint) error {
 	UpsertTeamRequest := v1structs.UpsertTeamRequest{
 		TeamRoster:               roster,
 		ArmoredDetachedSignature: rosterSignature,
@@ -178,7 +174,7 @@ func (c *Client) UpsertTeam(roster string, rosterSignature string,
 	if err != nil {
 		return err
 	}
-	request.Header.Add("authorization", authorization(*signerFingerprint))
+	request.Header.Add("authorization", authorization(signerFingerprint))
 
 	_, err = c.do(request, nil)
 	return err
