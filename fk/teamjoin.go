@@ -29,6 +29,13 @@ import (
 )
 
 func teamJoin(teamUUID uuid.UUID) exitCode {
+	teamName, err := client.GetTeamName(teamUUID)
+	if err != nil {
+		out.Print(ui.FormatFailure("Couldn't request to join team", nil, err))
+		return 1
+	}
+	out.Print("\n")
+	out.Print("You're joining the team " + teamName + "\n\n")
 
 	pgpKey, code := getKeyForTeam()
 	if code != 0 {
@@ -43,11 +50,19 @@ func teamJoin(teamUUID uuid.UUID) exitCode {
 
 	printHeader("Requesting to join team")
 
-	out.Print(email)
-	out.Print("\n")
+	action := "Create request to join " + teamName
+	printCheckboxPending("action")
+	err = client.RequestToJoinTeam(teamUUID, pgpKey.Fingerprint(), email)
+	if err != nil {
+		printCheckboxFailure(action, err)
+		return 1
+	}
+	printCheckboxSuccess(action)
+	out.Print("\n\n")
 
-	out.Print(ui.FormatFailure("Not implemented", nil, nil))
-	return 1
+	out.Print("Your team admin will need to authorize your request for Fluidkeys to\n" +
+		"start working.\n\n")
+	return 0
 }
 
 func getKeyForTeam() (*pgpkey.PgpKey, exitCode) {
