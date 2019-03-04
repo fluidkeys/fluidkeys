@@ -40,6 +40,16 @@ func TestFingerprint(t *testing.T) {
 			nil, // good fingerprint: no error
 		},
 		{
+			"OPENPGP4FPR:A999B7498D1A8DC473E53C92309F635DAD1B5517",
+			"A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
+			nil, // good fingerprint: no error
+		},
+		{
+			"openpgp4fpr:A999B7498D1A8DC473E53C92309F635DAD1B5517",
+			"A999 B749 8D1A 8DC4 73E5  3C92 309F 635D AD1B 5517",
+			nil, // good fingerprint: no error
+		},
+		{
 			// too long
 			"DEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFD",
 			"",

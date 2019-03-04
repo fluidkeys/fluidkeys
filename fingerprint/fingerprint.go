@@ -44,6 +44,10 @@ func Parse(fp string) (Fingerprint, error) {
 		return nilFingerprint, fmt.Errorf("invalid fingerprint: empty")
 	}
 
+	if strings.HasPrefix(strings.ToLower(withoutSpaces), "openpgp4fpr:") {
+		withoutSpaces = withoutSpaces[12:]
+	}
+
 	expectedPattern := `^(0x)?[A-Fa-f0-9]{40}$`
 	if matched, err := regexp.MatchString(expectedPattern, withoutSpaces); !matched || err != nil {
 		return nilFingerprint, fmt.Errorf("invalid v4 fingerprint: not 40 hex characters")
