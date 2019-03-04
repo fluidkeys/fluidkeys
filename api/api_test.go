@@ -15,6 +15,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/fluidkeys/fluidkeys/team"
 	"github.com/gofrs/uuid"
 )
 
@@ -473,6 +474,166 @@ func TestRequestToJoinTeam(t *testing.T) {
 			"jane@example.com",
 		)
 		assert.Equal(t, fmt.Errorf("API error: 500 can't write to database"), err)
+	})
+}
+
+func TestListRequestsToJoinTeam(t *testing.T) {
+	authFingerprint, err := fpr.Parse("ABABABABABABABABABABABABABABABABABABABAB")
+	if err != nil {
+		t.Fatalf("Couldn't parse fingerprint: %s\n", err)
+	}
+	teamUUID := uuid.Must(uuid.NewV4())
+
+	t.Run("responds with a list of good requests", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		expectedRequestsToJoin := []team.RequestToJoinTeam{
+			{
+				UUID:        uuid.Must(uuid.FromString("8e26e4df0d474f7f9a07a37b2aa92104")),
+				Email:       "first@example.com",
+				Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+			},
+			{
+				UUID:        uuid.Must(uuid.FromString("a57dbf76c2f04bbd9a334cba1b7e335c")),
+				Email:       "second@example.com",
+				Fingerprint: fpr.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
+			},
+		}
+
+		joinTeamRequestsResponse, err := json.Marshal(
+			v1structs.ListRequestsToJoinTeamResponse{
+				Requests: []v1structs.RequestToJoinTeam{
+					{
+						UUID:        "8e26e4df0d474f7f9a07a37b2aa92104",
+						Email:       "first@example.com",
+						Fingerprint: "OPENPGP4FPR:AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA",
+					},
+					{
+						UUID:        "a57dbf76c2f04bbd9a334cba1b7e335c",
+						Email:       "second@example.com",
+						Fingerprint: "OPENPGP4FPR:CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD",
+					},
+				},
+			},
+		)
+		if err != nil {
+			t.Fatalf("failed to encode join team requests into JSON: %v", err)
+		}
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
+			w.Header().Add("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, string(joinTeamRequestsResponse))
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/team/%s/requests-to-join", teamUUID),
+			mockResponseHandler,
+		)
+
+		got, err := client.ListRequestsToJoinTeam(teamUUID, authFingerprint)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedRequestsToJoin, got)
+	})
+
+	t.Run("drops any requests with invalid uuids", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		expectedRequestsToJoin := []team.RequestToJoinTeam{
+			{
+				UUID:        uuid.Must(uuid.FromString("8e26e4df0d474f7f9a07a37b2aa92104")),
+				Email:       "first@example.com",
+				Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+			},
+		}
+
+		joinTeamRequestsResponse, err := json.Marshal(
+			v1structs.ListRequestsToJoinTeamResponse{
+				Requests: []v1structs.RequestToJoinTeam{
+					{
+						UUID:        "8e26e4df0d474f7f9a07a37b2aa92104",
+						Email:       "first@example.com",
+						Fingerprint: "OPENPGP4FPR:AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA",
+					},
+					{
+						UUID:        "invalid-uuid",
+						Email:       "second@example.com",
+						Fingerprint: "OPENPGP4FPR:CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD",
+					},
+				},
+			},
+		)
+		if err != nil {
+			t.Fatalf("failed to encode join team requests into JSON: %v", err)
+		}
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
+			w.Header().Add("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, string(joinTeamRequestsResponse))
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/team/%s/requests-to-join", teamUUID),
+			mockResponseHandler,
+		)
+
+		got, err := client.ListRequestsToJoinTeam(teamUUID, authFingerprint)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedRequestsToJoin, got)
+	})
+
+	t.Run("drops any requests with invalid fingerprints", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		expectedRequestsToJoin := []team.RequestToJoinTeam{
+			{
+				UUID:        uuid.Must(uuid.FromString("8e26e4df0d474f7f9a07a37b2aa92104")),
+				Email:       "first@example.com",
+				Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+			},
+		}
+
+		joinTeamRequestsResponse, err := json.Marshal(
+			v1structs.ListRequestsToJoinTeamResponse{
+				Requests: []v1structs.RequestToJoinTeam{
+					{
+						UUID:        "8e26e4df0d474f7f9a07a37b2aa92104",
+						Email:       "first@example.com",
+						Fingerprint: "OPENPGP4FPR:AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA",
+					},
+					{
+						UUID:        "a57dbf76c2f04bbd9a334cba1b7e335c",
+						Email:       "second@example.com",
+						Fingerprint: "invalid-fingerprint",
+					},
+				},
+			},
+		)
+		if err != nil {
+			t.Fatalf("failed to encode join team requests into JSON: %v", err)
+		}
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
+			w.Header().Add("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, string(joinTeamRequestsResponse))
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/team/%s/requests-to-join", teamUUID),
+			mockResponseHandler,
+		)
+
+		got, err := client.ListRequestsToJoinTeam(teamUUID, authFingerprint)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedRequestsToJoin, got)
 	})
 }
 

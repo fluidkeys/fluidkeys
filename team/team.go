@@ -193,3 +193,10 @@ type Person struct {
 	Email       string          `toml:"email"`
 	Fingerprint fpr.Fingerprint `toml:"fingerprint"`
 }
+
+// RequestToJoinTeam represents a request to join a team
+type RequestToJoinTeam struct {
+	UUID        uuid.UUID
+	Email       string
+	Fingerprint fpr.Fingerprint
+}
