@@ -23,6 +23,15 @@ import (
 )
 
 func teamAuthorize() exitCode {
+	out.Print(ui.FormatInfo(
+		"Authorizing a key adds it to the team roster",
+		[]string{
+			"By authorizing a key, everyone in your team will fetch and trust that key.",
+		},
+	))
+
+	printHeader("Authorize keys")
+
 	out.Print(ui.FormatFailure("Not implemented", nil, nil))
 	return 1
 }
