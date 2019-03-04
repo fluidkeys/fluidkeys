@@ -49,7 +49,7 @@ func teamCreate() exitCode {
 		return 1
 	}
 
-	teamMembers := []team.Person{{Email: email, Fingerprint: key.Fingerprint()}}
+	teamMembers := []team.Person{{Email: email, Fingerprint: key.Fingerprint(), IsAdmin: true}}
 
 	printHeader("What's your team name?")
 

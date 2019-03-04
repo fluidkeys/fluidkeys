@@ -8,9 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/fluidkeys/fluidkeys/pgpkey"
-
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/gofrs/uuid"
 	"github.com/natefinch/atomic"
 )
@@ -192,4 +191,5 @@ func (t *Team) Fingerprints() []fpr.Fingerprint {
 type Person struct {
 	Email       string          `toml:"email"`
 	Fingerprint fpr.Fingerprint `toml:"fingerprint"`
+	IsAdmin     bool            `toml:"is_admin"`
 }

@@ -165,6 +165,7 @@ func TestSignAndSave(t *testing.T) {
 				{
 					Email:       "test@example.com",
 					Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+					IsAdmin:     true,
 				},
 			},
 		}
@@ -212,6 +213,7 @@ name = "Kiffix"
 [[person]]
   email = "test@example.com"
   fingerprint = "AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"
+  is_admin = true
 `
 			if roster != expectedRoster {
 				t.Fatalf("roster wasn't as expected.\n\n--- Got ---\n%s\n---------\n"+
