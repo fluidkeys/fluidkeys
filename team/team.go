@@ -45,6 +45,12 @@ func SignAndSave(team Team, fluidkeysDirectory string, signingKey *pgpkey.PgpKey
 	if err != nil {
 		return "", "", fmt.Errorf("invalid team: %v", err)
 	}
+
+	if !team.IsAdmin(signingKey.Fingerprint()) {
+		return "", "", fmt.Errorf("can't sign with key %s that's not an admin of the team",
+			signingKey.Fingerprint())
+	}
+
 	rosterDirectory := filepath.Join(
 		getTeamDirectory(fluidkeysDirectory), // ~/.config/fluidkeys/teams
 		team.subDirectory(),                  // fluidkeys-inc-4367436743
@@ -110,6 +116,16 @@ func (t *Team) Validate() error {
 		return fmt.Errorf("team has no administrators")
 	}
 	return nil
+}
+
+// IsAdmin takes a given fingerprint and returns whether they are an administor of the team
+func (t Team) IsAdmin(fingerprint fpr.Fingerprint) bool {
+	for _, person := range t.People {
+		if person.IsAdmin && person.Fingerprint == fingerprint {
+			return true
+		}
+	}
+	return false
 }
 
 // GetPersonForFingerprint takes a fingerprint and returns the person in the team with the

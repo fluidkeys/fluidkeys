@@ -130,6 +130,37 @@ func TestValidate(t *testing.T) {
 	})
 }
 
+func TestIsAdmin(t *testing.T) {
+	adminPerson := Person{
+		Email:       "admin@example.com",
+		Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+		IsAdmin:     true,
+	}
+	normalPerson := Person{
+		Email:       "normal@example.com",
+		Fingerprint: fpr.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
+		IsAdmin:     false,
+	}
+
+	team := Team{
+		Name:   "Kiffix",
+		UUID:   uuid.Must(uuid.NewV4()),
+		People: []Person{adminPerson, normalPerson},
+	}
+
+	t.Run("IsAdmin returns true for admin person", func(t *testing.T) {
+		got := team.IsAdmin(adminPerson.Fingerprint)
+
+		assert.Equal(t, true, got)
+	})
+
+	t.Run("IsAdmin returns false for normal person", func(t *testing.T) {
+		got := team.IsAdmin(normalPerson.Fingerprint)
+
+		assert.Equal(t, false, got)
+	})
+}
+
 func TestGetPersonForFingerprint(t *testing.T) {
 	personOne := Person{
 		Email:       "test@example.com",
@@ -235,7 +266,7 @@ name = "Kiffix"
 
 [[person]]
   email = "test@example.com"
-  fingerprint = "AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"
+  fingerprint = "5C78E71F6FEFB55829654CC5343CC240D350C30C"
   is_admin = true
 `
 			if roster != expectedRoster {
