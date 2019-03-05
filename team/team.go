@@ -99,6 +99,16 @@ func (t *Team) Validate() error {
 		}
 		fingerprintsSeen[person.Fingerprint] = true
 	}
+
+	var numberOfAdmins int
+	for _, person := range t.People {
+		if person.IsAdmin {
+			numberOfAdmins++
+		}
+	}
+	if numberOfAdmins == 0 {
+		return fmt.Errorf("team has no administrators")
+	}
 	return nil
 }
 

@@ -75,6 +75,7 @@ func TestRoster(t *testing.T) {
 				Person{
 					Email:       "test3@example.com",
 					Fingerprint: exampledata.ExampleFingerprint3,
+					IsAdmin:     false,
 				},
 			},
 		}
@@ -107,6 +108,12 @@ name = "Kiffix"
 				Person{
 					Email:       "test2@example.com",
 					Fingerprint: exampledata.ExampleFingerprint2,
+					IsAdmin:     true,
+				},
+				Person{
+					Email:       "test3@example.com",
+					Fingerprint: exampledata.ExampleFingerprint3,
+					// missing IsAdmin should default to false
 				},
 			},
 		}
@@ -121,6 +128,11 @@ name = "Kiffix"
 [[person]]
   email = "test2@example.com"
   fingerprint = "5C78E71F6FEFB55829654CC5343CC240D350C30C"
+  is_admin = true
+
+[[person]]
+  email = "test3@example.com"
+  fingerprint = "7C18DE4DE47813568B243AC8719BD63EF03BDC20"
   is_admin = false
 `
 		assert.Equal(t, expected, got)

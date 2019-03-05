@@ -42,6 +42,7 @@ func TestValidate(t *testing.T) {
 				{
 					Email:       "test@example.com",
 					Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+					IsAdmin:     true,
 				},
 			},
 		}
@@ -105,6 +106,28 @@ func TestValidate(t *testing.T) {
 		assert.Equal(t, fmt.Errorf("fingerprint listed more than once: "+
 			"AAAA BBBB AAAA BBBB AAAA  AAAA BBBB AAAA BBBB AAAA"), err)
 	})
+
+	t.Run("with no admins", func(t *testing.T) {
+		team := Team{
+			Name: "Kiffix",
+			UUID: uuid.Must(uuid.NewV4()),
+			People: []Person{
+				{
+					Email:       "test@example.com",
+					Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+					IsAdmin:     false,
+				},
+				{
+					Email:       "another@example.com",
+					Fingerprint: fpr.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
+					IsAdmin:     false,
+				},
+			},
+		}
+
+		err := team.Validate()
+		assert.Equal(t, fmt.Errorf("team has no administrators"), err)
+	})
 }
 
 func TestGetPersonForFingerprint(t *testing.T) {
@@ -164,7 +187,7 @@ func TestSignAndSave(t *testing.T) {
 			People: []Person{
 				{
 					Email:       "test@example.com",
-					Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+					Fingerprint: signingKey.Fingerprint(),
 					IsAdmin:     true,
 				},
 			},
