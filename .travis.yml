@@ -13,3 +13,7 @@ script: make test
 
 notifications:
     email: false
+
+matrix:
+    allow_failures:
+        - go: master
