@@ -31,13 +31,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fluidkeys/crypto/openpgp/clearsign"
-	"github.com/fluidkeys/fluidkeys/pgpkey"
-	"github.com/gofrs/uuid"
-
-	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
-
 	"github.com/fluidkeys/api/v1structs"
+	"github.com/fluidkeys/crypto/openpgp/clearsign"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"github.com/fluidkeys/fluidkeys/team"
+	"github.com/gofrs/uuid"
 )
 
 const (
@@ -272,6 +271,41 @@ func (c *Client) RequestToJoinTeam(
 	}
 
 	return nil
+}
+
+// ListRequestsToJoinTeam for the team with the given UUID.
+func (c *Client) ListRequestsToJoinTeam(teamUUID uuid.UUID, fingerprint fpr.Fingerprint) (
+	requestsToJoinTeam []team.RequestToJoinTeam, err error) {
+
+	path := fmt.Sprintf("team/%s/requests-to-join", teamUUID)
+	request, err := c.newRequest("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Add("authorization", authorization(fingerprint))
+	decodedJSON := new(v1structs.ListRequestsToJoinTeamResponse)
+	_, err = c.do(request, &decodedJSON)
+	if err != nil {
+		return nil, err
+	}
+	for _, jsonRequestToJoin := range decodedJSON.Requests {
+		requestUUID, err := uuid.FromString(jsonRequestToJoin.UUID)
+		if err != nil {
+			continue
+		}
+		requestFingerprint, err := fpr.Parse(jsonRequestToJoin.Fingerprint)
+		if err != nil {
+			continue
+		}
+
+		requestsToJoinTeam = append(requestsToJoinTeam, team.RequestToJoinTeam{
+			UUID:        requestUUID,
+			Email:       jsonRequestToJoin.Email,
+			Fingerprint: requestFingerprint,
+		})
+	}
+
+	return requestsToJoinTeam, nil
 }
 
 func makeUpsertPublicKeySignedData(armoredPublicKey string, privateKey *pgpkey.PgpKey) (armoredSignedJSON string, err error) {
