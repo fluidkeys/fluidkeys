@@ -42,6 +42,7 @@ func TestValidate(t *testing.T) {
 				{
 					Email:       "test@example.com",
 					Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+					IsAdmin:     true,
 				},
 			},
 		}
@@ -105,6 +106,59 @@ func TestValidate(t *testing.T) {
 		assert.Equal(t, fmt.Errorf("fingerprint listed more than once: "+
 			"AAAA BBBB AAAA BBBB AAAA  AAAA BBBB AAAA BBBB AAAA"), err)
 	})
+
+	t.Run("with no admins", func(t *testing.T) {
+		team := Team{
+			Name: "Kiffix",
+			UUID: uuid.Must(uuid.NewV4()),
+			People: []Person{
+				{
+					Email:       "test@example.com",
+					Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+					IsAdmin:     false,
+				},
+				{
+					Email:       "another@example.com",
+					Fingerprint: fpr.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
+					IsAdmin:     false,
+				},
+			},
+		}
+
+		err := team.Validate()
+		assert.Equal(t, fmt.Errorf("team has no administrators"), err)
+	})
+}
+
+func TestIsAdmin(t *testing.T) {
+	adminPerson := Person{
+		Email:       "admin@example.com",
+		Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+		IsAdmin:     true,
+	}
+	normalPerson := Person{
+		Email:       "normal@example.com",
+		Fingerprint: fpr.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
+		IsAdmin:     false,
+	}
+
+	team := Team{
+		Name:   "Kiffix",
+		UUID:   uuid.Must(uuid.NewV4()),
+		People: []Person{adminPerson, normalPerson},
+	}
+
+	t.Run("IsAdmin returns true for admin person", func(t *testing.T) {
+		got := team.IsAdmin(adminPerson.Fingerprint)
+
+		assert.Equal(t, true, got)
+	})
+
+	t.Run("IsAdmin returns false for normal person", func(t *testing.T) {
+		got := team.IsAdmin(normalPerson.Fingerprint)
+
+		assert.Equal(t, false, got)
+	})
 }
 
 func TestGetPersonForFingerprint(t *testing.T) {
@@ -164,7 +218,8 @@ func TestSignAndSave(t *testing.T) {
 			People: []Person{
 				{
 					Email:       "test@example.com",
-					Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+					Fingerprint: signingKey.Fingerprint(),
+					IsAdmin:     true,
 				},
 			},
 		}
@@ -211,7 +266,8 @@ name = "Kiffix"
 
 [[person]]
   email = "test@example.com"
-  fingerprint = "AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"
+  fingerprint = "5C78E71F6FEFB55829654CC5343CC240D350C30C"
+  is_admin = true
 `
 			if roster != expectedRoster {
 				t.Fatalf("roster wasn't as expected.\n\n--- Got ---\n%s\n---------\n"+

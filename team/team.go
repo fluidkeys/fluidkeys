@@ -8,9 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/fluidkeys/fluidkeys/pgpkey"
-
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/gofrs/uuid"
 	"github.com/natefinch/atomic"
 )
@@ -46,6 +45,12 @@ func SignAndSave(team Team, fluidkeysDirectory string, signingKey *pgpkey.PgpKey
 	if err != nil {
 		return "", "", fmt.Errorf("invalid team: %v", err)
 	}
+
+	if !team.IsAdmin(signingKey.Fingerprint()) {
+		return "", "", fmt.Errorf("can't sign with key %s that's not an admin of the team",
+			signingKey.Fingerprint())
+	}
+
 	rosterDirectory := filepath.Join(
 		getTeamDirectory(fluidkeysDirectory), // ~/.config/fluidkeys/teams
 		team.subDirectory(),                  // fluidkeys-inc-4367436743
@@ -100,7 +105,27 @@ func (t *Team) Validate() error {
 		}
 		fingerprintsSeen[person.Fingerprint] = true
 	}
+
+	var numberOfAdmins int
+	for _, person := range t.People {
+		if person.IsAdmin {
+			numberOfAdmins++
+		}
+	}
+	if numberOfAdmins == 0 {
+		return fmt.Errorf("team has no administrators")
+	}
 	return nil
+}
+
+// IsAdmin takes a given fingerprint and returns whether they are an administor of the team
+func (t Team) IsAdmin(fingerprint fpr.Fingerprint) bool {
+	for _, person := range t.People {
+		if person.IsAdmin && person.Fingerprint == fingerprint {
+			return true
+		}
+	}
+	return false
 }
 
 // GetPersonForFingerprint takes a fingerprint and returns the person in the team with the
@@ -192,6 +217,7 @@ func (t *Team) Fingerprints() []fpr.Fingerprint {
 type Person struct {
 	Email       string          `toml:"email"`
 	Fingerprint fpr.Fingerprint `toml:"fingerprint"`
+	IsAdmin     bool            `toml:"is_admin"`
 }
 
 // RequestToJoinTeam represents a request to join a team
