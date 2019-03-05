@@ -26,7 +26,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/archiver"
 	"github.com/fluidkeys/fluidkeys/backupzip"
 	"github.com/fluidkeys/fluidkeys/colour"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
@@ -452,17 +452,17 @@ func formatKeyActions(keyTask keyTask) (header string) {
 	return
 }
 
-func tryStorePassword(fpr fingerprint.Fingerprint, password string) error {
-	if err := Config.SetStorePassword(fpr, true); err != nil {
+func tryStorePassword(fingerprint fpr.Fingerprint, password string) error {
+	if err := Config.SetStorePassword(fingerprint, true); err != nil {
 		return err
 	}
-	if err := Keyring.SavePassword(fpr, password); err != nil {
+	if err := Keyring.SavePassword(fingerprint, password); err != nil {
 		return err
 	}
 	return nil
 }
 
-func tryMaintainAutomatically(fpr fingerprint.Fingerprint) error {
+func tryMaintainAutomatically(fpr fpr.Fingerprint) error {
 	if err := Config.SetMaintainAutomatically(fpr, true); err != nil {
 		return err
 	}
@@ -513,7 +513,7 @@ func (a pushIntoGnupg) String() string {
 	return "Store updated key in " + colour.Cmd("gpg")
 }
 
-type passwordMap = map[fingerprint.Fingerprint]string
+type passwordMap = map[fpr.Fingerprint]string
 
 func (a pushIntoGnupg) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
 	if password == nil {

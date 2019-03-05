@@ -30,7 +30,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 
 	"github.com/mitchellh/go-homedir"
 )
@@ -60,7 +60,7 @@ type KeyListing struct {
 	// Fingerprint is the human-readable format of the fingerprint of the
 	// primary key, for example:
 	// `AB01 AB01 AB01 AB01 AB01  AB01 AB01 AB01 AB01 AB01`
-	Fingerprint fingerprint.Fingerprint
+	Fingerprint fpr.Fingerprint
 
 	// Uids is a list of UTF-8 user ID strings as defined in
 	// https://tools.ietf.org/html/rfc4880#section-5.11
@@ -181,7 +181,7 @@ func (g *GnuPG) ListPublicKeys(searchString string) ([]KeyListing, error) {
 
 // ExportPublicKey returns 1 ascii armored public key for the given
 // fingerprint
-func (g *GnuPG) ExportPublicKey(fingerprint fingerprint.Fingerprint) (string, error) {
+func (g *GnuPG) ExportPublicKey(fingerprint fpr.Fingerprint) (string, error) {
 	args := []string{
 		"--export-options", "export-minimal",
 		"--armor",
@@ -213,7 +213,7 @@ func (g *GnuPG) ExportPublicKey(fingerprint fingerprint.Fingerprint) (string, er
 // ExportPrivateKey returns 1 ascii armored private key for the given
 // fingerprint, assuming it is encrypted with the given password.
 // The outputted private key is encrypted with the password.
-func (g *GnuPG) ExportPrivateKey(fingerprint fingerprint.Fingerprint, password string) (string, error) {
+func (g *GnuPG) ExportPrivateKey(fingerprint fpr.Fingerprint, password string) (string, error) {
 
 	stdout, stderr, err := g.run(
 		password,
@@ -246,7 +246,7 @@ func (g *GnuPG) ExportPrivateKey(fingerprint fingerprint.Fingerprint, password s
 	return checkValidExportPrivateOutput(stdout, stderr)
 }
 
-func getArgsExportPrivateKeyWithPinentry(fingerprint fingerprint.Fingerprint) []string {
+func getArgsExportPrivateKeyWithPinentry(fingerprint fpr.Fingerprint) []string {
 	return []string{
 		"--pinentry-mode", "loopback", // don't use OS password prompt
 		"--passphrase-fd", "0", // read password from stdin
@@ -256,7 +256,7 @@ func getArgsExportPrivateKeyWithPinentry(fingerprint fingerprint.Fingerprint) []
 	}
 }
 
-func getArgsExportPrivateKeyWithoutPinentry(fingerprint fingerprint.Fingerprint) []string {
+func getArgsExportPrivateKeyWithoutPinentry(fingerprint fpr.Fingerprint) []string {
 	return []string{
 		"--passphrase-fd", "0", // read password from stdin
 		"--armor",

@@ -10,7 +10,7 @@ import (
 
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/gofrs/uuid"
 	"github.com/natefinch/atomic"
 )
@@ -93,7 +93,7 @@ func (t *Team) Validate() error {
 		emailsSeen[person.Email] = true
 	}
 
-	fingerprintsSeen := map[fingerprint.Fingerprint]bool{}
+	fingerprintsSeen := map[fpr.Fingerprint]bool{}
 	for _, person := range t.People {
 		if _, alreadySeen := fingerprintsSeen[person.Fingerprint]; alreadySeen {
 			return fmt.Errorf("fingerprint listed more than once: %s", person.Fingerprint)
@@ -105,9 +105,9 @@ func (t *Team) Validate() error {
 
 // GetPersonForFingerprint takes a fingerprint and returns the person in the team with the
 // matching fingperint.
-func (t *Team) GetPersonForFingerprint(fpr fingerprint.Fingerprint) (*Person, error) {
+func (t *Team) GetPersonForFingerprint(fingerprint fpr.Fingerprint) (*Person, error) {
 	for _, person := range t.People {
-		if person.Fingerprint == fpr {
+		if person.Fingerprint == fingerprint {
 			return &person, nil
 		}
 	}
@@ -179,17 +179,17 @@ type Team struct {
 }
 
 // Fingerprints returns the key fingerprints for all people in the team
-func (t *Team) Fingerprints() []fingerprint.Fingerprint {
-	fps := []fingerprint.Fingerprint{}
+func (t *Team) Fingerprints() []fpr.Fingerprint {
+	fingerprints := []fpr.Fingerprint{}
 
 	for _, person := range t.People {
-		fps = append(fps, person.Fingerprint)
+		fingerprints = append(fingerprints, person.Fingerprint)
 	}
-	return fps
+	return fingerprints
 }
 
 // Person represents a human team member
 type Person struct {
-	Email       string                  `toml:"email"`
-	Fingerprint fingerprint.Fingerprint `toml:"fingerprint"`
+	Email       string          `toml:"email"`
+	Fingerprint fpr.Fingerprint `toml:"fingerprint"`
 }

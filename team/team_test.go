@@ -28,7 +28,7 @@ import (
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/exampledata"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/gofrs/uuid"
 )
@@ -41,7 +41,7 @@ func TestValidate(t *testing.T) {
 			People: []Person{
 				{
 					Email:       "test@example.com",
-					Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+					Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
 				},
 			},
 		}
@@ -56,7 +56,7 @@ func TestValidate(t *testing.T) {
 			People: []Person{
 				{
 					Email:       "test@example.com",
-					Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+					Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
 				},
 			},
 		}
@@ -72,11 +72,11 @@ func TestValidate(t *testing.T) {
 			People: []Person{
 				{
 					Email:       "test@example.com",
-					Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+					Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
 				},
 				{
 					Email:       "test@example.com",
-					Fingerprint: fingerprint.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
+					Fingerprint: fpr.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
 				},
 			},
 		}
@@ -92,11 +92,11 @@ func TestValidate(t *testing.T) {
 			People: []Person{
 				{
 					Email:       "test@example.com",
-					Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+					Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
 				},
 				{
 					Email:       "another@example.com",
-					Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+					Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
 				},
 			},
 		}
@@ -110,11 +110,11 @@ func TestValidate(t *testing.T) {
 func TestGetPersonForFingerprint(t *testing.T) {
 	personOne := Person{
 		Email:       "test@example.com",
-		Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+		Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
 	}
 	personTwo := Person{
 		Email:       "another@example.com",
-		Fingerprint: fingerprint.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
+		Fingerprint: fpr.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
 	}
 
 	team := Team{
@@ -124,7 +124,7 @@ func TestGetPersonForFingerprint(t *testing.T) {
 	}
 
 	t.Run("with a team member with matching fingerprint", func(t *testing.T) {
-		got, err := team.GetPersonForFingerprint(fingerprint.MustParse(
+		got, err := team.GetPersonForFingerprint(fpr.MustParse(
 			"AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"))
 
 		assert.NoError(t, err)
@@ -132,7 +132,7 @@ func TestGetPersonForFingerprint(t *testing.T) {
 	})
 
 	t.Run("with no matching fingerprints", func(t *testing.T) {
-		_, err := team.GetPersonForFingerprint(fingerprint.MustParse(
+		_, err := team.GetPersonForFingerprint(fpr.MustParse(
 			"EEEEFFFFEEEEFFFFEEEEFFFFEEEEFFFFEEEEFFFF"))
 
 		assert.Equal(t, fmt.Errorf("person not found"), err)
@@ -164,7 +164,7 @@ func TestSignAndSave(t *testing.T) {
 			People: []Person{
 				{
 					Email:       "test@example.com",
-					Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+					Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
 				},
 			},
 		}
@@ -256,7 +256,7 @@ name = "Kiffix"
 			People: []Person{
 				{
 					Email:       "test@example.com",
-					Fingerprint: fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+					Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
 				},
 			},
 		}

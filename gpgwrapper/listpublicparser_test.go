@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 func TestParseListPublicKeys(t *testing.T) {
@@ -36,7 +36,7 @@ func TestParseListPublicKeys(t *testing.T) {
 		}
 
 		expectedFirst := KeyListing{
-			Fingerprint: fingerprint.MustParse("86FF 75A3 8CB4 756A 5DDC  E541 7A5F DAF6 E82A 2CC6"),
+			Fingerprint: fpr.MustParse("86FF 75A3 8CB4 756A 5DDC  E541 7A5F DAF6 E82A 2CC6"),
 			Created:     time.Date(2019, 02, 21, 14, 34, 57, 0, time.UTC), // 21 Feb 2018 14:34:57
 			Uids: []string{
 				"Joe Smith <joe@example.com>",
@@ -45,7 +45,7 @@ func TestParseListPublicKeys(t *testing.T) {
 		}
 
 		expectedSecond := KeyListing{
-			Fingerprint: fingerprint.MustParse("CFA8 A534 0CCD E66D 633A  9F4E 61A2 89A5 106B 040C"),
+			Fingerprint: fpr.MustParse("CFA8 A534 0CCD E66D 633A  9F4E 61A2 89A5 106B 040C"),
 			Created:     time.Date(2019, 02, 21, 14, 35, 15, 0, time.UTC), // 21 Feb 2018 14:35:15
 			Uids:        []string{"<jane@example.com>"},
 		}

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/fluidkeys/fluidkeys/assert"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 func TestRecordFingerprintImportedIntoGnuPG(t *testing.T) {
@@ -68,7 +68,7 @@ func TestGetFingerprintsImportedIntoGnuPG(t *testing.T) {
 
 func TestDeduplicate(t *testing.T) {
 
-	slice := []fingerprint.Fingerprint{
+	slice := []fpr.Fingerprint{
 		exampleFingerprintA,
 		exampleFingerprintA,
 		exampleFingerprintB,
@@ -76,7 +76,7 @@ func TestDeduplicate(t *testing.T) {
 	}
 
 	got := deduplicate(slice)
-	want := []fingerprint.Fingerprint{
+	want := []fpr.Fingerprint{
 		exampleFingerprintA,
 		exampleFingerprintB,
 		exampleFingerprintC,
@@ -96,14 +96,14 @@ func makeTempDirectory(t *testing.T) string {
 	return dir
 }
 
-func assertContains(t *testing.T, slice []fingerprint.Fingerprint, element fingerprint.Fingerprint) {
+func assertContains(t *testing.T, slice []fpr.Fingerprint, element fpr.Fingerprint) {
 	t.Helper()
 	if !contains(slice, element) {
 		t.Fatalf("Expected '%v' to contain '%v'", slice, element)
 	}
 }
 
-func contains(s []fingerprint.Fingerprint, e fingerprint.Fingerprint) bool {
+func contains(s []fpr.Fingerprint, e fpr.Fingerprint) bool {
 	for _, a := range s {
 		if a == e {
 			return true
@@ -112,6 +112,6 @@ func contains(s []fingerprint.Fingerprint, e fingerprint.Fingerprint) bool {
 	return false
 }
 
-var exampleFingerprintA = fingerprint.MustParse("AAAA AAAA AAAA AAAA AAAA  AAAA AAAA AAAA AAAA AAAA")
-var exampleFingerprintB = fingerprint.MustParse("BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB")
-var exampleFingerprintC = fingerprint.MustParse("CCCC CCCC CCCC CCCC CCCC  CCCC CCCC CCCC CCCC CCCC")
+var exampleFingerprintA = fpr.MustParse("AAAA AAAA AAAA AAAA AAAA  AAAA AAAA AAAA AAAA AAAA")
+var exampleFingerprintB = fpr.MustParse("BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB")
+var exampleFingerprintC = fpr.MustParse("CCCC CCCC CCCC CCCC CCCC  CCCC CCCC CCCC CCCC CCCC")

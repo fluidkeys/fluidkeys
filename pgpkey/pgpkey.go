@@ -33,7 +33,7 @@ import (
 	"github.com/fluidkeys/crypto/openpgp/armor"
 	"github.com/fluidkeys/crypto/openpgp/packet"
 	"github.com/fluidkeys/fluidkeys/emailutils"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/compression"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/hash"
 	"github.com/fluidkeys/fluidkeys/openpgpdefs/symmetric"
@@ -408,8 +408,8 @@ func deduplicateEmails(emails []string) []string {
 	return deduplicated
 }
 
-func (key *PgpKey) Fingerprint() fingerprint.Fingerprint {
-	return fingerprint.FromBytes(key.PrimaryKey.Fingerprint)
+func (key *PgpKey) Fingerprint() fpr.Fingerprint {
+	return fpr.FromBytes(key.PrimaryKey.Fingerprint)
 }
 
 func (key *PgpKey) UpdateExpiryForAllUserIds(validUntil time.Time, now time.Time) error {

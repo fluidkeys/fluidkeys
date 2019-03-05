@@ -28,7 +28,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/backupzip"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/emailutils"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
@@ -246,7 +246,7 @@ type getPublicKeyInterface interface {
 }
 
 func verifyEmailMatchesKeyInAPI(
-	email string, fingerprint fingerprint.Fingerprint,
+	email string, fingerprint fpr.Fingerprint,
 	publicKeyGetter getPublicKeyInterface) (verified bool, err error) {
 
 	armoredKey, err := publicKeyGetter.GetPublicKey(email)

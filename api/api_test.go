@@ -14,7 +14,7 @@ import (
 	"github.com/fluidkeys/api/v1structs"
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/exampledata"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/gofrs/uuid"
 )
 
@@ -222,7 +222,7 @@ func TestCreateSecret(t *testing.T) {
 	}
 	mux.HandleFunc("/secrets", mockResponseHandler)
 
-	fingerprint, err := fingerprint.Parse("ABAB ABAB ABAB ABAB ABAB  ABAB ABAB ABAB ABAB ABAB")
+	fingerprint, err := fpr.Parse("ABAB ABAB ABAB ABAB ABAB  ABAB ABAB ABAB ABAB ABAB")
 	if err != nil {
 		t.Fatalf("Couldn't parse fingerprint: %s\n", err)
 	}
@@ -268,7 +268,7 @@ func TestUpsertTeam(t *testing.T) {
 		ArmoredDetachedSignature: "---- BEGIN PGP MESSAGE...",
 	}
 
-	fingerprint, err := fingerprint.Parse("ABAB ABAB ABAB ABAB ABAB  ABAB ABAB ABAB ABAB ABAB")
+	fingerprint, err := fpr.Parse("ABAB ABAB ABAB ABAB ABAB  ABAB ABAB ABAB ABAB ABAB")
 	if err != nil {
 		t.Fatalf("Couldn't parse fingerprint: %s\n", err)
 	}
@@ -395,7 +395,7 @@ func TestGetTeamName(t *testing.T) {
 
 func TestRequestToJoinTeam(t *testing.T) {
 	expectedRequest := &v1structs.RequestToJoinTeamRequest{TeamEmail: "jane@example.com"}
-	fingerprint, err := fingerprint.Parse("ABAB ABAB ABAB ABAB ABAB  ABAB ABAB ABAB ABAB ABAB")
+	fingerprint, err := fpr.Parse("ABAB ABAB ABAB ABAB ABAB  ABAB ABAB ABAB ABAB ABAB")
 	if err != nil {
 		t.Fatalf("Couldn't parse fingerprint: %s\n", err)
 	}

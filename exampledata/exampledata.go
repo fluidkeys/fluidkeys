@@ -18,7 +18,7 @@
 package exampledata
 
 import (
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 const ExamplePublicKey2 = `
@@ -86,7 +86,7 @@ YLNqbnb5
 -----END PGP PRIVATE KEY BLOCK-----
 `
 
-var ExampleFingerprint2 = fingerprint.MustParse("5C78 E71F 6FEF B558 2965  4CC5 343C C240 D350 C30C")
+var ExampleFingerprint2 = fpr.MustParse("5C78 E71F 6FEF B558 2965  4CC5 343C C240 D350 C30C")
 
 const ExamplePublicKey3 = `
 -----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -171,7 +171,7 @@ D/iQVXIhUGUcj8xSftV2Iw==
 -----END PGP PRIVATE KEY BLOCK-----
 `
 
-var ExampleFingerprint3 = fingerprint.MustParse("7C18 DE4D E478 1356 8B24  3AC8 719B D63E F03B DC20")
+var ExampleFingerprint3 = fpr.MustParse("7C18 DE4D E478 1356 8B24  3AC8 719B D63E F03B DC20")
 
 var ExamplePublicKey4 = `
 -----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -238,4 +238,4 @@ TBAU6yBBSeV0Z8rL
 -----END PGP PRIVATE KEY BLOCK-----
 `
 
-var ExampleFingerprint4 = fingerprint.MustParse("BB3C 44BF 188D 56E6 35F4  A092 F73D 2F05 33D7 F9D6")
+var ExampleFingerprint4 = fpr.MustParse("BB3C 44BF 188D 56E6 35F4  A092 F73D 2F05 33D7 F9D6")

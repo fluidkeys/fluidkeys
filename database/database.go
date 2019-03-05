@@ -24,7 +24,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 type Database struct {
@@ -44,7 +44,7 @@ func New(fluidkeysDirectory string) Database {
 	return Database{jsonFilename: jsonFilename}
 }
 
-func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fingerprint.Fingerprint) error {
+func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fpr.Fingerprint) error {
 	existingFingerprints, err := db.GetFingerprintsImportedIntoGnuPG()
 	if err != nil {
 		return err
@@ -64,7 +64,7 @@ func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fingerprin
 	return encoder.Encode(databaseMessage)
 }
 
-func makeDatabaseMessageFromFingerprints(fingerprints []fingerprint.Fingerprint) DatabaseMessage {
+func makeDatabaseMessageFromFingerprints(fingerprints []fpr.Fingerprint) DatabaseMessage {
 	var messages []KeyImportedIntoGnuPGMessage
 
 	for _, fingerprint := range fingerprints {
@@ -77,11 +77,11 @@ func makeDatabaseMessageFromFingerprints(fingerprints []fingerprint.Fingerprint)
 	return databaseMessage
 }
 
-func (db *Database) GetFingerprintsImportedIntoGnuPG() ([]fingerprint.Fingerprint, error) {
+func (db *Database) GetFingerprintsImportedIntoGnuPG() ([]fpr.Fingerprint, error) {
 	file, err := os.Open(db.jsonFilename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return []fingerprint.Fingerprint{}, nil
+			return []fpr.Fingerprint{}, nil
 		} else {
 			return nil, fmt.Errorf("Couldn't open '%s': %v", db.jsonFilename, err)
 		}
@@ -98,11 +98,11 @@ func (db *Database) GetFingerprintsImportedIntoGnuPG() ([]fingerprint.Fingerprin
 		return nil, fmt.Errorf("error loading json: %v", err)
 	}
 
-	var fingerprints []fingerprint.Fingerprint
+	var fingerprints []fpr.Fingerprint
 
 	for _, v := range databaseMessage.KeysImportedIntoGnuPG {
 		fingerprintString := v.Fingerprint
-		parsedFingerprint, err := fingerprint.Parse(fingerprintString)
+		parsedFingerprint, err := fpr.Parse(fingerprintString)
 		if err != nil {
 			continue
 		}
@@ -112,13 +112,13 @@ func (db *Database) GetFingerprintsImportedIntoGnuPG() ([]fingerprint.Fingerprin
 	return deduplicate(fingerprints), nil
 }
 
-func deduplicate(slice []fingerprint.Fingerprint) []fingerprint.Fingerprint {
-	sliceMap := make(map[fingerprint.Fingerprint]bool)
+func deduplicate(slice []fpr.Fingerprint) []fpr.Fingerprint {
+	sliceMap := make(map[fpr.Fingerprint]bool)
 	for _, v := range slice {
 		sliceMap[v] = true
 	}
 
-	var deduped []fingerprint.Fingerprint
+	var deduped []fpr.Fingerprint
 	for key, _ := range sliceMap {
 		deduped = append(deduped, key)
 	}

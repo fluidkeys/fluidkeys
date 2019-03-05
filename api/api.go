@@ -35,7 +35,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/gofrs/uuid"
 
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 
 	"github.com/fluidkeys/api/v1structs"
 )
@@ -97,8 +97,8 @@ func (c *Client) GetPublicKey(email string) (string, error) {
 }
 
 // GetPublicKeyByFingerprint attempts to get a single armored public key.
-func (c *Client) GetPublicKeyByFingerprint(fp fingerprint.Fingerprint) (*pgpkey.PgpKey, error) {
-	path := fmt.Sprintf("key/%s.asc", fp.Hex())
+func (c *Client) GetPublicKeyByFingerprint(fingerprint fpr.Fingerprint) (*pgpkey.PgpKey, error) {
+	path := fmt.Sprintf("key/%s.asc", fingerprint.Hex())
 	request, err := c.newRequest("GET", path, nil)
 	if err != nil {
 		return nil, err
@@ -134,13 +134,13 @@ func (c *Client) GetPublicKeyByFingerprint(fp fingerprint.Fingerprint) (*pgpkey.
 		return nil, fmt.Errorf("failed to load armored key: %v", err)
 	}
 
-	if retrievedKey.Fingerprint() != fp {
+	if retrievedKey.Fingerprint() != fingerprint {
 		log.Printf("danger: requested key %s from API but got back key %s\n",
-			fp, retrievedKey.Fingerprint())
+			fingerprint, retrievedKey.Fingerprint())
 
 		return nil, fmt.Errorf(
 			"requested key %s but got back %s",
-			fp, retrievedKey.Fingerprint(),
+			fingerprint, retrievedKey.Fingerprint(),
 		)
 	}
 
@@ -148,7 +148,7 @@ func (c *Client) GetPublicKeyByFingerprint(fp fingerprint.Fingerprint) (*pgpkey.
 }
 
 // CreateSecret creates a secret for the given recipient
-func (c *Client) CreateSecret(recipientFingerprint fingerprint.Fingerprint, armoredEncryptedSecret string) error {
+func (c *Client) CreateSecret(recipientFingerprint fpr.Fingerprint, armoredEncryptedSecret string) error {
 	sendSecretRequest := v1structs.SendSecretRequest{
 		RecipientFingerprint:   recipientFingerprint.Uri(),
 		ArmoredEncryptedSecret: armoredEncryptedSecret,
@@ -165,7 +165,8 @@ func (c *Client) CreateSecret(recipientFingerprint fingerprint.Fingerprint, armo
 // UpsertTeam takes a roster, signature and fingerprint to sign the request and attempts to
 // create a secret for the given recipient
 func (c *Client) UpsertTeam(roster string, rosterSignature string,
-	signerFingerprint fingerprint.Fingerprint) error {
+	signerFingerprint fpr.Fingerprint) error {
+
 	UpsertTeamRequest := v1structs.UpsertTeamRequest{
 		TeamRoster:               roster,
 		ArmoredDetachedSignature: rosterSignature,
@@ -181,7 +182,7 @@ func (c *Client) UpsertTeam(roster string, rosterSignature string,
 }
 
 // ListSecrets for a particular fingerprint.
-func (c *Client) ListSecrets(fingerprint fingerprint.Fingerprint) ([]v1structs.Secret, error) {
+func (c *Client) ListSecrets(fingerprint fpr.Fingerprint) ([]v1structs.Secret, error) {
 	request, err := c.newRequest("GET", "secrets", nil)
 	if err != nil {
 		return nil, err
@@ -197,7 +198,7 @@ func (c *Client) ListSecrets(fingerprint fingerprint.Fingerprint) ([]v1structs.S
 }
 
 // DeleteSecret deletes a secret
-func (c *Client) DeleteSecret(fingerprint fingerprint.Fingerprint, uuid string) error {
+func (c *Client) DeleteSecret(fingerprint fpr.Fingerprint, uuid string) error {
 	path := fmt.Sprintf("secrets/%s", uuid)
 	request, err := c.newRequest("DELETE", path, nil)
 	if err != nil {
@@ -251,7 +252,7 @@ func (c *Client) GetTeamName(teamUUID uuid.UUID) (string, error) {
 // RequestToJoinTeam posts a request to join the team identified by the UUID with the
 // given fingerprint and email
 func (c *Client) RequestToJoinTeam(
-	teamUUID uuid.UUID, fpr fingerprint.Fingerprint, email string) (err error) {
+	teamUUID uuid.UUID, fingerprint fpr.Fingerprint, email string) (err error) {
 
 	path := fmt.Sprintf("team/%s/requests-to-join", teamUUID)
 	requestToJoinTeamRequest := v1structs.RequestToJoinTeamRequest{TeamEmail: email}
@@ -260,7 +261,7 @@ func (c *Client) RequestToJoinTeam(
 	if err != nil {
 		return err
 	}
-	request.Header.Add("authorization", authorization(fpr))
+	request.Header.Add("authorization", authorization(fingerprint))
 
 	response, err := c.do(request, nil)
 	if err != nil {
@@ -416,6 +417,6 @@ func isSuccess(httpStatusCode int) bool {
 	return httpStatusCode/100 == 2
 }
 
-func authorization(fpr fingerprint.Fingerprint) string {
-	return "tmpfingerprint: " + fmt.Sprintf("OPENPGP4FPR:%s", fpr.Hex())
+func authorization(fingerprint fpr.Fingerprint) string {
+	return "tmpfingerprint: " + fmt.Sprintf("OPENPGP4FPR:%s", fingerprint.Hex())
 }

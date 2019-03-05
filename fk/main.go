@@ -30,7 +30,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/status"
 
 	"github.com/fluidkeys/fluidkeys/api"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 
 	"github.com/docopt/docopt-go"
 	"github.com/fluidkeys/fluidkeys/colour"
@@ -273,7 +273,7 @@ func loadPgpKeys() ([]pgpkey.PgpKey, error) {
 	return keys, nil
 }
 
-func loadPgpKey(fingerprint fingerprint.Fingerprint) (*pgpkey.PgpKey, error) {
+func loadPgpKey(fingerprint fpr.Fingerprint) (*pgpkey.PgpKey, error) {
 	armoredPublicKey, err := gpg.ExportPublicKey(fingerprint)
 	if err != nil {
 		return nil, err

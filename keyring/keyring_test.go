@@ -3,13 +3,14 @@ package keyring
 import (
 	"fmt"
 	"github.com/fluidkeys/fluidkeys/assert"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
 	externalkeyring "github.com/fluidkeys/keyring"
 	"os"
 	"testing"
+
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
-var exampleFingerprint = fingerprint.MustParse("AAAA1111AAAA1111AAAAAAAA1111AAAA1111AAAA")
+var exampleFingerprint = fpr.MustParse("AAAA1111AAAA1111AAAAAAAA1111AAAA1111AAAA")
 
 func TestLoad(t *testing.T) {
 

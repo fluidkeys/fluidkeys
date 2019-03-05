@@ -18,7 +18,7 @@
 package gpgwrapper
 
 import (
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 // ExportPrivateKeyInterface is the interface that wraps the ExportPrivateKey
@@ -28,7 +28,7 @@ import (
 // fingerprint, assuming it is encrypted with the given password.
 // The outputted private key is encrypted with the password.
 type ExportPrivateKeyInterface interface {
-	ExportPrivateKey(fpr fingerprint.Fingerprint, password string) (string, error)
+	ExportPrivateKey(fingerprint fpr.Fingerprint, password string) (string, error)
 }
 
 // ImportArmoredKeyInterface is the interface that wraps the ExportPrivateKey

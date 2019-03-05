@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/fluidkeys/fluidkeys/assert"
-	"github.com/fluidkeys/fluidkeys/fingerprint"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
 func TestLoad(t *testing.T) {
@@ -172,7 +172,7 @@ func TestParse(t *testing.T) {
 }
 
 func TestSerialize(t *testing.T) {
-	testFingerprint := fingerprint.MustParse("AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111")
+	testFingerprint := fpr.MustParse("AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111")
 
 	t.Run("from an empty config file", func(t *testing.T) {
 		emptyConfig, err := parse(strings.NewReader(""))
@@ -197,7 +197,7 @@ func TestSerialize(t *testing.T) {
 }
 
 func TestGetConfig(t *testing.T) {
-	fingerprint := fingerprint.MustParse("AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111")
+	fingerprint := fpr.MustParse("AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111")
 
 	t.Run("getConfig recognises 0xAAAA... fingerprint format rather than returning default config", func(t *testing.T) {
 		config, err := parse(strings.NewReader(`
@@ -226,7 +226,7 @@ func TestGetConfig(t *testing.T) {
 }
 
 func TestSettersAndGetters(t *testing.T) {
-	testFingerprint := fingerprint.MustParse("AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111")
+	testFingerprint := fpr.MustParse("AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111")
 
 	t.Run("MaintainAutomatically", func(t *testing.T) {
 		config := Config{filename: "/tmp/config.toml"}
@@ -278,7 +278,7 @@ func TestSettersAndGetters(t *testing.T) {
 }
 
 func TestShouldStorePasswordInKeyring(t *testing.T) {
-	testFingerprint := fingerprint.MustParse("AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111")
+	testFingerprint := fpr.MustParse("AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111")
 
 	t.Run("default to false for missing whole [pgpkeys] table", func(t *testing.T) {
 		config, err := parse(strings.NewReader(""))
@@ -336,7 +336,7 @@ func TestShouldStorePasswordInKeyring(t *testing.T) {
 }
 
 func TestShouldMaintainAutomaticallyInKeyring(t *testing.T) {
-	testFingerprint := fingerprint.MustParse("AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111")
+	testFingerprint := fpr.MustParse("AAAA1111AAAA1111AAAA1111AAAA1111AAAA1111")
 
 	t.Run("default to false for missing whole [pgpkeys] table", func(t *testing.T) {
 		config, err := parse(strings.NewReader(""))
