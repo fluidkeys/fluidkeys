@@ -109,6 +109,7 @@ func teamCreate() exitCode {
 	roster, signature, err := team.SignAndSave(t, fluidkeysDirectory, privateKey)
 	if err != nil {
 		printCheckboxFailure("Create signed team roster", err)
+		return 1
 	}
 	printCheckboxSuccess("Create signed team roster in \n" +
 		"         " + filepath.Join(fluidkeysDirectory, "teams")) // account for checkbox indent
@@ -118,6 +119,7 @@ func teamCreate() exitCode {
 	err = client.UpsertTeam(roster, signature, privateKey.Fingerprint())
 	if err != nil {
 		printCheckboxFailure(action, err)
+		return 1
 	}
 	printCheckboxSuccess(action)
 	out.Print("\n")
