@@ -141,6 +141,33 @@ func (t *Team) GetPersonForFingerprint(fingerprint fpr.Fingerprint) (*Person, er
 	return nil, fmt.Errorf("person not found")
 }
 
+// GetAddPersonWarnings checks if the given request to join a team causes any other team member to
+// be overwritten, returning an error if so.
+func (t *Team) GetAddPersonWarnings(newPerson Person) (err error, existingPerson *Person) {
+	for _, existingPerson := range t.People {
+		if existingPerson == newPerson {
+			return ErrPersonAlreadyInRoster{}, &existingPerson
+		}
+		if existingPerson.Email == newPerson.Email &&
+			existingPerson.Fingerprint == newPerson.Fingerprint {
+
+			if existingPerson.IsAdmin && !newPerson.IsAdmin {
+				return ErrPersonAlreadyInRosterAsAdmin{}, &existingPerson
+			}
+			if !existingPerson.IsAdmin && newPerson.IsAdmin {
+				return ErrPersonAlreadyInRosterNotAsAdmin{}, &existingPerson
+			}
+		}
+		if existingPerson.Email == newPerson.Email {
+			return ErrEmailAlreadyInRoster{}, &existingPerson
+		}
+		if existingPerson.Fingerprint == newPerson.Fingerprint {
+			return ErrFingerprintAlreadyInRoster{}, &existingPerson
+		}
+	}
+	return nil, nil
+}
+
 func getTeamDirectory(fluidkeysDirectory string) string {
 	return filepath.Join(fluidkeysDirectory, "teams")
 }
@@ -229,4 +256,44 @@ type RequestToJoinTeam struct {
 	Fingerprint fpr.Fingerprint
 	// RequestAt is the moment at which the local client made the request
 	RequestedAt time.Time
+}
+
+// ErrPersonAlreadyInRoster is raised when trying to add a person to a roster where a person already
+// exists in the roster with the same email address, fingerprint and admin status
+type ErrPersonAlreadyInRoster struct{}
+
+func (e ErrPersonAlreadyInRoster) Error() string {
+	return "person already exists in roster"
+}
+
+// ErrFingerprintAlreadyInRoster is raised when trying to add a person to a roster where a person
+// already exists in the roster with the same fingerprint
+type ErrFingerprintAlreadyInRoster struct{}
+
+func (e ErrFingerprintAlreadyInRoster) Error() string {
+	return "person with matching fingerprint already exists in roster"
+}
+
+// ErrEmailAlreadyInRoster is raised when trying to add a person to a roster where a person already
+// exists in the roster with the same email address
+type ErrEmailAlreadyInRoster struct{}
+
+func (e ErrEmailAlreadyInRoster) Error() string {
+	return "person with matching email already exists in roster"
+}
+
+// ErrPersonAlreadyInRosterAsAdmin is raised when trying to add a non-admin to a roster where a
+// person already exists in the roster with the same email address, fingerprint, but *as admin*
+type ErrPersonAlreadyInRosterAsAdmin struct{}
+
+func (e ErrPersonAlreadyInRosterAsAdmin) Error() string {
+	return "person already exists in roster and is an administrator"
+}
+
+// ErrPersonAlreadyInRosterNotAsAdmin is raised when trying to add a non-admin to a roster where a
+// person already exists in the roster with the same email address, fingerprint, but *as admin*
+type ErrPersonAlreadyInRosterNotAsAdmin struct{}
+
+func (e ErrPersonAlreadyInRosterNotAsAdmin) Error() string {
+	return "person already exists in roster and is not an administrator"
 }
