@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/fluidkeys/fluidkeys/team"
 )
 
 // Database is the user's Fluidkeys database. It points at the filepath for the jsonFilename
@@ -35,6 +36,7 @@ type Database struct {
 // Message is the structure the database takes
 type Message struct {
 	KeysImportedIntoGnuPG []KeyImportedIntoGnuPGMessage
+	RequestsToJoinTeams   []team.RequestToJoinTeam
 }
 
 // KeyImportedIntoGnuPGMessage represents a key the user has imported into GnuPG from Fluidkeys
@@ -67,6 +69,19 @@ func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fpr.Finger
 	return db.saveToFile(*message)
 }
 
+// RecordRequestToJoinTeam takes a given request to join a team and records that it's been
+// sent by writing an updated json database.
+func (db *Database) RecordRequestToJoinTeam(newRequest team.RequestToJoinTeam) error {
+	message, err := db.loadFromFile()
+	if err != nil {
+		return err
+	}
+
+	message.RequestsToJoinTeams = append(message.RequestsToJoinTeams, newRequest)
+
+	return db.saveToFile(*message)
+}
+
 // GetFingerprintsImportedIntoGnuPG returns a slice of fingerprints that have
 // been imported into GnuPG
 func (db *Database) GetFingerprintsImportedIntoGnuPG() (fingerprints []fpr.Fingerprint, err error) {
@@ -83,6 +98,18 @@ func (db *Database) GetFingerprintsImportedIntoGnuPG() (fingerprints []fpr.Finge
 	}
 
 	return fingerprints, nil
+}
+
+// GetRequestsToJoinTeams returns a slice of requests to join teams the user has made.
+func (db *Database) GetRequestsToJoinTeams() (requests []team.RequestToJoinTeam, err error) {
+	message, err := db.loadFromFile()
+	if os.IsNotExist(err) {
+		return []team.RequestToJoinTeam{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return message.RequestsToJoinTeams, nil
 }
 
 func (db *Database) loadFromFile() (message *Message, err error) {
@@ -104,7 +131,10 @@ func (db *Database) loadFromFile() (message *Message, err error) {
 	}
 
 	return &Message{
-		KeysImportedIntoGnuPG: deduplicateKeyImportedIntoGnuPGMessages(message.KeysImportedIntoGnuPG),
+		KeysImportedIntoGnuPG: deduplicateKeyImportedIntoGnuPGMessages(
+			message.KeysImportedIntoGnuPG,
+		),
+		RequestsToJoinTeams: message.RequestsToJoinTeams,
 	}, nil
 }
 
