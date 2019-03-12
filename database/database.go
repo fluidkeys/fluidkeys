@@ -72,11 +72,27 @@ func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fpr.Finger
 
 // GetFingerprintsImportedIntoGnuPG returns a slice of fingerprints that have
 // been imported into GnuPG
-func (db *Database) GetFingerprintsImportedIntoGnuPG() ([]fpr.Fingerprint, error) {
+func (db *Database) GetFingerprintsImportedIntoGnuPG() (fingerprints []fpr.Fingerprint, err error) {
+	message, err := db.readMessage()
+	if os.IsNotExist(err) {
+		return []fpr.Fingerprint{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range message.KeysImportedIntoGnuPG {
+		fingerprints = append(fingerprints, v.Fingerprint)
+	}
+
+	return deduplicate(fingerprints), nil
+}
+
+func (db *Database) readMessage() (message *Message, err error) {
 	file, err := os.Open(db.jsonFilename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return []fpr.Fingerprint{}, nil
+			return &Message{}, nil
 		}
 		return nil, fmt.Errorf("Couldn't open '%s': %v", db.jsonFilename, err)
 	}
@@ -86,19 +102,11 @@ func (db *Database) GetFingerprintsImportedIntoGnuPG() ([]fpr.Fingerprint, error
 		return nil, fmt.Errorf("ioutil.ReadAll(..) error: %v", err)
 	}
 
-	var message Message
-
 	if err := json.Unmarshal(byteValue, &message); err != nil {
 		return nil, fmt.Errorf("error loading json: %v", err)
 	}
 
-	var fingerprints []fpr.Fingerprint
-
-	for _, v := range message.KeysImportedIntoGnuPG {
-		fingerprints = append(fingerprints, v.Fingerprint)
-	}
-
-	return deduplicate(fingerprints), nil
+	return message, nil
 }
 
 func makeMessageFromFingerprints(fingerprints []fpr.Fingerprint) Message {
