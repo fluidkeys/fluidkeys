@@ -59,15 +59,7 @@ func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fpr.Finger
 	allFingerprints := append(existingFingerprints, newFingerprint)
 	message := makeMessageFromFingerprints(deduplicate(allFingerprints))
 
-	file, err := os.Create(db.jsonFilename)
-	if err != nil {
-		return fmt.Errorf("Couldn't open '%s': %v", db.jsonFilename, err)
-	}
-
-	encoder := json.NewEncoder(file)
-	encoder.SetIndent("", "    ")
-
-	return encoder.Encode(message)
+	return db.writeMessage(message)
 }
 
 // GetFingerprintsImportedIntoGnuPG returns a slice of fingerprints that have
@@ -107,6 +99,18 @@ func (db *Database) readMessage() (message *Message, err error) {
 	}
 
 	return message, nil
+}
+
+func (db Database) writeMessage(message Message) error {
+	file, err := os.Create(db.jsonFilename)
+	if err != nil {
+		return fmt.Errorf("Couldn't open '%s': %v", db.jsonFilename, err)
+	}
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "    ")
+
+	return encoder.Encode(message)
 }
 
 func makeMessageFromFingerprints(fingerprints []fpr.Fingerprint) Message {
