@@ -31,7 +31,7 @@ type Database struct {
 	jsonFilename string
 }
 
-type DatabaseMessage struct {
+type Message struct {
 	KeysImportedIntoGnuPG []KeyImportedIntoGnuPGMessage
 }
 
@@ -51,7 +51,7 @@ func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fpr.Finger
 	}
 
 	allFingerprints := append(existingFingerprints, newFingerprint)
-	databaseMessage := makeDatabaseMessageFromFingerprints(deduplicate(allFingerprints))
+	message := makeMessageFromFingerprints(deduplicate(allFingerprints))
 
 	file, err := os.Create(db.jsonFilename)
 	if err != nil {
@@ -61,20 +61,20 @@ func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fpr.Finger
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "    ")
 
-	return encoder.Encode(databaseMessage)
+	return encoder.Encode(message)
 }
 
-func makeDatabaseMessageFromFingerprints(fingerprints []fpr.Fingerprint) DatabaseMessage {
+func makeMessageFromFingerprints(fingerprints []fpr.Fingerprint) Message {
 	var messages []KeyImportedIntoGnuPGMessage
 
 	for _, fingerprint := range fingerprints {
 		messages = append(messages, KeyImportedIntoGnuPGMessage{Fingerprint: fingerprint})
 	}
 
-	databaseMessage := DatabaseMessage{
+	message := Message{
 		KeysImportedIntoGnuPG: messages,
 	}
-	return databaseMessage
+	return message
 }
 
 func (db *Database) GetFingerprintsImportedIntoGnuPG() ([]fpr.Fingerprint, error) {
@@ -92,15 +92,15 @@ func (db *Database) GetFingerprintsImportedIntoGnuPG() ([]fpr.Fingerprint, error
 		return nil, fmt.Errorf("ioutil.ReadAll(..) error: %v", err)
 	}
 
-	var databaseMessage DatabaseMessage
+	var message Message
 
-	if err := json.Unmarshal(byteValue, &databaseMessage); err != nil {
+	if err := json.Unmarshal(byteValue, &message); err != nil {
 		return nil, fmt.Errorf("error loading json: %v", err)
 	}
 
 	var fingerprints []fpr.Fingerprint
 
-	for _, v := range databaseMessage.KeysImportedIntoGnuPG {
+	for _, v := range message.KeysImportedIntoGnuPG {
 		fingerprints = append(fingerprints, v.Fingerprint)
 	}
 
