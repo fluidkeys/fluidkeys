@@ -329,6 +329,7 @@ func TestGetAddPersonWarnings(t *testing.T) {
 		person        Person
 		team          Team
 		expectedError error
+		expectedTeam  Team
 	}{
 		{
 			"adding a new person",
@@ -343,6 +344,17 @@ func TestGetAddPersonWarnings(t *testing.T) {
 				People: nil,
 			},
 			nil,
+			Team{
+				UUID: uuid.Must(uuid.FromString("8e26e4df0d474f7f9a07a37b2aa92104")),
+				Name: "Kiffix",
+				People: []Person{
+					{
+						Email:       "person@example.com",
+						Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+						IsAdmin:     false,
+					},
+				},
+			},
 		},
 		{
 			"adding a person with email that's already in roster",
@@ -363,6 +375,17 @@ func TestGetAddPersonWarnings(t *testing.T) {
 				},
 			},
 			ErrEmailAlreadyInRoster{},
+			Team{
+				UUID: uuid.Must(uuid.FromString("8e26e4df0d474f7f9a07a37b2aa92104")),
+				Name: "Kiffix",
+				People: []Person{
+					Person{
+						Email:       "person@example.com",
+						Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+						IsAdmin:     false,
+					},
+				},
+			},
 		},
 		{
 			"adding a person with fingerprint that's already in roster",
@@ -383,6 +406,17 @@ func TestGetAddPersonWarnings(t *testing.T) {
 				},
 			},
 			ErrFingerprintAlreadyInRoster{},
+			Team{
+				UUID: uuid.Must(uuid.FromString("8e26e4df0d474f7f9a07a37b2aa92104")),
+				Name: "Kiffix",
+				People: []Person{
+					{
+						Email:       "person@example.com",
+						Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+						IsAdmin:     false,
+					},
+				},
+			},
 		},
 		{
 			"adding a person who already is in roster",
@@ -403,6 +437,17 @@ func TestGetAddPersonWarnings(t *testing.T) {
 				},
 			},
 			ErrPersonAlreadyInRoster{},
+			Team{
+				UUID: uuid.Must(uuid.FromString("8e26e4df0d474f7f9a07a37b2aa92104")),
+				Name: "Kiffix",
+				People: []Person{
+					{
+						Email:       "person@example.com",
+						Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+						IsAdmin:     false,
+					},
+				},
+			},
 		},
 		{
 			"adding a non admin who already is in roster as an admin",
@@ -423,6 +468,17 @@ func TestGetAddPersonWarnings(t *testing.T) {
 				},
 			},
 			ErrPersonAlreadyInRosterAsAdmin{},
+			Team{
+				UUID: uuid.Must(uuid.FromString("8e26e4df0d474f7f9a07a37b2aa92104")),
+				Name: "Kiffix",
+				People: []Person{
+					{
+						Email:       "person@example.com",
+						Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+						IsAdmin:     false,
+					},
+				},
+			},
 		},
 		{
 			"adding an admin who already is in roster but not as an admin",
@@ -443,6 +499,17 @@ func TestGetAddPersonWarnings(t *testing.T) {
 				},
 			},
 			ErrPersonAlreadyInRosterNotAsAdmin{},
+			Team{
+				UUID: uuid.Must(uuid.FromString("8e26e4df0d474f7f9a07a37b2aa92104")),
+				Name: "Kiffix",
+				People: []Person{
+					{
+						Email:       "person@example.com",
+						Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+						IsAdmin:     true,
+					},
+				},
+			},
 		},
 	}
 
@@ -453,6 +520,12 @@ func TestGetAddPersonWarnings(t *testing.T) {
 		})
 	}
 
+	for _, test := range tests {
+		t.Run("UpsertPerson for "+test.name, func(t *testing.T) {
+			test.team.UpsertPerson(test.person)
+			assert.Equal(t, test.expectedTeam.People, test.team.People)
+		})
+	}
 }
 
 func verifyRosterSignature(

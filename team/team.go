@@ -168,6 +168,35 @@ func (t *Team) GetAddPersonWarnings(newPerson Person) (err error, existingPerson
 	return nil, nil
 }
 
+// UpsertPerson adds a Person to the team and removes anyone else that matches either the email or
+// fingerprint.
+func (t *Team) UpsertPerson(person Person) {
+	err, existingPerson := t.GetAddPersonWarnings(person)
+	if existingPerson != nil {
+		switch err {
+		case
+			ErrPersonAlreadyInRoster{},
+			ErrFingerprintAlreadyInRoster{},
+			ErrEmailAlreadyInRoster{},
+			ErrPersonAlreadyInRosterAsAdmin{},
+			ErrPersonAlreadyInRosterNotAsAdmin{}:
+
+			t.People = removePerson(*existingPerson, t.People)
+		}
+	}
+
+	t.People = append(t.People, person)
+}
+
+func removePerson(personToRemove Person, people []Person) (remainingPeople []Person) {
+	for _, p := range people {
+		if p != personToRemove {
+			remainingPeople = append(remainingPeople, p)
+		}
+	}
+	return remainingPeople
+}
+
 func getTeamDirectory(fluidkeysDirectory string) string {
 	return filepath.Join(fluidkeysDirectory, "teams")
 }
