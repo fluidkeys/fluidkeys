@@ -77,9 +77,8 @@ func (db *Database) GetFingerprintsImportedIntoGnuPG() ([]fpr.Fingerprint, error
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []fpr.Fingerprint{}, nil
-		} else {
-			return nil, fmt.Errorf("Couldn't open '%s': %v", db.jsonFilename, err)
 		}
+		return nil, fmt.Errorf("Couldn't open '%s': %v", db.jsonFilename, err)
 	}
 
 	byteValue, err := ioutil.ReadAll(file)
@@ -122,7 +121,7 @@ func deduplicate(slice []fpr.Fingerprint) []fpr.Fingerprint {
 	}
 
 	var deduped []fpr.Fingerprint
-	for key, _ := range sliceMap {
+	for key := range sliceMap {
 		deduped = append(deduped, key)
 	}
 	return deduped
