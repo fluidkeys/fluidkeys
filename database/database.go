@@ -51,15 +51,20 @@ func New(fluidkeysDirectory string) Database {
 // RecordFingerprintImportedIntoGnuPG takes a given fingperprint and records that it's been
 // imported into GnuPG by writing an updated json database.
 func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fpr.Fingerprint) error {
-	existingFingerprints, err := db.GetFingerprintsImportedIntoGnuPG()
+	message, err := db.readMessage()
 	if err != nil {
 		return err
 	}
 
-	allFingerprints := append(existingFingerprints, newFingerprint)
-	message := makeMessageFromFingerprints(deduplicate(allFingerprints))
+	existingKeysImported := message.KeysImportedIntoGnuPG
 
-	return db.writeMessage(message)
+	message.KeysImportedIntoGnuPG = deduplicateKeyImportedIntoGnuPGMessages(
+		append(existingKeysImported, KeyImportedIntoGnuPGMessage{
+			Fingerprint: newFingerprint,
+		}),
+	)
+
+	return db.writeMessage(*message)
 }
 
 // GetFingerprintsImportedIntoGnuPG returns a slice of fingerprints that have
@@ -77,7 +82,7 @@ func (db *Database) GetFingerprintsImportedIntoGnuPG() (fingerprints []fpr.Finge
 		fingerprints = append(fingerprints, v.Fingerprint)
 	}
 
-	return deduplicate(fingerprints), nil
+	return fingerprints, nil
 }
 
 func (db *Database) readMessage() (message *Message, err error) {
@@ -98,7 +103,9 @@ func (db *Database) readMessage() (message *Message, err error) {
 		return nil, fmt.Errorf("error loading json: %v", err)
 	}
 
-	return message, nil
+	return &Message{
+		KeysImportedIntoGnuPG: deduplicateKeyImportedIntoGnuPGMessages(message.KeysImportedIntoGnuPG),
+	}, nil
 }
 
 func (db Database) writeMessage(message Message) error {
@@ -113,26 +120,15 @@ func (db Database) writeMessage(message Message) error {
 	return encoder.Encode(message)
 }
 
-func makeMessageFromFingerprints(fingerprints []fpr.Fingerprint) Message {
-	var messages []KeyImportedIntoGnuPGMessage
+func deduplicateKeyImportedIntoGnuPGMessages(slice []KeyImportedIntoGnuPGMessage,
+) []KeyImportedIntoGnuPGMessage {
 
-	for _, fingerprint := range fingerprints {
-		messages = append(messages, KeyImportedIntoGnuPGMessage{Fingerprint: fingerprint})
-	}
-
-	message := Message{
-		KeysImportedIntoGnuPG: messages,
-	}
-	return message
-}
-
-func deduplicate(slice []fpr.Fingerprint) []fpr.Fingerprint {
-	sliceMap := make(map[fpr.Fingerprint]bool)
+	sliceMap := make(map[KeyImportedIntoGnuPGMessage]bool)
 	for _, v := range slice {
 		sliceMap[v] = true
 	}
 
-	var deduped []fpr.Fingerprint
+	var deduped []KeyImportedIntoGnuPGMessage
 	for key := range sliceMap {
 		deduped = append(deduped, key)
 	}

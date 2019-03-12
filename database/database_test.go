@@ -17,7 +17,7 @@ func TestRecordFingerprintImportedIntoGnuPG(t *testing.T) {
 		assert.NoError(t, err)
 
 		importedFingerprints, err := database.GetFingerprintsImportedIntoGnuPG()
-		assertContains(t, importedFingerprints, fingerprint)
+		assertContainsFingerprint(t, importedFingerprints, fingerprint)
 	})
 
 	t.Run("record appends a new key to a database with key ids already stored", func(t *testing.T) {
@@ -31,8 +31,8 @@ func TestRecordFingerprintImportedIntoGnuPG(t *testing.T) {
 		assert.NoError(t, err)
 
 		importedFingerprints, err := database.GetFingerprintsImportedIntoGnuPG()
-		assertContains(t, importedFingerprints, existingFingerprint)
-		assertContains(t, importedFingerprints, newFingerprint)
+		assertContainsFingerprint(t, importedFingerprints, existingFingerprint)
+		assertContainsFingerprint(t, importedFingerprints, newFingerprint)
 	})
 
 	t.Run("doesn't duplicate key ids if trying to record a key that already is stored", func(t *testing.T) {
@@ -61,25 +61,25 @@ func TestGetFingerprintsImportedIntoGnuPG(t *testing.T) {
 
 		importedFingerprints, err := database.GetFingerprintsImportedIntoGnuPG()
 		assert.NoError(t, err)
-		assertContains(t, importedFingerprints, fingerprint)
+		assertContainsFingerprint(t, importedFingerprints, fingerprint)
 	})
 
 }
 
-func TestDeduplicate(t *testing.T) {
+func TestDeduplicateKeyImportedIntoGnuPGMessages(t *testing.T) {
 
-	slice := []fpr.Fingerprint{
-		exampleFingerprintA,
-		exampleFingerprintA,
-		exampleFingerprintB,
-		exampleFingerprintC,
+	slice := []KeyImportedIntoGnuPGMessage{
+		exampleKeyImportedMessageA,
+		exampleKeyImportedMessageA,
+		exampleKeyImportedMessageB,
+		exampleKeyImportedMessageC,
 	}
 
-	got := deduplicate(slice)
-	want := []fpr.Fingerprint{
-		exampleFingerprintA,
-		exampleFingerprintB,
-		exampleFingerprintC,
+	got := deduplicateKeyImportedIntoGnuPGMessages(slice)
+	want := []KeyImportedIntoGnuPGMessage{
+		exampleKeyImportedMessageA,
+		exampleKeyImportedMessageB,
+		exampleKeyImportedMessageC,
 	}
 
 	if len(got) != len(want) {
@@ -96,14 +96,14 @@ func makeTempDirectory(t *testing.T) string {
 	return dir
 }
 
-func assertContains(t *testing.T, slice []fpr.Fingerprint, element fpr.Fingerprint) {
+func assertContainsFingerprint(t *testing.T, slice []fpr.Fingerprint, element fpr.Fingerprint) {
 	t.Helper()
-	if !contains(slice, element) {
+	if !containsFingerprint(slice, element) {
 		t.Fatalf("Expected '%v' to contain '%v'", slice, element)
 	}
 }
 
-func contains(s []fpr.Fingerprint, e fpr.Fingerprint) bool {
+func containsFingerprint(s []fpr.Fingerprint, e fpr.Fingerprint) bool {
 	for _, a := range s {
 		if a == e {
 			return true
@@ -115,3 +115,7 @@ func contains(s []fpr.Fingerprint, e fpr.Fingerprint) bool {
 var exampleFingerprintA = fpr.MustParse("AAAA AAAA AAAA AAAA AAAA  AAAA AAAA AAAA AAAA AAAA")
 var exampleFingerprintB = fpr.MustParse("BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB")
 var exampleFingerprintC = fpr.MustParse("CCCC CCCC CCCC CCCC CCCC  CCCC CCCC CCCC CCCC CCCC")
+
+var exampleKeyImportedMessageA = KeyImportedIntoGnuPGMessage{Fingerprint: exampleFingerprintA}
+var exampleKeyImportedMessageB = KeyImportedIntoGnuPGMessage{Fingerprint: exampleFingerprintB}
+var exampleKeyImportedMessageC = KeyImportedIntoGnuPGMessage{Fingerprint: exampleFingerprintC}
