@@ -36,7 +36,7 @@ type DatabaseMessage struct {
 }
 
 type KeyImportedIntoGnuPGMessage struct {
-	Fingerprint string
+	Fingerprint fpr.Fingerprint
 }
 
 func New(fluidkeysDirectory string) Database {
@@ -68,7 +68,7 @@ func makeDatabaseMessageFromFingerprints(fingerprints []fpr.Fingerprint) Databas
 	var messages []KeyImportedIntoGnuPGMessage
 
 	for _, fingerprint := range fingerprints {
-		messages = append(messages, KeyImportedIntoGnuPGMessage{Fingerprint: fingerprint.Hex()})
+		messages = append(messages, KeyImportedIntoGnuPGMessage{Fingerprint: fingerprint})
 	}
 
 	databaseMessage := DatabaseMessage{
@@ -101,12 +101,7 @@ func (db *Database) GetFingerprintsImportedIntoGnuPG() ([]fpr.Fingerprint, error
 	var fingerprints []fpr.Fingerprint
 
 	for _, v := range databaseMessage.KeysImportedIntoGnuPG {
-		fingerprintString := v.Fingerprint
-		parsedFingerprint, err := fpr.Parse(fingerprintString)
-		if err != nil {
-			continue
-		}
-		fingerprints = append(fingerprints, parsedFingerprint)
+		fingerprints = append(fingerprints, v.Fingerprint)
 	}
 
 	return deduplicate(fingerprints), nil
