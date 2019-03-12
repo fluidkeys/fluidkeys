@@ -20,8 +20,10 @@ package fk
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/fluidkeys/fluidkeys/colour"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/ui"
@@ -50,19 +52,31 @@ func teamJoin(teamUUID uuid.UUID) exitCode {
 
 	printHeader("Requesting to join team")
 
-	action := "Create request to join " + teamName
+	action := "Request to join " + teamName
 	printCheckboxPending("action")
-	err = client.RequestToJoinTeam(teamUUID, pgpKey.Fingerprint(), email)
-	if err != nil {
+
+	if err := requestToJoinTeam(teamUUID, pgpKey.Fingerprint(), email); err != nil {
 		printCheckboxFailure(action, err)
 		return 1
 	}
+
 	printCheckboxSuccess(action)
 	out.Print("\n\n")
 
 	out.Print("Your team admin will need to authorize your request for Fluidkeys to\n" +
 		"start working.\n\n")
 	return 0
+
+}
+
+func requestToJoinTeam(teamUUID uuid.UUID, fingerprint fpr.Fingerprint, email string) error {
+	if err := db.RecordRequestToJoinTeam(teamUUID, fingerprint, time.Now()); err != nil {
+		return err
+	}
+	if err := client.RequestToJoinTeam(teamUUID, fingerprint, email); err != nil {
+		return err
+	}
+	return nil
 }
 
 func getKeyForTeam() (*pgpkey.PgpKey, exitCode) {
