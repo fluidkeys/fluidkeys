@@ -20,6 +20,8 @@ package fk
 import (
 	"strconv"
 
+	"github.com/fluidkeys/fluidkeys/colour"
+	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/team"
@@ -56,7 +58,8 @@ func teamAuthorize() exitCode {
 		team = teamAndKeys[0].team
 		adminKey = teamAndKeys[0].adminKey
 
-		break
+		printHeader("Authorize keys")
+		reviewRequests(team, adminKey)
 
 	default:
 		out.Print(ui.FormatFailure("Choosing from multiple teams not implemented", nil, nil))
@@ -70,16 +73,85 @@ func teamAuthorize() exitCode {
 		},
 	))
 
-	printHeader("Authorize keys")
+	out.Print(ui.FormatFailure("Not implemented", nil, nil))
+	return 1
+}
 
-	requests, err := client.ListRequestsToJoinTeam(team.UUID, adminKey.Fingerprint())
+func reviewRequests(myTeam team.Team, adminKey pgpkey.PgpKey) error {
+	requests, err := client.ListRequestsToJoinTeam(myTeam.UUID, adminKey.Fingerprint())
 	if err != nil {
-		out.Print(ui.FormatFailure("Error getting requests  keys", nil, err))
-		return 1
+		return err
+		//out.Print(ui.FormatFailure("Error getting requests  keys", nil, err))
+		// return 1
 	}
+
+	if len(requests) == 0 {
+		out.Print("No requests to join " + myTeam.Name + "\n")
+		return nil
+	}
+	out.Print(humanize.Pluralize(len(requests), "request", "requests") + " to join " +
+		myTeam.Name + ":\n\n")
 
 	for index, request := range requests {
 		out.Print(strconv.Itoa(index+1) + ". " + request.Email + "\n")
+	}
+	out.Print("\n")
+
+	approvedRequests := []team.RequestToJoinTeam{}
+
+	prompter := interactiveYesNoPrompter{}
+	for _, request := range requests {
+		out.Print("» Request from " + colour.Info(request.Email) + "\n")
+		out.Print("  with key " + request.Fingerprint.String() + "\n\n")
+
+		err, existingPerson := myTeam.GetAddPersonWarnings(team.Person{
+			Email:       request.Email,
+			Fingerprint: request.Fingerprint,
+		})
+
+		if err != nil {
+			switch err.(type) {
+			case *team.ErrPersonAlreadyInRoster:
+				out.Print(ui.FormatWarning(
+					"This person is already in the team", []string{
+						"Skipping.",
+					},
+					nil,
+				))
+			case *team.ErrFingerprintAlreadyInRoster:
+				out.Print(ui.FormatWarning(
+					"A key with this fingerprint is already in the team", []string{
+						"Existing key belonging to " + existingPerson.Email,
+						"will be replaced.",
+					},
+					nil,
+				))
+			case *team.ErrEmailAlreadyInRoster:
+				out.Print(ui.FormatWarning(
+					existingPerson.Email+" is already in the team", []string{
+						"Existing key " + existingPerson.Fingerprint.String(),
+						"will be replaced.",
+					},
+					nil,
+				))
+			case *team.ErrPersonAlreadyInRosterAsAdmin:
+				out.Print(ui.FormatWarning(
+					existingPerson.Email+" is already in the team", []string{
+						"Adding them will demote them from being admin.",
+					},
+					nil,
+				))
+			}
+			// Skip ErrPersonAlreadyInRosterNotAsAdmin for now, as they can't be added
+			// as admin.
+		}
+
+		addToTeam := prompter.promptYesNo("Authorize this key for "+request.Email+
+			" and add to team roster?", "", nil)
+
+		if addToTeam {
+			approvedRequests = append(approvedRequests, request)
+		}
 	}
 
 	out.Print(ui.FormatFailure("Not implemented", nil, nil))
