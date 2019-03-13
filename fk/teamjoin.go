@@ -53,14 +53,14 @@ func teamJoin(teamUUID uuid.UUID) exitCode {
 	printHeader("Requesting to join team")
 
 	action := "Request to join " + teamName
-	printCheckboxPending("action")
+	ui.PrintCheckboxPending("action")
 
 	if err := requestToJoinTeam(teamUUID, pgpKey.Fingerprint(), email); err != nil {
-		printCheckboxFailure(action, err)
+		ui.PrintCheckboxFailure(action, err)
 		return 1
 	}
 
-	printCheckboxSuccess(action)
+	ui.PrintCheckboxSuccess(action)
 	out.Print("\n\n")
 
 	out.Print("Your team admin will need to authorize your request for Fluidkeys to\n" +

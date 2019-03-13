@@ -32,6 +32,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/scheduler"
 	"github.com/fluidkeys/fluidkeys/status"
+	"github.com/fluidkeys/fluidkeys/ui"
 )
 
 func keyMaintain(dryRun bool, automatic bool) exitCode {
@@ -364,16 +365,16 @@ func promptAndTurnOnMaintainAutomatically(prompter promptYesNoInterface, keyTask
 
 func runActions(keyTask *keyTask) error {
 	for _, action := range keyTask.actions {
-		printCheckboxPending(action.String())
+		ui.PrintCheckboxPending(action.String())
 
 		var err error
 		err = action.Enact(keyTask.key, time.Now(), &keyTask.password)
 		if err != nil {
-			printCheckboxFailure(action.String(), err)
+			ui.PrintCheckboxFailure(action.String(), err)
 			return err // don't run any more actions
 
 		} else {
-			printCheckboxSuccess(action.String())
+			ui.PrintCheckboxSuccess(action.String())
 		}
 	}
 	out.Print("\n")
@@ -391,24 +392,6 @@ func makeGnupgBackup(now time.Time) (string, error) {
 		return "", fmt.Errorf("failed to call gpg.BackupHomeDir: %v", err)
 	}
 	return filename, err
-}
-
-func printCheckboxPending(actionText string) {
-	out.Print(fmt.Sprintf("     [.] %s\n", actionText))
-	moveCursorUpLines(1)
-}
-
-func printCheckboxSuccess(actionText string) {
-	out.Print(fmt.Sprintf("     [%s] %s\n", colour.Success("✔"), actionText))
-}
-
-func printCheckboxSkipped(actionText string) {
-	out.Print(fmt.Sprintf("     [%s] %s\n", colour.Info("-"), actionText))
-}
-
-func printCheckboxFailure(actionText string, err error) {
-	out.Print(fmt.Sprintf("     [%s] %s\n", colour.Error("✗"), actionText))
-	out.Print(fmt.Sprintf("         %s\n", colour.Error(fmt.Sprintf("%s", err))))
 }
 
 // formatKeyWarnings outputs a header for the key as follows:
@@ -470,12 +453,6 @@ func tryMaintainAutomatically(fpr fpr.Fingerprint) error {
 		return err
 	}
 	return nil
-}
-
-func moveCursorUpLines(numLines int) {
-	for i := 0; i < numLines; i++ {
-		out.Print("\033[1A")
-	}
 }
 
 type loadPrivateKeyFromGnupg struct {
