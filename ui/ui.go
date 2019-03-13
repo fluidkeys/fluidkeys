@@ -114,6 +114,30 @@ func moveCursorUpLines(numLines int) {
 	}
 }
 
+// RunWithCheckboxes executes the given function f and captures its return value, which must be
+// error.
+// Before running, it prints the "pending" checkbox, then if the function succeeds (error=nil),
+// prints a success checkbox, otherwise prints a failed checkbox.
+// example:
+//
+// ```
+// var apiResult response
+//
+// if err := ui.RunWithCheckboxes("Uploading to API", func() error {
+//     apiResult, err = api.Upload(...)
+//     return err
+// })
+// ```
+func RunWithCheckboxes(checkboxMessage string, f func() error) error {
+	PrintCheckboxPending(checkboxMessage)
+	if err := f(); err != nil {
+		PrintCheckboxFailure(checkboxMessage, err)
+		return err
+	}
+	PrintCheckboxSuccess(checkboxMessage)
+	return nil
+}
+
 // capitalize returns text with the first rune capitalized
 func capitalize(text string) string {
 	switch len([]rune(text)) {
