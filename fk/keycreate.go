@@ -32,6 +32,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"github.com/fluidkeys/fluidkeys/ui"
 	spin "github.com/tj/go-spin"
 
 	"github.com/sethvargo/go-diceware/diceware"
@@ -161,10 +162,10 @@ func keyCreate(email string) (exitCode, *pgpkey.PgpKey) {
 
 	out.Print("🛠️  Carrying out the following tasks:\n\n")
 
-	printCheckboxSuccess("Generate key for " + email)
+	ui.PrintCheckboxSuccess("Generate key for " + email)
 
 	if err = pushPrivateKeyBackToGpg(generateJob.pgpKey, password.AsString(), &gpg); err == nil {
-		printCheckboxSuccess("Store key in gpg")
+		ui.PrintCheckboxSuccess("Store key in gpg")
 	} else {
 		log.Panicf("error pushing key back to gpg: %v", err)
 	}
@@ -174,31 +175,31 @@ func keyCreate(email string) (exitCode, *pgpkey.PgpKey) {
 		log.Panicf("failed to record fingerprint imported into gpg: %v", err)
 	}
 
-	printCheckboxPending("Store password in " + Keyring.Name())
+	ui.PrintCheckboxPending("Store password in " + Keyring.Name())
 
 	if err := tryStorePassword(generateJob.pgpKey.Fingerprint(), password.AsString()); err == nil {
-		printCheckboxSuccess("Store password in " + Keyring.Name())
+		ui.PrintCheckboxSuccess("Store password in " + Keyring.Name())
 	} else {
-		printCheckboxFailure("Store password in "+Keyring.Name(), err)
+		ui.PrintCheckboxFailure("Store password in "+Keyring.Name(), err)
 	}
 
-	printCheckboxPending("Automatically rotate key each month using cron")
+	ui.PrintCheckboxPending("Automatically rotate key each month using cron")
 
 	if err := tryMaintainAutomatically(generateJob.pgpKey.Fingerprint()); err == nil {
-		printCheckboxSuccess("Automatically rotate key each month using cron")
+		ui.PrintCheckboxSuccess("Automatically rotate key each month using cron")
 	} else {
-		printCheckboxFailure("Automatically rotate key each month using cron", err)
+		ui.PrintCheckboxFailure("Automatically rotate key each month using cron", err)
 	}
 
 	filename, err := backupzip.OutputZipBackupFile(fluidkeysDirectory, generateJob.pgpKey, password.AsString())
 	if err != nil {
-		printCheckboxFailure("Make a backup ZIP file", err)
+		ui.PrintCheckboxFailure("Make a backup ZIP file", err)
 	}
 	directory, _ := filepath.Split(filename)
-	printCheckboxSuccess("Make a backup ZIP file in")
+	ui.PrintCheckboxSuccess("Make a backup ZIP file in")
 	out.Print("        " + directory + "\n")
 
-	printCheckboxSuccess("Register " + email + " so others can send you secrets")
+	ui.PrintCheckboxSuccess("Register " + email + " so others can send you secrets")
 	out.Print("\n")
 
 	printSuccess("Successfully created key and registered " + email)

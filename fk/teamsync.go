@@ -27,6 +27,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/team"
+	"github.com/fluidkeys/fluidkeys/ui"
 )
 
 func teamSync() exitCode {
@@ -47,12 +48,12 @@ func teamSync() exitCode {
 		for _, person := range team.People {
 			err := getAndImportKeyToGpg(person.Fingerprint)
 			if err != nil {
-				printCheckboxFailure("Fail to fetch key", err)
+				ui.PrintCheckboxFailure("Fail to fetch key", err)
 				sawError = true
 				continue
 			}
 
-			printCheckboxSuccess(person.Email)
+			ui.PrintCheckboxSuccess(person.Email)
 		}
 	}
 
