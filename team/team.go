@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
@@ -141,6 +142,67 @@ func (t *Team) GetPersonForFingerprint(fingerprint fpr.Fingerprint) (*Person, er
 	return nil, fmt.Errorf("person not found")
 }
 
+// GetUpsertPersonWarnings checks if the given request to join a team causes any other team member to
+// be overwritten, returning an error if so.
+func (t *Team) GetUpsertPersonWarnings(newPerson Person) (err error, existingPerson *Person) {
+	for _, existingPerson := range t.People {
+		if existingPerson == newPerson {
+			return ErrPersonWouldNotBeChanged, &existingPerson
+		}
+
+		fingerprintsEqual := existingPerson.Fingerprint == newPerson.Fingerprint
+		emailsEqual := existingPerson.emailMatches(newPerson)
+		isAdminsEqual := existingPerson.IsAdmin == newPerson.IsAdmin
+
+		// 1. same email, different fingerprint
+		// 2. same fingerprint, different email
+		// 3. promoted to admin
+		// 4. demoted from admin
+
+		if !fingerprintsEqual && emailsEqual && isAdminsEqual {
+			return ErrKeyWouldBeUpdated, &existingPerson
+		}
+
+		if !emailsEqual && fingerprintsEqual && isAdminsEqual {
+			return ErrEmailWouldBeUpdated, &existingPerson
+		}
+
+		if !isAdminsEqual && emailsEqual && fingerprintsEqual {
+			isPromotion := !existingPerson.IsAdmin && newPerson.IsAdmin
+
+			if isPromotion {
+				return ErrPersonWouldBePromotedToAdmin, &existingPerson
+			}
+			return ErrPersonWouldBeDemotedAsAdmin, &existingPerson
+		}
+
+	}
+	return nil, nil
+}
+
+// UpsertPerson adds a Person to the team and removes anyone else that matches either the email or
+// fingerprint.
+func (t *Team) UpsertPerson(newPerson Person) {
+	newPeople := []Person{}
+
+	addedNewPerson := false
+
+	for _, existingPerson := range t.People {
+		if existingPerson.conflicts(newPerson) {
+			newPeople = append(newPeople, newPerson)
+			addedNewPerson = true
+		} else {
+			newPeople = append(newPeople, existingPerson)
+		}
+	}
+
+	if !addedNewPerson {
+		newPeople = append(newPeople, newPerson)
+	}
+
+	t.People = newPeople
+}
+
 func getTeamDirectory(fluidkeysDirectory string) string {
 	return filepath.Join(fluidkeysDirectory, "teams")
 }
@@ -221,6 +283,15 @@ type Person struct {
 	IsAdmin     bool            `toml:"is_admin"`
 }
 
+func (p Person) conflicts(other Person) bool {
+	return p.emailMatches(other) || p.Fingerprint == other.Fingerprint
+}
+
+func (p Person) emailMatches(other Person) bool {
+	// TODO: make this less naive
+	return strings.ToLower(p.Email) == strings.ToLower(other.Email)
+}
+
 // RequestToJoinTeam represents a request to join a team
 type RequestToJoinTeam struct {
 	UUID        uuid.UUID
@@ -230,3 +301,33 @@ type RequestToJoinTeam struct {
 	// RequestAt is the moment at which the local client made the request
 	RequestedAt time.Time
 }
+
+var (
+	// ErrPersonWouldNotBeChanged means the person being upserted already exists in the team and would
+	// be unchanged
+	ErrPersonWouldNotBeChanged = fmt.Errorf("person already exists in roster")
+
+	// ErrEmailWouldBeUpdated means there's already a key with a matching fingerprint, but a
+	// different email address. Upserting this new person would change the email address.
+	ErrEmailWouldBeUpdated = fmt.Errorf(
+		"existing team member's email would be updated",
+	)
+
+	// ErrKeyWouldBeUpdated means there's already a person with the same email address but a
+	// different key fingerprint, so their key will be updated.
+	ErrKeyWouldBeUpdated = fmt.Errorf(
+		"existing team member's key would be updated",
+	)
+
+	// ErrPersonWouldBeDemotedAsAdmin means the person is currently in the team as an admin.
+	// Upserting this new person would demote them from being an admin.
+	ErrPersonWouldBeDemotedAsAdmin = fmt.Errorf(
+		"existing team member would be demoted as team admin",
+	)
+
+	// ErrPersonWouldBePromotedToAdmin means the person is currently in the team, but is not an
+	// admin. Upserting this new person would promote them to admin.
+	ErrPersonWouldBePromotedToAdmin = fmt.Errorf(
+		"existing team member would be promoted to team admin",
+	)
+)
