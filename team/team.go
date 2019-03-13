@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
@@ -141,60 +142,65 @@ func (t *Team) GetPersonForFingerprint(fingerprint fpr.Fingerprint) (*Person, er
 	return nil, fmt.Errorf("person not found")
 }
 
-// GetAddPersonWarnings checks if the given request to join a team causes any other team member to
+// GetUpsertPersonWarnings checks if the given request to join a team causes any other team member to
 // be overwritten, returning an error if so.
-func (t *Team) GetAddPersonWarnings(newPerson Person) (err error, existingPerson *Person) {
+func (t *Team) GetUpsertPersonWarnings(newPerson Person) (err error, existingPerson *Person) {
 	for _, existingPerson := range t.People {
 		if existingPerson == newPerson {
-			return ErrPersonAlreadyInRoster{}, &existingPerson
+			return ErrPersonWouldNotBeChanged, &existingPerson
 		}
-		if existingPerson.Email == newPerson.Email &&
-			existingPerson.Fingerprint == newPerson.Fingerprint {
 
-			if existingPerson.IsAdmin && !newPerson.IsAdmin {
-				return ErrPersonAlreadyInRosterAsAdmin{}, &existingPerson
+		fingerprintsEqual := existingPerson.Fingerprint == newPerson.Fingerprint
+		emailsEqual := existingPerson.emailMatches(newPerson)
+		isAdminsEqual := existingPerson.IsAdmin == newPerson.IsAdmin
+
+		// 1. same email, different fingerprint
+		// 2. same fingerprint, different email
+		// 3. promoted to admin
+		// 4. demoted from admin
+
+		if !fingerprintsEqual && emailsEqual && isAdminsEqual {
+			return ErrKeyWouldBeUpdated, &existingPerson
+		}
+
+		if !emailsEqual && fingerprintsEqual && isAdminsEqual {
+			return ErrEmailWouldBeUpdated, &existingPerson
+		}
+
+		if !isAdminsEqual && emailsEqual && fingerprintsEqual {
+			isPromotion := !existingPerson.IsAdmin && newPerson.IsAdmin
+
+			if isPromotion {
+				return ErrPersonWouldBePromotedToAdmin, &existingPerson
 			}
-			if !existingPerson.IsAdmin && newPerson.IsAdmin {
-				return ErrPersonAlreadyInRosterNotAsAdmin{}, &existingPerson
-			}
+			return ErrPersonWouldBeDemotedAsAdmin, &existingPerson
 		}
-		if existingPerson.Email == newPerson.Email {
-			return ErrEmailAlreadyInRoster{}, &existingPerson
-		}
-		if existingPerson.Fingerprint == newPerson.Fingerprint {
-			return ErrFingerprintAlreadyInRoster{}, &existingPerson
-		}
+
 	}
 	return nil, nil
 }
 
 // UpsertPerson adds a Person to the team and removes anyone else that matches either the email or
 // fingerprint.
-func (t *Team) UpsertPerson(person Person) {
-	err, existingPerson := t.GetAddPersonWarnings(person)
-	if existingPerson != nil {
-		switch err {
-		case
-			ErrPersonAlreadyInRoster{},
-			ErrFingerprintAlreadyInRoster{},
-			ErrEmailAlreadyInRoster{},
-			ErrPersonAlreadyInRosterAsAdmin{},
-			ErrPersonAlreadyInRosterNotAsAdmin{}:
+func (t *Team) UpsertPerson(newPerson Person) {
+	newPeople := []Person{}
 
-			t.People = removePerson(*existingPerson, t.People)
+	addedNewPerson := false
+
+	for _, existingPerson := range t.People {
+		if existingPerson.conflicts(newPerson) {
+			newPeople = append(newPeople, newPerson)
+			addedNewPerson = true
+		} else {
+			newPeople = append(newPeople, existingPerson)
 		}
 	}
 
-	t.People = append(t.People, person)
-}
-
-func removePerson(personToRemove Person, people []Person) (remainingPeople []Person) {
-	for _, p := range people {
-		if p != personToRemove {
-			remainingPeople = append(remainingPeople, p)
-		}
+	if !addedNewPerson {
+		newPeople = append(newPeople, newPerson)
 	}
-	return remainingPeople
+
+	t.People = newPeople
 }
 
 func getTeamDirectory(fluidkeysDirectory string) string {
@@ -277,6 +283,15 @@ type Person struct {
 	IsAdmin     bool            `toml:"is_admin"`
 }
 
+func (p Person) conflicts(other Person) bool {
+	return p.emailMatches(other) || p.Fingerprint == other.Fingerprint
+}
+
+func (p Person) emailMatches(other Person) bool {
+	// TODO: make this less naive
+	return strings.ToLower(p.Email) == strings.ToLower(other.Email)
+}
+
 // RequestToJoinTeam represents a request to join a team
 type RequestToJoinTeam struct {
 	UUID        uuid.UUID
@@ -287,42 +302,32 @@ type RequestToJoinTeam struct {
 	RequestedAt time.Time
 }
 
-// ErrPersonAlreadyInRoster is raised when trying to add a person to a roster where a person already
-// exists in the roster with the same email address, fingerprint and admin status
-type ErrPersonAlreadyInRoster struct{}
+var (
+	// ErrPersonWouldNotBeChanged means the person being upserted already exists in the team and would
+	// be unchanged
+	ErrPersonWouldNotBeChanged = fmt.Errorf("person already exists in roster")
 
-func (e ErrPersonAlreadyInRoster) Error() string {
-	return "person already exists in roster"
-}
+	// ErrEmailWouldBeUpdated means there's already a key with a matching fingerprint, but a
+	// different email address. Upserting this new person would change the email address.
+	ErrEmailWouldBeUpdated = fmt.Errorf(
+		"existing team member's email would be updated",
+	)
 
-// ErrFingerprintAlreadyInRoster is raised when trying to add a person to a roster where a person
-// already exists in the roster with the same fingerprint
-type ErrFingerprintAlreadyInRoster struct{}
+	// ErrKeyWouldBeUpdated means there's already a person with the same email address but a
+	// different key fingerprint, so their key will be updated.
+	ErrKeyWouldBeUpdated = fmt.Errorf(
+		"existing team member's key would be updated",
+	)
 
-func (e ErrFingerprintAlreadyInRoster) Error() string {
-	return "person with matching fingerprint already exists in roster"
-}
+	// ErrPersonWouldBeDemotedAsAdmin means the person is currently in the team as an admin.
+	// Upserting this new person would demote them from being an admin.
+	ErrPersonWouldBeDemotedAsAdmin = fmt.Errorf(
+		"existing team member would be demoted as team admin",
+	)
 
-// ErrEmailAlreadyInRoster is raised when trying to add a person to a roster where a person already
-// exists in the roster with the same email address
-type ErrEmailAlreadyInRoster struct{}
-
-func (e ErrEmailAlreadyInRoster) Error() string {
-	return "person with matching email already exists in roster"
-}
-
-// ErrPersonAlreadyInRosterAsAdmin is raised when trying to add a non-admin to a roster where a
-// person already exists in the roster with the same email address, fingerprint, but *as admin*
-type ErrPersonAlreadyInRosterAsAdmin struct{}
-
-func (e ErrPersonAlreadyInRosterAsAdmin) Error() string {
-	return "person already exists in roster and is an administrator"
-}
-
-// ErrPersonAlreadyInRosterNotAsAdmin is raised when trying to add a non-admin to a roster where a
-// person already exists in the roster with the same email address, fingerprint, but *as admin*
-type ErrPersonAlreadyInRosterNotAsAdmin struct{}
-
-func (e ErrPersonAlreadyInRosterNotAsAdmin) Error() string {
-	return "person already exists in roster and is not an administrator"
-}
+	// ErrPersonWouldBePromotedToAdmin means the person is currently in the team, but is not an
+	// admin. Upserting this new person would promote them to admin.
+	ErrPersonWouldBePromotedToAdmin = fmt.Errorf(
+		"existing team member would be promoted to team admin",
+	)
+)
