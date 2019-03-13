@@ -92,11 +92,7 @@ func teamCreate() exitCode {
 
 	out.Print("Create team roster with you in it:\n\n")
 
-	out.Print(formatFileDivider("roster.toml", 80) + "\n")
-	out.Print(roster)
-	out.Print(formatFileDivider("", 80) + "\n")
-
-	out.Print("\n")
+	out.Print(formatRosterPreview(unsignedRoster))
 
 	prompter := interactiveYesNoPrompter{}
 	if !prompter.promptYesNo("Sign and upload the roster to Fluidkeys now?", "", nil) {
@@ -159,6 +155,12 @@ Join now:
 	))
 
 	return 0
+}
+
+func formatRosterPreview(roster string) string {
+	return formatFileDivider("roster.toml", 80) + "\n" +
+		roster +
+		formatFileDivider("", 80) + "\n\n"
 }
 
 func validateTeamName(teamName string) (string, error) {
