@@ -322,7 +322,7 @@ name = "Kiffix"
 	})
 }
 
-func TestGetAddPersonWarnings(t *testing.T) {
+func TestGetUpsertPersonWarnings(t *testing.T) {
 
 	var tests = []struct {
 		name          string
@@ -374,7 +374,7 @@ func TestGetAddPersonWarnings(t *testing.T) {
 					},
 				},
 			},
-			ErrEmailAlreadyInRoster{},
+			ErrKeyWouldBeUpdated,
 			Team{
 				UUID: uuid.Must(uuid.FromString("8e26e4df0d474f7f9a07a37b2aa92104")),
 				Name: "Kiffix",
@@ -405,7 +405,7 @@ func TestGetAddPersonWarnings(t *testing.T) {
 					},
 				},
 			},
-			ErrFingerprintAlreadyInRoster{},
+			ErrEmailWouldBeUpdated,
 			Team{
 				UUID: uuid.Must(uuid.FromString("8e26e4df0d474f7f9a07a37b2aa92104")),
 				Name: "Kiffix",
@@ -436,7 +436,7 @@ func TestGetAddPersonWarnings(t *testing.T) {
 					},
 				},
 			},
-			ErrPersonAlreadyInRoster{},
+			ErrPersonWouldNotBeChanged,
 			Team{
 				UUID: uuid.Must(uuid.FromString("8e26e4df0d474f7f9a07a37b2aa92104")),
 				Name: "Kiffix",
@@ -467,7 +467,7 @@ func TestGetAddPersonWarnings(t *testing.T) {
 					},
 				},
 			},
-			ErrPersonAlreadyInRosterAsAdmin{},
+			ErrPersonWouldBeDemotedAsAdmin,
 			Team{
 				UUID: uuid.Must(uuid.FromString("8e26e4df0d474f7f9a07a37b2aa92104")),
 				Name: "Kiffix",
@@ -498,7 +498,7 @@ func TestGetAddPersonWarnings(t *testing.T) {
 					},
 				},
 			},
-			ErrPersonAlreadyInRosterNotAsAdmin{},
+			ErrPersonWouldBePromotedToAdmin,
 			Team{
 				UUID: uuid.Must(uuid.FromString("8e26e4df0d474f7f9a07a37b2aa92104")),
 				Name: "Kiffix",
@@ -514,8 +514,8 @@ func TestGetAddPersonWarnings(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run("GetAddPersonWarnings for "+test.name, func(t *testing.T) {
-			err, _ := test.team.GetAddPersonWarnings(test.person)
+		t.Run("GetUpsertPersonWarnings for "+test.name, func(t *testing.T) {
+			err, _ := test.team.GetUpsertPersonWarnings(test.person)
 			assert.Equal(t, test.expectedError, err)
 		})
 	}

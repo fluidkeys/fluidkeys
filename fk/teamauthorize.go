@@ -104,21 +104,21 @@ func reviewRequests(myTeam team.Team, adminKey pgpkey.PgpKey) error {
 		out.Print("» Request from " + colour.Info(request.Email) + "\n")
 		out.Print("  with key " + request.Fingerprint.String() + "\n\n")
 
-		err, existingPerson := myTeam.GetAddPersonWarnings(team.Person{
+		err, existingPerson := myTeam.GetUpsertPersonWarnings(team.Person{
 			Email:       request.Email,
 			Fingerprint: request.Fingerprint,
 		})
 
 		if err != nil {
-			switch err.(type) {
-			case *team.ErrPersonAlreadyInRoster:
+			switch err {
+			case team.ErrPersonWouldNotBeChanged:
 				out.Print(ui.FormatWarning(
 					"This person is already in the team", []string{
 						"Skipping.",
 					},
 					nil,
 				))
-			case *team.ErrFingerprintAlreadyInRoster:
+			case team.ErrEmailWouldBeUpdated:
 				out.Print(ui.FormatWarning(
 					"A key with this fingerprint is already in the team", []string{
 						"Existing key belonging to " + existingPerson.Email,
@@ -126,7 +126,7 @@ func reviewRequests(myTeam team.Team, adminKey pgpkey.PgpKey) error {
 					},
 					nil,
 				))
-			case *team.ErrEmailAlreadyInRoster:
+			case team.ErrKeyWouldBeUpdated:
 				out.Print(ui.FormatWarning(
 					existingPerson.Email+" is already in the team", []string{
 						"Existing key " + existingPerson.Fingerprint.String(),
@@ -134,7 +134,7 @@ func reviewRequests(myTeam team.Team, adminKey pgpkey.PgpKey) error {
 					},
 					nil,
 				))
-			case *team.ErrPersonAlreadyInRosterAsAdmin:
+			case team.ErrPersonWouldBeDemotedAsAdmin:
 				out.Print(ui.FormatWarning(
 					existingPerson.Email+" is already in the team", []string{
 						"Adding them will demote them from being admin.",
