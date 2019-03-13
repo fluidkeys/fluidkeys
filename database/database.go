@@ -143,7 +143,7 @@ func (db *Database) loadFromFile() (message *Message, err error) {
 		if os.IsNotExist(err) {
 			return &Message{}, nil
 		}
-		return nil, fmt.Errorf("Couldn't open '%s': %v", db.jsonFilename, err)
+		return nil, fmt.Errorf("couldn't open '%s': %v", db.jsonFilename, err)
 	}
 
 	byteValue, err := ioutil.ReadAll(file)
@@ -166,7 +166,7 @@ func (db *Database) loadFromFile() (message *Message, err error) {
 func (db Database) saveToFile(message Message) error {
 	file, err := os.Create(db.jsonFilename)
 	if err != nil {
-		return fmt.Errorf("Couldn't open '%s': %v", db.jsonFilename, err)
+		return fmt.Errorf("couldn't open '%s': %v", db.jsonFilename, err)
 	}
 
 	encoder := json.NewEncoder(file)
