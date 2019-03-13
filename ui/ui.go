@@ -18,8 +18,11 @@
 package ui
 
 import (
-	"github.com/fluidkeys/fluidkeys/colour"
+	"fmt"
 	"strings"
+
+	"github.com/fluidkeys/fluidkeys/colour"
+	"github.com/fluidkeys/fluidkeys/out"
 )
 
 // FormatFailure prints a formatted failure message. It should be used for errors where the program
@@ -85,6 +88,30 @@ func FormatInfo(headline string, extraLines []string) string {
 	}
 	msg += "\n"
 	return msg
+}
+
+func PrintCheckboxPending(actionText string) {
+	out.Print(fmt.Sprintf("     [.] %s\n", actionText))
+	moveCursorUpLines(1)
+}
+
+func PrintCheckboxSuccess(actionText string) {
+	out.Print(fmt.Sprintf("     [%s] %s\n", colour.Success("✔"), actionText))
+}
+
+func PrintCheckboxSkipped(actionText string) {
+	out.Print(fmt.Sprintf("     [%s] %s\n", colour.Info("-"), actionText))
+}
+
+func PrintCheckboxFailure(actionText string, err error) {
+	out.Print(fmt.Sprintf("     [%s] %s\n", colour.Error("✗"), actionText))
+	out.Print(fmt.Sprintf("         %s\n", colour.Error(fmt.Sprintf("%s", err))))
+}
+
+func moveCursorUpLines(numLines int) {
+	for i := 0; i < numLines; i++ {
+		out.Print("\033[1A")
+	}
 }
 
 // capitalize returns text with the first rune capitalized
