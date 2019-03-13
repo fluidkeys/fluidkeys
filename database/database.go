@@ -27,32 +27,88 @@ import (
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
+// Database is the user's Fluidkeys database. It points at the filepath for the jsonFilename
 type Database struct {
 	jsonFilename string
 }
 
-type DatabaseMessage struct {
+// Message is the structure the database takes
+type Message struct {
 	KeysImportedIntoGnuPG []KeyImportedIntoGnuPGMessage
 }
 
+// KeyImportedIntoGnuPGMessage represents a key the user has imported into GnuPG from Fluidkeys
 type KeyImportedIntoGnuPGMessage struct {
-	Fingerprint string
+	Fingerprint fpr.Fingerprint
 }
 
+// New returns a database from the given fluidkeys directory
 func New(fluidkeysDirectory string) Database {
 	jsonFilename := filepath.Join(fluidkeysDirectory, "db.json")
 	return Database{jsonFilename: jsonFilename}
 }
 
+// RecordFingerprintImportedIntoGnuPG takes a given fingperprint and records that it's been
+// imported into GnuPG by writing an updated json database.
 func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fpr.Fingerprint) error {
-	existingFingerprints, err := db.GetFingerprintsImportedIntoGnuPG()
+	message, err := db.loadFromFile()
 	if err != nil {
 		return err
 	}
 
-	allFingerprints := append(existingFingerprints, newFingerprint)
-	databaseMessage := makeDatabaseMessageFromFingerprints(deduplicate(allFingerprints))
+	existingKeysImported := message.KeysImportedIntoGnuPG
 
+	message.KeysImportedIntoGnuPG = deduplicateKeyImportedIntoGnuPGMessages(
+		append(existingKeysImported, KeyImportedIntoGnuPGMessage{
+			Fingerprint: newFingerprint,
+		}),
+	)
+
+	return db.saveToFile(*message)
+}
+
+// GetFingerprintsImportedIntoGnuPG returns a slice of fingerprints that have
+// been imported into GnuPG
+func (db *Database) GetFingerprintsImportedIntoGnuPG() (fingerprints []fpr.Fingerprint, err error) {
+	message, err := db.loadFromFile()
+	if os.IsNotExist(err) {
+		return []fpr.Fingerprint{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range message.KeysImportedIntoGnuPG {
+		fingerprints = append(fingerprints, v.Fingerprint)
+	}
+
+	return fingerprints, nil
+}
+
+func (db *Database) loadFromFile() (message *Message, err error) {
+	file, err := os.Open(db.jsonFilename)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return &Message{}, nil
+		}
+		return nil, fmt.Errorf("Couldn't open '%s': %v", db.jsonFilename, err)
+	}
+
+	byteValue, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("ioutil.ReadAll(..) error: %v", err)
+	}
+
+	if err := json.Unmarshal(byteValue, &message); err != nil {
+		return nil, fmt.Errorf("error loading json: %v", err)
+	}
+
+	return &Message{
+		KeysImportedIntoGnuPG: deduplicateKeyImportedIntoGnuPGMessages(message.KeysImportedIntoGnuPG),
+	}, nil
+}
+
+func (db Database) saveToFile(message Message) error {
 	file, err := os.Create(db.jsonFilename)
 	if err != nil {
 		return fmt.Errorf("Couldn't open '%s': %v", db.jsonFilename, err)
@@ -61,66 +117,19 @@ func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fpr.Finger
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "    ")
 
-	return encoder.Encode(databaseMessage)
+	return encoder.Encode(message)
 }
 
-func makeDatabaseMessageFromFingerprints(fingerprints []fpr.Fingerprint) DatabaseMessage {
-	var messages []KeyImportedIntoGnuPGMessage
+func deduplicateKeyImportedIntoGnuPGMessages(slice []KeyImportedIntoGnuPGMessage,
+) (deduped []KeyImportedIntoGnuPGMessage) {
 
-	for _, fingerprint := range fingerprints {
-		messages = append(messages, KeyImportedIntoGnuPGMessage{Fingerprint: fingerprint.Hex()})
-	}
+	alreadySeen := make(map[KeyImportedIntoGnuPGMessage]bool)
 
-	databaseMessage := DatabaseMessage{
-		KeysImportedIntoGnuPG: messages,
-	}
-	return databaseMessage
-}
-
-func (db *Database) GetFingerprintsImportedIntoGnuPG() ([]fpr.Fingerprint, error) {
-	file, err := os.Open(db.jsonFilename)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return []fpr.Fingerprint{}, nil
-		} else {
-			return nil, fmt.Errorf("Couldn't open '%s': %v", db.jsonFilename, err)
-		}
-	}
-
-	byteValue, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil, fmt.Errorf("ioutil.ReadAll(..) error: %v", err)
-	}
-
-	var databaseMessage DatabaseMessage
-
-	if err := json.Unmarshal(byteValue, &databaseMessage); err != nil {
-		return nil, fmt.Errorf("error loading json: %v", err)
-	}
-
-	var fingerprints []fpr.Fingerprint
-
-	for _, v := range databaseMessage.KeysImportedIntoGnuPG {
-		fingerprintString := v.Fingerprint
-		parsedFingerprint, err := fpr.Parse(fingerprintString)
-		if err != nil {
-			continue
-		}
-		fingerprints = append(fingerprints, parsedFingerprint)
-	}
-
-	return deduplicate(fingerprints), nil
-}
-
-func deduplicate(slice []fpr.Fingerprint) []fpr.Fingerprint {
-	sliceMap := make(map[fpr.Fingerprint]bool)
 	for _, v := range slice {
-		sliceMap[v] = true
-	}
-
-	var deduped []fpr.Fingerprint
-	for key, _ := range sliceMap {
-		deduped = append(deduped, key)
+		if _, inMap := alreadySeen[v]; !inMap {
+			deduped = append(deduped, v)
+			alreadySeen[v] = true
+		}
 	}
 	return deduped
 }
