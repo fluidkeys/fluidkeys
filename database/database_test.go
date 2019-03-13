@@ -3,6 +3,7 @@ package database
 import (
 	"io/ioutil"
 	"testing"
+	"time"
 
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/exampledata"
@@ -70,39 +71,69 @@ func TestGetFingerprintsImportedIntoGnuPG(t *testing.T) {
 }
 
 func TestRecordRequestsToJoinTeamG(t *testing.T) {
-	request := team.RequestToJoinTeam{
-		UUID:        uuid.Must(uuid.NewV4()),
-		Email:       "test2@example.com",
-		Fingerprint: exampledata.ExampleFingerprint2,
+
+	fingerprint := exampledata.ExampleFingerprint2
+	now := time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
+	later := now.Add(time.Duration(1) * time.Hour)
+
+	request1 := team.RequestToJoinTeam{
+		TeamUUID:    uuid.Must(uuid.NewV4()),
+		UUID:        uuid.UUID{}, // empty *request* UUID, we don't store that
+		Fingerprint: fingerprint,
+		RequestedAt: now,
+		Email:       "",
+	}
+
+	request2 := team.RequestToJoinTeam{
+		TeamUUID:    uuid.Must(uuid.NewV4()),
+		UUID:        uuid.UUID{}, // empty *request* UUID, we don't store that
+		Fingerprint: exampledata.ExampleFingerprint3,
+		RequestedAt: later,
+		Email:       "",
 	}
 
 	t.Run("record works to an empty database", func(t *testing.T) {
 		database := New(makeTempDirectory(t))
-		err := database.RecordRequestToJoinTeam(request)
+		err := database.RecordRequestToJoinTeam(
+			request1.TeamUUID,
+			request1.Fingerprint,
+			request1.RequestedAt)
+
 		assert.NoError(t, err)
 
-		requestsToJoinTeams, err := database.GetRequestsToJoinTeams()
-		assert.NoError(t, err)
-		assertContainsRequest(t, requestsToJoinTeams, request)
+		t.Run("and we can read back a matching request ", func(t *testing.T) {
+			requestsToJoinTeams, err := database.GetRequestsToJoinTeams()
+			assert.NoError(t, err)
+
+			expectedRequest := request1
+			assertContainsRequest(t, requestsToJoinTeams, expectedRequest)
+		})
+
 	})
 
 	t.Run("record appends a new request to a database with requests already stored", func(t *testing.T) {
-		existingRequest := team.RequestToJoinTeam{
-			UUID:        uuid.Must(uuid.NewV4()),
-			Email:       "test3@example.com",
-			Fingerprint: exampledata.ExampleFingerprint3,
-		}
 
 		database := New(makeTempDirectory(t))
 
-		err := database.RecordRequestToJoinTeam(existingRequest)
+		err := database.RecordRequestToJoinTeam(
+			request1.TeamUUID,
+			request1.Fingerprint,
+			request1.RequestedAt,
+		)
 		assert.NoError(t, err)
-		err = database.RecordRequestToJoinTeam(request)
+		err = database.RecordRequestToJoinTeam(
+			request2.TeamUUID,
+			request2.Fingerprint,
+			request2.RequestedAt,
+		)
 		assert.NoError(t, err)
 
-		requestsToJoinTeams, err := database.GetRequestsToJoinTeams()
-		assertContainsRequest(t, requestsToJoinTeams, existingRequest)
-		assertContainsRequest(t, requestsToJoinTeams, request)
+		t.Run("and we can read back a matching request ", func(t *testing.T) {
+			requestsToJoinTeams, err := database.GetRequestsToJoinTeams()
+			assert.NoError(t, err)
+			assertContainsRequest(t, requestsToJoinTeams, request1)
+			assertContainsRequest(t, requestsToJoinTeams, request2)
+		})
 	})
 
 	t.Run("doesn't overwrite keys imported into gnupg when recording a request to join a team", func(t *testing.T) {
@@ -111,7 +142,11 @@ func TestRecordRequestsToJoinTeamG(t *testing.T) {
 		err := database.RecordFingerprintImportedIntoGnuPG(fingerprint)
 		assert.NoError(t, err)
 
-		err = database.RecordRequestToJoinTeam(request)
+		err = database.RecordRequestToJoinTeam(
+			request1.TeamUUID,
+			request1.Fingerprint,
+			request1.RequestedAt,
+		)
 		assert.NoError(t, err)
 
 		importedFingerprints, err := database.GetFingerprintsImportedIntoGnuPG()
@@ -121,19 +156,32 @@ func TestRecordRequestsToJoinTeamG(t *testing.T) {
 }
 
 func TestGetRequestsToJoinTeams(t *testing.T) {
+	fingerprint := exampledata.ExampleFingerprint2
+	now := time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
+
+	request1 := team.RequestToJoinTeam{
+		TeamUUID:    uuid.Must(uuid.NewV4()),
+		UUID:        uuid.UUID{}, // empty *request* UUID, we don't store that
+		Fingerprint: fingerprint,
+		RequestedAt: now,
+		Email:       "",
+	}
+
 	t.Run("can read back requests to join team written to database", func(t *testing.T) {
 		database := New(makeTempDirectory(t))
-		request := team.RequestToJoinTeam{
-			UUID:        uuid.Must(uuid.NewV4()),
-			Email:       "test2@example.com",
-			Fingerprint: exampledata.ExampleFingerprint2,
-		}
-		err := database.RecordRequestToJoinTeam(request)
-		assert.NoError(t, err)
 
-		requestsToJoinTeams, err := database.GetRequestsToJoinTeams()
+		t.Run("set up the database ", func(t *testing.T) {
+			err := database.RecordRequestToJoinTeam(
+				request1.TeamUUID,
+				request1.Fingerprint,
+				request1.RequestedAt,
+			)
+			assert.NoError(t, err)
+		})
+
+		gotRequests, err := database.GetRequestsToJoinTeams()
 		assert.NoError(t, err)
-		assertContainsRequest(t, requestsToJoinTeams, request)
+		assertContainsRequest(t, gotRequests, request1)
 	})
 
 }

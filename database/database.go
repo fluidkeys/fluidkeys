@@ -23,9 +23,11 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/team"
+	"github.com/gofrs/uuid"
 )
 
 // Database is the user's Fluidkeys database. It points at the filepath for the jsonFilename
@@ -36,12 +38,19 @@ type Database struct {
 // Message is the structure the database takes
 type Message struct {
 	KeysImportedIntoGnuPG []KeyImportedIntoGnuPGMessage
-	RequestsToJoinTeams   []team.RequestToJoinTeam
+	RequestsToJoinTeams   []RequestToJoinTeamMessage
 }
 
 // KeyImportedIntoGnuPGMessage represents a key the user has imported into GnuPG from Fluidkeys
 type KeyImportedIntoGnuPGMessage struct {
 	Fingerprint fpr.Fingerprint
+}
+
+// RequestToJoinTeamMessage records a request to join a team.
+type RequestToJoinTeamMessage struct {
+	TeamUUID    uuid.UUID       `json: "TeamUUID"`
+	Fingerprint fpr.Fingerprint `json: "Fingerprint"`
+	RequestedAt time.Time       `json: "RequestedAt"`
 }
 
 // New returns a database from the given fluidkeys directory
@@ -71,10 +80,18 @@ func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fpr.Finger
 
 // RecordRequestToJoinTeam takes a given request to join a team and records that it's been
 // sent by writing an updated json database.
-func (db *Database) RecordRequestToJoinTeam(newRequest team.RequestToJoinTeam) error {
+func (db *Database) RecordRequestToJoinTeam(
+	teamUUID uuid.UUID, fingerprint fpr.Fingerprint, now time.Time) error {
+
 	message, err := db.loadFromFile()
 	if err != nil {
 		return err
+	}
+
+	newRequest := RequestToJoinTeamMessage{
+		TeamUUID:    teamUUID,
+		Fingerprint: fingerprint,
+		RequestedAt: now,
 	}
 
 	message.RequestsToJoinTeams = append(message.RequestsToJoinTeams, newRequest)
@@ -109,7 +126,15 @@ func (db *Database) GetRequestsToJoinTeams() (requests []team.RequestToJoinTeam,
 	if err != nil {
 		return nil, err
 	}
-	return message.RequestsToJoinTeams, nil
+
+	for _, msg := range message.RequestsToJoinTeams {
+		requests = append(requests, team.RequestToJoinTeam{
+			TeamUUID:    msg.TeamUUID,
+			Fingerprint: msg.Fingerprint,
+			RequestedAt: msg.RequestedAt,
+		})
+	}
+	return requests, nil
 }
 
 func (db *Database) loadFromFile() (message *Message, err error) {
