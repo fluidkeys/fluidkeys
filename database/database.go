@@ -121,16 +121,15 @@ func (db Database) writeMessage(message Message) error {
 }
 
 func deduplicateKeyImportedIntoGnuPGMessages(slice []KeyImportedIntoGnuPGMessage,
-) []KeyImportedIntoGnuPGMessage {
+) (deduped []KeyImportedIntoGnuPGMessage) {
 
-	sliceMap := make(map[KeyImportedIntoGnuPGMessage]bool)
+	alreadySeen := make(map[KeyImportedIntoGnuPGMessage]bool)
+
 	for _, v := range slice {
-		sliceMap[v] = true
-	}
-
-	var deduped []KeyImportedIntoGnuPGMessage
-	for key := range sliceMap {
-		deduped = append(deduped, key)
+		if _, inMap := alreadySeen[v]; !inMap {
+			deduped = append(deduped, v)
+			alreadySeen[v] = true
+		}
 	}
 	return deduped
 }
