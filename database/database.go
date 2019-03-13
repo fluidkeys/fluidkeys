@@ -64,7 +64,7 @@ func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fpr.Finger
 		}),
 	)
 
-	return db.writeMessage(*message)
+	return db.saveToFile(*message)
 }
 
 // GetFingerprintsImportedIntoGnuPG returns a slice of fingerprints that have
@@ -108,7 +108,7 @@ func (db *Database) loadFromFile() (message *Message, err error) {
 	}, nil
 }
 
-func (db Database) writeMessage(message Message) error {
+func (db Database) saveToFile(message Message) error {
 	file, err := os.Create(db.jsonFilename)
 	if err != nil {
 		return fmt.Errorf("Couldn't open '%s': %v", db.jsonFilename, err)
