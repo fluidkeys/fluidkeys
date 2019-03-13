@@ -300,8 +300,10 @@ func (c *Client) ListRequestsToJoinTeam(teamUUID uuid.UUID, fingerprint fpr.Fing
 
 		requestsToJoinTeam = append(requestsToJoinTeam, team.RequestToJoinTeam{
 			UUID:        requestUUID,
+			TeamUUID:    teamUUID,
 			Email:       jsonRequestToJoin.Email,
 			Fingerprint: requestFingerprint,
+			RequestedAt: time.Time{}, // API doesn't store this
 		})
 	}
 

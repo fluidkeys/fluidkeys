@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/fluidkeys/api/v1structs"
 	"github.com/fluidkeys/fluidkeys/assert"
@@ -491,16 +492,19 @@ func TestListRequestsToJoinTeam(t *testing.T) {
 		expectedRequestsToJoin := []team.RequestToJoinTeam{
 			{
 				UUID:        uuid.Must(uuid.FromString("8e26e4df0d474f7f9a07a37b2aa92104")),
+				TeamUUID:    teamUUID,
 				Email:       "first@example.com",
 				Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+				RequestedAt: time.Time{},
 			},
 			{
 				UUID:        uuid.Must(uuid.FromString("a57dbf76c2f04bbd9a334cba1b7e335c")),
+				TeamUUID:    teamUUID,
 				Email:       "second@example.com",
 				Fingerprint: fpr.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
+				RequestedAt: time.Time{},
 			},
 		}
-
 		joinTeamRequestsResponse, err := json.Marshal(
 			v1structs.ListRequestsToJoinTeamResponse{
 				Requests: []v1structs.RequestToJoinTeam{
@@ -545,6 +549,7 @@ func TestListRequestsToJoinTeam(t *testing.T) {
 		expectedRequestsToJoin := []team.RequestToJoinTeam{
 			{
 				UUID:        uuid.Must(uuid.FromString("8e26e4df0d474f7f9a07a37b2aa92104")),
+				TeamUUID:    teamUUID,
 				Email:       "first@example.com",
 				Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
 			},
@@ -594,6 +599,7 @@ func TestListRequestsToJoinTeam(t *testing.T) {
 		expectedRequestsToJoin := []team.RequestToJoinTeam{
 			{
 				UUID:        uuid.Must(uuid.FromString("8e26e4df0d474f7f9a07a37b2aa92104")),
+				TeamUUID:    teamUUID,
 				Email:       "first@example.com",
 				Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
 			},
