@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
@@ -223,6 +224,9 @@ type Person struct {
 // RequestToJoinTeam represents a request to join a team
 type RequestToJoinTeam struct {
 	UUID        uuid.UUID
+	TeamUUID    uuid.UUID
 	Email       string
 	Fingerprint fpr.Fingerprint
+	// RequestAt is the moment at which the local client made the request
+	RequestedAt time.Time
 }
