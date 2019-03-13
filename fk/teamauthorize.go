@@ -154,8 +154,17 @@ func reviewRequests(myTeam team.Team, adminKey pgpkey.PgpKey) error {
 		}
 	}
 
-	out.Print(ui.FormatFailure("Not implemented", nil, nil))
-	return 1
+	if len(approvedRequests) > 0 {
+		for _, request := range approvedRequests {
+			myTeam.UpsertPerson(
+				team.Person{
+					Email:       request.Email,
+					Fingerprint: request.Fingerprint,
+					IsAdmin:     false,
+				})
+		}
+	}
+	return nil
 }
 
 type teamAndKey struct {
