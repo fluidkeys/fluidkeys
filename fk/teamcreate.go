@@ -84,7 +84,7 @@ func teamCreate() exitCode {
 		out.Print(ui.FormatFailure("Something went wrong, invalid team", nil, err))
 		return 1
 	}
-	roster, err := t.Roster()
+	unsignedRoster, err := t.Roster()
 	if err != nil {
 		out.Print(ui.FormatFailure("Failed to create roster", nil, err))
 		return 1
@@ -101,23 +101,21 @@ func teamCreate() exitCode {
 
 	privateKey, _, err := getDecryptedPrivateKeyAndPassword(key, &interactivePasswordPrompter{})
 
-	ui.PrintCheckboxPending("Create signed team roster")
-	roster, signature, err := team.SignAndSave(t, fluidkeysDirectory, privateKey)
-	if err != nil {
-		ui.PrintCheckboxFailure("Create signed team roster", err)
-		return 1
-	}
-	ui.PrintCheckboxSuccess("Create signed team roster in \n" +
-		"         " + filepath.Join(fluidkeysDirectory, "teams")) // account for checkbox indent
+	var signedRoster, signature string
 
-	action := "Upload team roster to Fluidkeys"
-	ui.PrintCheckboxPending(action)
-	err = client.UpsertTeam(roster, signature, privateKey.Fingerprint())
-	if err != nil {
-		ui.PrintCheckboxFailure(action, err)
+	if err := ui.RunWithCheckboxes("Create signed team roster", func() error {
+		signedRoster, signature, err = team.SignAndSave(t, fluidkeysDirectory, privateKey)
+		return err
+	}); err != nil {
 		return 1
 	}
-	ui.PrintCheckboxSuccess(action)
+	out.Print("         " + filepath.Join(fluidkeysDirectory, "teams")) // align to checkbox indent
+
+	if err := ui.RunWithCheckboxes("Upload team roster to Fluidkeys", func() error {
+		return client.UpsertTeam(signedRoster, signature, privateKey.Fingerprint())
+	}); err != nil {
+		return 1
+	}
 	out.Print("\n")
 
 	printSuccess("Successfully created " + teamName)
