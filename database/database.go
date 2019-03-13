@@ -51,7 +51,7 @@ func New(fluidkeysDirectory string) Database {
 // RecordFingerprintImportedIntoGnuPG takes a given fingperprint and records that it's been
 // imported into GnuPG by writing an updated json database.
 func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fpr.Fingerprint) error {
-	message, err := db.readMessage()
+	message, err := db.loadFromFile()
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fpr.Finger
 // GetFingerprintsImportedIntoGnuPG returns a slice of fingerprints that have
 // been imported into GnuPG
 func (db *Database) GetFingerprintsImportedIntoGnuPG() (fingerprints []fpr.Fingerprint, err error) {
-	message, err := db.readMessage()
+	message, err := db.loadFromFile()
 	if os.IsNotExist(err) {
 		return []fpr.Fingerprint{}, nil
 	}
@@ -85,7 +85,7 @@ func (db *Database) GetFingerprintsImportedIntoGnuPG() (fingerprints []fpr.Finge
 	return fingerprints, nil
 }
 
-func (db *Database) readMessage() (message *Message, err error) {
+func (db *Database) loadFromFile() (message *Message, err error) {
 	file, err := os.Open(db.jsonFilename)
 	if err != nil {
 		if os.IsNotExist(err) {
