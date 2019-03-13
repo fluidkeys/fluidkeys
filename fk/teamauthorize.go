@@ -163,6 +163,23 @@ func reviewRequests(myTeam team.Team, adminKey pgpkey.PgpKey) error {
 					IsAdmin:     false,
 				})
 		}
+
+		updateRosterAction := "Update signed team roster"
+		printCheckboxPending(updateRosterAction)
+		roster, signature, err := team.SignAndSave(t, fluidkeysDirectory, privateKey)
+		if err != nil {
+			printCheckboxFailure(updateRosterAction, err)
+			return 1
+		}
+		printCheckboxSuccess(updateRosterAction)
+
+		action := "Upload team roster to Fluidkeys"
+		printCheckboxPending(action)
+		err = client.UpsertTeam(roster, signature, privateKey.Fingerprint())
+		if err != nil {
+			printCheckboxFailure(action, err)
+			return 1
+		}
 	}
 	return nil
 }

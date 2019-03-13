@@ -84,7 +84,7 @@ func teamCreate() exitCode {
 		out.Print(ui.FormatFailure("Something went wrong, invalid team", nil, err))
 		return 1
 	}
-	roster, err := t.Roster()
+	unsignedRoster, err := t.Roster()
 	if err != nil {
 		out.Print(ui.FormatFailure("Failed to create roster", nil, err))
 		return 1
@@ -92,11 +92,7 @@ func teamCreate() exitCode {
 
 	out.Print("Create team roster with you in it:\n\n")
 
-	out.Print(formatFileDivider("roster.toml", 80) + "\n")
-	out.Print(roster)
-	out.Print(formatFileDivider("", 80) + "\n")
-
-	out.Print("\n")
+	out.Print(formatRosterPreview(unsignedRoster))
 
 	prompter := interactiveYesNoPrompter{}
 	if !prompter.promptYesNo("Sign and upload the roster to Fluidkeys now?", "", nil) {
@@ -105,23 +101,23 @@ func teamCreate() exitCode {
 
 	privateKey, _, err := getDecryptedPrivateKeyAndPassword(key, &interactivePasswordPrompter{})
 
-	printCheckboxPending("Create signed team roster")
-	roster, signature, err := team.SignAndSave(t, fluidkeysDirectory, privateKey)
-	if err != nil {
-		printCheckboxFailure("Create signed team roster", err)
-		return 1
-	}
-	printCheckboxSuccess("Create signed team roster in \n" +
-		"         " + filepath.Join(fluidkeysDirectory, "teams")) // account for checkbox indent
+	var signedRoster, signature string
 
-	action := "Upload team roster to Fluidkeys"
-	printCheckboxPending(action)
-	err = client.UpsertTeam(roster, signature, privateKey.Fingerprint())
-	if err != nil {
-		printCheckboxFailure(action, err)
+	if err := ui.RunWithCheckboxes("Create signed team roster", func() error {
+		signedRoster, signature, err = team.SignAndSave(t, fluidkeysDirectory, privateKey)
+		return err
+	}); err != nil {
 		return 1
 	}
-	printCheckboxSuccess(action)
+
+	out.Print("         " + filepath.Join(fluidkeysDirectory, "teams")) // align to checkbox indent
+
+	if err := ui.RunWithCheckboxes("Upload team roster to Fluidkeys", func() error {
+		return client.UpsertTeam(signedRoster, signature, privateKey.Fingerprint())
+	}); err != nil {
+		return 1
+	}
+
 	out.Print("\n")
 
 	printSuccess("Successfully created " + teamName)
@@ -159,6 +155,12 @@ Join now:
 	))
 
 	return 0
+}
+
+func formatRosterPreview(roster string) string {
+	return formatFileDivider("roster.toml", 80) + "\n" +
+		roster +
+		formatFileDivider("", 80) + "\n\n"
 }
 
 func validateTeamName(teamName string) (string, error) {
