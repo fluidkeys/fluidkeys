@@ -18,7 +18,6 @@
 package fk
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/fluidkeys/fluidkeys/colour"
@@ -91,8 +90,6 @@ func teamAuthorize() exitCode {
 		out.Print(ui.FormatFailure("Choosing from multiple teams not implemented", nil, nil))
 		return 1
 	}
-	out.Print(ui.FormatFailure("Not implemented", nil, nil))
-	return 1
 }
 
 func reviewRequests(myTeam team.Team, adminKey pgpkey.PgpKey) (
