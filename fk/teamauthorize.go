@@ -30,6 +30,13 @@ import (
 )
 
 func teamAuthorize() exitCode {
+	out.Print(ui.FormatInfo(
+		"Authorizing a key adds it to the team roster",
+		[]string{
+			"By authorizing a key, everyone in your team will fetch and trust that key.",
+		},
+	))
+
 	keys, err := loadPgpKeys()
 	if err != nil {
 		out.Print(ui.FormatFailure("Error loading keys", nil, err))
@@ -66,14 +73,6 @@ func teamAuthorize() exitCode {
 		out.Print(ui.FormatFailure("Choosing from multiple teams not implemented", nil, nil))
 		return 1
 	}
-
-	out.Print(ui.FormatInfo(
-		"Authorizing a key adds it to the team roster",
-		[]string{
-			"By authorizing a key, everyone in your team will fetch and trust that key.",
-		},
-	))
-
 	out.Print(ui.FormatFailure("Not implemented", nil, nil))
 	return 1
 }
