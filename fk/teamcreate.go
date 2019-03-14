@@ -100,6 +100,10 @@ func teamCreate() exitCode {
 	}
 
 	privateKey, _, err := getDecryptedPrivateKeyAndPassword(key, &interactivePasswordPrompter{})
+	if err != nil {
+		out.Print(ui.FormatFailure("Failed to unlock private key to sign roster", nil, err))
+		return 1
+	}
 
 	var signedRoster, signature string
 
