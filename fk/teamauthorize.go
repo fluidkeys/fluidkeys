@@ -102,7 +102,7 @@ func reviewRequests(myTeam team.Team, adminKey pgpkey.PgpKey) error {
 	prompter := interactiveYesNoPrompter{}
 	for _, request := range requests {
 		out.Print("» Request from " + colour.Info(request.Email) + "\n")
-		out.Print("  with key " + request.Fingerprint.String() + "\n\n")
+		out.Print("  with key " + request.Fingerprint.String() + "\n")
 
 		err, existingPerson := myTeam.GetUpsertPersonWarnings(team.Person{
 			Email:       request.Email,
