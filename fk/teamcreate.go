@@ -18,12 +18,14 @@
 package fk
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"unicode/utf8"
 
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/out"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/stringutils"
 	"github.com/fluidkeys/fluidkeys/team"
 	"github.com/fluidkeys/fluidkeys/ui"
@@ -84,42 +86,16 @@ func teamCreate() exitCode {
 		out.Print(ui.FormatFailure("Something went wrong, invalid team", nil, err))
 		return 1
 	}
-	unsignedRoster, err := t.Roster()
-	if err != nil {
-		out.Print(ui.FormatFailure("Failed to create roster", nil, err))
-		return 1
-	}
 
 	out.Print("Create team roster with you in it:\n\n")
 
-	out.Print(formatRosterPreview(unsignedRoster))
-
-	prompter := interactiveYesNoPrompter{}
-	if !prompter.promptYesNo("Sign and upload the roster to Fluidkeys now?", "", nil) {
+	if err := promptAndSignAndUploadRoster(t, key); err != nil {
+		if err != errUserDeclinedToSign {
+			out.Print(ui.FormatFailure("Failed to sign and upload roster", nil, err))
+		}
 		return 1
 	}
 
-	privateKey, _, err := getDecryptedPrivateKeyAndPassword(key, &interactivePasswordPrompter{})
-	if err != nil {
-		out.Print(ui.FormatFailure("Failed to unlock private key to sign roster", nil, err))
-		return 1
-	}
-
-	var signedRoster, signature string
-
-	if err := ui.RunWithCheckboxes("Create signed team roster", func() error {
-		signedRoster, signature, err = team.SignAndSave(t, fluidkeysDirectory, privateKey)
-		return err
-	}); err != nil {
-		return 1
-	}
-	out.Print("         " + filepath.Join(fluidkeysDirectory, "teams")) // align to checkbox indent
-
-	if err := ui.RunWithCheckboxes("Upload team roster to Fluidkeys", func() error {
-		return client.UpsertTeam(signedRoster, signature, privateKey.Fingerprint())
-	}); err != nil {
-		return 1
-	}
 	out.Print("\n")
 
 	printSuccess("Successfully created " + teamName)
@@ -159,6 +135,44 @@ Join now:
 	return 0
 }
 
+func promptAndSignAndUploadRoster(t team.Team, key *pgpkey.PgpKey) (err error) {
+	unsignedRoster, err := t.Roster()
+	if err != nil {
+		return err
+	}
+
+	out.Print(formatRosterPreview(unsignedRoster))
+
+	prompter := interactiveYesNoPrompter{}
+	if !prompter.promptYesNo("Sign and upload the roster to Fluidkeys now?", "", nil) {
+		return errUserDeclinedToSign
+	}
+
+	privateKey, _, err := getDecryptedPrivateKeyAndPassword(key, &interactivePasswordPrompter{})
+	if err != nil {
+		return fmt.Errorf("Failed to unlock private key to sign roster: %v", err)
+	}
+
+	var signedRoster, signature string
+
+	if err := ui.RunWithCheckboxes("Create signed team roster", func() error {
+		signedRoster, signature, err = team.SignAndSave(t, fluidkeysDirectory, privateKey)
+		return err
+	}); err != nil {
+		return err
+	}
+	// align to checkbox indent
+	out.Print("         " + filepath.Join(fluidkeysDirectory, "teams") + "\n")
+
+	if err := ui.RunWithCheckboxes("Upload team roster to Fluidkeys", func() error {
+		return client.UpsertTeam(signedRoster, signature, privateKey.Fingerprint())
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func formatRosterPreview(roster string) string {
 	return formatFileDivider("roster.toml", 80) + "\n" +
 		roster +
@@ -174,3 +188,7 @@ func validateTeamName(teamName string) (string, error) {
 	}
 	return teamName, nil
 }
+
+var (
+	errUserDeclinedToSign = errors.New("you deliced to sign the roster")
+)
