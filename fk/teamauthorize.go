@@ -54,23 +54,38 @@ func teamAuthorize() exitCode {
 		return code
 	}
 
-	var team team.Team
-	var adminKey pgpkey.PgpKey
-
 	switch len(teamAndKeys) {
 	case 0:
 		out.Print(ui.FormatFailure("You aren't an admin of any teams", nil, nil))
 		return 1
 
 	case 1:
-		team = teamAndKeys[0].team
-		adminKey = teamAndKeys[0].adminKey
+		myTeam := teamAndKeys[0].team
+		adminKey := teamAndKeys[0].adminKey
 
 		printHeader("Authorize keys")
-		approvedRequests, exitCode := reviewRequests(team, adminKey)
+		approvedRequests, exitCode := reviewRequests(myTeam, adminKey)
 		if exitCode != 0 {
 			return exitCode
 		}
+
+		if len(approvedRequests) > 0 {
+			for _, request := range approvedRequests {
+				myTeam.UpsertPerson(
+					team.Person{
+						Email:       request.Email,
+						Fingerprint: request.Fingerprint,
+						IsAdmin:     false,
+					})
+			}
+
+			if err := promptAndSignAndUploadRoster(myTeam, &adminKey); err != nil {
+				out.Print(ui.FormatFailure("Failed to sign and upload roster", nil, err))
+				return 1
+			}
+
+		}
+		return 0
 
 	default:
 		out.Print(ui.FormatFailure("Choosing from multiple teams not implemented", nil, nil))
