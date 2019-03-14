@@ -118,6 +118,7 @@ func reviewRequests(myTeam team.Team, adminKey pgpkey.PgpKey) error {
 					},
 					nil,
 				))
+				continue
 			case team.ErrEmailWouldBeUpdated:
 				out.Print(ui.FormatWarning(
 					"A key with this fingerprint is already in the team", []string{
