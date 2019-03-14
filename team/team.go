@@ -20,7 +20,12 @@ import (
 // roster.toml
 // Returns a slice of Team
 func LoadTeams(fluidkeysDirectory string) ([]Team, error) {
-	teamRosters, err := findTeamRosters(getTeamDirectory(fluidkeysDirectory))
+	teamsDirectory, err := getTeamDirectory(fluidkeysDirectory)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get teams directory: %v", err)
+	}
+
+	teamRosters, err := findTeamRosters(teamsDirectory)
 	if err != nil {
 		return nil, err
 	}
@@ -53,9 +58,14 @@ func SignAndSave(team Team, fluidkeysDirectory string, signingKey *pgpkey.PgpKey
 			signingKey.Fingerprint())
 	}
 
+	teamsDirectory, err := getTeamDirectory(fluidkeysDirectory)
+	if err != nil {
+		return "", "", fmt.Errorf("couldn't get team directory: %v", err)
+	}
+
 	rosterDirectory := filepath.Join(
-		getTeamDirectory(fluidkeysDirectory), // ~/.config/fluidkeys/teams
-		team.subDirectory(),                  // fluidkeys-inc-4367436743
+		teamsDirectory,      // ~/.config/fluidkeys/teams
+		team.subDirectory(), // fluidkeys-inc-4367436743
 	)
 	if err = os.MkdirAll(rosterDirectory, 0700); err != nil {
 		return "", "", fmt.Errorf("failed to make directory %s", rosterDirectory)
@@ -203,8 +213,13 @@ func (t *Team) UpsertPerson(newPerson Person) {
 	t.People = newPeople
 }
 
-func getTeamDirectory(fluidkeysDirectory string) string {
-	return filepath.Join(fluidkeysDirectory, "teams")
+func getTeamDirectory(fluidkeysDirectory string) (directory string, err error) {
+	teamsDirectory := filepath.Join(fluidkeysDirectory, "teams")
+	err = os.MkdirAll(teamsDirectory, 0700)
+	if err != nil {
+		return "", err
+	}
+	return teamsDirectory, nil
 }
 
 func findTeamRosters(directory string) ([]string, error) {
