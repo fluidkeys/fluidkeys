@@ -67,7 +67,10 @@ func teamAuthorize() exitCode {
 		adminKey = teamAndKeys[0].adminKey
 
 		printHeader("Authorize keys")
-		reviewRequests(team, adminKey)
+		approvedRequests, exitCode := reviewRequests(team, adminKey)
+		if exitCode != 0 {
+			return exitCode
+		}
 
 	default:
 		out.Print(ui.FormatFailure("Choosing from multiple teams not implemented", nil, nil))
@@ -77,17 +80,18 @@ func teamAuthorize() exitCode {
 	return 1
 }
 
-func reviewRequests(myTeam team.Team, adminKey pgpkey.PgpKey) error {
+func reviewRequests(myTeam team.Team, adminKey pgpkey.PgpKey) (
+	approvedRequests []team.RequestToJoinTeam, code exitCode) {
+
 	requests, err := client.ListRequestsToJoinTeam(myTeam.UUID, adminKey.Fingerprint())
 	if err != nil {
-		return err
-		//out.Print(ui.FormatFailure("Error getting requests  keys", nil, err))
-		// return 1
+		out.Print(ui.FormatFailure("Error getting requests", nil, err))
+		return nil, 1
 	}
 
 	if len(requests) == 0 {
 		out.Print("No requests to join " + myTeam.Name + "\n")
-		return nil
+		return nil, 1
 	}
 	out.Print(humanize.Pluralize(len(requests), "request", "requests") + " to join " +
 		myTeam.Name + ":\n\n")
@@ -96,8 +100,6 @@ func reviewRequests(myTeam team.Team, adminKey pgpkey.PgpKey) error {
 		out.Print(strconv.Itoa(index+1) + ". " + request.Email + "\n")
 	}
 	out.Print("\n")
-
-	approvedRequests := []team.RequestToJoinTeam{}
 
 	prompter := interactiveYesNoPrompter{}
 	for _, request := range requests {
@@ -160,7 +162,7 @@ func reviewRequests(myTeam team.Team, adminKey pgpkey.PgpKey) error {
 		}
 	}
 
-	return fmt.Errorf("not implemented")
+	return approvedRequests, 0
 }
 
 type teamAndKey struct {
