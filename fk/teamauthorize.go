@@ -141,9 +141,14 @@ func reviewRequests(myTeam team.Team, adminKey pgpkey.PgpKey) error {
 					},
 					nil,
 				))
+			case team.ErrPersonWouldBePromotedToAdmin:
+				out.Print(ui.FormatWarning(
+					existingPerson.Email+" is already in the team", []string{
+						"Adding them will promote them to being admin.",
+					},
+					nil,
+				))
 			}
-			// Skip ErrPersonAlreadyInRosterNotAsAdmin for now, as they can't be added
-			// as admin.
 		}
 
 		addToTeam := prompter.promptYesNo("Authorize this key for "+request.Email+
