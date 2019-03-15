@@ -61,6 +61,19 @@ fingerprint = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 	assert.Equal(t, "Fluidkeys CIC", team.Name)
 }
 
+func TestRoster(t *testing.T) {
+	t.Run("function simply returns content of roster and signature fields", func(t *testing.T) {
+		testTeam := Team{
+			roster:    "fake roster",
+			signature: "fake signature",
+		}
+
+		gotRoster, gotSig := testTeam.Roster()
+		assert.Equal(t, testTeam.roster, gotRoster)
+		assert.Equal(t, testTeam.signature, gotSig)
+	})
+}
+
 func TestSerialize(t *testing.T) {
 	t.Run("for a valid team", func(t *testing.T) {
 		testTeam := Team{

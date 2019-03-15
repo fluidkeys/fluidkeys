@@ -42,6 +42,12 @@ func LoadTeams(fluidkeysDirectory string) ([]Team, error) {
 	return teams, nil
 }
 
+// Roster returns the TOML file representing the team roster, and the ASCII armored detached
+// signature of that file.
+func (t Team) Roster() (roster string, signature string) {
+	return t.roster, t.signature
+}
+
 // SignAndSave validates the given team then tries to make a toml team roster in a subdirectory of
 // the given directory with accompanying signature from the signing key.
 // If successful, it returns the roster and signature as strings.
@@ -279,6 +285,9 @@ type Team struct {
 	UUID   uuid.UUID `toml:"uuid"`
 	Name   string    `toml:"name"`
 	People []Person  `toml:"person"`
+
+	roster    string
+	signature string
 }
 
 // Fingerprints returns the key fingerprints for all people in the team
