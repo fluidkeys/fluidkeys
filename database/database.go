@@ -121,7 +121,7 @@ func (db *Database) GetFingerprintsImportedIntoGnuPG() (fingerprints []fpr.Finge
 func (db *Database) GetRequestsToJoinTeams() (requests []team.RequestToJoinTeam, err error) {
 	message, err := db.loadFromFile()
 	if os.IsNotExist(err) {
-		return []team.RequestToJoinTeam{}, nil
+		return []team.RequestToJoinTeam{}, err
 	}
 	if err != nil {
 		return nil, err
