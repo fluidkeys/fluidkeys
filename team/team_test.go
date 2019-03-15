@@ -46,6 +46,80 @@ func TestRoster(t *testing.T) {
 	})
 }
 
+func TestUpdateRoster(t *testing.T) {
+	signingKey, err := pgpkey.LoadFromArmoredEncryptedPrivateKey(
+		exampledata.ExamplePrivateKey2, "test2")
+	assert.NoError(t, err)
+
+	validTeam := Team{
+		Name: "Kiffix",
+		UUID: uuid.Must(uuid.FromString("74bb40b4-3510-11e9-968e-53c38df634be")),
+		People: []Person{
+			{
+				Email:       "test@example.com",
+				Fingerprint: signingKey.Fingerprint(),
+				IsAdmin:     true,
+			},
+		},
+		roster:    "",
+		signature: "",
+	}
+
+	t.Run("for a valid team", func(t *testing.T) {
+		expectedRoster := `# Fluidkeys team roster
+uuid = "74bb40b4-3510-11e9-968e-53c38df634be"
+name = "Kiffix"
+
+[[person]]
+  email = "test@example.com"
+  fingerprint = "5C78E71F6FEFB55829654CC5343CC240D350C30C"
+  is_admin = true
+`
+
+		err := validTeam.UpdateRoster(signingKey)
+		assert.NoError(t, err)
+
+		t.Run("sets team.roster", func(t *testing.T) {
+			assert.Equal(t, expectedRoster, validTeam.roster)
+		})
+
+		t.Run("sets a valid signature", func(t *testing.T) {
+			verifyRosterSignature(t,
+				[]byte(validTeam.roster), []byte(validTeam.signature), signingKey,
+			)
+		})
+	})
+
+	t.Run("returns an error for invalid team", func(t *testing.T) {
+		invalidTeam := Team{
+			Name: "Missing UUID",
+			People: []Person{
+				{
+					Email:       "test@example.com",
+					Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+				},
+			},
+		}
+
+		err := invalidTeam.UpdateRoster(signingKey)
+		assert.Equal(t, fmt.Errorf("invalid team: invalid roster: invalid UUID"), err)
+	})
+
+	t.Run("returns an error if signing key isn't an admin", func(t *testing.T) {
+		notAdminKey, err := pgpkey.LoadFromArmoredEncryptedPrivateKey(
+			exampledata.ExamplePrivateKey3, "test3")
+		assert.NoError(t, err)
+
+		err = validTeam.UpdateRoster(notAdminKey)
+		assert.Equal(t,
+			fmt.Errorf(
+				"can't sign with key 7C18 DE4D E478 1356 8B24  3AC8 719B D63E F03B DC20 "+
+					"that's not an admin of the team"),
+			err,
+		)
+	})
+}
+
 func TestValidate(t *testing.T) {
 	t.Run("with valid roster, returns no error", func(t *testing.T) {
 		team := Team{

@@ -103,6 +103,34 @@ func (t Team) PreviewRoster() (roster string, err error) {
 	return t.serialize()
 }
 
+// UpdateRoster updates and signs the roster based on the state of the team. Subsequent calls to
+// Roster() will return the new roster and signature.
+func (t *Team) UpdateRoster(signingKey *pgpkey.PgpKey) error {
+	if err := t.Validate(); err != nil {
+		return fmt.Errorf("invalid team: %v", err)
+	}
+
+	if !t.IsAdmin(signingKey.Fingerprint()) {
+		return fmt.Errorf("can't sign with key %s that's not an admin of the team",
+			signingKey.Fingerprint())
+	}
+
+	roster, err := t.serialize()
+	if err != nil {
+		return err
+	}
+
+	signature, err := signingKey.MakeArmoredDetachedSignature([]byte(roster))
+	if err != nil {
+		return fmt.Errorf("failed to sign team roster: %v", err)
+	}
+
+	t.roster = roster
+	t.signature = signature
+
+	return nil
+}
+
 // Roster returns the TOML file representing the team roster, and the ASCII armored detached
 // signature of that file.
 func (t Team) Roster() (roster string, signature string) {
