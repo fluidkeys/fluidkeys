@@ -150,12 +150,21 @@ func (rs *RosterSaver) CommitDraft() error {
 
 // DiscardDraft deletes the previously saved draft roster and signature
 func (rs *RosterSaver) DiscardDraft() error {
+	log.Printf("discarding draft")
 	if rs.draftRosterFilename == "" || rs.draftSignatureFilename == "" {
 		return fmt.Errorf("no draft in progress")
 	}
 
 	_ = os.Remove(rs.draftRosterFilename)
 	_ = os.Remove(rs.draftSignatureFilename)
+
+	if files, err := ioutil.ReadDir(rs.Directory); err != nil {
+		log.Printf("couldn't list files in %s: %v", rs.Directory, err)
+	} else if len(files) == 0 {
+		// directory is empty, we probably made it: delete it
+		log.Printf("deleting empty directory %s", rs.Directory)
+		os.Remove(rs.Directory)
+	}
 
 	rs.draftRosterFilename = ""
 	rs.draftSignatureFilename = ""
