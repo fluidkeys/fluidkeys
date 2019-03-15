@@ -33,6 +33,19 @@ import (
 	"github.com/gofrs/uuid"
 )
 
+func TestRoster(t *testing.T) {
+	t.Run("function simply returns content of roster and signature fields", func(t *testing.T) {
+		testTeam := Team{
+			roster:    "fake roster",
+			signature: "fake signature",
+		}
+
+		gotRoster, gotSig := testTeam.Roster()
+		assert.Equal(t, testTeam.roster, gotRoster)
+		assert.Equal(t, testTeam.signature, gotSig)
+	})
+}
+
 func TestValidate(t *testing.T) {
 	t.Run("with valid roster, returns no error", func(t *testing.T) {
 		team := Team{
@@ -524,6 +537,88 @@ func TestGetUpsertPersonWarnings(t *testing.T) {
 		t.Run("UpsertPerson for "+test.name, func(t *testing.T) {
 			test.team.UpsertPerson(test.person)
 			assert.Equal(t, test.expectedTeam.People, test.team.People)
+		})
+	}
+}
+
+func TestSlugify(t *testing.T) {
+	var tests = []struct {
+		input    string
+		expected string
+	}{
+		{
+			"Hello world",
+			"hello-world",
+		},
+		{
+			"Marks & Spencers",
+			"marks-and-spencers",
+		},
+		{
+			"Digit@l Wizards",
+			"digital-wizards",
+		},
+		{
+			"Between [Worlds]",
+			"between-worlds",
+		},
+		{
+			"--Future--",
+			"future",
+		},
+		{
+			"😁 Happy Cleaners 💦",
+			"happy-cleaners",
+		},
+		{
+			"déjà vu",
+			"d-j-vu",
+		},
+		{
+			"\n\000\037 \041\176\177\200\377\n",
+			"",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("slugifying `%s`", test.input), func(t *testing.T) {
+			assert.Equal(t, test.expected, slugify(test.input))
+		})
+	}
+}
+
+func TestSubDirectory(t *testing.T) {
+	var tests = []struct {
+		team     Team
+		expected string
+	}{
+		{
+			Team{
+				Name: "kiffix",
+				UUID: uuid.Must(uuid.FromString("6caa3730-2ca3-47b9-b671-5dc326100431")),
+			},
+			"kiffix-6caa3730-2ca3-47b9-b671-5dc326100431",
+		},
+		{
+			Team{
+				Name: "😁 Happy Cleaners 💦",
+				UUID: uuid.Must(uuid.FromString("6caa3730-2ca3-47b9-b671-5dc326100431")),
+			},
+			"happy-cleaners-6caa3730-2ca3-47b9-b671-5dc326100431",
+		},
+		{
+			Team{
+				Name: "😁",
+				UUID: uuid.Must(uuid.FromString("6caa3730-2ca3-47b9-b671-5dc326100431")),
+			},
+			"6caa3730-2ca3-47b9-b671-5dc326100431",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("get directory for `%s`", test.team.Name), func(t *testing.T) {
+
+			assert.Equal(t, test.expected, test.team.subDirectory())
 		})
 	}
 }

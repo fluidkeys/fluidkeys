@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -40,12 +41,6 @@ func LoadTeams(fluidkeysDirectory string) ([]Team, error) {
 		teams = append(teams, *team)
 	}
 	return teams, nil
-}
-
-// Roster returns the TOML file representing the team roster, and the ASCII armored detached
-// signature of that file.
-func (t Team) Roster() (roster string, signature string) {
-	return t.roster, t.signature
 }
 
 // SignAndSave validates the given team then tries to make a toml team roster in a subdirectory of
@@ -99,6 +94,19 @@ func SignAndSave(team Team, fluidkeysDirectory string, signingKey *pgpkey.PgpKey
 	}
 
 	return roster, signature, nil
+}
+
+// PreviewRoster returns an (unsigned) roster based on the current state of the Team.
+// Use this to preview the effect of any changes to the team, e.g. AddTeam, before actually
+// updating and signing the roster.
+func (t Team) PreviewRoster() (roster string, err error) {
+	return t.serialize()
+}
+
+// Roster returns the TOML file representing the team roster, and the ASCII armored detached
+// signature of that file.
+func (t Team) Roster() (roster string, signature string) {
+	return t.roster, t.signature
 }
 
 // Validate asserts that the team roster has no email addresses or fingerprints that are
@@ -270,6 +278,47 @@ func loadTeamRoster(filename string) (*Team, error) {
 	}
 
 	return team, nil
+}
+
+func (t Team) subDirectory() string {
+	slug := slugify(t.Name)
+
+	if slug == "" {
+		return t.UUID.String()
+	}
+
+	return slug + "-" + t.UUID.String()
+}
+
+func slugify(input string) string {
+	slug := strings.TrimSpace(input)
+	slug = strings.ToLower(slug)
+
+	var subs = map[rune]string{
+		'&': "and",
+		'@': "a",
+	}
+	var buffer bytes.Buffer
+	for _, char := range slug {
+		if subChar, ok := subs[char]; ok {
+			_, err := buffer.WriteString(subChar)
+			if err != nil {
+				log.Panic(err)
+			}
+		} else {
+			_, err := buffer.WriteRune(char)
+			if err != nil {
+				log.Panic(err)
+			}
+		}
+	}
+	slug = buffer.String()
+
+	slug = regexp.MustCompile("[^a-z0-9-_]").ReplaceAllString(slug, "-")
+	slug = regexp.MustCompile("-+").ReplaceAllString(slug, "-")
+	slug = strings.Trim(slug, "-_")
+
+	return slug
 }
 
 func fileExists(filename string) bool {
