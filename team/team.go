@@ -43,57 +43,35 @@ func LoadTeams(fluidkeysDirectory string) ([]Team, error) {
 	return teams, nil
 }
 
-// SignAndSave validates the given team then tries to make a toml team roster in a subdirectory of
-// the given directory with accompanying signature from the signing key.
-// If successful, it returns the roster and signature as strings.
-func SignAndSave(team Team, fluidkeysDirectory string, signingKey *pgpkey.PgpKey) (
-	roster string, signature string, err error) {
-
-	err = team.Validate()
+// Directory returns the team subdirectory
+func Directory(t Team, fluidkeysDirectory string) (directory string, err error) {
+	teamDirectory, err := getTeamDirectory(fluidkeysDirectory)
 	if err != nil {
-		return "", "", fmt.Errorf("invalid team: %v", err)
+		return "", err
+	}
+	return filepath.Join(
+		teamDirectory,    // ~/.config/fluidkeys/teams
+		t.subDirectory(), // fluidkeys-inc-4367436743
+	), nil
+}
+
+// Save writes the given roster and signature to the directory
+func Save(roster string, signature string, directory string) error {
+	if err := os.MkdirAll(directory, 0700); err != nil {
+		return fmt.Errorf("failed to make directory %s", directory)
 	}
 
-	if !team.IsAdmin(signingKey.Fingerprint()) {
-		return "", "", fmt.Errorf("can't sign with key %s that's not an admin of the team",
-			signingKey.Fingerprint())
-	}
-
-	teamsDirectory, err := getTeamDirectory(fluidkeysDirectory)
-	if err != nil {
-		return "", "", fmt.Errorf("couldn't get team directory: %v", err)
-	}
-
-	rosterDirectory := filepath.Join(
-		teamsDirectory,      // ~/.config/fluidkeys/teams
-		team.subDirectory(), // fluidkeys-inc-4367436743
-	)
-	if err = os.MkdirAll(rosterDirectory, 0700); err != nil {
-		return "", "", fmt.Errorf("failed to make directory %s", rosterDirectory)
-	}
-
-	roster, err = team.serialize()
-	if err != nil {
-		return "", "", err
-	}
-
-	rosterFilename := filepath.Join(rosterDirectory, "roster.toml")
+	rosterFilename := filepath.Join(directory, "roster.toml")
 	signatureFilename := rosterFilename + ".asc"
 
-	signature, err = signingKey.MakeArmoredDetachedSignature([]byte(roster))
-	if err != nil {
-		return "", "", fmt.Errorf("failed to sign team roster: %v", err)
+	if err := atomic.WriteFile(rosterFilename, bytes.NewBufferString(roster)); err != nil {
+		return fmt.Errorf("failed write team roster: %v", err)
+	}
+	if err := atomic.WriteFile(signatureFilename, bytes.NewBufferString(signature)); err != nil {
+		return fmt.Errorf("failed write signature: %v", err)
 	}
 
-	if err = atomic.WriteFile(rosterFilename, bytes.NewBufferString(roster)); err != nil {
-		return "", "", fmt.Errorf("failed write team roster: %v", err)
-	}
-	err = atomic.WriteFile(signatureFilename, bytes.NewBufferString(signature))
-	if err != nil {
-		return "", "", fmt.Errorf("failed write signature: %v", err)
-	}
-
-	return roster, signature, nil
+	return nil
 }
 
 // PreviewRoster returns an (unsigned) roster based on the current state of the Team.

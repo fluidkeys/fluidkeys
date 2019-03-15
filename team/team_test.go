@@ -280,11 +280,9 @@ func TestGetPersonForFingerprint(t *testing.T) {
 	})
 }
 
-func TestSignAndSave(t *testing.T) {
+func TestSave(t *testing.T) {
 	dir, err := ioutil.TempDir("", "fluidkey.team_test_directory.")
-	if err != nil {
-		t.Fatalf("error creating temporary directory")
-	}
+	assert.NoError(t, err)
 
 	teamSubdir := filepath.Join(
 		dir, "teams", "kiffix-74bb40b4-3510-11e9-968e-53c38df634be",
@@ -292,26 +290,8 @@ func TestSignAndSave(t *testing.T) {
 	rosterFilename := filepath.Join(teamSubdir, "roster.toml")
 	signatureFilename := filepath.Join(teamSubdir, "roster.toml.asc")
 
-	signingKey, err := pgpkey.LoadFromArmoredEncryptedPrivateKey(
-		exampledata.ExamplePrivateKey2, "test2")
-	if err != nil {
-		t.Fatalf("couldn't load signing key")
-	}
-
 	t.Run("for a valid team", func(t *testing.T) {
-		validTeam := Team{
-			Name: "Kiffix",
-			UUID: uuid.Must(uuid.FromString("74bb40b4-3510-11e9-968e-53c38df634be")),
-			People: []Person{
-				{
-					Email:       "test@example.com",
-					Fingerprint: signingKey.Fingerprint(),
-					IsAdmin:     true,
-				},
-			},
-		}
-
-		roster, signature, err := SignAndSave(validTeam, dir, signingKey)
+		err := Save("roster 1", "signature 1", teamSubdir)
 		assert.NoError(t, err)
 
 		t.Run("creates a team subdirectory", func(t *testing.T) {
@@ -320,92 +300,44 @@ func TestSignAndSave(t *testing.T) {
 			}
 		})
 
-		t.Run("writes a roster.toml file", func(t *testing.T) {
-			if !fileExists(rosterFilename) {
-				t.Fatalf(rosterFilename + " wasn't written (doesn't exist)")
-			}
-		})
-
-		t.Run("writes roster.toml.asc (armored signature)", func(t *testing.T) {
-			if !fileExists(signatureFilename) {
-				t.Fatalf(signatureFilename + " wasn't written (doesn't exist)")
-			}
-		})
-
-		t.Run("write a valid signature", func(t *testing.T) {
-			roster, err := ioutil.ReadFile(rosterFilename)
-			if err != nil {
-				t.Fatalf("couldn't read " + rosterFilename)
-			}
-
-			readSignature, err := ioutil.ReadFile(signatureFilename)
-			if err != nil {
-				t.Fatalf("couldn't read " + signatureFilename)
-			}
-
-			verifyRosterSignature(t, roster, readSignature, signingKey)
-		})
-
-		t.Run("returns the roster", func(t *testing.T) {
-			expectedRoster := `# Fluidkeys team roster
-uuid = "74bb40b4-3510-11e9-968e-53c38df634be"
-name = "Kiffix"
-
-[[person]]
-  email = "test@example.com"
-  fingerprint = "5C78E71F6FEFB55829654CC5343CC240D350C30C"
-  is_admin = true
-`
-			if roster != expectedRoster {
-				t.Fatalf("roster wasn't as expected.\n\n--- Got ---\n%s\n---------\n"+
-					"--- Expected ---\n%s\n---------\n", roster, expectedRoster)
-			}
-		})
-
-		t.Run("returns the signature, and the sig is valid", func(t *testing.T) {
-			verifyRosterSignature(t, []byte(roster), []byte(signature), signingKey)
-		})
-
-		t.Run("allows the file to be overwritten", func(t *testing.T) {
-			updatedTeam := validTeam
-			updatedTeam.People = []Person{validTeam.People[0]}
-
-			// re-run Save, since a roster
-			updatedRoster, updatedSignature, err := SignAndSave(updatedTeam, dir, signingKey)
+		t.Run("writes roster.toml", func(t *testing.T) {
+			readBackRoster, err := ioutil.ReadFile(rosterFilename)
 			assert.NoError(t, err)
 
-			files, _ := ioutil.ReadDir(teamSubdir)
-			assert.Equal(t, 2, len(files)) // still only roster.toml and roster.toml.asc
+			assert.Equal(t, "roster 1", string(readBackRoster))
+		})
 
-			t.Run("read back roster matches return value of SignAndSave", func(t *testing.T) {
-				readBackRoster, err := ioutil.ReadFile(rosterFilename)
-				assert.NoError(t, err)
+		t.Run("writes roster.toml.asc", func(t *testing.T) {
+			readBackSignature, err := ioutil.ReadFile(signatureFilename)
+			assert.NoError(t, err)
 
-				assert.Equal(t, updatedRoster, string(readBackRoster))
-			})
-
-			t.Run("read back signature matches return value of SignAndSave", func(t *testing.T) {
-				readBackSignature, err := ioutil.ReadFile(signatureFilename)
-				assert.NoError(t, err)
-
-				assert.Equal(t, updatedSignature, string(readBackSignature))
-			})
+			assert.Equal(t, "signature 1", string(readBackSignature))
 		})
 	})
 
-	t.Run("returns an error for invalid team", func(t *testing.T) {
-		invalidTeam := Team{
-			Name: "Missing UUID",
-			People: []Person{
-				{
-					Email:       "test@example.com",
-					Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
-				},
-			},
-		}
+	t.Run("allows the file to be overwritten", func(t *testing.T) {
+		err := Save("roster 1", "signature 1", teamSubdir)
+		assert.NoError(t, err)
 
-		_, _, err := SignAndSave(invalidTeam, dir, signingKey)
-		assert.Equal(t, fmt.Errorf("invalid team: invalid roster: invalid UUID"), err)
+		err = Save("roster 2", "signature 2", teamSubdir)
+		assert.NoError(t, err)
+
+		files, _ := ioutil.ReadDir(teamSubdir)
+		assert.Equal(t, 2, len(files)) // still only roster.toml and roster.toml.asc
+
+		t.Run("writes roster.toml", func(t *testing.T) {
+			readBackRoster, err := ioutil.ReadFile(rosterFilename)
+			assert.NoError(t, err)
+
+			assert.Equal(t, "roster 2", string(readBackRoster))
+		})
+
+		t.Run("writes roster.toml.asc", func(t *testing.T) {
+			readBackSignature, err := ioutil.ReadFile(signatureFilename)
+			assert.NoError(t, err)
+
+			assert.Equal(t, "signature 2", string(readBackSignature))
+		})
 	})
 }
 
