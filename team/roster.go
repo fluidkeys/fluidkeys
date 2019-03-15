@@ -11,9 +11,16 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-// Roster returns the team as a toml formatted string. You should validate the team
+// PreviewRoster returns an (unsigned) roster based on the current state of the Team.
+// Use this to preview the effect of any changes to the team, e.g. AddTeam, before actually
+// updating and signing the roster.
+func (t Team) PreviewRoster() (roster string, err error) {
+	return t.serialize()
+}
+
+// serialize returns the team as a toml formatted string. You should validate the team
 // prior to this function.
-func (t Team) Roster() (roster string, err error) {
+func (t Team) serialize() (roster string, err error) {
 	err = t.Validate()
 	if err != nil {
 		return "", fmt.Errorf("invalid team: %v", err)

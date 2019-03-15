@@ -61,7 +61,7 @@ fingerprint = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 	assert.Equal(t, "Fluidkeys CIC", team.Name)
 }
 
-func TestRoster(t *testing.T) {
+func TestSerialize(t *testing.T) {
 	t.Run("for a valid team", func(t *testing.T) {
 		testTeam := Team{
 			Name: "Kiffix",
@@ -80,7 +80,7 @@ func TestRoster(t *testing.T) {
 			},
 		}
 
-		got, err := testTeam.Roster()
+		got, err := testTeam.serialize()
 		assert.NoError(t, err)
 
 		expected := `# Fluidkeys team roster
@@ -118,7 +118,7 @@ name = "Kiffix"
 			},
 		}
 
-		got, err := testTeam.Roster()
+		got, err := testTeam.serialize()
 		assert.NoError(t, err)
 
 		expected := `# Fluidkeys team roster
@@ -149,7 +149,7 @@ name = "Kiffix"
 			People: []Person{person, person},
 		}
 
-		_, err := testTeam.Roster()
+		_, err := testTeam.serialize()
 		assert.GotError(t, err)
 	})
 }

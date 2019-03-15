@@ -136,7 +136,7 @@ Join now:
 }
 
 func promptAndSignAndUploadRoster(t team.Team, key *pgpkey.PgpKey) (err error) {
-	unsignedRoster, err := t.Roster()
+	unsignedRoster, err := t.PreviewRoster()
 	if err != nil {
 		return err
 	}

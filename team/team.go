@@ -71,7 +71,7 @@ func SignAndSave(team Team, fluidkeysDirectory string, signingKey *pgpkey.PgpKey
 		return "", "", fmt.Errorf("failed to make directory %s", rosterDirectory)
 	}
 
-	roster, err = team.Roster()
+	roster, err = team.serialize()
 	if err != nil {
 		return "", "", err
 	}
