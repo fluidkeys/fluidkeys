@@ -136,7 +136,7 @@ Join now:
 }
 
 func promptAndSignAndUploadRoster(t team.Team, key *pgpkey.PgpKey) (err error) {
-	unsignedRoster, err := t.Roster()
+	unsignedRoster, err := t.PreviewRoster()
 	if err != nil {
 		return err
 	}
@@ -156,8 +156,18 @@ func promptAndSignAndUploadRoster(t team.Team, key *pgpkey.PgpKey) (err error) {
 	var signedRoster, signature string
 
 	if err := ui.RunWithCheckboxes("Create signed team roster", func() error {
-		signedRoster, signature, err = team.SignAndSave(t, fluidkeysDirectory, privateKey)
-		return err
+		if err = t.UpdateRoster(privateKey); err != nil {
+			return err
+		}
+		signedRoster, signature = t.Roster()
+		teamSubdirectory, err := team.Directory(t, fluidkeysDirectory)
+		if err != nil {
+			return err
+		}
+		if err = team.Save(signedRoster, signature, teamSubdirectory); err != nil {
+			return err
+		}
+		return nil
 	}); err != nil {
 		return err
 	}

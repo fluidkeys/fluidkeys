@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -42,57 +43,76 @@ func LoadTeams(fluidkeysDirectory string) ([]Team, error) {
 	return teams, nil
 }
 
-// SignAndSave validates the given team then tries to make a toml team roster in a subdirectory of
-// the given directory with accompanying signature from the signing key.
-// If successful, it returns the roster and signature as strings.
-func SignAndSave(team Team, fluidkeysDirectory string, signingKey *pgpkey.PgpKey) (
-	roster string, signature string, err error) {
-
-	err = team.Validate()
+// Directory returns the team subdirectory
+func Directory(t Team, fluidkeysDirectory string) (directory string, err error) {
+	teamDirectory, err := getTeamDirectory(fluidkeysDirectory)
 	if err != nil {
-		return "", "", fmt.Errorf("invalid team: %v", err)
+		return "", err
+	}
+	return filepath.Join(
+		teamDirectory,    // ~/.config/fluidkeys/teams
+		t.subDirectory(), // fluidkeys-inc-4367436743
+	), nil
+}
+
+// Save writes the given roster and signature to the directory
+func Save(roster string, signature string, directory string) error {
+	if err := os.MkdirAll(directory, 0700); err != nil {
+		return fmt.Errorf("failed to make directory %s", directory)
 	}
 
-	if !team.IsAdmin(signingKey.Fingerprint()) {
-		return "", "", fmt.Errorf("can't sign with key %s that's not an admin of the team",
+	rosterFilename := filepath.Join(directory, "roster.toml")
+	signatureFilename := rosterFilename + ".asc"
+
+	if err := atomic.WriteFile(rosterFilename, bytes.NewBufferString(roster)); err != nil {
+		return fmt.Errorf("failed write team roster: %v", err)
+	}
+	if err := atomic.WriteFile(signatureFilename, bytes.NewBufferString(signature)); err != nil {
+		return fmt.Errorf("failed write signature: %v", err)
+	}
+
+	return nil
+}
+
+// PreviewRoster returns an (unsigned) roster based on the current state of the Team.
+// Use this to preview the effect of any changes to the team, e.g. AddTeam, before actually
+// updating and signing the roster.
+func (t Team) PreviewRoster() (roster string, err error) {
+	return t.serialize()
+}
+
+// UpdateRoster updates and signs the roster based on the state of the team. Subsequent calls to
+// Roster() will return the new roster and signature.
+func (t *Team) UpdateRoster(signingKey *pgpkey.PgpKey) error {
+	if err := t.Validate(); err != nil {
+		return fmt.Errorf("invalid team: %v", err)
+	}
+
+	if !t.IsAdmin(signingKey.Fingerprint()) {
+		return fmt.Errorf("can't sign with key %s that's not an admin of the team",
 			signingKey.Fingerprint())
 	}
 
-	teamsDirectory, err := getTeamDirectory(fluidkeysDirectory)
+	roster, err := t.serialize()
 	if err != nil {
-		return "", "", fmt.Errorf("couldn't get team directory: %v", err)
+		return err
 	}
 
-	rosterDirectory := filepath.Join(
-		teamsDirectory,      // ~/.config/fluidkeys/teams
-		team.subDirectory(), // fluidkeys-inc-4367436743
-	)
-	if err = os.MkdirAll(rosterDirectory, 0700); err != nil {
-		return "", "", fmt.Errorf("failed to make directory %s", rosterDirectory)
-	}
-
-	roster, err = team.Roster()
+	signature, err := signingKey.MakeArmoredDetachedSignature([]byte(roster))
 	if err != nil {
-		return "", "", err
+		return fmt.Errorf("failed to sign team roster: %v", err)
 	}
 
-	rosterFilename := filepath.Join(rosterDirectory, "roster.toml")
-	signatureFilename := rosterFilename + ".asc"
+	t.roster = roster
+	t.signature = signature
 
-	signature, err = signingKey.MakeArmoredDetachedSignature([]byte(roster))
-	if err != nil {
-		return "", "", fmt.Errorf("failed to sign team roster: %v", err)
-	}
+	return nil
+}
 
-	if err = atomic.WriteFile(rosterFilename, bytes.NewBufferString(roster)); err != nil {
-		return "", "", fmt.Errorf("failed write team roster: %v", err)
-	}
-	err = atomic.WriteFile(signatureFilename, bytes.NewBufferString(signature))
-	if err != nil {
-		return "", "", fmt.Errorf("failed write signature: %v", err)
-	}
-
-	return roster, signature, nil
+// Roster returns the TOML file representing the team roster, and the ASCII armored detached
+// signature of that file.
+func (t Team) Roster() (roster string, signature string) {
+	return t.roster, t.signature
 }
 
 // Validate asserts that the team roster has no email addresses or fingerprints that are
@@ -266,6 +286,47 @@ func loadTeamRoster(filename string) (*Team, error) {
 	return team, nil
 }
 
+func (t Team) subDirectory() string {
+	slug := slugify(t.Name)
+
+	if slug == "" {
+		return t.UUID.String()
+	}
+
+	return slug + "-" + t.UUID.String()
+}
+
+func slugify(input string) string {
+	slug := strings.TrimSpace(input)
+	slug = strings.ToLower(slug)
+
+	var subs = map[rune]string{
+		'&': "and",
+		'@': "a",
+	}
+	var buffer bytes.Buffer
+	for _, char := range slug {
+		if subChar, ok := subs[char]; ok {
+			_, err := buffer.WriteString(subChar)
+			if err != nil {
+				log.Panic(err)
+			}
+		} else {
+			_, err := buffer.WriteRune(char)
+			if err != nil {
+				log.Panic(err)
+			}
+		}
+	}
+	slug = buffer.String()
+
+	slug = regexp.MustCompile("[^a-z0-9-_]").ReplaceAllString(slug, "-")
+	slug = regexp.MustCompile("-+").ReplaceAllString(slug, "-")
+	slug = strings.Trim(slug, "-_")
+
+	return slug
+}
+
 func fileExists(filename string) bool {
 	if fileinfo, err := os.Stat(filename); err == nil {
 		// path/to/whatever exists
@@ -279,6 +340,9 @@ type Team struct {
 	UUID   uuid.UUID `toml:"uuid"`
 	Name   string    `toml:"name"`
 	People []Person  `toml:"person"`
+
+	roster    string
+	signature string
 }
 
 // Fingerprints returns the key fingerprints for all people in the team
