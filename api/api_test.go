@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -13,9 +14,12 @@ import (
 	"time"
 
 	"github.com/fluidkeys/api/v1structs"
+	"github.com/fluidkeys/crypto/openpgp"
+	"github.com/fluidkeys/crypto/openpgp/armor"
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/team"
 	"github.com/gofrs/uuid"
 )
@@ -395,6 +399,119 @@ func TestGetTeamName(t *testing.T) {
 	})
 }
 
+func TestGetTeamRoster(t *testing.T) {
+	teamUUID := uuid.Must(uuid.NewV4())
+
+	requesterKey, err := pgpkey.LoadFromArmoredEncryptedPrivateKey(
+		exampledata.ExamplePrivateKey4, "test4",
+	)
+	assert.NoError(t, err)
+
+	expectedRoster := "fake roster"
+	expectedSignature := "fake signature"
+
+	decryptedRosterAndSig := v1structs.TeamRosterAndSignature{
+		TeamRoster:               expectedRoster,
+		ArmoredDetachedSignature: expectedSignature,
+	}
+
+	jsonRosterAndSig, err := json.MarshalIndent(decryptedRosterAndSig, "", "    ")
+	assert.NoError(t, err)
+
+	encryptedJSON, err := encryptToArmor(t, string(jsonRosterAndSig), requesterKey)
+	assert.NoError(t, err)
+
+	client, mux, _, teardown := setup()
+	defer teardown()
+
+	teamRosterResponse, err := json.Marshal(v1structs.GetTeamRosterResponse{
+		EncryptedJSON: encryptedJSON,
+	})
+	assert.NoError(t, err)
+
+	t.Run("decrypts the roster with a valid requester key", func(t *testing.T) {
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentValidAuthHeader(t, requesterKey.Fingerprint(), r.Header)
+			assertClientSentVerb(t, "GET", r.Method)
+			w.Header().Add("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, string(teamRosterResponse))
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/team/%s/roster", teamUUID),
+			mockResponseHandler,
+		)
+
+		gotRoster, gotSignature, err := client.GetTeamRoster(*requesterKey, teamUUID)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedRoster, gotRoster)
+		assert.Equal(t, expectedSignature, gotSignature)
+	})
+
+	t.Run("returns an error given an invalid requester key", func(t *testing.T) {
+		invalidKeyTeamUUID := uuid.Must(uuid.NewV4())
+		invalidRequesterKey, err := pgpkey.LoadFromArmoredEncryptedPrivateKey(
+			exampledata.ExamplePrivateKey2, "test2",
+		)
+		assert.NoError(t, err)
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentValidAuthHeader(t, invalidRequesterKey.Fingerprint(), r.Header)
+			assertClientSentVerb(t, "GET", r.Method)
+			w.Header().Add("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, string(teamRosterResponse))
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/team/%s/roster", invalidKeyTeamUUID),
+			mockResponseHandler,
+		)
+
+		_, _, err = client.GetTeamRoster(*invalidRequesterKey, invalidKeyTeamUUID)
+
+		assert.GotError(t, err)
+		assert.Equal(t,
+			fmt.Errorf("couldn't decrypt json: error reading message: openpgp: incorrect key"), err,
+		)
+	})
+
+	t.Run("404 returns a specific type of error", func(t *testing.T) {
+		unknownUUID := uuid.Must(uuid.NewV4())
+		mockNotFoundResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
+			w.Header().Add("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/team/%s/roster", unknownUUID),
+			mockNotFoundResponseHandler,
+		)
+
+		_, _, err := client.GetTeamRoster(*requesterKey, unknownUUID)
+
+		assert.Equal(t, ErrTeamNotFound, err)
+	})
+
+	t.Run("responds with http 500 (unexpected http code)", func(t *testing.T) {
+		errorUUID := uuid.Must(uuid.NewV4())
+		mockErrorResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
+			w.Header().Add("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/team/%s/roster", errorUUID),
+			mockErrorResponseHandler,
+		)
+
+		_, _, err := client.GetTeamRoster(*requesterKey, errorUUID)
+
+		assert.GotError(t, err)
+		assert.Equal(t, fmt.Errorf("API error: 500"), err)
+	})
+}
+
 func TestRequestToJoinTeam(t *testing.T) {
 	expectedRequest := &v1structs.RequestToJoinTeamRequest{TeamEmail: "jane@example.com"}
 	fingerprint, err := fpr.Parse("ABAB ABAB ABAB ABAB ABAB  ABAB ABAB ABAB ABAB ABAB")
@@ -668,4 +785,41 @@ func assertClientSentVerb(t *testing.T, expectedVerb string, gotVerb string) {
 	if gotVerb != expectedVerb {
 		t.Errorf("Expected request verb: %s, got %s", expectedVerb, gotVerb)
 	}
+}
+
+func assertClientSentValidAuthHeader(t *testing.T, expectedFingerprint fpr.Fingerprint, gotHeader http.Header) {
+	expectedAuthorization := authorization(expectedFingerprint)
+	if gotHeader.Get("authorization") != expectedAuthorization {
+		t.Errorf(
+			"Expected authorization: %s, got %s",
+			expectedAuthorization, gotHeader.Get("authorization"),
+		)
+	}
+}
+
+func encryptToArmor(t *testing.T, decryptedMessage string, pgpKey *pgpkey.PgpKey) (string, error) {
+	t.Helper()
+
+	buffer := bytes.NewBuffer(nil)
+	message, err := armor.Encode(buffer, "PGP MESSAGE", nil)
+	if err != nil {
+		return "", err
+	}
+	pgpWriteCloser, err := openpgp.Encrypt(
+		message,
+		[]*openpgp.Entity{&pgpKey.Entity},
+		nil,
+		nil,
+		nil,
+	)
+	if err != nil {
+		return "", err
+	}
+	_, err = pgpWriteCloser.Write([]byte(decryptedMessage))
+	if err != nil {
+		return "", err
+	}
+	pgpWriteCloser.Close()
+	message.Close()
+	return buffer.String(), nil
 }

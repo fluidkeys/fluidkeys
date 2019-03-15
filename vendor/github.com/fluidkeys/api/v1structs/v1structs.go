@@ -90,7 +90,10 @@ type GetTeamResponse struct {
 }
 
 // UpsertTeamRequest is the JSON structure containing a signed team roster.
-type UpsertTeamRequest struct {
+type UpsertTeamRequest = TeamRosterAndSignature
+
+// TeamRosterAndSignature contains a TOML team roster and an armored detached OpenPGP signature.
+type TeamRosterAndSignature struct {
 	// TeamRoster describes the members and configuration of a team.
 	// See github.com/fluidkeys/fluidkeys/teamroster
 	TeamRoster string `json:"teamRoster"`
@@ -120,6 +123,14 @@ type RequestToJoinTeam struct {
 	UUID        string `json:"uuid"`
 	Fingerprint string `json:"fingerprint"`
 	Email       string `json:"email"`
+}
+
+// GetTeamRosterResponse is the JSON structure containing the team's roster and detached signature,
+// encrypted to the key that requested it.
+type GetTeamRosterResponse struct {
+	// EncryptedMetadata is an ASCII-armored encrypted PGP message which decrypts to a
+	// `TeamRosterAndSignature` JSON structure.
+	EncryptedJSON string `json:"encryptedJSON"`
 }
 
 // ErrorResponse is the JSON structure returned when the API encounters an
