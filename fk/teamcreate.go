@@ -153,32 +153,50 @@ func promptAndSignAndUploadRoster(t team.Team, key *pgpkey.PgpKey) (err error) {
 		return fmt.Errorf("Failed to unlock private key to sign roster: %v", err)
 	}
 
-	var signedRoster, signature string
+	const (
+		checkboxSign   = "Created signed team roster"
+		checkboxUpload = "Upload team roster to Fluidkeys"
+	)
 
-	if err := ui.RunWithCheckboxes("Create signed team roster", func() error {
-		if err = t.UpdateRoster(privateKey); err != nil {
-			return err
-		}
-		signedRoster, signature = t.Roster()
-		teamSubdirectory, err := team.Directory(t, fluidkeysDirectory)
-		if err != nil {
-			return err
-		}
-		if err = team.Save(signedRoster, signature, teamSubdirectory); err != nil {
-			return err
-		}
-		return nil
-	}); err != nil {
+	failSign := func(err error) error {
+		ui.PrintCheckboxFailure(checkboxSign, err)
 		return err
+	}
+	failUpload := func(err error) error {
+		ui.PrintCheckboxFailure(checkboxUpload, err)
+		return err
+	}
+
+	ui.PrintCheckboxPending(checkboxSign)
+
+	if err = t.UpdateRoster(privateKey); err != nil {
+		return failSign(err)
+	}
+	signedRoster, signature := t.Roster()
+	teamSubdirectory, err := team.Directory(t, fluidkeysDirectory)
+	if err != nil {
+		return failSign(err)
+	}
+
+	rosterSaver := team.RosterSaver{Directory: teamSubdirectory}
+	if err = rosterSaver.SaveDraft(signedRoster, signature); err != nil {
+		return failSign(err)
+	}
+
+	ui.PrintCheckboxPending(checkboxSign)
+
+	if err := client.UpsertTeam(signedRoster, signature, privateKey.Fingerprint()); err != nil {
+		rosterSaver.DiscardDraft()
+		return failUpload(err)
+	}
+
+	if err := rosterSaver.CommitDraft(); err != nil {
+		return failSign(err)
 	}
 	// align to checkbox indent
+	ui.PrintCheckboxSuccess(checkboxSign)
 	out.Print("         " + filepath.Join(fluidkeysDirectory, "teams") + "\n")
-
-	if err := ui.RunWithCheckboxes("Upload team roster to Fluidkeys", func() error {
-		return client.UpsertTeam(signedRoster, signature, privateKey.Fingerprint())
-	}); err != nil {
-		return err
-	}
+	ui.PrintCheckboxSuccess(checkboxUpload)
 
 	return nil
 }
