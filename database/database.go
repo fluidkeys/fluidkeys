@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -138,6 +139,28 @@ func (db *Database) GetRequestsToJoinTeams() (requests []team.RequestToJoinTeam,
 		})
 	}
 	return requests, nil
+}
+
+// DeleteRequestToJoinTeam deletes all requests to join the team matching the given team UUID and
+// fingerprint.
+func (db *Database) DeleteRequestToJoinTeam(teamUUID uuid.UUID, fingerprint fpr.Fingerprint) error {
+	message, err := db.loadFromFile()
+	if err != nil {
+		return err
+	}
+
+	newRequests := []RequestToJoinTeamMessage{}
+
+	for _, req := range message.RequestsToJoinTeams {
+		if req.TeamUUID == teamUUID && req.Fingerprint == fingerprint {
+			log.Printf("deleting request to join team: %v", req)
+			continue
+		}
+
+		newRequests = append(newRequests, req)
+	}
+	message.RequestsToJoinTeams = newRequests
+	return db.saveToFile(*message)
 }
 
 func (db *Database) loadFromFile() (message *Message, err error) {

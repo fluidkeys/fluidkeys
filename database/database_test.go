@@ -193,6 +193,67 @@ func TestGetRequestsToJoinTeams(t *testing.T) {
 
 }
 
+func TestDeleteRequestToJoinTeam(t *testing.T) {
+	now := time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
+	later := now.Add(time.Duration(10) * time.Minute)
+
+	req1 := team.RequestToJoinTeam{
+		TeamUUID:    uuid.Must(uuid.NewV4()),
+		Fingerprint: exampledata.ExampleFingerprint2,
+		RequestedAt: now,
+	}
+
+	req2 := team.RequestToJoinTeam{
+		TeamUUID:    req1.TeamUUID,
+		Fingerprint: req1.Fingerprint,
+		RequestedAt: later,
+	}
+
+	req3 := team.RequestToJoinTeam{
+		TeamUUID:    req1.TeamUUID,
+		Fingerprint: exampledata.ExampleFingerprint3, // same team, different fingerprint
+		RequestedAt: now,
+	}
+
+	req4 := team.RequestToJoinTeam{
+		TeamUUID:    uuid.Must(uuid.NewV4()),
+		Fingerprint: exampledata.ExampleFingerprint3, // same fingerprint, different team
+		RequestedAt: now,
+	}
+
+	database := New(makeTempDirectory(t))
+
+	t.Run("set up the database ", func(t *testing.T) {
+		assert.NoError(t, database.RecordRequestToJoinTeam(
+			req1.TeamUUID, "", req1.Fingerprint, req1.RequestedAt,
+		))
+
+		assert.NoError(t, database.RecordRequestToJoinTeam(
+			req2.TeamUUID, "", req2.Fingerprint, req2.RequestedAt,
+		))
+
+		assert.NoError(t, database.RecordRequestToJoinTeam(
+			req3.TeamUUID, "", req3.Fingerprint, req3.RequestedAt,
+		))
+
+		assert.NoError(t, database.RecordRequestToJoinTeam(
+			req4.TeamUUID, "", req4.Fingerprint, req4.RequestedAt,
+		))
+
+	})
+
+	t.Run("deletes all requests matching the team UUID and fingerprint", func(t *testing.T) {
+		assert.NoError(t, database.DeleteRequestToJoinTeam(req1.TeamUUID, req1.Fingerprint))
+
+		gotRequests, err := database.GetRequestsToJoinTeams()
+		assert.NoError(t, err)
+
+		expectedRequests := []team.RequestToJoinTeam{req3, req4}
+		assert.Equal(t, expectedRequests, gotRequests)
+	})
+
+}
+
 func TestDeduplicateKeyImportedIntoGnuPGMessages(t *testing.T) {
 
 	slice := []KeyImportedIntoGnuPGMessage{
