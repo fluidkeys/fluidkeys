@@ -77,19 +77,15 @@ func TestRecordRequestsToJoinTeamG(t *testing.T) {
 	request1 := team.RequestToJoinTeam{
 		TeamUUID:    uuid.Must(uuid.NewV4()),
 		TeamName:    "Example",
-		UUID:        uuid.UUID{}, // empty *request* UUID, we don't store that
 		Fingerprint: fingerprint,
 		RequestedAt: now,
-		Email:       "",
 	}
 
 	request2 := team.RequestToJoinTeam{
 		TeamUUID:    uuid.Must(uuid.NewV4()),
 		TeamName:    "Example",
-		UUID:        uuid.UUID{}, // empty *request* UUID, we don't store that
 		Fingerprint: exampledata.ExampleFingerprint3,
 		RequestedAt: later,
-		Email:       "",
 	}
 
 	t.Run("record works to an empty database", func(t *testing.T) {
@@ -164,10 +160,8 @@ func TestGetRequestsToJoinTeams(t *testing.T) {
 
 	request1 := team.RequestToJoinTeam{
 		TeamUUID:    uuid.Must(uuid.NewV4()),
-		UUID:        uuid.UUID{}, // empty *request* UUID, we don't store that
 		Fingerprint: fingerprint,
 		RequestedAt: now,
-		Email:       "",
 	}
 
 	t.Run("can read back requests to join team written to database", func(t *testing.T) {
@@ -255,28 +249,22 @@ func TestGetExistingRequestToJoinTeam(t *testing.T) {
 
 	request1 := team.RequestToJoinTeam{
 		TeamUUID:    team1UUID,
-		UUID:        uuid.UUID{}, // empty *request* UUID, we don't store that
 		Fingerprint: exampleFingerprintA,
 		RequestedAt: now,
-		Email:       "",
 	}
 
 	request2 := team.RequestToJoinTeam{
 		TeamUUID:    team1UUID,
-		UUID:        uuid.UUID{}, // empty *request* UUID, we don't store that
 		Fingerprint: exampleFingerprintB,
 		RequestedAt: now,
-		Email:       "",
 	}
 
 	team2UUID := uuid.Must(uuid.NewV4())
 
 	request3 := team.RequestToJoinTeam{
 		TeamUUID:    team2UUID,
-		UUID:        uuid.UUID{}, // empty *request* UUID, we don't store that
 		Fingerprint: exampleFingerprintA,
 		RequestedAt: now,
-		Email:       "",
 	}
 
 	t.Run("gets the request for the matching teamUUID and fingerprint", func(t *testing.T) {
