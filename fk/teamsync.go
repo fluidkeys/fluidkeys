@@ -20,6 +20,7 @@ package fk
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/fluidkeys/fluidkeys/api"
 	"github.com/fluidkeys/fluidkeys/colour"
@@ -31,6 +32,57 @@ import (
 )
 
 func teamSync() exitCode {
+	requestsToJoinTeams, err := db.GetRequestsToJoinTeams()
+	if err != nil {
+		out.Print(ui.FormatFailure("Failed to get requests to join teams", nil, err))
+	}
+
+	seenError := false
+
+	for _, requestToJoinTeam := range requestsToJoinTeams {
+		key, err := loadPgpKey(requestToJoinTeam.Fingerprint)
+		if err != nil {
+			out.Print(ui.FormatFailure("Failed to load requesting key", nil, err))
+			seenError = true
+			continue
+		}
+
+		passwordPrompter := interactivePasswordPrompter{}
+		unlockedKey, _, err := getDecryptedPrivateKeyAndPassword(key, &passwordPrompter)
+		if err != nil {
+			out.Print(ui.FormatFailure("Failed to unlock private key", nil, err))
+			seenError = true
+			continue
+		}
+
+		roster, signature, err := client.GetTeamRoster(*unlockedKey, requestToJoinTeam.TeamUUID)
+		if err != nil {
+			out.Print(ui.FormatFailure("Failed to get roster", nil, err))
+			seenError = true
+			continue
+		}
+
+		t, err := team.Parse(strings.NewReader(roster))
+		if err != nil {
+			out.Print(ui.FormatFailure("Failed to parse roster", nil, err))
+			seenError = true
+			continue
+		}
+
+		teamSubdirectory, err := team.Directory(*t, fluidkeysDirectory)
+		if err != nil {
+			out.Print(ui.FormatFailure("Failed to get team subdirectory", nil, err))
+			seenError = true
+			continue
+		}
+		team.Save(roster, signature, teamSubdirectory)
+		ui.PrintCheckboxSuccess("Joined team " + t.Name)
+	}
+
+	if seenError {
+		return 1
+	}
+
 	teams, err := team.LoadTeams(fluidkeysDirectory)
 	if err != nil {
 		log.Panic(err)
