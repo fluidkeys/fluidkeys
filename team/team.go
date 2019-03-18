@@ -15,7 +15,6 @@ import (
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/gofrs/uuid"
-	"github.com/natefinch/atomic"
 )
 
 // LoadTeams scans the fluidkeys/teams directory for subdirectories, enters them and tries to load
@@ -54,25 +53,6 @@ func Directory(t Team, fluidkeysDirectory string) (directory string, err error) 
 		teamDirectory,    // ~/.config/fluidkeys/teams
 		t.subDirectory(), // fluidkeys-inc-4367436743
 	), nil
-}
-
-// Save writes the given roster and signature to the directory
-func Save(roster string, signature string, directory string) error {
-	if err := os.MkdirAll(directory, 0700); err != nil {
-		return fmt.Errorf("failed to make directory %s", directory)
-	}
-
-	rosterFilename := filepath.Join(directory, "roster.toml")
-	signatureFilename := rosterFilename + ".asc"
-
-	if err := atomic.WriteFile(rosterFilename, bytes.NewBufferString(roster)); err != nil {
-		return fmt.Errorf("failed write team roster: %v", err)
-	}
-	if err := atomic.WriteFile(signatureFilename, bytes.NewBufferString(signature)); err != nil {
-		return fmt.Errorf("failed write signature: %v", err)
-	}
-
-	return nil
 }
 
 // Admins returns the People who have IsAdmin set to true
