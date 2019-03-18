@@ -123,3 +123,14 @@ func fetchAdminPublicKeys(t team.Team) (adminKeys []*pgpkey.PgpKey, err error) {
 	}
 	return adminKeys, nil
 }
+
+// verifyBrandNewRoster fetches the public keys of the admins in the team and verifies the roster
+// against them.
+func verifyBrandNewRoster(t team.Team, roster string, signature string) error {
+	adminKeys, err := fetchAdminPublicKeys(t)
+	if err != nil {
+		return err
+	}
+
+	return team.VerifyRoster(roster, signature, adminKeys)
+}
