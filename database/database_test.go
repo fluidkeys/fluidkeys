@@ -254,6 +254,53 @@ func TestDeleteRequestToJoinTeam(t *testing.T) {
 
 }
 
+func TestGetRequestsToJoinTeam(t *testing.T) {
+	now := time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
+
+	team1UUID := uuid.Must(uuid.NewV4())
+
+	request1 := team.RequestToJoinTeam{
+		TeamUUID:    team1UUID,
+		UUID:        uuid.UUID{}, // empty *request* UUID, we don't store that
+		Fingerprint: exampleFingerprintA,
+		RequestedAt: now,
+		Email:       "",
+	}
+
+	request2 := team.RequestToJoinTeam{
+		TeamUUID:    team1UUID,
+		UUID:        uuid.UUID{}, // empty *request* UUID, we don't store that
+		Fingerprint: exampleFingerprintB,
+		RequestedAt: now,
+		Email:       "",
+	}
+
+	team2UUID := uuid.Must(uuid.NewV4())
+
+	request3 := team.RequestToJoinTeam{
+		TeamUUID:    team2UUID,
+		UUID:        uuid.UUID{}, // empty *request* UUID, we don't store that
+		Fingerprint: exampleFingerprintC,
+		RequestedAt: now,
+		Email:       "",
+	}
+
+	expectedRequests := []team.RequestToJoinTeam{request1, request2}
+
+	t.Run("can read back requests to join a specific team", func(t *testing.T) {
+		database := New(makeTempDirectory(t))
+
+		addRequestToJoinToDatabase(t, request1, database)
+		addRequestToJoinToDatabase(t, request2, database)
+		addRequestToJoinToDatabase(t, request3, database)
+
+		gotRequests, err := database.GetRequestsToJoinTeam(team1UUID)
+		assert.NoError(t, err)
+		assert.Equal(t, expectedRequests, gotRequests)
+	})
+
+}
+
 func TestDeduplicateKeyImportedIntoGnuPGMessages(t *testing.T) {
 
 	slice := []KeyImportedIntoGnuPGMessage{
@@ -282,6 +329,16 @@ func makeTempDirectory(t *testing.T) string {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
 	return dir
+}
+
+func addRequestToJoinToDatabase(t *testing.T, request team.RequestToJoinTeam, database Database) {
+	t.Helper()
+	assert.NoError(t, database.RecordRequestToJoinTeam(
+		request.TeamUUID,
+		request.TeamName,
+		request.Fingerprint,
+		request.RequestedAt,
+	))
 }
 
 func assertContainsFingerprint(t *testing.T, slice []fpr.Fingerprint, element fpr.Fingerprint) {
