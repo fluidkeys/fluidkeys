@@ -20,6 +20,7 @@ package team
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"testing"
@@ -180,7 +181,36 @@ func TestDiscardDraft(t *testing.T) {
 		if fileExists(signatureTmpFilename) {
 			t.Fatalf("discard hasn't deleted %s", signatureTmpFilename)
 		}
+	})
 
+	t.Run("deletes directory if it's empty", func(t *testing.T) {
+		rosterSaver := makeRosterSaveInTmpDirectory(t)
+
+		rosterSaver.SaveDraft("roster", "signature")
+
+		assert.Equal(t, true, directoryExists(rosterSaver.Directory))
+
+		err := rosterSaver.DiscardDraft() // should delete rosterSaver.Directory
+		assert.NoError(t, err)
+
+		assert.Equal(t, false, directoryExists(rosterSaver.Directory))
+	})
+
+	t.Run("doesn't delete directory if it's not empty", func(t *testing.T) {
+		rosterSaver := makeRosterSaveInTmpDirectory(t)
+
+		assert.NoError(t,
+			ioutil.WriteFile(filepath.Join(rosterSaver.Directory, "file.txt"), []byte{}, 0600),
+		)
+
+		rosterSaver.SaveDraft("roster", "signature")
+
+		assert.Equal(t, true, directoryExists(rosterSaver.Directory))
+
+		err := rosterSaver.DiscardDraft() // should *not* delete non-empty rosterSaver.Directory
+		assert.NoError(t, err)
+
+		assert.Equal(t, true, directoryExists(rosterSaver.Directory))
 	})
 }
 
@@ -198,4 +228,17 @@ func readFile(t *testing.T, filename string) string {
 	content, err := ioutil.ReadFile(filename)
 	assert.NoError(t, err)
 	return string(content)
+}
+
+func directoryExists(directory string) bool {
+	fileInfo, err := os.Stat(directory)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("directory doesn't exist: %s", directory)
+			return false
+		}
+		log.Printf("os.Stat(%s) error: %v", directory, err)
+		return false
+	}
+	return fileInfo.IsDir()
 }
