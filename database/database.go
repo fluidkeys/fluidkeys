@@ -49,6 +49,7 @@ type KeyImportedIntoGnuPGMessage struct {
 // RequestToJoinTeamMessage records a request to join a team.
 type RequestToJoinTeamMessage struct {
 	TeamUUID    uuid.UUID       `json: "TeamUUID"`
+	TeamName    string          `json: "TeamName"`
 	Fingerprint fpr.Fingerprint `json: "Fingerprint"`
 	RequestedAt time.Time       `json: "RequestedAt"`
 }
@@ -81,7 +82,7 @@ func (db *Database) RecordFingerprintImportedIntoGnuPG(newFingerprint fpr.Finger
 // RecordRequestToJoinTeam takes a given request to join a team and records that it's been
 // sent by writing an updated json database.
 func (db *Database) RecordRequestToJoinTeam(
-	teamUUID uuid.UUID, fingerprint fpr.Fingerprint, now time.Time) error {
+	teamUUID uuid.UUID, teamName string, fingerprint fpr.Fingerprint, now time.Time) error {
 
 	message, err := db.loadFromFile()
 	if err != nil {
@@ -90,6 +91,7 @@ func (db *Database) RecordRequestToJoinTeam(
 
 	newRequest := RequestToJoinTeamMessage{
 		TeamUUID:    teamUUID,
+		TeamName:    teamName,
 		Fingerprint: fingerprint,
 		RequestedAt: now,
 	}
@@ -130,6 +132,7 @@ func (db *Database) GetRequestsToJoinTeams() (requests []team.RequestToJoinTeam,
 	for _, msg := range message.RequestsToJoinTeams {
 		requests = append(requests, team.RequestToJoinTeam{
 			TeamUUID:    msg.TeamUUID,
+			TeamName:    msg.TeamName,
 			Fingerprint: msg.Fingerprint,
 			RequestedAt: msg.RequestedAt,
 		})

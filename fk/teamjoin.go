@@ -55,7 +55,7 @@ func teamJoin(teamUUID uuid.UUID) exitCode {
 	action := "Request to join " + teamName
 	ui.PrintCheckboxPending("action")
 
-	if err := requestToJoinTeam(teamUUID, pgpKey.Fingerprint(), email); err != nil {
+	if err := requestToJoinTeam(teamUUID, teamName, pgpKey.Fingerprint(), email); err != nil {
 		ui.PrintCheckboxFailure(action, err)
 		return 1
 	}
@@ -69,8 +69,10 @@ func teamJoin(teamUUID uuid.UUID) exitCode {
 
 }
 
-func requestToJoinTeam(teamUUID uuid.UUID, fingerprint fpr.Fingerprint, email string) error {
-	if err := db.RecordRequestToJoinTeam(teamUUID, fingerprint, time.Now()); err != nil {
+func requestToJoinTeam(
+	teamUUID uuid.UUID, teamName string, fingerprint fpr.Fingerprint, email string) error {
+
+	if err := db.RecordRequestToJoinTeam(teamUUID, teamName, fingerprint, time.Now()); err != nil {
 		return err
 	}
 	if err := client.RequestToJoinTeam(teamUUID, fingerprint, email); err != nil {

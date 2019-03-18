@@ -375,6 +375,7 @@ func (p Person) emailMatches(other Person) bool {
 type RequestToJoinTeam struct {
 	UUID        uuid.UUID
 	TeamUUID    uuid.UUID
+	TeamName    string
 	Email       string
 	Fingerprint fpr.Fingerprint
 	// RequestAt is the moment at which the local client made the request
