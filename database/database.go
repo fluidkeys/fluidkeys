@@ -141,6 +141,7 @@ func (db *Database) GetRequestsToJoinTeams() (requests []team.RequestToJoinTeam,
 	return requests, nil
 }
 
+// GetExistingRequestToJoinTeam returns a single request based on the teamUUID and fingerprint.
 func (db *Database) GetExistingRequestToJoinTeam(teamUUID uuid.UUID, fingerprint fpr.Fingerprint) (
 	request *team.RequestToJoinTeam, err error) {
 
@@ -241,5 +242,7 @@ func deduplicateKeyImportedIntoGnuPGMessages(slice []KeyImportedIntoGnuPGMessage
 }
 
 var (
-	ErrRequestNotFound = fmt.Errorf("No request to join team with that fingerprint found")
+	// ErrRequestNotFound is returned when a request to join a team is not found matching the given
+	// team UUID and fingerprint
+	ErrRequestNotFound = fmt.Errorf("no request to join team with that fingerprint found")
 )
