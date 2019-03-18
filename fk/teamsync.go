@@ -20,6 +20,7 @@ package fk
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/fluidkeys/fluidkeys/api"
 	"github.com/fluidkeys/fluidkeys/colour"
@@ -65,6 +66,11 @@ func teamSync() exitCode {
 	out.Print("\n")
 	printSuccess("Fetched keys for " + humanize.Pluralize(len(teams), "team", "teams") + ".")
 	return 0
+}
+
+func formatYouRequestedToJoin(request team.RequestToJoinTeam) string {
+	return "You requested to join " + request.TeamName + " " +
+		humanize.RoughDuration(time.Now().Sub(request.RequestedAt)) + " ago."
 }
 
 func getAndImportKeyToGpg(fingerprint fp.Fingerprint) error {
