@@ -78,6 +78,7 @@ func TestRecordRequestsToJoinTeamG(t *testing.T) {
 
 	request1 := team.RequestToJoinTeam{
 		TeamUUID:    uuid.Must(uuid.NewV4()),
+		TeamName:    "Example",
 		UUID:        uuid.UUID{}, // empty *request* UUID, we don't store that
 		Fingerprint: fingerprint,
 		RequestedAt: now,
@@ -86,6 +87,7 @@ func TestRecordRequestsToJoinTeamG(t *testing.T) {
 
 	request2 := team.RequestToJoinTeam{
 		TeamUUID:    uuid.Must(uuid.NewV4()),
+		TeamName:    "Example",
 		UUID:        uuid.UUID{}, // empty *request* UUID, we don't store that
 		Fingerprint: exampledata.ExampleFingerprint3,
 		RequestedAt: later,
@@ -96,6 +98,7 @@ func TestRecordRequestsToJoinTeamG(t *testing.T) {
 		database := New(makeTempDirectory(t))
 		err := database.RecordRequestToJoinTeam(
 			request1.TeamUUID,
+			request1.TeamName,
 			request1.Fingerprint,
 			request1.RequestedAt)
 
@@ -117,12 +120,14 @@ func TestRecordRequestsToJoinTeamG(t *testing.T) {
 
 		err := database.RecordRequestToJoinTeam(
 			request1.TeamUUID,
+			request1.TeamName,
 			request1.Fingerprint,
 			request1.RequestedAt,
 		)
 		assert.NoError(t, err)
 		err = database.RecordRequestToJoinTeam(
 			request2.TeamUUID,
+			request1.TeamName,
 			request2.Fingerprint,
 			request2.RequestedAt,
 		)
@@ -144,6 +149,7 @@ func TestRecordRequestsToJoinTeamG(t *testing.T) {
 
 		err = database.RecordRequestToJoinTeam(
 			request1.TeamUUID,
+			request1.TeamName,
 			request1.Fingerprint,
 			request1.RequestedAt,
 		)
@@ -173,6 +179,7 @@ func TestGetRequestsToJoinTeams(t *testing.T) {
 		t.Run("set up the database ", func(t *testing.T) {
 			err := database.RecordRequestToJoinTeam(
 				request1.TeamUUID,
+				request1.TeamName,
 				request1.Fingerprint,
 				request1.RequestedAt,
 			)
