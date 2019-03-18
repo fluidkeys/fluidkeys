@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fluidkeys/crypto/openpgp"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/gofrs/uuid"
@@ -82,6 +83,29 @@ func (t Team) Admins() (admins []Person) {
 		}
 	}
 	return admins
+}
+
+// VerifyRoster cryptographically checks the signature against the roster, using the given
+// signing keys
+func VerifyRoster(roster string, signature string, adminKeys []*pgpkey.PgpKey) error {
+	if signature == "" {
+		return fmt.Errorf("empty signature")
+	}
+	var keyring openpgp.EntityList
+
+	for i := range adminKeys {
+		key := adminKeys[i]
+		keyring = append(keyring, &key.Entity)
+	}
+
+	if _, err := openpgp.CheckArmoredDetachedSignature(
+		keyring,
+		strings.NewReader(roster),
+		strings.NewReader(signature),
+	); err != nil {
+		return err
+	}
+	return nil
 }
 
 // PreviewRoster returns an (unsigned) roster based on the current state of the Team.
