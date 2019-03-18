@@ -158,28 +158,64 @@ func TestRecordRequestsToJoinTeamG(t *testing.T) {
 func TestGetRequestsToJoinTeams(t *testing.T) {
 	fingerprint := exampledata.ExampleFingerprint2
 
-	request1 := team.RequestToJoinTeam{
+	newestReq := team.RequestToJoinTeam{
 		TeamUUID:    uuid.Must(uuid.NewV4()),
+		Fingerprint: fingerprint,
+		RequestedAt: later,
+	}
+
+	oldestReq := team.RequestToJoinTeam{
+		TeamUUID:    newestReq.TeamUUID,
 		Fingerprint: fingerprint,
 		RequestedAt: now,
 	}
 
-	t.Run("can read back requests to join team written to database", func(t *testing.T) {
+	anotherReq := team.RequestToJoinTeam{
+		TeamUUID:    uuid.Must(uuid.NewV4()),
+		Fingerprint: fingerprint,
+		RequestedAt: evenLater,
+	}
+
+	t.Run("get requests returns de-duplicated requests", func(t *testing.T) {
 		database := New(makeTempDirectory(t))
 
-		t.Run("set up the database ", func(t *testing.T) {
-			err := database.RecordRequestToJoinTeam(
-				request1.TeamUUID,
-				request1.TeamName,
-				request1.Fingerprint,
-				request1.RequestedAt,
-			)
-			assert.NoError(t, err)
-		})
+		addRequestToJoinToDatabase(t, newestReq, database)
+		addRequestToJoinToDatabase(t, oldestReq, database)
+		addRequestToJoinToDatabase(t, anotherReq, database)
 
 		gotRequests, err := database.GetRequestsToJoinTeams()
 		assert.NoError(t, err)
-		assertContainsRequest(t, gotRequests, request1)
+
+		expectedRequests := []team.RequestToJoinTeam{oldestReq, anotherReq}
+		assert.Equal(t, len(expectedRequests), len(gotRequests))
+		assert.Equal(t, expectedRequests, gotRequests)
+	})
+
+	t.Run("returns oldest when newest was inserted first", func(t *testing.T) {
+		database := New(makeTempDirectory(t))
+		addRequestToJoinToDatabase(t, newestReq, database)
+		addRequestToJoinToDatabase(t, oldestReq, database)
+
+		gotRequests, err := database.GetRequestsToJoinTeams()
+		assert.NoError(t, err)
+
+		expectedRequests := []team.RequestToJoinTeam{oldestReq}
+		assert.Equal(t, len(expectedRequests), len(gotRequests))
+		assert.Equal(t, expectedRequests, gotRequests)
+	})
+
+	t.Run("returns oldest when oldest was inserted first", func(t *testing.T) {
+		database := New(makeTempDirectory(t))
+
+		addRequestToJoinToDatabase(t, oldestReq, database)
+		addRequestToJoinToDatabase(t, newestReq, database)
+
+		gotRequests, err := database.GetRequestsToJoinTeams()
+		assert.NoError(t, err)
+
+		expectedRequests := []team.RequestToJoinTeam{oldestReq}
+		assert.Equal(t, len(expectedRequests), len(gotRequests))
+		assert.Equal(t, expectedRequests, gotRequests)
 	})
 
 }
@@ -207,28 +243,16 @@ func TestDeleteRequestToJoinTeam(t *testing.T) {
 	req4 := team.RequestToJoinTeam{
 		TeamUUID:    uuid.Must(uuid.NewV4()),
 		Fingerprint: exampledata.ExampleFingerprint3, // same fingerprint, different team
-		RequestedAt: now,
+		RequestedAt: later,                           // later than req3 so it sorts consistently
 	}
 
 	database := New(makeTempDirectory(t))
 
 	t.Run("set up the database ", func(t *testing.T) {
-		assert.NoError(t, database.RecordRequestToJoinTeam(
-			req1.TeamUUID, "", req1.Fingerprint, req1.RequestedAt,
-		))
-
-		assert.NoError(t, database.RecordRequestToJoinTeam(
-			req2.TeamUUID, "", req2.Fingerprint, req2.RequestedAt,
-		))
-
-		assert.NoError(t, database.RecordRequestToJoinTeam(
-			req3.TeamUUID, "", req3.Fingerprint, req3.RequestedAt,
-		))
-
-		assert.NoError(t, database.RecordRequestToJoinTeam(
-			req4.TeamUUID, "", req4.Fingerprint, req4.RequestedAt,
-		))
-
+		addRequestToJoinToDatabase(t, req1, database)
+		addRequestToJoinToDatabase(t, req2, database)
+		addRequestToJoinToDatabase(t, req3, database)
+		addRequestToJoinToDatabase(t, req4, database)
 	})
 
 	t.Run("deletes all requests matching the team UUID and fingerprint", func(t *testing.T) {
@@ -253,6 +277,12 @@ func TestGetExistingRequestToJoinTeam(t *testing.T) {
 		RequestedAt: now,
 	}
 
+	request1Dupe := team.RequestToJoinTeam{
+		TeamUUID:    team1UUID,
+		Fingerprint: exampleFingerprintA,
+		RequestedAt: later,
+	}
+
 	request2 := team.RequestToJoinTeam{
 		TeamUUID:    team1UUID,
 		Fingerprint: exampleFingerprintB,
@@ -267,10 +297,11 @@ func TestGetExistingRequestToJoinTeam(t *testing.T) {
 		RequestedAt: now,
 	}
 
-	t.Run("gets the request for the matching teamUUID and fingerprint", func(t *testing.T) {
+	t.Run("gets the earliest request for matching teamUUID and fingerprint", func(t *testing.T) {
 		database := New(makeTempDirectory(t))
 
 		addRequestToJoinToDatabase(t, request1, database)
+		addRequestToJoinToDatabase(t, request1Dupe, database)
 		addRequestToJoinToDatabase(t, request2, database)
 		addRequestToJoinToDatabase(t, request3, database)
 
@@ -366,8 +397,9 @@ func containsRequest(s []team.RequestToJoinTeam, e team.RequestToJoinTeam) bool 
 }
 
 var (
-	now   = time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
-	later = now.Add(time.Duration(1) * time.Hour)
+	now       = time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
+	later     = now.Add(time.Duration(1) * time.Hour)
+	evenLater = now.Add(time.Duration(2) * time.Hour)
 )
 
 var exampleFingerprintA = fpr.MustParse("AAAA AAAA AAAA AAAA AAAA  AAAA AAAA AAAA AAAA AAAA")
