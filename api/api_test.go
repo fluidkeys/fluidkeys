@@ -476,7 +476,7 @@ func TestGetTeamRoster(t *testing.T) {
 		)
 	})
 
-	t.Run("404 returns a specific type of error", func(t *testing.T) {
+	t.Run("404 returns ErrTeamNotFound", func(t *testing.T) {
 		unknownUUID := uuid.Must(uuid.NewV4())
 		mockNotFoundResponseHandler := func(w http.ResponseWriter, r *http.Request) {
 			assertClientSentVerb(t, "GET", r.Method)
