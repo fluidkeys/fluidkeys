@@ -44,6 +44,10 @@ func teamJoin(teamUUID uuid.UUID) exitCode {
 		return code
 	}
 
+	if exitCode := ensureNoExistingRequests(teamUUID, pgpKey.Fingerprint()); exitCode != 0 {
+		return exitCode
+	}
+
 	email, err := pgpKey.Email()
 	if err != nil {
 		out.Print(ui.FormatFailure("Error getting email for key", nil, err))
@@ -67,6 +71,26 @@ func teamJoin(teamUUID uuid.UUID) exitCode {
 		"start working.\n\n")
 	return 0
 
+}
+
+func ensureNoExistingRequests(teamUUID uuid.UUID, fingerprint fpr.Fingerprint) exitCode {
+	existingRequest, err := db.GetExistingRequestToJoinTeam(teamUUID, fingerprint)
+	if err != nil {
+		out.Print(ui.FormatFailure("Failed to check for existing requests", nil, err))
+		return 1
+	}
+	if existingRequest != nil {
+		out.Print(ui.FormatWarning(
+			"You've already requested to join "+existingRequest.TeamName,
+			[]string{
+				formatYouRequestedToJoin(*existingRequest),
+				"The admin hasn't authorized this yet.",
+			},
+			nil,
+		))
+		return 1
+	}
+	return 0
 }
 
 func requestToJoinTeam(
