@@ -20,9 +20,6 @@ package team
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/fluidkeys/crypto/openpgp"
@@ -302,67 +299,6 @@ func TestGetPersonForFingerprint(t *testing.T) {
 			"EEEEFFFFEEEEFFFFEEEEFFFFEEEEFFFFEEEEFFFF"))
 
 		assert.Equal(t, fmt.Errorf("person not found"), err)
-	})
-}
-
-func TestSave(t *testing.T) {
-	dir, err := ioutil.TempDir("", "fluidkey.team_test_directory.")
-	assert.NoError(t, err)
-
-	teamSubdir := filepath.Join(
-		dir, "teams", "kiffix-74bb40b4-3510-11e9-968e-53c38df634be",
-	)
-	rosterFilename := filepath.Join(teamSubdir, "roster.toml")
-	signatureFilename := filepath.Join(teamSubdir, "roster.toml.asc")
-
-	t.Run("for a valid team", func(t *testing.T) {
-		err := Save("roster 1", "signature 1", teamSubdir)
-		assert.NoError(t, err)
-
-		t.Run("creates a team subdirectory", func(t *testing.T) {
-			if _, err := os.Stat(teamSubdir); os.IsNotExist(err) {
-				t.Fatalf(teamSubdir + " wasn't created (doesn't exist)")
-			}
-		})
-
-		t.Run("writes roster.toml", func(t *testing.T) {
-			readBackRoster, err := ioutil.ReadFile(rosterFilename)
-			assert.NoError(t, err)
-
-			assert.Equal(t, "roster 1", string(readBackRoster))
-		})
-
-		t.Run("writes roster.toml.asc", func(t *testing.T) {
-			readBackSignature, err := ioutil.ReadFile(signatureFilename)
-			assert.NoError(t, err)
-
-			assert.Equal(t, "signature 1", string(readBackSignature))
-		})
-	})
-
-	t.Run("allows the file to be overwritten", func(t *testing.T) {
-		err := Save("roster 1", "signature 1", teamSubdir)
-		assert.NoError(t, err)
-
-		err = Save("roster 2", "signature 2", teamSubdir)
-		assert.NoError(t, err)
-
-		files, _ := ioutil.ReadDir(teamSubdir)
-		assert.Equal(t, 2, len(files)) // still only roster.toml and roster.toml.asc
-
-		t.Run("writes roster.toml", func(t *testing.T) {
-			readBackRoster, err := ioutil.ReadFile(rosterFilename)
-			assert.NoError(t, err)
-
-			assert.Equal(t, "roster 2", string(readBackRoster))
-		})
-
-		t.Run("writes roster.toml.asc", func(t *testing.T) {
-			readBackSignature, err := ioutil.ReadFile(signatureFilename)
-			assert.NoError(t, err)
-
-			assert.Equal(t, "signature 2", string(readBackSignature))
-		})
 	})
 }
 
