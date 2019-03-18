@@ -358,6 +358,17 @@ func (c *Client) ListRequestsToJoinTeam(teamUUID uuid.UUID, fingerprint fpr.Fing
 	return requestsToJoinTeam, nil
 }
 
+// DeleteRequestToJoinTeam deletes a request to join a team
+func (c *Client) DeleteRequestToJoinTeam(teamUUID uuid.UUID, requestUUID uuid.UUID) error {
+	path := fmt.Sprintf("team/%s/requests-to-join/%s", teamUUID, requestUUID)
+	request, err := c.newRequest("DELETE", path, nil)
+	if err != nil {
+		return err
+	}
+	_, err = c.do(request, nil)
+	return err
+}
+
 func makeUpsertPublicKeySignedData(armoredPublicKey string, privateKey *pgpkey.PgpKey) (armoredSignedJSON string, err error) {
 	publicKeyHash := fmt.Sprintf("%X", sha256.Sum256([]byte(armoredPublicKey)))
 

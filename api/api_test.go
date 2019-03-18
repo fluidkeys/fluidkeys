@@ -777,6 +777,50 @@ func TestListRequestsToJoinTeam(t *testing.T) {
 	})
 }
 
+func TestDeleteRequestToJoinTeam(t *testing.T) {
+	t.Run("parses the name from a good response", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		teamUUID := uuid.Must(uuid.NewV4())
+		requestUUID := uuid.Must(uuid.NewV4())
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "DELETE", r.Method)
+			w.WriteHeader(http.StatusAccepted)
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/team/%s/requests-to-join/%s", teamUUID, requestUUID),
+			mockResponseHandler,
+		)
+
+		err := client.DeleteRequestToJoinTeam(teamUUID, requestUUID)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("passes us error codes", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		teamUUID := uuid.Must(uuid.NewV4())
+		unknownRequestUUID := uuid.Must(uuid.NewV4())
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "DELETE", r.Method)
+			w.WriteHeader(http.StatusNotFound)
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/team/%s/requests-to-join/%s", teamUUID, unknownRequestUUID),
+			mockResponseHandler,
+		)
+
+		err := client.DeleteRequestToJoinTeam(teamUUID, unknownRequestUUID)
+
+		assert.Equal(t, fmt.Errorf("API error: 404"), err)
+	})
+}
+
 // setup sets up a test HTTP server along with a fluidkeysServer.Client that is
 // configured to talk to that test server. Tests should register handlers on
 // mux which provide mock responses for the API method being tested.
