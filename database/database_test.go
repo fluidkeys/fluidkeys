@@ -73,8 +73,6 @@ func TestGetFingerprintsImportedIntoGnuPG(t *testing.T) {
 func TestRecordRequestsToJoinTeamG(t *testing.T) {
 
 	fingerprint := exampledata.ExampleFingerprint2
-	now := time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
-	later := now.Add(time.Duration(1) * time.Hour)
 
 	request1 := team.RequestToJoinTeam{
 		TeamUUID:    uuid.Must(uuid.NewV4()),
@@ -163,7 +161,6 @@ func TestRecordRequestsToJoinTeamG(t *testing.T) {
 
 func TestGetRequestsToJoinTeams(t *testing.T) {
 	fingerprint := exampledata.ExampleFingerprint2
-	now := time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
 
 	request1 := team.RequestToJoinTeam{
 		TeamUUID:    uuid.Must(uuid.NewV4()),
@@ -194,8 +191,6 @@ func TestGetRequestsToJoinTeams(t *testing.T) {
 }
 
 func TestDeleteRequestToJoinTeam(t *testing.T) {
-	now := time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
-	later := now.Add(time.Duration(10) * time.Minute)
 
 	req1 := team.RequestToJoinTeam{
 		TeamUUID:    uuid.Must(uuid.NewV4()),
@@ -381,6 +376,11 @@ func containsRequest(s []team.RequestToJoinTeam, e team.RequestToJoinTeam) bool 
 	}
 	return false
 }
+
+var (
+	now   = time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
+	later = now.Add(time.Duration(1) * time.Hour)
+)
 
 var exampleFingerprintA = fpr.MustParse("AAAA AAAA AAAA AAAA AAAA  AAAA AAAA AAAA AAAA AAAA")
 var exampleFingerprintB = fpr.MustParse("BBBB BBBB BBBB BBBB BBBB  BBBB BBBB BBBB BBBB BBBB")
