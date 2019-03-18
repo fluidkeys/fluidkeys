@@ -51,11 +51,17 @@ type Client struct {
 	UserAgent string       // User agent used when communicating with the  API.
 }
 
-// ErrPublicKeyNotFound means the response was OK, but no key was found
-var ErrPublicKeyNotFound = fmt.Errorf("Public key not found")
+var (
+	// ErrPublicKeyNotFound means the response was OK, but no key was found
+	ErrPublicKeyNotFound = fmt.Errorf("Public key not found")
 
-// ErrTeamNotFound means the response was OK, but no team was found
-var ErrTeamNotFound = fmt.Errorf("Team not found")
+	// ErrTeamNotFound means the response was OK, but no team was found
+	ErrTeamNotFound = fmt.Errorf("Team not found")
+
+	// ErrForbidden means the given user doesn't have access to the given resource, for example
+	// the requester key isn't a member of a requested team.
+	ErrForbidden = fmt.Errorf("Forbidden")
+)
 
 // NewClient returns a new Fluidkeys Server API client.
 func NewClient(fluidkeysVersion string) *Client {
@@ -262,10 +268,19 @@ func (c *Client) GetTeamRoster(requestingKey pgpkey.PgpKey, teamUUID uuid.UUID) 
 	decodedJSON := new(v1structs.GetTeamRosterResponse)
 	response, err := c.do(request, &decodedJSON)
 	if err != nil {
-		if response != nil && response.StatusCode == http.StatusNotFound {
-			return "", "", ErrTeamNotFound
+		if response == nil {
+			return "", "", err
 		}
-		return "", "", err
+		switch response.StatusCode {
+		case http.StatusNotFound:
+			return "", "", ErrTeamNotFound
+
+		case http.StatusForbidden:
+			return "", "", ErrForbidden
+
+		default:
+			return "", "", err
+		}
 	}
 
 	decryptedJSON, _, err := requestingKey.DecryptArmored(decodedJSON.EncryptedJSON)

@@ -476,7 +476,7 @@ func TestGetTeamRoster(t *testing.T) {
 		)
 	})
 
-	t.Run("404 returns a specific type of error", func(t *testing.T) {
+	t.Run("404 returns ErrTeamNotFound", func(t *testing.T) {
 		unknownUUID := uuid.Must(uuid.NewV4())
 		mockNotFoundResponseHandler := func(w http.ResponseWriter, r *http.Request) {
 			assertClientSentVerb(t, "GET", r.Method)
@@ -491,6 +491,23 @@ func TestGetTeamRoster(t *testing.T) {
 		_, _, err := client.GetTeamRoster(*requesterKey, unknownUUID)
 
 		assert.Equal(t, ErrTeamNotFound, err)
+	})
+
+	t.Run("403 forbidden returns ErrForbidden", func(t *testing.T) {
+		teamUUID := uuid.Must(uuid.NewV4())
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "GET", r.Method)
+			w.Header().Add("Content-Type", "application/json")
+			w.WriteHeader(http.StatusForbidden)
+		}
+		mux.HandleFunc(
+			fmt.Sprintf("/team/%s/roster", teamUUID),
+			mockResponseHandler,
+		)
+
+		_, _, err := client.GetTeamRoster(*requesterKey, teamUUID)
+
+		assert.Equal(t, ErrForbidden, err)
 	})
 
 	t.Run("responds with http 500 (unexpected http code)", func(t *testing.T) {
