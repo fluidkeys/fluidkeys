@@ -18,14 +18,12 @@
 package team
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
@@ -109,9 +107,11 @@ name = "Kiffix"
 		})
 
 		t.Run("sets a valid signature", func(t *testing.T) {
-			verifyRosterSignature(t,
-				[]byte(validTeam.roster), []byte(validTeam.signature), signingKey,
+			err := VerifyRoster(
+				validTeam.roster, validTeam.signature, []*pgpkey.PgpKey{signingKey},
 			)
+
+			assert.NoError(t, err)
 		})
 	})
 
@@ -240,6 +240,36 @@ func TestValidate(t *testing.T) {
 		err := team.Validate()
 		assert.Equal(t, fmt.Errorf("team has no administrators"), err)
 	})
+}
+
+func TestVerifyRoster(t *testing.T) {
+	key, err := pgpkey.LoadFromArmoredEncryptedPrivateKey(
+		exampledata.ExamplePrivateKey4, "test4",
+	)
+	assert.NoError(t, err)
+
+	roster := "hello"
+
+	goodSignature, err := key.MakeArmoredDetachedSignature([]byte(roster))
+	assert.NoError(t, err)
+
+	t.Run("verifies a good signature", func(t *testing.T) {
+		err := VerifyRoster(roster, goodSignature, []*pgpkey.PgpKey{key})
+		assert.NoError(t, err)
+	})
+
+	t.Run("returns an error for a bad signature", func(t *testing.T) {
+		err := VerifyRoster(roster+"tampered", goodSignature, []*pgpkey.PgpKey{key})
+		assert.GotError(t, err)
+		assert.Equal(t, "openpgp: invalid signature: hash tag doesn't match", err.Error())
+	})
+
+	t.Run("rejects empty signature", func(t *testing.T) {
+		err := VerifyRoster(roster, "", []*pgpkey.PgpKey{key})
+		assert.GotError(t, err)
+		assert.Equal(t, fmt.Errorf("empty signature"), err)
+	})
+
 }
 
 func TestIsAdmin(t *testing.T) {
@@ -651,17 +681,5 @@ func TestSubDirectory(t *testing.T) {
 
 			assert.Equal(t, test.expected, test.team.subDirectory())
 		})
-	}
-}
-
-func verifyRosterSignature(
-	t *testing.T, roster []byte, armoredSignature []byte, signerKey *pgpkey.PgpKey) {
-	var keyring openpgp.EntityList = []*openpgp.Entity{&signerKey.Entity}
-	if _, err := openpgp.CheckArmoredDetachedSignature(
-		keyring,
-		bytes.NewReader(roster),
-		bytes.NewReader(armoredSignature),
-	); err != nil {
-		t.Fatalf("signature is invalid")
 	}
 }
