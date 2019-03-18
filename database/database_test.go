@@ -251,7 +251,63 @@ func TestDeleteRequestToJoinTeam(t *testing.T) {
 		expectedRequests := []team.RequestToJoinTeam{req3, req4}
 		assert.Equal(t, expectedRequests, gotRequests)
 	})
+}
 
+func TestGetExistingRequestToJoinTeam(t *testing.T) {
+	now := time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
+
+	team1UUID := uuid.Must(uuid.NewV4())
+
+	request1 := team.RequestToJoinTeam{
+		TeamUUID:    team1UUID,
+		UUID:        uuid.UUID{}, // empty *request* UUID, we don't store that
+		Fingerprint: exampleFingerprintA,
+		RequestedAt: now,
+		Email:       "",
+	}
+
+	request2 := team.RequestToJoinTeam{
+		TeamUUID:    team1UUID,
+		UUID:        uuid.UUID{}, // empty *request* UUID, we don't store that
+		Fingerprint: exampleFingerprintB,
+		RequestedAt: now,
+		Email:       "",
+	}
+
+	team2UUID := uuid.Must(uuid.NewV4())
+
+	request3 := team.RequestToJoinTeam{
+		TeamUUID:    team2UUID,
+		UUID:        uuid.UUID{}, // empty *request* UUID, we don't store that
+		Fingerprint: exampleFingerprintA,
+		RequestedAt: now,
+		Email:       "",
+	}
+
+	t.Run("gets the request for the matching teamUUID and fingerprint", func(t *testing.T) {
+		database := New(makeTempDirectory(t))
+
+		addRequestToJoinToDatabase(t, request1, database)
+		addRequestToJoinToDatabase(t, request2, database)
+		addRequestToJoinToDatabase(t, request3, database)
+
+		gotRequest, err := database.GetExistingRequestToJoinTeam(team1UUID, exampleFingerprintA)
+		assert.NoError(t, err)
+		assert.Equal(t, request1, *gotRequest)
+	})
+
+	t.Run("gets a specific error when request can't be found", func(t *testing.T) {
+		database := New(makeTempDirectory(t))
+
+		addRequestToJoinToDatabase(t, request1, database)
+
+		_, err := database.GetExistingRequestToJoinTeam(
+			uuid.Must(uuid.NewV4()),
+			exampleFingerprintA,
+		)
+		assert.GotError(t, err)
+		assert.Equal(t, ErrRequestNotFound, err)
+	})
 }
 
 func TestDeduplicateKeyImportedIntoGnuPGMessages(t *testing.T) {
@@ -273,6 +329,16 @@ func TestDeduplicateKeyImportedIntoGnuPGMessages(t *testing.T) {
 	if len(got) != len(want) {
 		t.Errorf("Expected '%v' but got '%v'", want, got)
 	}
+}
+
+func addRequestToJoinToDatabase(t *testing.T, request team.RequestToJoinTeam, database Database) {
+	t.Helper()
+	assert.NoError(t, database.RecordRequestToJoinTeam(
+		request.TeamUUID,
+		request.TeamName,
+		request.Fingerprint,
+		request.RequestedAt,
+	))
 }
 
 func makeTempDirectory(t *testing.T) string {

@@ -141,6 +141,31 @@ func (db *Database) GetRequestsToJoinTeams() (requests []team.RequestToJoinTeam,
 	return requests, nil
 }
 
+func (db *Database) GetExistingRequestToJoinTeam(teamUUID uuid.UUID, fingerprint fpr.Fingerprint) (
+	request *team.RequestToJoinTeam, err error) {
+
+	message, err := db.loadFromFile()
+	if os.IsNotExist(err) {
+		return nil, ErrRequestNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	for _, msg := range message.RequestsToJoinTeams {
+		if msg.TeamUUID == teamUUID && msg.Fingerprint == fingerprint {
+			return &team.RequestToJoinTeam{
+				TeamUUID:    msg.TeamUUID,
+				TeamName:    msg.TeamName,
+				Fingerprint: msg.Fingerprint,
+				RequestedAt: msg.RequestedAt,
+			}, nil
+		}
+	}
+
+	return nil, ErrRequestNotFound
+}
+
 // DeleteRequestToJoinTeam deletes all requests to join the team matching the given team UUID and
 // fingerprint.
 func (db *Database) DeleteRequestToJoinTeam(teamUUID uuid.UUID, fingerprint fpr.Fingerprint) error {
@@ -214,3 +239,7 @@ func deduplicateKeyImportedIntoGnuPGMessages(slice []KeyImportedIntoGnuPGMessage
 	}
 	return deduped
 }
+
+var (
+	ErrRequestNotFound = fmt.Errorf("No request to join team with that fingerprint found")
+)
