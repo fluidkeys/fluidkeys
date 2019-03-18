@@ -27,6 +27,7 @@ import (
 	fp "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/team"
 	"github.com/fluidkeys/fluidkeys/ui"
 )
@@ -109,4 +110,16 @@ func getAndImportKeyToGpg(fingerprint fp.Fingerprint) error {
 		return fmt.Errorf("Failed to import key into gpg")
 	}
 	return nil
+}
+
+func fetchAdminPublicKeys(t team.Team) (adminKeys []*pgpkey.PgpKey, err error) {
+	for _, p := range t.Admins() {
+		key, err := client.GetPublicKeyByFingerprint(p.Fingerprint)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get admin key %s: %v", p.Fingerprint, err)
+		}
+
+		adminKeys = append(adminKeys, key)
+	}
+	return adminKeys, nil
 }
