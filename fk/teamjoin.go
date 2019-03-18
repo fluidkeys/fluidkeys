@@ -26,11 +26,16 @@ import (
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"github.com/fluidkeys/fluidkeys/team"
 	"github.com/fluidkeys/fluidkeys/ui"
 	"github.com/gofrs/uuid"
 )
 
 func teamJoin(teamUUID uuid.UUID) exitCode {
+	if exitCode := ensureNotAlreadyAMember(teamUUID); exitCode != 0 {
+		return exitCode
+	}
+
 	teamName, err := client.GetTeamName(teamUUID)
 	if err != nil {
 		out.Print(ui.FormatFailure("Couldn't request to join team", nil, err))
@@ -67,6 +72,25 @@ func teamJoin(teamUUID uuid.UUID) exitCode {
 		"start working.\n\n")
 	return 0
 
+}
+
+func ensureNotAlreadyAMember(teamUUID uuid.UUID) exitCode {
+	allTeams, err := team.LoadTeams(fluidkeysDirectory)
+	if err != nil {
+		out.Print(ui.FormatFailure("Error loading teams", nil, err))
+		return 1
+	}
+	for _, existingTeam := range allTeams {
+		if teamUUID == existingTeam.UUID {
+			out.Print(ui.FormatWarning(
+				"You're already in "+existingTeam.Name,
+				[]string{"You can't request to join a team you're already part of."},
+				nil,
+			))
+			return 1
+		}
+	}
+	return 0
 }
 
 func requestToJoinTeam(
