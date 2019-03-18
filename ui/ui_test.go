@@ -204,7 +204,7 @@ func TestFormatInfo(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("FormatWarning %s", test.name), func(t *testing.T) {
+		t.Run(fmt.Sprintf("FormatInfo %s", test.name), func(t *testing.T) {
 			got := FormatInfo(test.input.headline, test.input.extralines)
 			assert.Equal(t, test.expected, got)
 		})
