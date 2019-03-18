@@ -31,6 +31,10 @@ import (
 )
 
 func teamJoin(teamUUID uuid.UUID) exitCode {
+	if exitCode := ensureNoExistingRequests(teamUUID); exitCode != 0 {
+		return exitCode
+	}
+
 	teamName, err := client.GetTeamName(teamUUID)
 	if err != nil {
 		out.Print(ui.FormatFailure("Couldn't request to join team", nil, err))
@@ -67,6 +71,26 @@ func teamJoin(teamUUID uuid.UUID) exitCode {
 		"start working.\n\n")
 	return 0
 
+}
+
+func ensureNoExistingRequests(teamUUID uuid.UUID) exitCode {
+	existingRequests, err := db.GetRequestsToJoinTeam(teamUUID)
+	if err != nil {
+		out.Print(ui.FormatFailure("Failed to check for existing requests", nil, err))
+		return 1
+	}
+	if len(existingRequests) > 0 {
+		out.Print(ui.FormatWarning(
+			"You've already requested to join "+existingRequests[0].TeamName,
+			[]string{
+				formatYouRequestedToJoin(existingRequests[0]),
+				"The admin hasn't authorized this yet.",
+			},
+			nil,
+		))
+		return 1
+	}
+	return 0
 }
 
 func requestToJoinTeam(
