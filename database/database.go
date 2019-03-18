@@ -163,6 +163,24 @@ func (db *Database) DeleteRequestToJoinTeam(teamUUID uuid.UUID, fingerprint fpr.
 	return db.saveToFile(*message)
 }
 
+// GetRequestsToJoinTeam returns a slice of requests to join the team matching the UUID.
+func (db *Database) GetRequestsToJoinTeam(teamUUID uuid.UUID) (
+	requestsToJoinSpecificTeam []team.RequestToJoinTeam, err error) {
+
+	allRequests, err := db.GetRequestsToJoinTeams()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, request := range allRequests {
+		if request.TeamUUID == teamUUID {
+			requestsToJoinSpecificTeam = append(requestsToJoinSpecificTeam, request)
+		}
+	}
+
+	return requestsToJoinSpecificTeam, nil
+}
+
 func (db *Database) loadFromFile() (message *Message, err error) {
 	file, err := os.Open(db.jsonFilename)
 	if err != nil {
