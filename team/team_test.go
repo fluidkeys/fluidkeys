@@ -46,6 +46,31 @@ func TestRoster(t *testing.T) {
 	})
 }
 
+func TestAdmins(t *testing.T) {
+	person1 := Person{
+		Email:       "test2@example.com",
+		Fingerprint: exampledata.ExampleFingerprint2,
+		IsAdmin:     false,
+	}
+	person2 := Person{
+		Email:       "test3@example.com",
+		Fingerprint: exampledata.ExampleFingerprint3,
+		IsAdmin:     true, // <-- admin
+	}
+	person3 := Person{
+		Email:       "test4@example.com",
+		Fingerprint: exampledata.ExampleFingerprint4,
+		IsAdmin:     true, // <-- admin
+	}
+	team := Team{
+		Name:   "Kiffix",
+		UUID:   uuid.Must(uuid.FromString("74bb40b4-3510-11e9-968e-53c38df634be")),
+		People: []Person{person1, person2, person3},
+	}
+
+	assert.Equal(t, []Person{person2, person3}, team.Admins())
+}
+
 func TestUpdateRoster(t *testing.T) {
 	signingKey, err := pgpkey.LoadFromArmoredEncryptedPrivateKey(
 		exampledata.ExamplePrivateKey2, "test2")
