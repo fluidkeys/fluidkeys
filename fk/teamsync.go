@@ -73,6 +73,19 @@ func formatYouRequestedToJoin(request team.RequestToJoinTeam) string {
 		humanize.RoughDuration(time.Now().Sub(request.RequestedAt)) + " ago."
 }
 
+func fetchTeamKeys(t team.Team) (err error) {
+	out.Print("Fetching keys for other members of " + t.Name + ":\n\n")
+
+	for _, person := range t.People {
+		err = ui.RunWithCheckboxes(person.Email, func() error {
+			return getAndImportKeyToGpg(person.Fingerprint)
+		})
+		// keep trying subsequent keys even if we hit an error.
+	}
+	out.Print("\n")
+	return err
+}
+
 func getAndImportKeyToGpg(fingerprint fp.Fingerprint) error {
 	key, err := client.GetPublicKeyByFingerprint(fingerprint)
 
