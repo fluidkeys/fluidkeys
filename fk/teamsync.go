@@ -20,6 +20,7 @@ package fk
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/fluidkeys/fluidkeys/api"
@@ -27,50 +28,205 @@ import (
 	fp "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/team"
 	"github.com/fluidkeys/fluidkeys/ui"
 )
 
 func teamSync() exitCode {
-	teams, err := team.LoadTeams(fluidkeysDirectory)
+	sawError := false
+
+	myTeams, err := team.LoadTeams(fluidkeysDirectory)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	var sawError = false
+	for _, existingTeam := range myTeams {
+		printHeader(existingTeam.Name)
 
-	for _, team := range teams {
-		out.Print("\n")
-		out.Print(colour.Info(team.Name) + "\n")
-		out.Print("\n")
-
-		out.Print("Fetching keys and importing into gpg:\n\n")
-
-		for _, person := range team.People {
-			err := getAndImportKeyToGpg(person.Fingerprint)
-			if err != nil {
-				ui.PrintCheckboxFailure("Fail to fetch key", err)
-				sawError = true
-				continue
-			}
-
-			ui.PrintCheckboxSuccess(person.Email)
+		if err := fetchUpdatedRoster(existingTeam); err != nil {
+			// TODO: download the updated roster and handle the case where we're forbidden, as it
+			// means we're no longer in the team.
 		}
+
+		if err := fetchTeamKeys(existingTeam); err != nil {
+			out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
+			sawError = true
+			continue
+		}
+
+		out.Print(
+			ui.FormatSuccess("Successfully fetched keys and imported them into GnuPG",
+				[]string{
+					"You have successfully synced keys with the other members of " +
+						existingTeam.Name + ".",
+				},
+			))
+
+	}
+
+	newTeams, err := processRequestsToJoinTeam()
+	if err != nil {
+		// don't output anything: the function does that itself
+		sawError = true
+	}
+
+	for _, newTeam := range newTeams {
+		if err := fetchTeamKeys(newTeam); err != nil {
+			out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
+			sawError = true
+			continue
+		}
+
+		out.Print(
+			ui.FormatSuccess("Successfully synced team",
+				[]string{
+					"You have successfully synced keys with the other members of " +
+						newTeam.Name + ".",
+					"This means that you can now start sending and receiving secrets and",
+					"using other GnuPG powered tools together.",
+				},
+			))
+
 	}
 
 	if sawError {
 		out.Print("\n")
-		printFailed("Encountered errors while syncing :(\n")
+		printFailed("Encountered errors while syncing.\n")
 		return 1
 	}
-	out.Print("\n")
-	printSuccess("Fetched keys for " + humanize.Pluralize(len(teams), "team", "teams") + ".")
 	return 0
 }
 
 func formatYouRequestedToJoin(request team.RequestToJoinTeam) string {
 	return "You requested to join " + request.TeamName + " " +
 		humanize.RoughDuration(time.Now().Sub(request.RequestedAt)) + " ago."
+}
+
+func fetchUpdatedRoster(t team.Team) (err error) {
+	return fmt.Errorf("not implemented")
+}
+
+func fetchTeamKeys(t team.Team) (err error) {
+	out.Print("Fetching keys for other members of " + t.Name + ":\n\n")
+
+	for _, person := range t.People {
+		err = ui.RunWithCheckboxes(person.Email, func() error {
+			return getAndImportKeyToGpg(person.Fingerprint)
+		})
+		// keep trying subsequent keys even if we hit an error.
+	}
+	out.Print("\n")
+	return err
+}
+
+func processRequestsToJoinTeam() (newTeams []team.Team, returnError error) {
+	requestsToJoinTeams, err := db.GetRequestsToJoinTeams()
+	if err != nil {
+		out.Print(ui.FormatFailure("Failed to get requests to join teams", nil, err))
+		return nil, err
+	}
+
+	// TODO: decide whether to process requests in cron mode
+
+	for _, request := range requestsToJoinTeams {
+		printHeader(request.TeamName)
+		// TODO: check if I'm already in the team
+
+		if time.Now().Sub(request.RequestedAt) > time.Duration(7*24)*time.Hour {
+			out.Print(ui.FormatWarning(
+				"Your request to join "+request.TeamName+" has expired",
+				[]string{
+					formatYouRequestedToJoin(request) + " The admin hasn't approved the ",
+					"request, so it has expired.",
+					"",
+					"You can request to join the team again by runnning ",
+					colour.Cmd("fk team join " + request.TeamUUID.String()),
+				},
+				nil,
+			))
+			db.DeleteRequestToJoinTeam(request.TeamUUID, request.Fingerprint)
+			returnError = err // treat this as an error to draw attention to it in e.g. cron
+			continue
+		}
+
+		key, err := loadPgpKey(request.Fingerprint)
+		if err != nil {
+			out.Print(ui.FormatFailure("Failed to load requesting key", nil, err))
+			returnError = err
+			continue
+		}
+
+		passwordPrompter := interactivePasswordPrompter{}
+		unlockedKey, _, err := getDecryptedPrivateKeyAndPassword(key, &passwordPrompter)
+		if err != nil {
+			out.Print(ui.FormatFailure("Failed to unlock private key", nil, err))
+			returnError = err
+			continue
+		}
+
+		roster, signature, err := client.GetTeamRoster(*unlockedKey, request.TeamUUID)
+
+		if err == api.ErrForbidden {
+			out.Print(ui.FormatInfo(
+				"Your request to join "+request.TeamName+" hasn't been approved",
+				[]string{
+					formatYouRequestedToJoin(request) + " The admin hasn't approved this",
+					"request yet.",
+				}),
+			)
+			continue // don't set returnError: this is an OK outcome
+		} else if err != nil {
+			out.Print(ui.FormatFailure("Failed to get team roster", nil, err))
+			returnError = err
+			continue
+		}
+
+		t, err := team.Parse(strings.NewReader(roster))
+		if err != nil {
+			out.Print(ui.FormatFailure("Failed to parse roster", nil, err))
+			returnError = err
+			continue
+		}
+
+		if err = verifyBrandNewRoster(*t, roster, signature); err != nil {
+			out.Print(ui.FormatFailure(
+				"Failed to verify team roster's cryptographic signature", nil, err,
+			))
+			returnError = err
+			continue
+		}
+
+		teamSubdirectory, err := team.Directory(*t, fluidkeysDirectory)
+		if err != nil {
+			out.Print(ui.FormatFailure("Failed to get team subdirectory", nil, err))
+			returnError = err
+			continue
+		}
+		rosterWriter := team.RosterSaver{Directory: teamSubdirectory}
+		err = rosterWriter.Save(roster, signature)
+
+		if err != nil {
+			out.Print(ui.FormatFailure("Failed to save team roster", nil, err))
+			returnError = err
+			continue
+		}
+
+		out.Print(ui.FormatSuccess(
+			"Your request to join "+t.Name+" has been approved",
+			[]string{
+				formatYouRequestedToJoin(request) + " The admin has approved this",
+				"request.",
+			}))
+		newTeams = append(newTeams, *t)
+		err = db.DeleteRequestToJoinTeam(request.TeamUUID, request.Fingerprint)
+		if err != nil {
+			out.Print(ui.FormatFailure("Error deleting request to join team", nil, err))
+			returnError = err
+			continue
+		}
+	}
+	return newTeams, returnError
 }
 
 func getAndImportKeyToGpg(fingerprint fp.Fingerprint) error {
@@ -96,4 +252,27 @@ func getAndImportKeyToGpg(fingerprint fp.Fingerprint) error {
 		return fmt.Errorf("Failed to import key into gpg")
 	}
 	return nil
+}
+
+func fetchAdminPublicKeys(t team.Team) (adminKeys []*pgpkey.PgpKey, err error) {
+	for _, p := range t.Admins() {
+		key, err := client.GetPublicKeyByFingerprint(p.Fingerprint)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get admin key %s: %v", p.Fingerprint, err)
+		}
+
+		adminKeys = append(adminKeys, key)
+	}
+	return adminKeys, nil
+}
+
+// verifyBrandNewRoster fetches the public keys of the admins in the team and verifies the roster
+// against them.
+func verifyBrandNewRoster(t team.Team, roster string, signature string) error {
+	adminKeys, err := fetchAdminPublicKeys(t)
+	if err != nil {
+		return err
+	}
+
+	return team.VerifyRoster(roster, signature, adminKeys)
 }
