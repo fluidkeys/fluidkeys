@@ -164,6 +164,8 @@ func reviewRequests(myTeam team.Team, adminKey pgpkey.PgpKey) (
 					nil,
 				))
 			}
+		} else {
+			out.Print("\n")
 		}
 
 		addToTeam := prompter.promptYesNo("Authorize this key for "+request.Email+
