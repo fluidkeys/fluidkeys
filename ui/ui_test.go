@@ -211,6 +211,47 @@ func TestFormatInfo(t *testing.T) {
 	}
 }
 
+func TestFormatSuccess(t *testing.T) {
+	var tests = []struct {
+		name     string
+		input    testCase
+		expected string
+	}{
+		{
+			"with only a headline",
+			testCase{
+				headline:   "Here's some helpful info",
+				extralines: nil,
+			},
+			"\n" + colour.Success("│ ✔ ") + "Here's some helpful info\n" +
+				"\n",
+		},
+		{
+			"with a headline and two extra lines",
+			testCase{
+				headline: "Here's some helpful info",
+				extralines: []string{
+					"First extra line",
+					"Second extra line",
+				},
+				err: nil,
+			},
+			"\n" + colour.Success("│ ✔ ") + "Here's some helpful info\n" +
+				colour.Success("│ ") + "\n" +
+				colour.Success("│ ") + "First extra line\n" +
+				colour.Success("│ ") + "Second extra line\n" +
+				"\n",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("FormatSuccess %s", test.name), func(t *testing.T) {
+			got := FormatSuccess(test.input.headline, test.input.extralines)
+			assert.Equal(t, test.expected, got)
+		})
+	}
+}
+
 func TestCapitalize(t *testing.T) {
 	var tests = []struct {
 		input    string

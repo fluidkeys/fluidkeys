@@ -90,6 +90,25 @@ func FormatInfo(headline string, extraLines []string) string {
 	return msg
 }
 
+// FormatSuccess prints a formatted info message. It should be used for a positive confirmation
+// that something worked, with more information
+func FormatSuccess(headline string, extraLines []string) string {
+	msg := ""
+
+	msg += "\n"
+	msg += colour.Success("│ ✔ ") + headline + "\n"
+
+	if len(extraLines) > 0 {
+		extraLines = append([]string{""}, extraLines...) // prepend a "" to extraLines
+	}
+
+	for _, line := range extraLines {
+		msg += colour.Success("│ ") + line + "\n"
+	}
+	msg += "\n"
+	return msg
+}
+
 func PrintCheckboxPending(actionText string) {
 	out.Print(fmt.Sprintf("     [.] %s\n", actionText))
 	moveCursorUpLines(1)
