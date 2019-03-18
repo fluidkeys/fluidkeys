@@ -135,6 +135,24 @@ func TestRecordRequestsToJoinTeamG(t *testing.T) {
 		})
 	})
 
+	t.Run("record deduplicates selecting oldest requests for team & fingerprint", func(t *testing.T) {
+		database := New(makeTempDirectory(t))
+
+		dupeReq := request1
+		dupeReq.RequestedAt = later // older one should get dropped
+
+		addRequestToJoinToDatabase(t, request1, database)
+		addRequestToJoinToDatabase(t, dupeReq, database)
+
+		t.Run("and we can read back a matching request ", func(t *testing.T) {
+			gotRequests, err := database.GetRequestsToJoinTeams()
+			assert.NoError(t, err)
+
+			expectedRequests := []team.RequestToJoinTeam{request1}
+			assert.Equal(t, expectedRequests, gotRequests)
+		})
+	})
+
 	t.Run("doesn't overwrite keys imported into gnupg when recording a request to join a team", func(t *testing.T) {
 		fingerprint := exampleFingerprintA
 		database := New(makeTempDirectory(t))

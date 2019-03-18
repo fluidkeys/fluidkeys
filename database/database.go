@@ -98,7 +98,9 @@ func (db *Database) RecordRequestToJoinTeam(
 		RequestedAt: now,
 	}
 
-	message.RequestsToJoinTeams = append(message.RequestsToJoinTeams, newRequest)
+	message.RequestsToJoinTeams = deduplicateRequests(
+		append(message.RequestsToJoinTeams, newRequest),
+	)
 
 	return db.saveToFile(*message)
 }
