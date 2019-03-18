@@ -74,6 +74,16 @@ func Save(roster string, signature string, directory string) error {
 	return nil
 }
 
+// Admins returns the People who have IsAdmin set to true
+func (t Team) Admins() (admins []Person) {
+	for _, p := range t.People {
+		if t.IsAdmin(p.Fingerprint) {
+			admins = append(admins, p)
+		}
+	}
+	return admins
+}
+
 // PreviewRoster returns an (unsigned) roster based on the current state of the Team.
 // Use this to preview the effect of any changes to the team, e.g. AddTeam, before actually
 // updating and signing the roster.
@@ -138,13 +148,7 @@ func (t *Team) Validate() error {
 		fingerprintsSeen[person.Fingerprint] = true
 	}
 
-	var numberOfAdmins int
-	for _, person := range t.People {
-		if person.IsAdmin {
-			numberOfAdmins++
-		}
-	}
-	if numberOfAdmins == 0 {
+	if len(t.Admins()) == 0 {
 		return fmt.Errorf("team has no administrators")
 	}
 	return nil
