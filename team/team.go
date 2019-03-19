@@ -26,17 +26,27 @@ func LoadTeams(fluidkeysDirectory string) ([]Team, error) {
 		return nil, fmt.Errorf("couldn't get teams directory: %v", err)
 	}
 
-	teamRosters, err := findTeamRosters(teamsDirectory)
+	teamSubdirs, err := findTeamSubdirectories(teamsDirectory)
 	if err != nil {
 		return nil, err
 	}
 
 	teams := []Team{}
-	for _, teamRoster := range teamRosters {
-		log.Printf("loading team roster %s\n", teamRoster)
-		team, err := loadTeamRoster(teamRoster)
+	for _, subdir := range teamSubdirs {
+		log.Printf("loading team roster from %s\n", subdir)
+		roster, err := ioutil.ReadFile(filepath.Join(subdir, rosterFilename))
 		if err != nil {
-			return nil, fmt.Errorf("failed to load %s: %v", teamRoster, err)
+			return nil, fmt.Errorf("failed to read roster from %s: %v", subdir, err)
+		}
+
+		signature, err := ioutil.ReadFile(filepath.Join(subdir, signatureFilename))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read signature from %s: %v", subdir, err)
+		}
+
+		team, err := Load(string(roster), string(signature))
+		if err != nil {
+			return nil, fmt.Errorf("failed to load team from %s: %v", subdir, err)
 		}
 		teams = append(teams, *team)
 	}
@@ -267,48 +277,30 @@ func getTeamDirectory(fluidkeysDirectory string) (directory string, err error) {
 	return teamsDirectory, nil
 }
 
-func findTeamRosters(directory string) ([]string, error) {
-	teamSubdirs, err := ioutil.ReadDir(directory)
+func findTeamSubdirectories(directory string) (teamSubdirs []string, err error) {
+	files, err := ioutil.ReadDir(directory)
 	if err != nil {
 		return nil, err
 	}
 
-	teamRosters := []string{}
-
-	for _, teamSubDir := range teamSubdirs {
-		if !teamSubDir.IsDir() {
+	for _, f := range files {
+		if !f.IsDir() {
 			continue
 		}
 
-		teamRoster := filepath.Join(directory, teamSubDir.Name(), "roster.toml")
-		// TODO: also look for teamRoster.asc and validate the signature
+		teamSubdir := filepath.Join(directory, f.Name())
 
-		if fileExists(teamRoster) {
-			teamRosters = append(teamRosters, teamRoster)
+		rosterPath := filepath.Join(teamSubdir, rosterFilename)
+		signaturePath := filepath.Join(teamSubdir, signatureFilename)
+
+		if fileExists(rosterPath) && fileExists(signaturePath) {
+			teamSubdirs = append(teamSubdirs, teamSubdir)
 		} else {
-			log.Printf("missing %s", teamRoster)
+			log.Printf("ignoring %s (missing one of %s or %s)",
+				teamSubdir, rosterFilename, signatureFilename)
 		}
 	}
-	return teamRosters, nil
-}
-
-func loadTeamRoster(filename string) (*Team, error) {
-	reader, err := os.Open(filename)
-	if err != nil {
-		return nil, fmt.Errorf("error reading %s: %v", filename, err)
-	}
-
-	team, err := Parse(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	err = team.Validate()
-	if err != nil {
-		return nil, fmt.Errorf("error validating team: %v", err)
-	}
-
-	return team, nil
+	return teamSubdirs, nil
 }
 
 func (t Team) subDirectory() string {

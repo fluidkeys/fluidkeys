@@ -19,6 +19,9 @@ package team
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/fluidkeys/fluidkeys/assert"
@@ -144,6 +147,40 @@ fingerprint = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 	assert.Equal(t, "Fluidkeys CIC", team.Name)
 	assert.Equal(t, roster, team.roster)
 	assert.Equal(t, signature, team.signature)
+}
+
+func TestFindTeamSubdirectories(t *testing.T) {
+
+	tmpdir := testhelpers.Maketemp(t)
+
+	good := filepath.Join(tmpdir, "good")
+	empty := filepath.Join(tmpdir, "empty")
+	missingRoster := filepath.Join(tmpdir, "missing-roster")
+	missingSignature := filepath.Join(tmpdir, "missing-signature")
+
+	makeEmptyFile := func(t *testing.T, filename string) {
+		assert.NoError(t, ioutil.WriteFile(filename, []byte{}, 0600))
+	}
+
+	assert.NoError(t, os.Mkdir(good, 0700))
+	makeEmptyFile(t, filepath.Join(good, "roster.toml"))
+	makeEmptyFile(t, filepath.Join(good, "roster.toml.asc"))
+
+	assert.NoError(t, os.Mkdir(empty, 0700))
+
+	assert.NoError(t, os.Mkdir(missingRoster, 0700))
+	makeEmptyFile(t, filepath.Join(missingRoster, "roster.toml.asc"))
+
+	assert.NoError(t, os.Mkdir(missingSignature, 0700))
+	makeEmptyFile(t, filepath.Join(missingSignature, "roster.toml"))
+
+	t.Run("returns subdirectory with roster.toml and roster.toml.asc", func(t *testing.T) {
+		got, err := findTeamSubdirectories(tmpdir)
+		assert.NoError(t, err)
+
+		assert.Equal(t, []string{good}, got)
+	})
+
 }
 
 func TestRoster(t *testing.T) {
