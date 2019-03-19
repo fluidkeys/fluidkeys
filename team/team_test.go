@@ -25,8 +25,69 @@ import (
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"github.com/fluidkeys/fluidkeys/testhelpers"
 	"github.com/gofrs/uuid"
 )
+
+func TestLoadTeams(t *testing.T) {
+	person1 := Person{
+		Email:       "test2@example.com",
+		Fingerprint: exampledata.ExampleFingerprint2,
+		IsAdmin:     false,
+	}
+
+	person2 := Person{
+		Email:       "test3@example.com",
+		Fingerprint: exampledata.ExampleFingerprint3,
+		IsAdmin:     true, // <-- admin
+	}
+
+	team1 := Team{
+		Name:   "Team 1",
+		UUID:   uuid.Must(uuid.NewV4()),
+		People: []Person{person1, person2},
+	}
+
+	team2 := Team{
+		Name:   "Team 2",
+		UUID:   uuid.Must(uuid.NewV4()),
+		People: []Person{person1, person2},
+	}
+
+	fluidkeysDir := testhelpers.Maketemp(t)
+
+	saveTeam(t, &team1, fluidkeysDir)
+	saveTeam(t, &team2, fluidkeysDir)
+
+	gotTeams, err := LoadTeams(fluidkeysDir)
+	assert.NoError(t, err)
+
+	team1Roster, err := team1.PreviewRoster()
+	assert.NoError(t, err)
+
+	team2Roster, err := team2.PreviewRoster()
+	assert.NoError(t, err)
+
+	expected := []Team{
+		{
+			Name:      team1.Name,
+			UUID:      team1.UUID,
+			People:    team1.People,
+			roster:    team1Roster, // roster and signature get added
+			signature: "fake signature",
+		},
+		{
+			Name:      team2.Name,
+			UUID:      team2.UUID,
+			People:    team2.People,
+			roster:    team2Roster, // roster and signature get added
+			signature: "fake signature",
+		},
+	}
+
+	assert.Equal(t, expected, gotTeams)
+
+}
 
 func TestLoad(t *testing.T) {
 	roster := `# Fluidkeys team roster
@@ -675,4 +736,15 @@ func TestSubDirectory(t *testing.T) {
 			assert.Equal(t, test.expected, test.team.subDirectory())
 		})
 	}
+}
+
+func saveTeam(t *testing.T, theTeam *Team, fluidkeysDirectory string) {
+	teamSubdir, err := Directory(*theTeam, fluidkeysDirectory)
+	assert.NoError(t, err)
+
+	saver := RosterSaver{Directory: teamSubdir}
+
+	roster, err := theTeam.PreviewRoster()
+	assert.NoError(t, err)
+	saver.Save(roster, "fake signature")
 }
