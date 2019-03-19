@@ -165,7 +165,7 @@ func processRequestsToJoinTeam() (newTeams []team.Team, returnError error) {
 			continue
 		}
 
-		roster, signature, err := client.GetTeamRoster(*unlockedKey, request.TeamUUID)
+		roster, signature, err := client.GetTeamRoster(unlockedKey, request.TeamUUID)
 
 		if err == api.ErrForbidden {
 			out.Print(ui.FormatInfo(
