@@ -69,7 +69,7 @@ Usage:
 	fk team create
 	fk team join <uuid>
 	fk team authorize
-	fk team sync [--cron-output]
+	fk team fetch [--cron-output]
 	fk secret send <recipient-email>
 	fk secret send [<filename>] --to=<email>
 	fk secret receive

@@ -33,7 +33,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/ui"
 )
 
-func teamSync() exitCode {
+func teamFetch() exitCode {
 	sawError := false
 
 	myTeams, err := team.LoadTeams(fluidkeysDirectory)
@@ -55,13 +55,13 @@ func teamSync() exitCode {
 			continue
 		}
 
-		out.Print(
-			ui.FormatSuccess("Successfully fetched keys and imported them into GnuPG",
-				[]string{
-					"You have successfully synced keys with the other members of " +
-						existingTeam.Name + ".",
-				},
-			))
+		out.Print(ui.FormatSuccess(
+			successfullyFetchedKeysHeadline,
+			[]string{
+				"You have successfully fetched everyone's key in " +
+					existingTeam.Name + ".",
+			},
+		))
 
 	}
 
@@ -78,15 +78,15 @@ func teamSync() exitCode {
 			continue
 		}
 
-		out.Print(
-			ui.FormatSuccess("Successfully synced team",
-				[]string{
-					"You have successfully synced keys with the other members of " +
-						newTeam.Name + ".",
-					"This means that you can now start sending and receiving secrets and",
-					"using other GnuPG powered tools together.",
-				},
-			))
+		out.Print(ui.FormatSuccess(
+			successfullyFetchedKeysHeadline,
+			[]string{
+				"You have successfully fetched everyone's key in " +
+					newTeam.Name + ".",
+				"This means that you can now start sending and receiving secrets and",
+				"using other GnuPG powered tools together.",
+			},
+		))
 
 	}
 
@@ -276,3 +276,7 @@ func verifyBrandNewRoster(t team.Team, roster string, signature string) error {
 
 	return team.VerifyRoster(roster, signature, adminKeys)
 }
+
+const (
+	successfullyFetchedKeysHeadline = "Successfully fetched keys and imported them into GnuPG"
+)
