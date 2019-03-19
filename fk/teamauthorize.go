@@ -92,6 +92,22 @@ func teamAuthorize() exitCode {
 			}
 
 		}
+
+		seenError := false
+
+		for _, request := range requests {
+			if err = client.DeleteRequestToJoinTeam(myTeam.UUID, request.UUID); err != nil {
+				out.Print(ui.FormatWarning(
+					"Failed to delete a request to join the team", nil, err,
+				))
+				seenError = true
+			}
+		}
+
+		if seenError {
+			return 1
+		}
+
 		return 0
 
 	default:
