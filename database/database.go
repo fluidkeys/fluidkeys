@@ -24,6 +24,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
@@ -97,7 +98,9 @@ func (db *Database) RecordRequestToJoinTeam(
 		RequestedAt: now,
 	}
 
-	message.RequestsToJoinTeams = append(message.RequestsToJoinTeams, newRequest)
+	message.RequestsToJoinTeams = deduplicateRequests(
+		append(message.RequestsToJoinTeams, newRequest),
+	)
 
 	return db.saveToFile(*message)
 }
@@ -130,7 +133,7 @@ func (db *Database) GetRequestsToJoinTeams() (requests []team.RequestToJoinTeam,
 		return nil, err
 	}
 
-	for _, msg := range message.RequestsToJoinTeams {
+	for _, msg := range deduplicateRequests(message.RequestsToJoinTeams) {
 		requests = append(requests, team.RequestToJoinTeam{
 			TeamUUID:    msg.TeamUUID,
 			TeamName:    msg.TeamName,
@@ -225,6 +228,35 @@ func (db Database) saveToFile(message Message) error {
 	encoder.SetIndent("", "    ")
 
 	return encoder.Encode(message)
+}
+
+// deduplicateRequests returns a de-duplicated version of requests, where a duplicate is defined
+// as having the same (TeamUUID + Fingerprint) pair.
+// The *oldest* RequestedAt defines the single request that's returned.
+func deduplicateRequests(requests []RequestToJoinTeamMessage) (deduped []RequestToJoinTeamMessage) {
+	mapHash := func(r RequestToJoinTeamMessage) string {
+		return fmt.Sprintf("%s%s", r.TeamUUID, r.Fingerprint)
+	}
+
+	reqsMap := map[string][]RequestToJoinTeamMessage{}
+
+	for _, r := range requests {
+		hash := mapHash(r)
+
+		if existing, ok := reqsMap[hash]; ok {
+			reqsMap[hash] = append(existing, r)
+		} else {
+			reqsMap[hash] = []RequestToJoinTeamMessage{r}
+		}
+	}
+
+	for _, dupeRequests := range reqsMap {
+		sort.Sort(earliestFirst(dupeRequests))
+		deduped = append(deduped, dupeRequests[0] /* 0th is the earliest */)
+	}
+
+	sort.Sort(earliestFirst(deduped))
+	return deduped
 }
 
 func deduplicateKeyImportedIntoGnuPGMessages(slice []KeyImportedIntoGnuPGMessage,
