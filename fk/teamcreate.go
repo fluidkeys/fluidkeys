@@ -33,6 +33,10 @@ import (
 )
 
 func teamCreate() exitCode {
+	if code := ensureUserIsntInATeam("Couldn't create team"); code > 0 {
+		return code
+	}
+
 	out.Print("\n")
 
 	out.Print("A Team is a group of people using Fluidkeys together.\n\n")
