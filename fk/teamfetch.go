@@ -255,14 +255,29 @@ func getAndImportKeyToGpg(fingerprint fp.Fingerprint) error {
 
 func fetchAdminPublicKeys(t team.Team) (adminKeys []*pgpkey.PgpKey, err error) {
 	for _, p := range t.Admins() {
-		key, err := client.GetPublicKeyByFingerprint(p.Fingerprint)
+		key, err := discoverPublicKey(p.Fingerprint)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get admin key %s: %v", p.Fingerprint, err)
+			return nil, err
 		}
-
 		adminKeys = append(adminKeys, key)
 	}
 	return adminKeys, nil
+}
+
+func discoverPublicKey(fingerprint fp.Fingerprint) (key *pgpkey.PgpKey, err error) {
+	if key, err := loadPgpKey(fingerprint); err != nil { // no error
+		log.Printf("failed to find key %s in GnuPG: %v", fingerprint, err)
+	} else {
+		return key, nil
+	}
+
+	if key, err = client.GetPublicKeyByFingerprint(fingerprint); err != nil {
+		log.Printf("failed to find key %s in API: %v", fingerprint, err)
+	} else {
+		return key, nil
+	}
+
+	return nil, fmt.Errorf("failed multiple attempts to find get public key for %s", fingerprint)
 }
 
 // verifyBrandNewRoster fetches the public keys of the admins in the team and verifies the roster
