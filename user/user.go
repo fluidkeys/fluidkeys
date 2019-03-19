@@ -21,6 +21,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/database"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/team"
+	"github.com/gofrs/uuid"
 )
 
 // User provides convenience functions around the database, config and teams subdirectory.
@@ -74,6 +75,20 @@ func (u User) Memberships() (teamMemberships []TeamMembership, err error) {
 
 	}
 	return teamMemberships, nil
+}
+
+// IsInTeam returns true if *any* of the users keys are in the team with the given UUID.
+func (u User) IsInTeam(teamUUID uuid.UUID) (isInTeam bool, err error) {
+	memberships, err := u.Memberships()
+	if err != nil {
+		return false, err
+	}
+	for _, membership := range memberships {
+		if membership.Team.UUID == teamUUID {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // TeamMembership records a connection between a Person and a Team. It's possible for several of
