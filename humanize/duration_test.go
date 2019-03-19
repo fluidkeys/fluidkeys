@@ -34,7 +34,7 @@ func TestRoughDuration(t *testing.T) {
 		{
 			name:     "1 second",
 			duration: time.Duration(1) * time.Second,
-			expected: "just now",
+			expected: "a moment",
 		},
 		{
 			name:     "1 minute",

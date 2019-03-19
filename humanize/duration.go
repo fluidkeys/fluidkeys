@@ -27,7 +27,7 @@ import (
 func RoughDuration(d time.Duration) string {
 	switch {
 	case 0 <= d && d < oneMinute:
-		return "just now"
+		return "a moment"
 
 	case oneMinute <= d && d < oneHour:
 		return Pluralize(int(math.Floor(d.Minutes())), "minute", "minutes")
