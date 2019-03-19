@@ -31,6 +31,22 @@ import (
 )
 
 func teamJoin(teamUUID uuid.UUID) exitCode {
+	isInTeam, existingTeam, err := user.IsInTeam(teamUUID)
+	if err != nil {
+		out.Print(ui.FormatFailure("Couldn't check if user already is in team", nil, err))
+		return 1
+	}
+	if isInTeam {
+		out.Print(ui.FormatWarning(
+			"You're already in the team"+existingTeam.Name,
+			[]string{
+				"You can't request to join a team you're already part of.",
+			},
+			nil,
+		))
+		return 1
+	}
+
 	teamName, err := client.GetTeamName(teamUUID)
 	if err != nil {
 		out.Print(ui.FormatFailure("Couldn't request to join team", nil, err))
