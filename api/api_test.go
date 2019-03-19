@@ -442,7 +442,7 @@ func TestGetTeamRoster(t *testing.T) {
 			mockResponseHandler,
 		)
 
-		gotRoster, gotSignature, err := client.GetTeamRoster(*requesterKey, teamUUID)
+		gotRoster, gotSignature, err := client.GetTeamRoster(requesterKey, teamUUID)
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedRoster, gotRoster)
@@ -468,7 +468,7 @@ func TestGetTeamRoster(t *testing.T) {
 			mockResponseHandler,
 		)
 
-		_, _, err = client.GetTeamRoster(*invalidRequesterKey, invalidKeyTeamUUID)
+		_, _, err = client.GetTeamRoster(invalidRequesterKey, invalidKeyTeamUUID)
 
 		assert.GotError(t, err)
 		assert.Equal(t,
@@ -488,7 +488,7 @@ func TestGetTeamRoster(t *testing.T) {
 			mockNotFoundResponseHandler,
 		)
 
-		_, _, err := client.GetTeamRoster(*requesterKey, unknownUUID)
+		_, _, err := client.GetTeamRoster(requesterKey, unknownUUID)
 
 		assert.Equal(t, ErrTeamNotFound, err)
 	})
@@ -505,7 +505,7 @@ func TestGetTeamRoster(t *testing.T) {
 			mockResponseHandler,
 		)
 
-		_, _, err := client.GetTeamRoster(*requesterKey, teamUUID)
+		_, _, err := client.GetTeamRoster(requesterKey, teamUUID)
 
 		assert.Equal(t, ErrForbidden, err)
 	})
@@ -522,7 +522,7 @@ func TestGetTeamRoster(t *testing.T) {
 			mockErrorResponseHandler,
 		)
 
-		_, _, err := client.GetTeamRoster(*requesterKey, errorUUID)
+		_, _, err := client.GetTeamRoster(requesterKey, errorUUID)
 
 		assert.GotError(t, err)
 		assert.Equal(t, fmt.Errorf("API error: 500"), err)

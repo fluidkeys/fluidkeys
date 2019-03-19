@@ -256,7 +256,7 @@ func (c *Client) GetTeamName(teamUUID uuid.UUID) (string, error) {
 
 // GetTeamRoster attempts to get the team roster and signature for the given UUID. The API
 // responds with encrypted JSON, so it tries to decrypt this using the requestingKey.
-func (c *Client) GetTeamRoster(requestingKey pgpkey.PgpKey, teamUUID uuid.UUID) (
+func (c *Client) GetTeamRoster(requestingKey *pgpkey.PgpKey, teamUUID uuid.UUID) (
 	roster string, signature string, err error) {
 
 	path := fmt.Sprintf("team/%s/roster", teamUUID)
