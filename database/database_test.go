@@ -1,7 +1,6 @@
 package database
 
 import (
-	"io/ioutil"
 	"testing"
 	"time"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/team"
+	"github.com/fluidkeys/fluidkeys/testhelpers"
 	"github.com/gofrs/uuid"
 )
 
@@ -16,7 +16,7 @@ func TestRecordFingerprintImportedIntoGnuPG(t *testing.T) {
 
 	t.Run("record works to an empty database", func(t *testing.T) {
 		fingerprint := exampleFingerprintA
-		database := New(makeTempDirectory(t))
+		database := New(testhelpers.Maketemp(t))
 		err := database.RecordFingerprintImportedIntoGnuPG(fingerprint)
 		assert.NoError(t, err)
 
@@ -27,7 +27,7 @@ func TestRecordFingerprintImportedIntoGnuPG(t *testing.T) {
 	t.Run("record appends a new key to a database with key ids already stored", func(t *testing.T) {
 		existingFingerprint := exampleFingerprintA
 		newFingerprint := exampleFingerprintB
-		database := New(makeTempDirectory(t))
+		database := New(testhelpers.Maketemp(t))
 
 		err := database.RecordFingerprintImportedIntoGnuPG(existingFingerprint)
 		assert.NoError(t, err)
@@ -41,7 +41,7 @@ func TestRecordFingerprintImportedIntoGnuPG(t *testing.T) {
 
 	t.Run("doesn't duplicate key ids if trying to record a key that already is stored", func(t *testing.T) {
 		fingerprint := exampleFingerprintA
-		database := New(makeTempDirectory(t))
+		database := New(testhelpers.Maketemp(t))
 
 		err := database.RecordFingerprintImportedIntoGnuPG(fingerprint)
 		assert.NoError(t, err)
@@ -58,7 +58,7 @@ func TestRecordFingerprintImportedIntoGnuPG(t *testing.T) {
 func TestGetFingerprintsImportedIntoGnuPG(t *testing.T) {
 
 	t.Run("can read back fingerprint written to database", func(t *testing.T) {
-		database := New(makeTempDirectory(t))
+		database := New(testhelpers.Maketemp(t))
 		fingerprint := exampleFingerprintA
 		err := database.RecordFingerprintImportedIntoGnuPG(fingerprint)
 		assert.NoError(t, err)
@@ -89,7 +89,7 @@ func TestRecordRequestsToJoinTeamG(t *testing.T) {
 	}
 
 	t.Run("record works to an empty database", func(t *testing.T) {
-		database := New(makeTempDirectory(t))
+		database := New(testhelpers.Maketemp(t))
 		err := database.RecordRequestToJoinTeam(
 			request1.TeamUUID,
 			request1.TeamName,
@@ -110,7 +110,7 @@ func TestRecordRequestsToJoinTeamG(t *testing.T) {
 
 	t.Run("record appends a new request to a database with requests already stored", func(t *testing.T) {
 
-		database := New(makeTempDirectory(t))
+		database := New(testhelpers.Maketemp(t))
 
 		err := database.RecordRequestToJoinTeam(
 			request1.TeamUUID,
@@ -136,7 +136,7 @@ func TestRecordRequestsToJoinTeamG(t *testing.T) {
 	})
 
 	t.Run("record deduplicates selecting oldest requests for team & fingerprint", func(t *testing.T) {
-		database := New(makeTempDirectory(t))
+		database := New(testhelpers.Maketemp(t))
 
 		dupeReq := request1
 		dupeReq.RequestedAt = later // older one should get dropped
@@ -155,7 +155,7 @@ func TestRecordRequestsToJoinTeamG(t *testing.T) {
 
 	t.Run("doesn't overwrite keys imported into gnupg when recording a request to join a team", func(t *testing.T) {
 		fingerprint := exampleFingerprintA
-		database := New(makeTempDirectory(t))
+		database := New(testhelpers.Maketemp(t))
 		err := database.RecordFingerprintImportedIntoGnuPG(fingerprint)
 		assert.NoError(t, err)
 
@@ -195,7 +195,7 @@ func TestGetRequestsToJoinTeams(t *testing.T) {
 	}
 
 	t.Run("get requests returns de-duplicated requests", func(t *testing.T) {
-		database := New(makeTempDirectory(t))
+		database := New(testhelpers.Maketemp(t))
 
 		addRequestToJoinToDatabase(t, newestReq, database)
 		addRequestToJoinToDatabase(t, oldestReq, database)
@@ -210,7 +210,7 @@ func TestGetRequestsToJoinTeams(t *testing.T) {
 	})
 
 	t.Run("returns oldest when newest was inserted first", func(t *testing.T) {
-		database := New(makeTempDirectory(t))
+		database := New(testhelpers.Maketemp(t))
 		addRequestToJoinToDatabase(t, newestReq, database)
 		addRequestToJoinToDatabase(t, oldestReq, database)
 
@@ -223,7 +223,7 @@ func TestGetRequestsToJoinTeams(t *testing.T) {
 	})
 
 	t.Run("returns oldest when oldest was inserted first", func(t *testing.T) {
-		database := New(makeTempDirectory(t))
+		database := New(testhelpers.Maketemp(t))
 
 		addRequestToJoinToDatabase(t, oldestReq, database)
 		addRequestToJoinToDatabase(t, newestReq, database)
@@ -264,7 +264,7 @@ func TestDeleteRequestToJoinTeam(t *testing.T) {
 		RequestedAt: later,                           // later than req3 so it sorts consistently
 	}
 
-	database := New(makeTempDirectory(t))
+	database := New(testhelpers.Maketemp(t))
 
 	t.Run("set up the database ", func(t *testing.T) {
 		addRequestToJoinToDatabase(t, req1, database)
@@ -316,7 +316,7 @@ func TestGetExistingRequestToJoinTeam(t *testing.T) {
 	}
 
 	t.Run("gets the earliest request for matching teamUUID and fingerprint", func(t *testing.T) {
-		database := New(makeTempDirectory(t))
+		database := New(testhelpers.Maketemp(t))
 
 		addRequestToJoinToDatabase(t, request1, database)
 		addRequestToJoinToDatabase(t, request1Dupe, database)
@@ -329,7 +329,7 @@ func TestGetExistingRequestToJoinTeam(t *testing.T) {
 	})
 
 	t.Run("gets a specific error when request can't be found", func(t *testing.T) {
-		database := New(makeTempDirectory(t))
+		database := New(testhelpers.Maketemp(t))
 
 		addRequestToJoinToDatabase(t, request1, database)
 
@@ -371,15 +371,6 @@ func addRequestToJoinToDatabase(t *testing.T, request team.RequestToJoinTeam, da
 		request.Fingerprint,
 		request.RequestedAt,
 	))
-}
-
-func makeTempDirectory(t *testing.T) string {
-	t.Helper()
-	dir, err := ioutil.TempDir("", "db")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	return dir
 }
 
 func assertContainsFingerprint(t *testing.T, slice []fpr.Fingerprint, element fpr.Fingerprint) {
