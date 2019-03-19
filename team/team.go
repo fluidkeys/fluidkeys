@@ -43,6 +43,23 @@ func LoadTeams(fluidkeysDirectory string) ([]Team, error) {
 	return teams, nil
 }
 
+// Load loads a team from the given roster and signature
+func Load(roster string, signature string) (*Team, error) {
+	team, err := parse(strings.NewReader(roster))
+	if err != nil {
+		return nil, err
+	}
+
+	err = team.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("error validating team: %v", err)
+	}
+
+	team.roster = roster
+	team.signature = signature
+	return team, nil
+}
+
 // Directory returns the team subdirectory
 func Directory(t Team, fluidkeysDirectory string) (directory string, err error) {
 	teamDirectory, err := getTeamDirectory(fluidkeysDirectory)
