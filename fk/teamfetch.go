@@ -149,17 +149,10 @@ func processRequestsToJoinTeam() (newTeams []team.Team, returnError error) {
 			continue
 		}
 
-		key, err := loadPgpKey(request.Fingerprint)
+		unlockedKey, err := loadPrivateKeyFromFingerprint(
+			request.Fingerprint, &interactivePasswordPrompter{})
 		if err != nil {
 			out.Print(ui.FormatFailure("Failed to load requesting key", nil, err))
-			returnError = err
-			continue
-		}
-
-		passwordPrompter := interactivePasswordPrompter{}
-		unlockedKey, _, err := getDecryptedPrivateKeyAndPassword(key, &passwordPrompter)
-		if err != nil {
-			out.Print(ui.FormatFailure("Failed to unlock private key", nil, err))
 			returnError = err
 			continue
 		}
@@ -226,6 +219,21 @@ func processRequestsToJoinTeam() (newTeams []team.Team, returnError error) {
 		}
 	}
 	return newTeams, returnError
+}
+
+func loadPrivateKeyFromFingerprint(
+	fingerprint fp.Fingerprint, prompter promptForPasswordInterface) (*pgpkey.PgpKey, error) {
+
+	key, err := loadPgpKey(fingerprint)
+	if err != nil {
+		return nil, err
+	}
+
+	unlockedKey, _, err := getDecryptedPrivateKeyAndPassword(key, prompter)
+	if err != nil {
+		return nil, err
+	}
+	return unlockedKey, nil
 }
 
 func getAndImportKeyToGpg(fingerprint fp.Fingerprint) error {
