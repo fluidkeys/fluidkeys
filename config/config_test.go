@@ -12,11 +12,12 @@ import (
 
 	"github.com/fluidkeys/fluidkeys/assert"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/fluidkeys/fluidkeys/testhelpers"
 )
 
 func TestLoad(t *testing.T) {
 	t.Run("Load actually works from a real config file", func(t *testing.T) {
-		tmpdir := makeTempDir(t)
+		tmpdir := testhelpers.Maketemp(t)
 		err := ioutil.WriteFile(path.Join(tmpdir, "config.toml"), []byte(exampleTomlDocument), 0600)
 		assert.NoError(t, err)
 
@@ -420,15 +421,6 @@ func (m *mockFileFunctions) IoutilWriteFile(filename string, data []byte, mode o
 	m.IoutilWriteFileGotMode = mode
 
 	return m.IoutilWriteFileReturnError
-}
-
-func makeTempDir(t *testing.T) string {
-	t.Helper()
-	dir, err := ioutil.TempDir("", "fluidkey.config_test.")
-	if err != nil {
-		t.Fatalf("Failed to create temp GnuPG dir: %v", err)
-	}
-	return dir
 }
 
 func assertEqualStrings(t *testing.T, expected string, got string) {

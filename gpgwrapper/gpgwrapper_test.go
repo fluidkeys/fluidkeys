@@ -2,7 +2,6 @@ package gpgwrapper
 
 import (
 	"fmt"
-	"io/ioutil"
 	"strings"
 	"testing"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/fluidkeys/fluidkeys/testhelpers"
 )
 
 func TestParseGPGOutputVersion(t *testing.T) {
@@ -359,16 +359,7 @@ func makeGpgWithTempHome(t *testing.T) GnuPG {
 	gpgBinary, err := findGpgBinary()
 	assert.NoError(t, err)
 
-	return GnuPG{fullGpgPath: gpgBinary, homeDir: makeTempGnupgHome(t)}
-}
-
-func makeTempGnupgHome(t *testing.T) string {
-	t.Helper()
-	dir, err := ioutil.TempDir("", "gpg.test.")
-	if err != nil {
-		t.Fatalf("Failed to create temp GnuPG dir: %v", err)
-	}
-	return dir
+	return GnuPG{fullGpgPath: gpgBinary, homeDir: testhelpers.Maketemp(t)}
 }
 
 func assertParsesVersionCorrectly(t *testing.T, gpgOutput string, want string) {
