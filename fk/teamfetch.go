@@ -35,20 +35,20 @@ import (
 func teamFetch() exitCode {
 	sawError := false
 
-	myTeams, err := team.LoadTeams(fluidkeysDirectory)
+	myTeams, err := user.Memberships()
 	if err != nil {
 		log.Panic(err)
 	}
 
-	for _, existingTeam := range myTeams {
-		printHeader(existingTeam.Name)
+	for _, membership := range myTeams {
+		printHeader(membership.Team.Name)
 
-		if err := fetchUpdatedRoster(existingTeam); err != nil {
+		if err := fetchUpdatedRoster(membership.Team); err != nil {
 			// TODO: download the updated roster and handle the case where we're forbidden, as it
 			// means we're no longer in the team.
 		}
 
-		if err := fetchTeamKeys(existingTeam); err != nil {
+		if err := fetchTeamKeys(membership.Team); err != nil {
 			out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
 			sawError = true
 			continue
@@ -58,7 +58,7 @@ func teamFetch() exitCode {
 			successfullyFetchedKeysHeadline,
 			[]string{
 				"You have successfully fetched everyone's key in " +
-					existingTeam.Name + ".",
+					membership.Team.Name + ".",
 			},
 		))
 
