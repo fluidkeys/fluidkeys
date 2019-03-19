@@ -153,6 +153,9 @@ func (t *Team) UpdateRoster(signingKey *pgpkey.PgpKey) error {
 // Roster returns the TOML file representing the team roster, and the ASCII armored detached
 // signature of that file.
 func (t Team) Roster() (roster string, signature string) {
+	if t.roster == "" || t.signature == "" {
+		log.Panic("Roster called but roster & signature haven't been set")
+	}
 	return t.roster, t.signature
 }
 
