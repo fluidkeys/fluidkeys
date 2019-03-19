@@ -32,7 +32,7 @@ fingerprint = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 # missing is_admin
 `
 	reader := strings.NewReader(validRoster)
-	team, err := Parse(reader)
+	team, err := parse(reader)
 
 	assert.NoError(t, err)
 	expectedPeople := []Person{

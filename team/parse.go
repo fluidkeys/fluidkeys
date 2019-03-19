@@ -7,8 +7,8 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-// Parse parses the team roster's TOML data, returning a Team or an error
-func Parse(r io.Reader) (*Team, error) {
+// parse parses the team roster's TOML data, returning a Team or an error
+func parse(r io.Reader) (*Team, error) {
 	var parsedTeam Team
 	metadata, err := toml.DecodeReader(r, &parsedTeam)
 
