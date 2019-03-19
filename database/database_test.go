@@ -328,17 +328,19 @@ func TestGetExistingRequestToJoinTeam(t *testing.T) {
 		assert.Equal(t, request1, *gotRequest)
 	})
 
-	t.Run("gets a specific error when request can't be found", func(t *testing.T) {
+	t.Run("doesn't get error when request can't be found", func(t *testing.T) {
 		database := New(makeTempDirectory(t))
 
 		addRequestToJoinToDatabase(t, request1, database)
 
-		_, err := database.GetExistingRequestToJoinTeam(
+		gotRequest, err := database.GetExistingRequestToJoinTeam(
 			uuid.Must(uuid.NewV4()),
 			exampleFingerprintA,
 		)
-		assert.GotError(t, err)
-		assert.Equal(t, ErrRequestNotFound, err)
+		assert.NoError(t, err)
+		if gotRequest != nil {
+			t.Fatalf("expected gotRequest to be nil, but it isn't")
+		}
 	})
 }
 

@@ -150,7 +150,7 @@ func (db *Database) GetExistingRequestToJoinTeam(teamUUID uuid.UUID, fingerprint
 
 	message, err := db.loadFromFile()
 	if os.IsNotExist(err) {
-		return nil, ErrRequestNotFound
+		return nil, nil
 	}
 	if err != nil {
 		return nil, err
@@ -167,7 +167,7 @@ func (db *Database) GetExistingRequestToJoinTeam(teamUUID uuid.UUID, fingerprint
 		}
 	}
 
-	return nil, ErrRequestNotFound
+	return nil, nil
 }
 
 // DeleteRequestToJoinTeam deletes all requests to join the team matching the given team UUID and
