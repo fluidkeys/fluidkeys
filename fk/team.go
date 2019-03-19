@@ -28,7 +28,7 @@ import (
 
 func teamSubcommand(args docopt.Opts) exitCode {
 	switch getSubcommand(args, []string{
-		"authorize", "create", "join", "sync",
+		"authorize", "create", "join", "fetch",
 	}) {
 
 	case "join":
@@ -45,8 +45,8 @@ func teamSubcommand(args docopt.Opts) exitCode {
 
 		return teamJoin(teamUUID)
 
-	case "sync":
-		return teamSync()
+	case "fetch":
+		return teamFetch()
 
 	case "create":
 		return teamCreate()

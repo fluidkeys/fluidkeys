@@ -33,7 +33,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/ui"
 )
 
-func teamSync() exitCode {
+func teamFetch() exitCode {
 	sawError := false
 
 	myTeams, err := team.LoadTeams(fluidkeysDirectory)
