@@ -79,13 +79,33 @@ func TestMembershipFunctions(t *testing.T) {
 	})
 
 	t.Run("InTeam", func(t *testing.T) {
-		got, err := user.IsInTeam(team1.UUID)
-		assert.NoError(t, err)
-		assert.Equal(t, true, got)
+		t.Run("user is in team", func(t *testing.T) {
+			gotIsInTeam, gotTeam, err := user.IsInTeam(team1.UUID)
+			assert.NoError(t, err)
 
-		got, err = user.IsInTeam(team2.UUID)
-		assert.NoError(t, err)
-		assert.Equal(t, false, got)
+			t.Run("returns true", func(t *testing.T) {
+				assert.Equal(t, true, gotIsInTeam)
+			})
+
+			t.Run("returns a pointer to the team", func(t *testing.T) {
+				assert.Equal(t, &team1, gotTeam)
+			})
+		})
+
+		t.Run("user is not in team", func(t *testing.T) {
+			gotIsInTeam, gotTeam, err := user.IsInTeam(team2.UUID)
+			assert.NoError(t, err)
+
+			t.Run("returns true", func(t *testing.T) {
+				assert.Equal(t, false, gotIsInTeam)
+			})
+
+			t.Run("returns nil", func(t *testing.T) {
+				if gotTeam != nil {
+					t.Fatalf("expected gotTeam to be nil, but it isn't")
+				}
+			})
+		})
 	})
 
 }

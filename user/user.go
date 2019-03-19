@@ -78,17 +78,17 @@ func (u User) Memberships() (teamMemberships []TeamMembership, err error) {
 }
 
 // IsInTeam returns true if *any* of the users keys are in the team with the given UUID.
-func (u User) IsInTeam(teamUUID uuid.UUID) (isInTeam bool, err error) {
+func (u User) IsInTeam(teamUUID uuid.UUID) (isInTeam bool, theTeam *team.Team, err error) {
 	memberships, err := u.Memberships()
 	if err != nil {
-		return false, err
+		return false, nil, err
 	}
 	for _, membership := range memberships {
 		if membership.Team.UUID == teamUUID {
-			return true, nil
+			return true, &membership.Team, nil
 		}
 	}
-	return false, nil
+	return false, nil, nil
 }
 
 // TeamMembership records a connection between a Person and a Team. It's possible for several of
