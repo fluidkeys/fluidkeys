@@ -31,6 +31,10 @@ import (
 )
 
 func teamJoin(teamUUID uuid.UUID) exitCode {
+	if code := ensureUserIsntInATeam("Couldn't request to join team"); code > 0 {
+		return code
+	}
+
 	teamName, err := client.GetTeamName(teamUUID)
 	if err != nil {
 		out.Print(ui.FormatFailure("Couldn't request to join team", nil, err))
@@ -88,6 +92,21 @@ func ensureNoExistingRequests(teamUUID uuid.UUID, fingerprint fpr.Fingerprint) e
 			},
 			nil,
 		))
+		return 1
+	}
+	return 0
+}
+
+func ensureUserIsntInATeam(failureHeadline string) exitCode {
+	memberships, err := user.Memberships()
+	if err != nil {
+		out.Print(ui.FormatFailure(failureHeadline, []string{
+			"Failed to check which teams you're already a member of.",
+		}, err))
+		return 1
+	}
+	if len(memberships) > 0 {
+		out.Print(ui.FormatWarning("It's not possible to be in more than one team", nil, nil))
 		return 1
 	}
 	return 0
