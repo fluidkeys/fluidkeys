@@ -42,6 +42,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/scheduler"
 	"github.com/fluidkeys/fluidkeys/ui"
+	userpackage "github.com/fluidkeys/fluidkeys/user"
 )
 
 const Version = "0.4.0"
@@ -53,6 +54,7 @@ var (
 	Config             config.Config
 	Keyring            keyring.Keyring
 	client             *api.Client
+	user               *userpackage.User
 )
 
 type exitCode = int

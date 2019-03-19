@@ -30,6 +30,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/gpgwrapper"
 	"github.com/fluidkeys/fluidkeys/keyring"
 	"github.com/fluidkeys/fluidkeys/out"
+	userpackage "github.com/fluidkeys/fluidkeys/user"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -41,6 +42,7 @@ func init() {
 	initDatabase()
 	initGpgWrapper()
 	initAPIClient()
+	initUser()
 }
 
 func initFluidkeysDirectory() {
@@ -94,6 +96,10 @@ func initOutput() {
 
 func initAPIClient() {
 	client = api.NewClient(Version)
+}
+
+func initUser() {
+	user = userpackage.New(fluidkeysDirectory, &db)
 }
 
 func getFluidkeysDirectory() (string, error) {
