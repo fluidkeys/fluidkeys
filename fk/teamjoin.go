@@ -31,20 +31,8 @@ import (
 )
 
 func teamJoin(teamUUID uuid.UUID) exitCode {
-	memberships, err := user.Memberships()
-	if err != nil {
-		out.Print(ui.FormatFailure(
-			"Failed to join team", []string{
-				"Error checking which teams you're already a member of.",
-			}, err))
-		return 1
-	}
-	if len(memberships) > 0 {
-		out.Print(ui.FormatWarning(
-			"Can't join another team", []string{
-				"Currently Fluidkeys only supports being in one team.",
-			}, nil))
-		return 1
+	if code := ensureUserCanJoinTeam(teamUUID); code != 0 {
+		return code
 	}
 
 	teamName, err := client.GetTeamName(teamUUID)
@@ -87,6 +75,35 @@ func teamJoin(teamUUID uuid.UUID) exitCode {
 		"start working.\n\n")
 	return 0
 
+}
+
+func ensureUserCanJoinTeam(teamUUID uuid.UUID) exitCode {
+	isInTeam, existingTeam, err := user.IsInTeam(teamUUID)
+	if err != nil {
+		out.Print(ui.FormatFailure("Couldn't check if user already is in team", nil, err))
+		return 1
+	}
+	if isInTeam {
+		out.Print(ui.FormatSuccess("You're already in the team "+existingTeam.Name, nil))
+		return 1
+	}
+
+	memberships, err := user.Memberships()
+	if err != nil {
+		out.Print(ui.FormatFailure(
+			"Failed to join team", []string{
+				"Error checking which teams you're already a member of.",
+			}, err))
+		return 1
+	}
+	if len(memberships) > 0 {
+		out.Print(ui.FormatWarning(
+			"Can't join another team", []string{
+				"Currently Fluidkeys only supports being in one team.",
+			}, nil))
+		return 1
+	}
+	return 0
 }
 
 func ensureNoExistingRequests(teamUUID uuid.UUID, fingerprint fpr.Fingerprint) exitCode {
