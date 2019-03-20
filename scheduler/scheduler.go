@@ -76,7 +76,7 @@ func Disable(crontab runCrontabInterface) (cronLinesWereRemoved bool, err error)
 }
 
 func hasFluidkeysCronLines(crontab string) bool {
-	return strings.Contains(crontab, CronLines)
+	return strings.Contains(crontab, strings.TrimSuffix(CronLines, "\n"))
 }
 
 type systemCrontab struct{}
@@ -142,17 +142,37 @@ func (*systemCrontab) runCrontab(arguments ...string) (string, error) {
 }
 
 func addCrontabLinesWithoutRepeating(crontab string) string {
-	return removeCrontabLines(crontab) + CronLines
+	removed := removeCrontabLines(crontab)
+
+	if !strings.HasSuffix(removed, "\n") {
+		// the crontab should always have a trailing newline
+		removed += "\n"
+	}
+
+	if isEmpty(removed) {
+		return CronLines
+	}
+
+	return removed + "\n" + CronLines
 }
 
 func removeCrontabLines(crontab string) string {
-	return strings.Replace(crontab, CronLines, "", -1)
+	linesWithoutFinalNewline := strings.TrimSuffix(CronLines, "\n")
+
+	result := strings.Replace(crontab, linesWithoutFinalNewline, "", -1)
+	if isEmpty(result) {
+		return ""
+	}
+	return strings.Trim(result, "\n") + "\n"
+}
+
+func isEmpty(crontab string) bool {
+	return strings.Trim(crontab, "\n") == ""
 }
 
 const crontab string = "crontab"
 
 // CronLines is the string Fluidkeys adds to a user's crontab to run itself
-const CronLines string = `
-# Fluidkeys added the following line. To disable, edit your Fluidkeys configuration file.
-@hourly /usr/local/bin/fk key maintain automatic --cron-output
-`
+const CronLines string = "# Fluidkeys added the following line. To disable, edit your " +
+	"Fluidkeys configuration file.\n" +
+	"@hourly /usr/local/bin/fk key maintain automatic --cron-output\n"
