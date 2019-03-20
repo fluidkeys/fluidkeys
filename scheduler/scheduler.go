@@ -158,8 +158,11 @@ func addCrontabLinesWithoutRepeating(crontab string) string {
 
 func removeCrontabLines(crontab string) string {
 	linesWithoutFinalNewline := strings.TrimSuffix(CronLines, "\n")
-
 	result := strings.Replace(crontab, linesWithoutFinalNewline, "", -1)
+
+	legacyWithoutFinalNewline := strings.TrimSuffix(legacyCronLines, "\n")
+	result = strings.Replace(result, legacyWithoutFinalNewline, "", -1)
+
 	if isEmpty(result) {
 		return ""
 	}
@@ -173,6 +176,11 @@ func isEmpty(crontab string) bool {
 const crontab string = "crontab"
 
 // CronLines is the string Fluidkeys adds to a user's crontab to run itself
-const CronLines string = "# Fluidkeys added the following line. To disable, edit your " +
+const CronLines string = "# Fluidkeys added the following line to keep you and your team's keys updated\n" +
+	"# automatically with `fk sync`\n" +
+	"# To configure this, edit your config file (see `ffk --help` for the location)\n" +
+	"@hourly perl -e 'sleep int(rand(3600))' && /usr/local/bin/fk sync --cron-output\n"
+
+const legacyCronLines string = "# Fluidkeys added the following line. To disable, edit your " +
 	"Fluidkeys configuration file.\n" +
 	"@hourly /usr/local/bin/fk key maintain automatic --cron-output\n"

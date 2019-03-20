@@ -116,8 +116,10 @@ func TestAddCrontabLinesWithoutRepeating(t *testing.T) {
 		got := addCrontabLinesWithoutRepeating(testCrontab)
 
 		expected := "# foo\n\n" + // should leave an extra newline before the comment
-			"# Fluidkeys added the following line. To disable, edit your Fluidkeys configuration file.\n" +
-			"@hourly /usr/local/bin/fk key maintain automatic --cron-output\n"
+			"# Fluidkeys added the following line to keep you and your team's keys updated\n" +
+			"# automatically with `fk sync`\n" +
+			"# To configure this, edit your config file (see `ffk --help` for the location)\n" +
+			"@hourly perl -e 'sleep int(rand(3600))' && /usr/local/bin/fk sync --cron-output\n"
 		assert.Equal(t, expected, got)
 	})
 
@@ -125,8 +127,10 @@ func TestAddCrontabLinesWithoutRepeating(t *testing.T) {
 		testCrontab := ""
 		got := addCrontabLinesWithoutRepeating(testCrontab)
 
-		expected := "# Fluidkeys added the following line. To disable, edit your Fluidkeys configuration file.\n" +
-			"@hourly /usr/local/bin/fk key maintain automatic --cron-output\n"
+		expected := "# Fluidkeys added the following line to keep you and your team's keys updated\n" +
+			"# automatically with `fk sync`\n" +
+			"# To configure this, edit your config file (see `ffk --help` for the location)\n" +
+			"@hourly perl -e 'sleep int(rand(3600))' && /usr/local/bin/fk sync --cron-output\n"
 
 		assert.Equal(t, expected, got)
 	})
@@ -136,21 +140,40 @@ func TestAddCrontabLinesWithoutRepeating(t *testing.T) {
 		got := addCrontabLinesWithoutRepeating(testCrontab)
 
 		expected := "# foo\n\n" + // ensure there's 2 newlines
-			"# Fluidkeys added the following line. To disable, edit your Fluidkeys configuration file.\n" +
-			"@hourly /usr/local/bin/fk key maintain automatic --cron-output\n"
+			"# Fluidkeys added the following line to keep you and your team's keys updated\n" +
+			"# automatically with `fk sync`\n" +
+			"# To configure this, edit your config file (see `ffk --help` for the location)\n" +
+			"@hourly perl -e 'sleep int(rand(3600))' && /usr/local/bin/fk sync --cron-output\n"
 
 		assert.Equal(t, expected, got)
 	})
 
-	t.Run("when crontab already contains the cron lines dont mess with it", func(t *testing.T) {
+	t.Run("when crontab already contains the cron lines", func(t *testing.T) {
 		testCrontab := "# foo\n" +
-			"# Fluidkeys added the following line. To disable, edit your Fluidkeys configuration file.\n" +
-			"@hourly /usr/local/bin/fk key maintain automatic --cron-output\n"
+			"# Fluidkeys added the following line to keep you and your team's keys updated\n" +
+			"# automatically with `fk sync`\n" +
+			"# To configure this, edit your config file (see `ffk --help` for the location)\n" +
+			"@hourly perl -e 'sleep int(rand(3600))' && /usr/local/bin/fk sync --cron-output\n"
 		got := addCrontabLinesWithoutRepeating(testCrontab)
 
 		expected := "# foo\n\n" +
-			"# Fluidkeys added the following line. To disable, edit your Fluidkeys configuration file.\n" +
-			"@hourly /usr/local/bin/fk key maintain automatic --cron-output\n"
+			"# Fluidkeys added the following line to keep you and your team's keys updated\n" +
+			"# automatically with `fk sync`\n" +
+			"# To configure this, edit your config file (see `ffk --help` for the location)\n" +
+			"@hourly perl -e 'sleep int(rand(3600))' && /usr/local/bin/fk sync --cron-output\n"
+
+		assert.Equal(t, expected, got)
+	})
+
+	t.Run("when crontab contains the legacy cron lines ", func(t *testing.T) {
+		testCrontab := "# foo\n" + legacyCronLines
+		got := addCrontabLinesWithoutRepeating(testCrontab)
+
+		expected := "# foo\n\n" +
+			"# Fluidkeys added the following line to keep you and your team's keys updated\n" +
+			"# automatically with `fk sync`\n" +
+			"# To configure this, edit your config file (see `ffk --help` for the location)\n" +
+			"@hourly perl -e 'sleep int(rand(3600))' && /usr/local/bin/fk sync --cron-output\n"
 
 		assert.Equal(t, expected, got)
 	})
@@ -173,6 +196,20 @@ func TestRemoveCrontabLines(t *testing.T) {
 
 	t.Run("when crontab only contains fluidkeys lines", func(t *testing.T) {
 		testCrontab := CronLines
+		got := removeCrontabLines(testCrontab)
+
+		assert.Equal(t, "", got)
+	})
+
+	t.Run("removes legacy crontab lines", func(t *testing.T) {
+		testCrontab := legacyCronLines
+		got := removeCrontabLines(testCrontab)
+
+		assert.Equal(t, "", got)
+	})
+
+	t.Run("removes current and legacy crontab lines", func(t *testing.T) {
+		testCrontab := CronLines + legacyCronLines
 		got := removeCrontabLines(testCrontab)
 
 		assert.Equal(t, "", got)
