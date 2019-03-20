@@ -40,29 +40,32 @@ func teamFetch() exitCode {
 		log.Panic(err)
 	}
 
-	for _, membership := range myTeams {
-		printHeader(membership.Team.Name)
+	for i := range myTeams {
+		var myTeam *team.Team = &myTeams[i].Team // allows us move myTeam to point at updated team
+		me := myTeams[i].Me
 
-		unlockedKey, err := loadPrivateKeyFromFingerprint(
-			membership.Me.Fingerprint, &interactivePasswordPrompter{})
-		if err != nil {
+		printHeader(myTeam.Name)
+
+		prompt := interactivePasswordPrompter{}
+
+		if unlockedKey, err := loadPrivateKeyFromFingerprint(me.Fingerprint, &prompt); err != nil {
 			out.Print(ui.FormatFailure(
 				"Failed to unlock key to check for team updates", []string{
 					"Checking for updates to the team requires an unlocked key",
 					"as the team roster is encrypted.",
 				}, err))
-			sawError = true
-			continue
+			sawError = true // carry on, so we can fetch the team's keys
+		} else {
+
+			if updatedTeam, err := fetchAndUpdateRoster(*myTeam, unlockedKey); err != nil {
+				out.Print(ui.FormatWarning("Failed to check team for updates", []string{}, err))
+				sawError = true // carry on, so we can fetch the team's keys
+			} else {
+				myTeam = updatedTeam // move myTeam pointer to updatedTeam
+			}
 		}
 
-		updatedTeam, err := fetchAndUpdateRoster(membership.Team, unlockedKey)
-		if err != nil {
-			out.Print(ui.FormatWarning("Failed to check team for updates", []string{}, err))
-			sawError = true
-			continue
-		}
-
-		if err := fetchTeamKeys(*updatedTeam); err != nil {
+		if err := fetchTeamKeys(*myTeam); err != nil {
 			out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
 			sawError = true
 			continue
@@ -70,10 +73,7 @@ func teamFetch() exitCode {
 
 		out.Print(ui.FormatSuccess(
 			successfullyFetchedKeysHeadline,
-			[]string{
-				"You have successfully fetched everyone's key in " +
-					membership.Team.Name + ".",
-			},
+			[]string{"You have successfully fetched everyone's key in " + myTeam.Name + "."},
 		))
 
 	}
