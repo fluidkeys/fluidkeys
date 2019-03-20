@@ -31,6 +31,14 @@ func LoadTeams(fluidkeysDirectory string) ([]Team, error) {
 		return nil, err
 	}
 
+	if len(teamSubdirs) > 1 {
+		return nil, fmt.Errorf(
+			"fluidkeys currently only supports one team, %d team subdirectorys found in %s",
+			len(teamSubdirs),
+			teamsDirectory,
+		)
+	}
+
 	teams := []Team{}
 	for _, subdir := range teamSubdirs {
 		log.Printf("loading team roster from %s\n", subdir)
