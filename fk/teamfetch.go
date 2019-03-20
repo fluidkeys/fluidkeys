@@ -120,7 +120,7 @@ func fetchTeamKeys(t team.Team) (err error) {
 }
 
 func processRequestsToJoinTeam() (newTeams []team.Team, returnError error) {
-	requestsToJoinTeams, err := db.GetRequestsToJoinTeams()
+	requestsToJoinTeams, err := user.RequestsToJoinTeams()
 	if err != nil {
 		out.Print(ui.FormatFailure("Failed to get requests to join teams", nil, err))
 		return nil, err
