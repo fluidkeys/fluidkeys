@@ -2,9 +2,11 @@ package scheduler
 
 import (
 	"fmt"
-	"github.com/fluidkeys/fluidkeys/assert"
 	"os/exec"
+	"strings"
 	"testing"
+
+	"github.com/fluidkeys/fluidkeys/assert"
 )
 
 func TestEnable(t *testing.T) {
@@ -18,7 +20,7 @@ func TestEnable(t *testing.T) {
 		gotWasChanged, gotError := Enable(mock)
 		assert.NoError(t, gotError)
 		assert.Equal(t, true, gotWasChanged)
-		assert.Equal(t, "# existing crontab"+CronLines, mock.setCapturedCrontab)
+		assert.Equal(t, "# existing crontab\n\n"+CronLines, mock.setCapturedCrontab)
 	})
 
 	t.Run("do nothing if already in crontab", func(t *testing.T) {
@@ -67,7 +69,9 @@ func TestDisable(t *testing.T) {
 		gotWasChanged, gotError := Disable(mock)
 		assert.NoError(t, gotError)
 		assert.Equal(t, true, gotWasChanged)
-		assert.Equal(t, "# existing crontab\n\n# more lines", mock.setCapturedCrontab)
+		// we end up with an extra newline than we started with, but it's very difficult to
+		// avoid that.
+		assert.Equal(t, "# existing crontab\n\n\n# more lines\n", mock.setCapturedCrontab)
 	})
 
 	t.Run("do nothing if not already in crontab", func(t *testing.T) {
@@ -103,6 +107,75 @@ func TestDisable(t *testing.T) {
 		gotWasChanged, gotError := Disable(mock)
 		assert.Equal(t, fmt.Errorf("fake error from set"), gotError)
 		assert.Equal(t, false, gotWasChanged)
+	})
+}
+
+func TestAddCrontabLinesWithoutRepeating(t *testing.T) {
+	t.Run("adds crontab lines", func(t *testing.T) {
+		testCrontab := "# foo\n"
+		got := addCrontabLinesWithoutRepeating(testCrontab)
+
+		expected := "# foo\n\n" + // should leave an extra newline before the comment
+			"# Fluidkeys added the following line. To disable, edit your Fluidkeys configuration file.\n" +
+			"@hourly /usr/local/bin/fk key maintain automatic --cron-output\n"
+		assert.Equal(t, expected, got)
+	})
+
+	t.Run("when crontab started off empty", func(t *testing.T) {
+		testCrontab := ""
+		got := addCrontabLinesWithoutRepeating(testCrontab)
+
+		expected := "# Fluidkeys added the following line. To disable, edit your Fluidkeys configuration file.\n" +
+			"@hourly /usr/local/bin/fk key maintain automatic --cron-output\n"
+
+		assert.Equal(t, expected, got)
+	})
+
+	t.Run("when previous crontab had no trailing newline", func(t *testing.T) {
+		testCrontab := "# foo"
+		got := addCrontabLinesWithoutRepeating(testCrontab)
+
+		expected := "# foo\n\n" + // ensure there's 2 newlines
+			"# Fluidkeys added the following line. To disable, edit your Fluidkeys configuration file.\n" +
+			"@hourly /usr/local/bin/fk key maintain automatic --cron-output\n"
+
+		assert.Equal(t, expected, got)
+	})
+
+	t.Run("when crontab already contains the cron lines dont mess with it", func(t *testing.T) {
+		testCrontab := "# foo\n" +
+			"# Fluidkeys added the following line. To disable, edit your Fluidkeys configuration file.\n" +
+			"@hourly /usr/local/bin/fk key maintain automatic --cron-output\n"
+		got := addCrontabLinesWithoutRepeating(testCrontab)
+
+		expected := "# foo\n\n" +
+			"# Fluidkeys added the following line. To disable, edit your Fluidkeys configuration file.\n" +
+			"@hourly /usr/local/bin/fk key maintain automatic --cron-output\n"
+
+		assert.Equal(t, expected, got)
+	})
+}
+
+func TestRemoveCrontabLines(t *testing.T) {
+	t.Run("removes crontab lines, leaving single trailing newline", func(t *testing.T) {
+		testCrontab := "# foo\n\n" + CronLines
+		got := removeCrontabLines(testCrontab)
+
+		assert.Equal(t, "# foo\n", got)
+	})
+
+	t.Run("when fluidkeys cron lines don't have a final newline", func(t *testing.T) {
+		testCrontab := strings.TrimRight("# foo\n\n"+CronLines, "\n")
+		got := removeCrontabLines(testCrontab)
+
+		assert.Equal(t, "# foo\n", got)
+	})
+
+	t.Run("when crontab only contains fluidkeys lines", func(t *testing.T) {
+		testCrontab := CronLines
+		got := removeCrontabLines(testCrontab)
+
+		assert.Equal(t, "", got)
 	})
 }
 

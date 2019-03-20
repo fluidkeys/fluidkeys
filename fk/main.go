@@ -153,7 +153,7 @@ func ensureCrontabStateMatchesConfig() {
 
 			out.Print("To fix this, run " + colour.Cmd("crontab -e") + " and add these lines:\n\n")
 			out.Print(formatFileDivider("crontab", 80))
-			out.Print(scheduler.CronLines)
+			out.Print("\n" + scheduler.CronLines)
 			out.Print(formatFileDivider("", 80))
 			out.Print("\n\n")
 
@@ -178,7 +178,7 @@ func ensureCrontabStateMatchesConfig() {
 
 			out.Print("To fix this, run " + colour.Cmd("crontab -e") + " and remove these lines:\n\n")
 			out.Print(formatFileDivider("crontab", 80))
-			out.Print(scheduler.CronLines)
+			out.Print("\n" + scheduler.CronLines)
 			out.Print(formatFileDivider("", 80))
 			out.Print("\n\n")
 		}
