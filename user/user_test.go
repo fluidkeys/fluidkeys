@@ -88,7 +88,10 @@ func TestMembershipFunctions(t *testing.T) {
 			})
 
 			t.Run("returns a pointer to the team", func(t *testing.T) {
-				assert.Equal(t, &team1, gotTeam)
+				if gotTeam == nil {
+					t.Fatalf("got nil pointer for team")
+				}
+				assert.Equal(t, team1.UUID, gotTeam.UUID)
 			})
 		})
 
