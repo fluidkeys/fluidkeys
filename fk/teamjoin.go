@@ -85,7 +85,7 @@ func ensureUserCanJoinTeam(teamUUID uuid.UUID) exitCode {
 	}
 	if isInTeam {
 		out.Print(ui.FormatWarning(
-			"You're already in the team"+existingTeam.Name,
+			"You're already in the team "+existingTeam.Name,
 			[]string{
 				"You can't request to join a team you're already part of.",
 			},
