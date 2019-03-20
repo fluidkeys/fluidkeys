@@ -59,6 +59,7 @@ var (
 
 type exitCode = int
 
+// Main is the main entry point to the `fk` command.
 func Main() exitCode {
 	usage := fmt.Sprintf(`Fluidkeys %s
 
