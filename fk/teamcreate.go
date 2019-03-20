@@ -33,8 +33,20 @@ import (
 )
 
 func teamCreate() exitCode {
-	if code := ensureUserIsntInATeam("Couldn't create team"); code > 0 {
-		return code
+	memberships, err := user.Memberships()
+	if err != nil {
+		out.Print(ui.FormatFailure(
+			"Failed to create team", []string{
+				"Error checking which teams you're already a member of.",
+			}, err))
+		return 1
+	}
+	if len(memberships) > 0 {
+		out.Print(ui.FormatWarning(
+			"Can't create another team", []string{
+				"Currently Fluidkeys only supports being in one team.",
+			}, nil))
+		return 1
 	}
 
 	out.Print("\n")
