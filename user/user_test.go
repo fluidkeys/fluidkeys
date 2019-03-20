@@ -83,11 +83,11 @@ func TestMembershipFunctions(t *testing.T) {
 			gotIsInTeam, gotTeam, err := user.IsInTeam(team1.UUID)
 			assert.NoError(t, err)
 
-			t.Run("returns true", func(t *testing.T) {
+			t.Run("return value of isInTeam should be false", func(t *testing.T) {
 				assert.Equal(t, true, gotIsInTeam)
 			})
 
-			t.Run("returns a pointer to the team", func(t *testing.T) {
+			t.Run("return value of theTeam should be pointer to correct team", func(t *testing.T) {
 				if gotTeam == nil {
 					t.Fatalf("got nil pointer for team")
 				}
@@ -99,11 +99,11 @@ func TestMembershipFunctions(t *testing.T) {
 			gotIsInTeam, gotTeam, err := user.IsInTeam(team2.UUID)
 			assert.NoError(t, err)
 
-			t.Run("returns true", func(t *testing.T) {
+			t.Run("return value of isInTeam should be false", func(t *testing.T) {
 				assert.Equal(t, false, gotIsInTeam)
 			})
 
-			t.Run("returns nil", func(t *testing.T) {
+			t.Run("return value of theTeam should be nil pointer", func(t *testing.T) {
 				if gotTeam != nil {
 					t.Fatalf("expected gotTeam to be nil, but it isn't")
 				}
