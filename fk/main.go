@@ -82,6 +82,7 @@ Usage:
 	fk key maintain [--dry-run]
 	fk key maintain automatic [--cron-output]
 	fk key upload
+	fk sync [--cron-output]
 
 Options:
 	-h --help         Show this screen
@@ -107,9 +108,12 @@ Options:
 	}
 	var code exitCode
 
-	switch getSubcommand(args, []string{"key", "secret", "team", "setup"}) {
+	switch getSubcommand(args, []string{"key", "secret", "team", "setup", "sync"}) {
 	case "key":
 		code = keySubcommand(args)
+
+	case "sync":
+		code = syncSubcommand(args)
 
 	case "secret":
 		code = secretSubcommand(args)
