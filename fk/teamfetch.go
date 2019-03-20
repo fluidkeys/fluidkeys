@@ -55,13 +55,14 @@ func teamFetch() exitCode {
 			continue
 		}
 
-		if err := fetchAndUpdateRoster(membership.Team, unlockedKey); err != nil {
+		updatedTeam, err := fetchAndUpdateRoster(membership.Team, unlockedKey)
+		if err != nil {
 			out.Print(ui.FormatWarning("Failed to check team for updates", []string{}, err))
 			sawError = true
 			continue
 		}
 
-		if err := fetchTeamKeys(membership.Team); err != nil {
+		if err := fetchTeamKeys(*updatedTeam); err != nil {
 			out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
 			sawError = true
 			continue
@@ -115,37 +116,47 @@ func formatYouRequestedToJoin(request team.RequestToJoinTeam) string {
 		humanize.RoughDuration(time.Now().Sub(request.RequestedAt)) + " ago."
 }
 
-func fetchAndUpdateRoster(t team.Team, unlockedKey *pgpkey.PgpKey) (err error) {
+func fetchAndUpdateRoster(t team.Team, unlockedKey *pgpkey.PgpKey) (
+	updatedTeam *team.Team, err error) {
+
 	// TODO: download the updated roster and handle the case where we're forbidden, as it
 	// means we're no longer in the team.
 
 	roster, signature, err := client.GetTeamRoster(unlockedKey, t.UUID)
 	if err != nil {
-		return fmt.Errorf("error downloading team roster: %v", err)
+		return nil, fmt.Errorf("error downloading team roster: %v", err)
 	}
 
 	if originalRoster, _ := t.Roster(); originalRoster == roster {
 		log.Printf("no change to roster, nothing to do.")
-		return nil // no change to roster. nothing to do.
+		return &t, nil // no change to roster. nothing to do.
 	}
 
 	adminKeys, err := fetchAdminPublicKeys(t)
 	if err != nil {
-		return fmt.Errorf("error getting team admin public keys: %v", err)
+		return nil, fmt.Errorf("error getting team admin public keys: %v", err)
 	}
 
 	if err := team.VerifyRoster(roster, signature, adminKeys); err != nil {
-		return fmt.Errorf("couldn't validate signature on updated roster: %v", err)
+		return nil, fmt.Errorf("couldn't validate signature on updated roster: %v", err)
 	}
 	log.Printf("new roster verified OK")
 
 	teamSubdir, err := team.Directory(t, fluidkeysDirectory)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	saver := team.RosterSaver{Directory: teamSubdir}
-	return saver.Save(roster, signature)
+	if err := saver.Save(roster, signature); err != nil {
+		return nil, err
+	}
+
+	updatedTeam, err = team.Load(roster, signature)
+	if err != nil {
+		return nil, err
+	}
+	return updatedTeam, nil
 }
 
 func fetchTeamKeys(t team.Team) (err error) {
