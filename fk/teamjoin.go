@@ -31,6 +31,22 @@ import (
 )
 
 func teamJoin(teamUUID uuid.UUID) exitCode {
+	memberships, err := user.Memberships()
+	if err != nil {
+		out.Print(ui.FormatFailure(
+			"Failed to join team", []string{
+				"Error checking which teams you're already a member of.",
+			}, err))
+		return 1
+	}
+	if len(memberships) > 0 {
+		out.Print(ui.FormatWarning(
+			"Can't join another team", []string{
+				"Currently Fluidkeys only supports being in one team.",
+			}, nil))
+		return 1
+	}
+
 	teamName, err := client.GetTeamName(teamUUID)
 	if err != nil {
 		out.Print(ui.FormatFailure("Couldn't request to join team", nil, err))
