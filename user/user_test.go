@@ -2,6 +2,7 @@ package user
 
 import (
 	"testing"
+	"time"
 
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/database"
@@ -111,6 +112,42 @@ func TestMembershipFunctions(t *testing.T) {
 		})
 	})
 
+}
+
+func TestRequestFunctions(t *testing.T) {
+	fluidkeysDir := testhelpers.Maketemp(t) // fake fluidkeysDirectory
+	db := database.New(fluidkeysDir)
+
+	now := time.Date(2018, 9, 24, 18, 0, 0, 0, time.UTC)
+	later := now.Add(time.Duration(2) * time.Hour)
+
+	user := New(fluidkeysDir, &db)
+
+	myFingerprint := exampledata.ExampleFingerprint2
+	myFingerprintNotInGPG := exampledata.ExampleFingerprint3
+
+	assert.NoError(t, db.RecordFingerprintImportedIntoGnuPG(myFingerprint))
+
+	team1 := team.Team{
+		Name: "Team 1",
+		UUID: uuid.Must(uuid.NewV4()),
+	}
+
+	assert.NoError(t, db.RecordRequestToJoinTeam(team1.UUID, team1.Name, myFingerprint, now))
+	assert.NoError(t, db.RecordRequestToJoinTeam(team1.UUID, team1.Name, myFingerprintNotInGPG, later))
+
+	t.Run("RequestsToJoinTeams", func(t *testing.T) {
+		got, err := user.RequestsToJoinTeams()
+
+		assert.NoError(t, err)
+
+		if len(got) != 1 {
+			t.Fatalf("expected 2 requests, got %d: %v", len(got), got)
+		}
+
+		assert.Equal(t, team1.UUID, got[0].TeamUUID)
+		assert.Equal(t, myFingerprint, got[0].Fingerprint)
+	})
 }
 
 func saveTeam(t *testing.T, theTeam *team.Team, fluidkeysDirectory string) {

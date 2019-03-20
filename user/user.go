@@ -46,15 +46,6 @@ func (u User) Memberships() (teamMemberships []TeamMembership, err error) {
 		return nil, err
 	}
 
-	isMember := func(haystack []fpr.Fingerprint, needle fpr.Fingerprint) bool {
-		for _, f := range haystack {
-			if f == needle {
-				return true
-			}
-		}
-		return false
-	}
-
 	allTeams, err := team.LoadTeams(u.fluidkeysDirectory)
 	if err != nil {
 		return nil, err
@@ -91,9 +82,43 @@ func (u User) IsInTeam(teamUUID uuid.UUID) (isInTeam bool, theTeam *team.Team, e
 	return false, nil, nil
 }
 
+// RequestsToJoinTeams loads all requests, and loads my fingerprints, then returns the intersection.
+// it returns 1 team.RequestToJoinTeam for each key that's a member of a team
+func (u User) RequestsToJoinTeams() (teamRequests []team.RequestToJoinTeam, err error) {
+	myFingerprints, err := u.db.GetFingerprintsImportedIntoGnuPG()
+	if err != nil {
+		return nil, err
+	}
+
+	allRequests, err := u.db.GetRequestsToJoinTeams()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, r := range allRequests {
+		if isMember(myFingerprints, r.Fingerprint) {
+			teamRequests = append(
+				teamRequests,
+				r,
+			)
+		}
+	}
+
+	return teamRequests, nil
+}
+
 // TeamMembership records a connection between a Person and a Team. It's possible for several of
 // a user's keys to all be in the same team.
 type TeamMembership struct {
 	Team team.Team
 	Me   team.Person
+}
+
+func isMember(haystack []fpr.Fingerprint, needle fpr.Fingerprint) bool {
+	for _, f := range haystack {
+		if f == needle {
+			return true
+		}
+	}
+	return false
 }
