@@ -63,10 +63,18 @@ func teamAuthorize() exitCode {
 		adminKey := teamAndKeys[0].adminKey
 
 		printHeader("Authorize keys")
-		approvedRequests, exitCode := reviewRequests(myTeam, adminKey)
-		if exitCode != 0 {
-			return exitCode
+
+		requests, err := client.ListRequestsToJoinTeam(myTeam.UUID, adminKey.Fingerprint())
+		if err != nil {
+			out.Print(ui.FormatFailure("Error getting requests", nil, err))
+			return 1
 		}
+		if len(requests) == 0 {
+			out.Print("No requests to join " + myTeam.Name + "\n")
+			return 0
+		}
+
+		approvedRequests := reviewRequests(requests, myTeam)
 
 		if len(approvedRequests) > 0 {
 			for _, request := range approvedRequests {
@@ -84,6 +92,22 @@ func teamAuthorize() exitCode {
 			}
 
 		}
+
+		seenError := false
+
+		for _, request := range requests {
+			if err = client.DeleteRequestToJoinTeam(myTeam.UUID, request.UUID); err != nil {
+				out.Print(ui.FormatWarning(
+					"Failed to delete a request to join the team", nil, err,
+				))
+				seenError = true
+			}
+		}
+
+		if seenError {
+			return 1
+		}
+
 		return 0
 
 	default:
@@ -92,19 +116,9 @@ func teamAuthorize() exitCode {
 	}
 }
 
-func reviewRequests(myTeam team.Team, adminKey pgpkey.PgpKey) (
-	approvedRequests []team.RequestToJoinTeam, code exitCode) {
+func reviewRequests(requests []team.RequestToJoinTeam, myTeam team.Team) (
+	approvedRequests []team.RequestToJoinTeam) {
 
-	requests, err := client.ListRequestsToJoinTeam(myTeam.UUID, adminKey.Fingerprint())
-	if err != nil {
-		out.Print(ui.FormatFailure("Error getting requests", nil, err))
-		return nil, 1
-	}
-
-	if len(requests) == 0 {
-		out.Print("No requests to join " + myTeam.Name + "\n")
-		return nil, 1
-	}
 	out.Print(humanize.Pluralize(len(requests), "request", "requests") + " to join " +
 		myTeam.Name + ":\n\n")
 
@@ -176,7 +190,7 @@ func reviewRequests(myTeam team.Team, adminKey pgpkey.PgpKey) (
 		}
 	}
 
-	return approvedRequests, 0
+	return approvedRequests
 }
 
 type teamAndKey struct {
