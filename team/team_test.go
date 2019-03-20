@@ -19,14 +19,169 @@ package team
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"github.com/fluidkeys/fluidkeys/testhelpers"
 	"github.com/gofrs/uuid"
 )
+
+func TestLoadTeams(t *testing.T) {
+	person1 := Person{
+		Email:       "test2@example.com",
+		Fingerprint: exampledata.ExampleFingerprint2,
+		IsAdmin:     false,
+	}
+
+	person2 := Person{
+		Email:       "test3@example.com",
+		Fingerprint: exampledata.ExampleFingerprint3,
+		IsAdmin:     true, // <-- admin
+	}
+
+	team1 := Team{
+		Name:   "Team 1",
+		UUID:   uuid.Must(uuid.NewV4()),
+		People: []Person{person1, person2},
+	}
+
+	team2 := Team{
+		Name:   "Team 2",
+		UUID:   uuid.Must(uuid.NewV4()),
+		People: []Person{person1, person2},
+	}
+
+	fluidkeysDir := testhelpers.Maketemp(t)
+
+	saveTeam(t, &team1, fluidkeysDir)
+	saveTeam(t, &team2, fluidkeysDir)
+
+	gotTeams, err := LoadTeams(fluidkeysDir)
+	assert.NoError(t, err)
+
+	team1Roster, err := team1.PreviewRoster()
+	assert.NoError(t, err)
+
+	team2Roster, err := team2.PreviewRoster()
+	assert.NoError(t, err)
+
+	expected := []Team{
+		{
+			Name:      team1.Name,
+			UUID:      team1.UUID,
+			People:    team1.People,
+			roster:    team1Roster, // roster and signature get added
+			signature: "fake signature",
+		},
+		{
+			Name:      team2.Name,
+			UUID:      team2.UUID,
+			People:    team2.People,
+			roster:    team2Roster, // roster and signature get added
+			signature: "fake signature",
+		},
+	}
+
+	assert.Equal(t, expected, gotTeams)
+
+}
+
+func TestLoad(t *testing.T) {
+	roster := `# Fluidkeys team roster
+
+uuid = "38be2a70-23d8-11e9-bafd-7f97f2e239a3"
+name = "Fluidkeys CIC"
+
+[[person]]
+email = "paul@fluidkeys.com"
+fingerprint = "B79F 0840 DEF1 2EBB A72F  F72D 7327 A44C 2157 A758"
+is_admin = true
+
+[[person]]
+email = "ian@fluidkeys.com"
+fingerprint = "E63A F0E7 4EB5 DE3F B72D  C981 C991 7093 18EC BDE7"
+is_admin = false
+
+[[person]]
+email = "ray@fluidkeys.com"
+fingerprint = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+# missing is_admin
+`
+
+	key, err := pgpkey.LoadFromArmoredEncryptedPrivateKey(
+		exampledata.ExamplePrivateKey4, "test4",
+	)
+	assert.NoError(t, err)
+
+	signature, err := key.MakeArmoredDetachedSignature([]byte(roster))
+
+	team, err := Load(roster, signature)
+
+	assert.NoError(t, err)
+	expectedPeople := []Person{
+		{
+			Email:       "paul@fluidkeys.com",
+			Fingerprint: fpr.MustParse("B79F0840DEF12EBBA72FF72D7327A44C2157A758"),
+			IsAdmin:     true,
+		},
+		{
+			Email:       "ian@fluidkeys.com",
+			Fingerprint: fpr.MustParse("E63AF0E74EB5DE3FB72DC981C991709318ECBDE7"),
+			IsAdmin:     false,
+		},
+		{
+			Email:       "ray@fluidkeys.com",
+			Fingerprint: fpr.MustParse("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+			IsAdmin:     false,
+		},
+	}
+	assert.Equal(t, expectedPeople, team.People)
+
+	assert.Equal(t, uuid.Must(uuid.FromString("38be2a70-23d8-11e9-bafd-7f97f2e239a3")), team.UUID)
+	assert.Equal(t, "Fluidkeys CIC", team.Name)
+	assert.Equal(t, roster, team.roster)
+	assert.Equal(t, signature, team.signature)
+}
+
+func TestFindTeamSubdirectories(t *testing.T) {
+
+	tmpdir := testhelpers.Maketemp(t)
+
+	good := filepath.Join(tmpdir, "good")
+	empty := filepath.Join(tmpdir, "empty")
+	missingRoster := filepath.Join(tmpdir, "missing-roster")
+	missingSignature := filepath.Join(tmpdir, "missing-signature")
+
+	makeEmptyFile := func(t *testing.T, filename string) {
+		assert.NoError(t, ioutil.WriteFile(filename, []byte{}, 0600))
+	}
+
+	assert.NoError(t, os.Mkdir(good, 0700))
+	makeEmptyFile(t, filepath.Join(good, "roster.toml"))
+	makeEmptyFile(t, filepath.Join(good, "roster.toml.asc"))
+
+	assert.NoError(t, os.Mkdir(empty, 0700))
+
+	assert.NoError(t, os.Mkdir(missingRoster, 0700))
+	makeEmptyFile(t, filepath.Join(missingRoster, "roster.toml.asc"))
+
+	assert.NoError(t, os.Mkdir(missingSignature, 0700))
+	makeEmptyFile(t, filepath.Join(missingSignature, "roster.toml"))
+
+	t.Run("returns subdirectory with roster.toml and roster.toml.asc", func(t *testing.T) {
+		got, err := findTeamSubdirectories(tmpdir)
+		assert.NoError(t, err)
+
+		assert.Equal(t, []string{good}, got)
+	})
+
+}
 
 func TestRoster(t *testing.T) {
 	t.Run("function simply returns content of roster and signature fields", func(t *testing.T) {
@@ -618,4 +773,15 @@ func TestSubDirectory(t *testing.T) {
 			assert.Equal(t, test.expected, test.team.subDirectory())
 		})
 	}
+}
+
+func saveTeam(t *testing.T, theTeam *Team, fluidkeysDirectory string) {
+	teamSubdir, err := Directory(*theTeam, fluidkeysDirectory)
+	assert.NoError(t, err)
+
+	saver := RosterSaver{Directory: teamSubdir}
+
+	roster, err := theTeam.PreviewRoster()
+	assert.NoError(t, err)
+	saver.Save(roster, "fake signature")
 }

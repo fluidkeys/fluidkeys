@@ -20,7 +20,6 @@ package fk
 import (
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/fluidkeys/fluidkeys/api"
@@ -182,9 +181,9 @@ func processRequestsToJoinTeam() (newTeams []team.Team, returnError error) {
 			continue
 		}
 
-		t, err := team.Parse(strings.NewReader(roster))
+		t, err := team.Load(roster, signature)
 		if err != nil {
-			out.Print(ui.FormatFailure("Failed to parse roster", nil, err))
+			out.Print(ui.FormatFailure("Failed to load team", nil, err))
 			returnError = err
 			continue
 		}
