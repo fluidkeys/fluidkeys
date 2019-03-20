@@ -35,20 +35,37 @@ import (
 func teamFetch() exitCode {
 	sawError := false
 
-	myTeams, err := team.LoadTeams(fluidkeysDirectory)
+	myTeams, err := user.Memberships()
 	if err != nil {
 		log.Panic(err)
 	}
 
-	for _, existingTeam := range myTeams {
-		printHeader(existingTeam.Name)
+	for i := range myTeams {
+		var myTeam *team.Team = &myTeams[i].Team // allows us move myTeam to point at updated team
+		me := myTeams[i].Me
 
-		if err := fetchUpdatedRoster(existingTeam); err != nil {
-			// TODO: download the updated roster and handle the case where we're forbidden, as it
-			// means we're no longer in the team.
+		printHeader(myTeam.Name)
+
+		prompt := interactivePasswordPrompter{}
+
+		if unlockedKey, err := loadPrivateKeyFromFingerprint(me.Fingerprint, &prompt); err != nil {
+			out.Print(ui.FormatFailure(
+				"Failed to unlock key to check for team updates", []string{
+					"Checking for updates to the team requires an unlocked key",
+					"as the team roster is encrypted.",
+				}, err))
+			sawError = true // carry on, so we can fetch the team's keys
+		} else {
+
+			if updatedTeam, err := fetchAndUpdateRoster(*myTeam, unlockedKey); err != nil {
+				out.Print(ui.FormatWarning("Failed to check team for updates", []string{}, err))
+				sawError = true // carry on, so we can fetch the team's keys
+			} else {
+				myTeam = updatedTeam // move myTeam pointer to updatedTeam
+			}
 		}
 
-		if err := fetchTeamKeys(existingTeam); err != nil {
+		if err := fetchTeamKeys(*myTeam); err != nil {
 			out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
 			sawError = true
 			continue
@@ -56,10 +73,7 @@ func teamFetch() exitCode {
 
 		out.Print(ui.FormatSuccess(
 			successfullyFetchedKeysHeadline,
-			[]string{
-				"You have successfully fetched everyone's key in " +
-					existingTeam.Name + ".",
-			},
+			[]string{"You have successfully fetched everyone's key in " + myTeam.Name + "."},
 		))
 
 	}
@@ -102,8 +116,47 @@ func formatYouRequestedToJoin(request team.RequestToJoinTeam) string {
 		humanize.RoughDuration(time.Now().Sub(request.RequestedAt)) + " ago."
 }
 
-func fetchUpdatedRoster(t team.Team) (err error) {
-	return fmt.Errorf("not implemented")
+func fetchAndUpdateRoster(t team.Team, unlockedKey *pgpkey.PgpKey) (
+	updatedTeam *team.Team, err error) {
+
+	// TODO: download the updated roster and handle the case where we're forbidden, as it
+	// means we're no longer in the team.
+
+	roster, signature, err := client.GetTeamRoster(unlockedKey, t.UUID)
+	if err != nil {
+		return nil, fmt.Errorf("error downloading team roster: %v", err)
+	}
+
+	if originalRoster, _ := t.Roster(); originalRoster == roster {
+		log.Printf("no change to roster, nothing to do.")
+		return &t, nil // no change to roster. nothing to do.
+	}
+
+	adminKeys, err := fetchAdminPublicKeys(t)
+	if err != nil {
+		return nil, fmt.Errorf("error getting team admin public keys: %v", err)
+	}
+
+	if err := team.VerifyRoster(roster, signature, adminKeys); err != nil {
+		return nil, fmt.Errorf("couldn't validate signature on updated roster: %v", err)
+	}
+	log.Printf("new roster verified OK")
+
+	teamSubdir, err := team.Directory(t, fluidkeysDirectory)
+	if err != nil {
+		return nil, err
+	}
+
+	saver := team.RosterSaver{Directory: teamSubdir}
+	if err := saver.Save(roster, signature); err != nil {
+		return nil, err
+	}
+
+	updatedTeam, err = team.Load(roster, signature)
+	if err != nil {
+		return nil, err
+	}
+	return updatedTeam, nil
 }
 
 func fetchTeamKeys(t team.Team) (err error) {
@@ -149,17 +202,10 @@ func processRequestsToJoinTeam() (newTeams []team.Team, returnError error) {
 			continue
 		}
 
-		key, err := loadPgpKey(request.Fingerprint)
+		unlockedKey, err := loadPrivateKeyFromFingerprint(
+			request.Fingerprint, &interactivePasswordPrompter{})
 		if err != nil {
 			out.Print(ui.FormatFailure("Failed to load requesting key", nil, err))
-			returnError = err
-			continue
-		}
-
-		passwordPrompter := interactivePasswordPrompter{}
-		unlockedKey, _, err := getDecryptedPrivateKeyAndPassword(key, &passwordPrompter)
-		if err != nil {
-			out.Print(ui.FormatFailure("Failed to unlock private key", nil, err))
 			returnError = err
 			continue
 		}
@@ -228,6 +274,21 @@ func processRequestsToJoinTeam() (newTeams []team.Team, returnError error) {
 	return newTeams, returnError
 }
 
+func loadPrivateKeyFromFingerprint(
+	fingerprint fp.Fingerprint, prompter promptForPasswordInterface) (*pgpkey.PgpKey, error) {
+
+	key, err := loadPgpKey(fingerprint)
+	if err != nil {
+		return nil, err
+	}
+
+	unlockedKey, _, err := getDecryptedPrivateKeyAndPassword(key, prompter)
+	if err != nil {
+		return nil, err
+	}
+	return unlockedKey, nil
+}
+
 func getAndImportKeyToGpg(fingerprint fp.Fingerprint) error {
 	key, err := client.GetPublicKeyByFingerprint(fingerprint)
 
@@ -255,14 +316,29 @@ func getAndImportKeyToGpg(fingerprint fp.Fingerprint) error {
 
 func fetchAdminPublicKeys(t team.Team) (adminKeys []*pgpkey.PgpKey, err error) {
 	for _, p := range t.Admins() {
-		key, err := client.GetPublicKeyByFingerprint(p.Fingerprint)
+		key, err := discoverPublicKey(p.Fingerprint)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get admin key %s: %v", p.Fingerprint, err)
+			return nil, err
 		}
-
 		adminKeys = append(adminKeys, key)
 	}
 	return adminKeys, nil
+}
+
+func discoverPublicKey(fingerprint fp.Fingerprint) (key *pgpkey.PgpKey, err error) {
+	if key, err := loadPgpKey(fingerprint); err != nil { // no error
+		log.Printf("failed to find key %s in GnuPG: %v", fingerprint, err)
+	} else {
+		return key, nil
+	}
+
+	if key, err = client.GetPublicKeyByFingerprint(fingerprint); err != nil {
+		log.Printf("failed to find key %s in API: %v", fingerprint, err)
+	} else {
+		return key, nil
+	}
+
+	return nil, fmt.Errorf("failed multiple attempts to find get public key for %s", fingerprint)
 }
 
 // verifyBrandNewRoster fetches the public keys of the admins in the team and verifies the roster
