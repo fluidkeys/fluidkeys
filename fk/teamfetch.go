@@ -63,9 +63,7 @@ func teamFetch() exitCode {
 func doUpdateTeam(myTeam *team.Team, me *team.Person) (returnError error) {
 	printHeader(myTeam.Name)
 
-	prompt := interactivePasswordPrompter{}
-
-	if unlockedKey, err := loadPrivateKeyFromFingerprint(me.Fingerprint, &prompt); err != nil {
+	if unlockedKey, err := getUnlockedKey(me.Fingerprint); err != nil {
 		out.Print(ui.FormatFailure(
 			"Failed to unlock key to check for team updates", []string{
 				"Checking for updates to the team requires an unlocked key",
@@ -189,8 +187,7 @@ func processRequestsToJoinTeam() (returnError error) {
 			continue
 		}
 
-		unlockedKey, err := loadPrivateKeyFromFingerprint(
-			request.Fingerprint, &interactivePasswordPrompter{})
+		unlockedKey, err := getUnlockedKey(request.Fingerprint)
 		if err != nil {
 			out.Print(ui.FormatFailure("Failed to load requesting key", nil, err))
 			returnError = err
@@ -261,13 +258,14 @@ func processRequestsToJoinTeam() (returnError error) {
 	return returnError
 }
 
-func loadPrivateKeyFromFingerprint(
-	fingerprint fp.Fingerprint, prompter promptForPasswordInterface) (*pgpkey.PgpKey, error) {
+func getUnlockedKey(fingerprint fp.Fingerprint) (*pgpkey.PgpKey, error) {
 
 	key, err := loadPgpKey(fingerprint)
 	if err != nil {
 		return nil, err
 	}
+
+	prompter := &interactivePasswordPrompter{}
 
 	unlockedKey, _, err := getDecryptedPrivateKeyAndPassword(key, prompter)
 	if err != nil {
