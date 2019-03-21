@@ -149,7 +149,28 @@ func fetchTeamKeys(t team.Team) (err error) {
 
 	for _, person := range t.People {
 		err = ui.RunWithCheckboxes(person.Email, func() error {
-			return getAndImportKeyToGpg(person.Fingerprint)
+			key, err := client.GetPublicKeyByFingerprint(person.Fingerprint)
+
+			if err != nil && err == api.ErrPublicKeyNotFound {
+				log.Print(err)
+				return fmt.Errorf("Couldn't find key")
+			} else if err != nil {
+				log.Print(err)
+				return fmt.Errorf("Got error from Fluidkeys server")
+			}
+
+			armoredKey, err := key.Armor()
+			if err != nil {
+				log.Print(err)
+				return fmt.Errorf("failed to ASCII armor key")
+			}
+
+			err = gpg.ImportArmoredKey(armoredKey)
+			if err != nil {
+				log.Print(err)
+				return fmt.Errorf("Failed to import key into gpg")
+			}
+			return nil
 		})
 		// keep trying subsequent keys even if we hit an error.
 	}
@@ -271,31 +292,6 @@ func getUnlockedKey(fingerprint fp.Fingerprint) (*pgpkey.PgpKey, error) {
 		return nil, err
 	}
 	return unlockedKey, nil
-}
-
-func getAndImportKeyToGpg(fingerprint fp.Fingerprint) error {
-	key, err := client.GetPublicKeyByFingerprint(fingerprint)
-
-	if err != nil && err == api.ErrPublicKeyNotFound {
-		log.Print(err)
-		return fmt.Errorf("Couldn't find key")
-	} else if err != nil {
-		log.Print(err)
-		return fmt.Errorf("Got error from Fluidkeys server")
-	}
-
-	armoredKey, err := key.Armor()
-	if err != nil {
-		log.Print(err)
-		return fmt.Errorf("failed to ASCII armor key")
-	}
-
-	err = gpg.ImportArmoredKey(armoredKey)
-	if err != nil {
-		log.Print(err)
-		return fmt.Errorf("Failed to import key into gpg")
-	}
-	return nil
 }
 
 func fetchAdminPublicKeys(t team.Team) (adminKeys []*pgpkey.PgpKey, err error) {
