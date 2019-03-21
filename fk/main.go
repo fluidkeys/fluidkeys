@@ -73,6 +73,7 @@ Usage:
 	fk team join <uuid>
 	fk team authorize
 	fk team fetch [--cron-output]
+	fk status
 	fk secret send <recipient-email>
 	fk secret send [<filename>] --to=<email>
 	fk secret receive
@@ -108,7 +109,7 @@ Options:
 	}
 	var code exitCode
 
-	switch getSubcommand(args, []string{"key", "secret", "team", "setup", "sync"}) {
+	switch getSubcommand(args, []string{"key", "secret", "team", "setup", "sync", "status"}) {
 	case "key":
 		code = keySubcommand(args)
 
@@ -123,6 +124,10 @@ Options:
 
 	case "team":
 		code = teamSubcommand(args)
+
+	case "status":
+		code = statusSubcommand(args)
+
 	default:
 		out.Print("unhandled subcommand")
 		code = 1
