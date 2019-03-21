@@ -33,21 +33,40 @@ type KeyWithWarnings struct {
 }
 
 // FormatKeyTable takes a slice of keys with warnings and returns a string containing
-// a formatted table of the keys, warnings and an instruction to the user
-// on what they might do to resolve the warnings.
+// a formatted table of the keys and warnings.
 func FormatKeyTable(keysWithWarnings []KeyWithWarnings) (output string) {
-	output = makeTable(keysWithWarnings)
-	output = output + makePrimaryInstruction(keysWithWarnings)
-	return output
-}
-
-func makeTable(keysWithWarnings []KeyWithWarnings) (output string) {
 	rows := makeTableRows(keysWithWarnings)
 	rowStrings := formatTableStringsFromRows(rows)
 	for _, rowString := range rowStrings {
 		output += rowString + "\n"
 	}
 	return output + "\n"
+}
+
+// FormatKeyTablePrimaryInstruction prints an instruction to the user to run
+// 'fk key maintain' or `fk key upload` if they have certain issues with their keys.
+// The severity of the message depends on if they have any urgent issues.
+func FormatKeyTablePrimaryInstruction(keysWithWarnings []KeyWithWarnings) string {
+	var warnings []status.KeyWarning
+	for _, keyWithWarnings := range keysWithWarnings {
+		warnings = append(warnings, keyWithWarnings.Warnings...)
+	}
+	var output string
+	if len(warnings) > 0 {
+		if warningsSliceContainsType(warnings, status.PrimaryKeyOverdueForRotation) ||
+			warningsSliceContainsType(warnings, status.SubkeyOverdueForRotation) {
+			output = "Prevent your key(s) from becoming unusable by running:\n"
+		}
+		if warningsSliceContainsType(warnings, status.PrimaryKeyExpired) ||
+			warningsSliceContainsType(warnings, status.NoValidEncryptionSubkey) {
+			output = "Make your key(s) usable again by running:\n"
+		} else { // These aren't urgent issues
+			output = "Fix these issues by running:\n"
+		}
+		output += "    " + colour.Cmd("fk key maintain") + "\n"
+		output += "    " + colour.Cmd("fk key upload") + "\n\n"
+	}
+	return output
 }
 
 func makeTableRows(keysWithWarnings []KeyWithWarnings) []row {
@@ -158,32 +177,6 @@ func max(x int, y int) int {
 		return y
 	}
 	return x
-}
-
-// makePrimaryInstruction prints single instruction to the user to run
-// 'fk key maintain' if they have any issues with their keys. The severity of
-// the message depends on if they have any urgent issues.
-func makePrimaryInstruction(keysWithWarnings []KeyWithWarnings) string {
-	var warnings []status.KeyWarning
-	for _, keyWithWarnings := range keysWithWarnings {
-		warnings = append(warnings, keyWithWarnings.Warnings...)
-	}
-	var output string
-	if len(warnings) > 0 {
-		if warningsSliceContainsType(warnings, status.PrimaryKeyOverdueForRotation) ||
-			warningsSliceContainsType(warnings, status.SubkeyOverdueForRotation) {
-			output = "Prevent your key(s) from becoming unusable by running:\n"
-		}
-		if warningsSliceContainsType(warnings, status.PrimaryKeyExpired) ||
-			warningsSliceContainsType(warnings, status.NoValidEncryptionSubkey) {
-			output = "Make your key(s) usable again by running:\n"
-		} else { // These aren't urgent issues
-			output = "Fix these issues by running:\n"
-		}
-		output += "    " + colour.Cmd("fk key maintain") + "\n"
-		output += "    " + colour.Cmd("fk key upload") + "\n\n"
-	}
-	return output
 }
 
 // contains returns true if the given needle (Warning) is present in the
