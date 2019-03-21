@@ -311,6 +311,8 @@ func getAndImportKeyToGpg(fingerprint fp.Fingerprint) error {
 		log.Print(err)
 		return fmt.Errorf("Failed to import key into gpg")
 	}
+
+	db.RecordLast("fetch", fingerprint, time.Now())
 	return nil
 }
 
