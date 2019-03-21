@@ -22,9 +22,11 @@ import (
 	"time"
 
 	docopt "github.com/docopt/docopt-go"
+	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/status"
 	"github.com/fluidkeys/fluidkeys/table"
+	"github.com/fluidkeys/fluidkeys/ui"
 )
 
 func statusSubcommand(args docopt.Opts) exitCode {
@@ -37,6 +39,9 @@ func statusSubcommand(args docopt.Opts) exitCode {
 
 	for _, groupedMembership := range groupedMemberships {
 		printHeader(groupedMembership.Team.Name)
+
+		adminOfTeam := false
+
 		teamKeysWithWarnings := []table.KeyWithWarnings{}
 
 		for _, membership := range groupedMembership.Memberships {
@@ -51,7 +56,9 @@ func statusSubcommand(args docopt.Opts) exitCode {
 			}
 
 			teamKeysWithWarnings = append(teamKeysWithWarnings, keyWithWarnings)
-
+			if membership.Me.IsAdmin {
+				adminOfTeam = true
+			}
 		}
 		out.Print(table.FormatKeyTable(teamKeysWithWarnings))
 
@@ -71,6 +78,13 @@ func statusSubcommand(args docopt.Opts) exitCode {
 		}
 
 		out.Print(table.FormatPeopleTable(peopleRows))
+
+		if adminOfTeam {
+			out.Print(ui.FormatInfo("Invite others to join the team", []string{
+				"Your team members can request to join the team by running",
+				colour.Cmd("fk team join " + groupedMembership.Team.UUID.String()),
+			}))
+		}
 	}
 
 	return 0
