@@ -80,7 +80,7 @@ func doUpdateTeam(myTeam *team.Team, me *team.Person) (err error) {
 	}
 	myTeam = updatedTeam // move myTeam pointer to updatedTeam
 
-	if err := fetchTeamKeys(*myTeam); err != nil {
+	if err := fetchAndSignTeamKeys(*myTeam, *me, unlockedKey); err != nil {
 		out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
 		return err
 	}
@@ -144,8 +144,8 @@ func fetchAndUpdateRoster(t team.Team, unlockedKey *pgpkey.PgpKey) (
 	return updatedTeam, nil
 }
 
-func fetchTeamKeys(t team.Team) (err error) {
-	out.Print("Fetching keys for other members of " + t.Name + ":\n\n")
+func fetchAndSignTeamKeys(t team.Team, me team.Person, unlockedKey *pgpkey.PgpKey) (err error) {
+	out.Print("Fetching and signing keys for other members of " + t.Name + ":\n\n")
 
 	for _, person := range t.People {
 		err = ui.RunWithCheckboxes(person.Email, func() error {
@@ -157,6 +157,11 @@ func fetchTeamKeys(t team.Team) (err error) {
 			} else if err != nil {
 				log.Print(err)
 				return fmt.Errorf("Got error from Fluidkeys server")
+			}
+
+			if err != key.CertifyEmail(person.Email, unlockedKey, time.Now()) {
+				log.Print(err)
+				return fmt.Errorf("Failed to sign key")
 			}
 
 			armoredKey, err := key.Armor()
