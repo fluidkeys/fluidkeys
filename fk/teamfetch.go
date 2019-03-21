@@ -148,6 +148,9 @@ func fetchAndSignTeamKeys(t team.Team, me team.Person, unlockedKey *pgpkey.PgpKe
 	out.Print("Fetching and signing keys for other members of " + t.Name + ":\n\n")
 
 	for _, person := range t.People {
+		if person == me {
+			continue
+		}
 		err = ui.RunWithCheckboxes(person.Email, func() error {
 			key, err := client.GetPublicKeyByFingerprint(person.Fingerprint)
 
