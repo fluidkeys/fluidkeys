@@ -34,7 +34,7 @@
   revision = "c8a726146d32ad8367208303b76774147d749ffe"
 
 [[projects]]
-  digest = "1:ace3142d1c330736b91b01355276568b90431cedf4d9469798568ef2ba1d64f5"
+  digest = "1:1b08965cbe0b8ebd251bd448a08df2b70a0a5bbfb35e59985d6c7f5a04cbc4ec"
   name = "github.com/fluidkeys/crypto"
   packages = [
     "cast5",
@@ -47,7 +47,7 @@
     "openpgp/s2k",
   ]
   pruneopts = "UT"
-  revision = "2018-09-13"
+  revision = "d1eb919c5d7a79d47db3bed84c8637648a60ab27"
 
 [[projects]]
   branch = "master"
