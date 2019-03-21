@@ -421,6 +421,45 @@ func TestUpdated(t *testing.T) {
 		assert.Equal(t, fmt.Errorf("no record of when foo was last updated"), err)
 	})
 
+	t.Run("with a missing key in JSON", func(t *testing.T) {
+		tempDir := testhelpers.Maketemp(t)
+
+		message := []byte(`{
+			"KeysImportedIntoGnuPG": [
+				{
+					"Fingerprint": "DC7D1C9556D96AA9294910E7F6D53D6649083EA9"
+				}
+			],
+			"RequestsToJoinTeams": []
+		}
+`)
+		err := ioutil.WriteFile(filepath.Join(tempDir, "db.json"), message, 0644)
+		assert.NoError(t, err)
+
+		database := New(tempDir)
+
+		fingerprint := exampledata.ExampleFingerprint2
+		err = database.RecordUpdated(fingerprint, now)
+		assert.NoError(t, err)
+	})
+
+	t.Run("can write to an existing database with no updated times", func(t *testing.T) {
+		database := New(testhelpers.Maketemp(t))
+		fingerprint := exampledata.ExampleFingerprint2
+
+		request := team.RequestToJoinTeam{
+			TeamUUID:    uuid.Must(uuid.NewV4()),
+			Fingerprint: fingerprint,
+			RequestedAt: later,
+		}
+		addRequestToJoinToDatabase(t, request, database)
+
+		t.Run("record to an existing database", func(t *testing.T) {
+			err := database.RecordUpdated(fingerprint, now)
+			assert.NoError(t, err)
+		})
+	})
+
 }
 
 func TestDeduplicateKeyImportedIntoGnuPGMessages(t *testing.T) {
