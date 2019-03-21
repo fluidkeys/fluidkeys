@@ -81,5 +81,10 @@ func pushPrivateKeyBackToGpg(
 		return err
 	}
 
-	return gpg.ImportArmoredKey(armoredPrivateKey)
+	err = gpg.ImportArmoredKey(armoredPrivateKey)
+	if err != nil {
+		return err
+	}
+
+	return gpg.TrustUltimately(key.Fingerprint())
 }
