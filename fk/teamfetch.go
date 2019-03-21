@@ -35,14 +35,14 @@ import (
 func teamFetch() exitCode {
 	sawError := false
 
-	myTeams, err := user.Memberships()
+	myMemberships, err := user.Memberships()
 	if err != nil {
 		log.Panic(err)
 	}
 
-	for i := range myTeams {
-		var myTeam *team.Team = &myTeams[i].Team // allows us move myTeam to point at updated team
-		me := myTeams[i].Me
+	for i := range myMemberships {
+		var myTeam *team.Team = &myMemberships[i].Team // allows us move pointer to updated team
+		me := myMemberships[i].Me
 
 		printHeader(myTeam.Name)
 
