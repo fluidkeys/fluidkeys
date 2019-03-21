@@ -15,12 +15,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with Fluidkeys Client.  If not, see <https://www.gnu.org/licenses/>.
 
-package keytable
+package table
 
 import (
-	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
@@ -34,10 +32,10 @@ type KeyWithWarnings struct {
 	Warnings []status.KeyWarning
 }
 
-// Format takes a slice of keys with warnings and returns a string containing
+// FormatKeyTable takes a slice of keys with warnings and returns a string containing
 // a formatted table of the keys, warnings and an instruction to the user
 // on what they might do to resolve the warnings.
-func Format(keysWithWarnings []KeyWithWarnings) (output string) {
+func FormatKeyTable(keysWithWarnings []KeyWithWarnings) (output string) {
 	output = makeTable(keysWithWarnings)
 	output = output + makePrimaryInstruction(keysWithWarnings)
 	return output
@@ -45,7 +43,7 @@ func Format(keysWithWarnings []KeyWithWarnings) (output string) {
 
 func makeTable(keysWithWarnings []KeyWithWarnings) (output string) {
 	rows := makeTableRows(keysWithWarnings)
-	rowStrings := makeStringsFromRows(rows)
+	rowStrings := formatTableStringsFromRows(rows)
 	for _, rowString := range rowStrings {
 		output += rowString + "\n"
 	}
@@ -55,7 +53,7 @@ func makeTable(keysWithWarnings []KeyWithWarnings) (output string) {
 func makeTableRows(keysWithWarnings []KeyWithWarnings) []row {
 	var rows []row
 	rows = append(rows, header)
-	rows = append(rows, placeholderDividerRow)
+	rows = append(rows, keyTablePlaceholderDividerRow)
 	rows = append(rows, makeRowsForKeys(keysWithWarnings)...)
 	return rows
 }
@@ -76,7 +74,7 @@ func makeRowsForKeys(keysWithWarnings []KeyWithWarnings) []row {
 		}
 		keyRows := makeRowsFromColumns(columns)
 		allRows = append(allRows, keyRows...)
-		allRows = append(allRows, placeholderDividerRow)
+		allRows = append(allRows, keyTablePlaceholderDividerRow)
 	}
 	return allRows
 }
@@ -120,46 +118,6 @@ func lengthenWithEmptyCells(column column, requiredLength int) column {
 		column = append(column, "")
 	}
 	return column
-}
-
-// makeStringsFromRows takes a slice of rows and coverts it into a slice of
-// strings, padding out the space between the values appropriately.
-// e.g. ["Jane", "4", "Sheffield"], -> "Jane     4   Sheffield",
-//      ["Gillian", "23", "Hull"]      "Gillian  23  Hull     "
-func makeStringsFromRows(rows []row) []string {
-	var rowStrings []string
-	maxColumnWidths := getColumnWidths(rows)
-
-	for _, row := range rows {
-		var rowString string
-		for columnIndex, value := range row {
-			if value == divider {
-				rowString += makeDividerString(maxColumnWidths[columnIndex])
-			} else {
-				rowString += makeCellString(value, maxColumnWidths[columnIndex])
-			}
-		}
-		rowString = strings.TrimSuffix(rowString, gutter)
-		rowStrings = append(rowStrings, rowString)
-	}
-
-	return rowStrings
-}
-
-// makeDividerString substitutes in our placeholder '---' with horizontal
-// strings equal to the specified length. For example: 8 -> '────────'
-func makeDividerString(length int) string {
-	return fmt.Sprintf("%s%s", strings.Repeat("─", length), gutter)
-}
-
-func makeCellString(value string, cellLength int) string {
-	return fmt.Sprintf(
-		"%s%s%s",
-		value,
-		// This is more complicated since we have colours on strings
-		strings.Repeat(" ", cellLength-len(colour.StripAllColourCodes(value))),
-		gutter,
-	)
 }
 
 // getColumnWidths takes a slice of rows and then finds the length of the
@@ -257,16 +215,12 @@ func keyStatus(key pgpkey.PgpKey, keyWarnings []status.KeyWarning) []string {
 	return keyWarningLines
 }
 
-type column = []string
-type row = []string
-
-const gutter = "  "
-const divider = "---"
-
 var header = row{
 	colour.TableHeader("Email address"),
 	colour.TableHeader("Created"),
 	colour.TableHeader("Status"),
 }
 
-var placeholderDividerRow = row{divider, divider, divider}
+var keyTablePlaceholderDividerRow = row{divider, divider, divider}
+
+type column = []string

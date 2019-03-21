@@ -26,8 +26,8 @@ import (
 	"strings"
 
 	"github.com/fluidkeys/fluidkeys/emailutils"
-	"github.com/fluidkeys/fluidkeys/keytable"
 	"github.com/fluidkeys/fluidkeys/status"
+	"github.com/fluidkeys/fluidkeys/table"
 
 	"github.com/fluidkeys/fluidkeys/api"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
@@ -306,19 +306,19 @@ func keyList() exitCode {
 
 	out.Print("\n")
 
-	keysWithWarnings := []keytable.KeyWithWarnings{}
+	keysWithWarnings := []table.KeyWithWarnings{}
 
 	for i := range keys {
 		key := &keys[i]
 
-		keyWithWarnings := keytable.KeyWithWarnings{
+		keyWithWarnings := table.KeyWithWarnings{
 			Key:      key,
 			Warnings: status.GetKeyWarnings(*key, &Config),
 		}
 		keysWithWarnings = append(keysWithWarnings, keyWithWarnings)
 	}
 
-	out.Print(keytable.Format(keysWithWarnings))
+	out.Print(table.FormatKeyTable(keysWithWarnings))
 	return 0
 }
 
