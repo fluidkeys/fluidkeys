@@ -38,6 +38,45 @@ func New(fluidkeysDirectory string, db *database.Database) *User {
 	}
 }
 
+// GroupedMemberships loads all the teams, loads my fingerprints then returns the intersections
+// grouped by the team uuid.
+func (u User) GroupedMemberships() (groupedMemberships []GroupedMembership, err error) {
+	myFingerprints, err := u.db.GetFingerprintsImportedIntoGnuPG()
+	if err != nil {
+		return nil, err
+	}
+
+	allTeams, err := team.LoadTeams(u.fluidkeysDirectory)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, t := range allTeams {
+		teamMemberships := []TeamMembership{}
+		for _, person := range t.People {
+			if isMember(myFingerprints, person.Fingerprint) {
+				teamMemberships = append(
+					teamMemberships,
+					TeamMembership{
+						Team: t,
+						Me:   person,
+					},
+				)
+			}
+		}
+		if len(teamMemberships) > 0 {
+			groupedMemberships = append(
+				groupedMemberships,
+				GroupedMembership{
+					Team:        t,
+					Memberships: teamMemberships,
+				},
+			)
+		}
+	}
+	return groupedMemberships, nil
+}
+
 // Memberships loads all teams, and loads my fingerprints, then returns the intersection.
 // it returns 1 membership (team, fingerprint) for each key that's a member of a team
 func (u User) Memberships() (teamMemberships []TeamMembership, err error) {
@@ -112,6 +151,11 @@ func (u User) RequestsToJoinTeams() (teamRequests []team.RequestToJoinTeam, err 
 type TeamMembership struct {
 	Team team.Team
 	Me   team.Person
+}
+
+type GroupedMembership struct {
+	Team        team.Team
+	Memberships []TeamMembership
 }
 
 func isMember(haystack []fpr.Fingerprint, needle fpr.Fingerprint) bool {
