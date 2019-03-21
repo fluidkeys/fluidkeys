@@ -35,72 +35,21 @@ import (
 func teamFetch() exitCode {
 	sawError := false
 
-	myTeams, err := user.Memberships()
-	if err != nil {
-		log.Panic(err)
-	}
-
-	for i := range myTeams {
-		var myTeam *team.Team = &myTeams[i].Team // allows us move myTeam to point at updated team
-		me := myTeams[i].Me
-
-		printHeader(myTeam.Name)
-
-		prompt := interactivePasswordPrompter{}
-
-		if unlockedKey, err := loadPrivateKeyFromFingerprint(me.Fingerprint, &prompt); err != nil {
-			out.Print(ui.FormatFailure(
-				"Failed to unlock key to check for team updates", []string{
-					"Checking for updates to the team requires an unlocked key",
-					"as the team roster is encrypted.",
-				}, err))
-			sawError = true // carry on, so we can fetch the team's keys
-		} else {
-
-			if updatedTeam, err := fetchAndUpdateRoster(*myTeam, unlockedKey); err != nil {
-				out.Print(ui.FormatWarning("Failed to check team for updates", []string{}, err))
-				sawError = true // carry on, so we can fetch the team's keys
-			} else {
-				myTeam = updatedTeam // move myTeam pointer to updatedTeam
-			}
-		}
-
-		if err := fetchTeamKeys(*myTeam); err != nil {
-			out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
-			sawError = true
-			continue
-		}
-
-		out.Print(ui.FormatSuccess(
-			successfullyFetchedKeysHeadline,
-			[]string{"You have successfully fetched everyone's key in " + myTeam.Name + "."},
-		))
-
-	}
-
-	newTeams, err := processRequestsToJoinTeam()
-	if err != nil {
+	if err := processRequestsToJoinTeam(); err != nil {
 		// don't output anything: the function does that itself
 		sawError = true
 	}
 
-	for _, newTeam := range newTeams {
-		if err := fetchTeamKeys(newTeam); err != nil {
-			out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
+	myMemberships, err := user.Memberships()
+	if err != nil {
+		out.Print(ui.FormatFailure("Failed to list teams", nil, err))
+		return 1
+	}
+
+	for i := range myMemberships {
+		if err := doUpdateTeam(&myMemberships[i].Team, &myMemberships[i].Me); err != nil {
 			sawError = true
-			continue
 		}
-
-		out.Print(ui.FormatSuccess(
-			successfullyFetchedKeysHeadline,
-			[]string{
-				"You have successfully fetched everyone's key in " +
-					newTeam.Name + ".",
-				"This means that you can now start sending and receiving secrets and",
-				"using other GnuPG powered tools together.",
-			},
-		))
-
 	}
 
 	if sawError {
@@ -109,6 +58,45 @@ func teamFetch() exitCode {
 		return 1
 	}
 	return 0
+}
+
+func doUpdateTeam(myTeam *team.Team, me *team.Person) (returnError error) {
+	printHeader(myTeam.Name)
+
+	prompt := interactivePasswordPrompter{}
+
+	if unlockedKey, err := loadPrivateKeyFromFingerprint(me.Fingerprint, &prompt); err != nil {
+		out.Print(ui.FormatFailure(
+			"Failed to unlock key to check for team updates", []string{
+				"Checking for updates to the team requires an unlocked key",
+				"as the team roster is encrypted.",
+			}, err))
+		returnError = err // carry on, so we can fetch the team's keys
+	} else {
+
+		if updatedTeam, err := fetchAndUpdateRoster(*myTeam, unlockedKey); err != nil {
+			out.Print(ui.FormatWarning("Failed to check team for updates", []string{}, err))
+			returnError = err // carry on, so we can fetch the team's keys
+		} else {
+			myTeam = updatedTeam // move myTeam pointer to updatedTeam
+		}
+	}
+
+	if err := fetchTeamKeys(*myTeam); err != nil {
+		out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
+		returnError = err
+		return
+	}
+
+	out.Print(ui.FormatSuccess(
+		successfullyFetchedKeysHeadline,
+		[]string{
+			"You have successfully fetched everyone's key in " + myTeam.Name + ".",
+			"This means that you can now start sending and receiving secrets and",
+			"using other GnuPG powered tools together.",
+		},
+	))
+	return returnError
 }
 
 func formatYouRequestedToJoin(request team.RequestToJoinTeam) string {
@@ -172,17 +160,16 @@ func fetchTeamKeys(t team.Team) (err error) {
 	return err
 }
 
-func processRequestsToJoinTeam() (newTeams []team.Team, returnError error) {
+func processRequestsToJoinTeam() (returnError error) {
 	requestsToJoinTeams, err := user.RequestsToJoinTeams()
 	if err != nil {
 		out.Print(ui.FormatFailure("Failed to get requests to join teams", nil, err))
-		return nil, err
+		return err
 	}
 
 	// TODO: decide whether to process requests in cron mode
 
 	for _, request := range requestsToJoinTeams {
-		printHeader(request.TeamName)
 		// TODO: check if I'm already in the team
 
 		if time.Now().Sub(request.RequestedAt) > time.Duration(7*24)*time.Hour {
@@ -263,7 +250,7 @@ func processRequestsToJoinTeam() (newTeams []team.Team, returnError error) {
 				formatYouRequestedToJoin(request) + " The admin has approved this",
 				"request.",
 			}))
-		newTeams = append(newTeams, *t)
+
 		err = db.DeleteRequestToJoinTeam(request.TeamUUID, request.Fingerprint)
 		if err != nil {
 			out.Print(ui.FormatFailure("Error deleting request to join team", nil, err))
@@ -271,7 +258,7 @@ func processRequestsToJoinTeam() (newTeams []team.Team, returnError error) {
 			continue
 		}
 	}
-	return newTeams, returnError
+	return returnError
 }
 
 func loadPrivateKeyFromFingerprint(
