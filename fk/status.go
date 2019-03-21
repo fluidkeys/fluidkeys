@@ -85,6 +85,8 @@ func statusSubcommand(args docopt.Opts) exitCode {
 				colour.Cmd("fk team join " + groupedMembership.Team.UUID.String()),
 			}))
 		}
+
+		out.Print("To fetch and store team members keys run " + colour.Cmd("fk team fetch") + "\n\n")
 	}
 
 	return 0
