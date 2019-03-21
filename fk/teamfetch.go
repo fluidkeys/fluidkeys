@@ -60,30 +60,29 @@ func teamFetch() exitCode {
 	return 0
 }
 
-func doUpdateTeam(myTeam *team.Team, me *team.Person) (returnError error) {
+func doUpdateTeam(myTeam *team.Team, me *team.Person) (err error) {
 	printHeader(myTeam.Name)
 
-	if unlockedKey, err := getUnlockedKey(me.Fingerprint); err != nil {
+	unlockedKey, err := getUnlockedKey(me.Fingerprint)
+	if err != nil {
 		out.Print(ui.FormatFailure(
 			"Failed to unlock key to check for team updates", []string{
 				"Checking for updates to the team requires an unlocked key",
 				"as the team roster is encrypted.",
 			}, err))
-		returnError = err // carry on, so we can fetch the team's keys
-	} else {
-
-		if updatedTeam, err := fetchAndUpdateRoster(*myTeam, unlockedKey); err != nil {
-			out.Print(ui.FormatWarning("Failed to check team for updates", []string{}, err))
-			returnError = err // carry on, so we can fetch the team's keys
-		} else {
-			myTeam = updatedTeam // move myTeam pointer to updatedTeam
-		}
+		return err
 	}
+
+	var updatedTeam *team.Team
+	if updatedTeam, err = fetchAndUpdateRoster(*myTeam, unlockedKey); err != nil {
+		out.Print(ui.FormatWarning("Failed to check team for updates", []string{}, err))
+		return err
+	}
+	myTeam = updatedTeam // move myTeam pointer to updatedTeam
 
 	if err := fetchTeamKeys(*myTeam); err != nil {
 		out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
-		returnError = err
-		return
+		return err
 	}
 
 	out.Print(ui.FormatSuccess(
@@ -94,7 +93,7 @@ func doUpdateTeam(myTeam *team.Team, me *team.Person) (returnError error) {
 			"using other GnuPG powered tools together.",
 		},
 	))
-	return returnError
+	return nil
 }
 
 func formatYouRequestedToJoin(request team.RequestToJoinTeam) string {
