@@ -29,6 +29,13 @@ func syncSubcommand(args docopt.Opts) exitCode {
 }
 
 func sync() (code exitCode) {
+	out.Print(ui.FormatInfo(
+		"fk sync always runs in automatic (unattended) mode",
+		[]string{
+			"Because it's designed to run from cron. That means it won't ask for passwords, ",
+			"and will fail if these can't be fetched from your " + Keyring.Name(),
+		}))
+
 	out.Print("\n")
 	out.Print("-> " + colour.Cmd("fk key maintain automatic") + "\n")
 
