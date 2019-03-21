@@ -46,45 +46,9 @@ func teamFetch() exitCode {
 	}
 
 	for i := range myMemberships {
-		var myTeam *team.Team = &myMemberships[i].Team // allows us move pointer to updated team
-		me := myMemberships[i].Me
-
-		printHeader(myTeam.Name)
-
-		prompt := interactivePasswordPrompter{}
-
-		if unlockedKey, err := loadPrivateKeyFromFingerprint(me.Fingerprint, &prompt); err != nil {
-			out.Print(ui.FormatFailure(
-				"Failed to unlock key to check for team updates", []string{
-					"Checking for updates to the team requires an unlocked key",
-					"as the team roster is encrypted.",
-				}, err))
-			sawError = true // carry on, so we can fetch the team's keys
-		} else {
-
-			if updatedTeam, err := fetchAndUpdateRoster(*myTeam, unlockedKey); err != nil {
-				out.Print(ui.FormatWarning("Failed to check team for updates", []string{}, err))
-				sawError = true // carry on, so we can fetch the team's keys
-			} else {
-				myTeam = updatedTeam // move myTeam pointer to updatedTeam
-			}
-		}
-
-		if err := fetchTeamKeys(*myTeam); err != nil {
-			out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
+		if err := doUpdateTeam(&myMemberships[i].Team, &myMemberships[i].Me); err != nil {
 			sawError = true
-			continue
 		}
-
-		out.Print(ui.FormatSuccess(
-			successfullyFetchedKeysHeadline,
-			[]string{
-				"You have successfully fetched everyone's key in " + myTeam.Name + ".",
-				"This means that you can now start sending and receiving secrets and",
-				"using other GnuPG powered tools together.",
-			},
-		))
-
 	}
 
 	if sawError {
@@ -93,6 +57,45 @@ func teamFetch() exitCode {
 		return 1
 	}
 	return 0
+}
+
+func doUpdateTeam(myTeam *team.Team, me *team.Person) (returnError error) {
+	printHeader(myTeam.Name)
+
+	prompt := interactivePasswordPrompter{}
+
+	if unlockedKey, err := loadPrivateKeyFromFingerprint(me.Fingerprint, &prompt); err != nil {
+		out.Print(ui.FormatFailure(
+			"Failed to unlock key to check for team updates", []string{
+				"Checking for updates to the team requires an unlocked key",
+				"as the team roster is encrypted.",
+			}, err))
+		returnError = err // carry on, so we can fetch the team's keys
+	} else {
+
+		if updatedTeam, err := fetchAndUpdateRoster(*myTeam, unlockedKey); err != nil {
+			out.Print(ui.FormatWarning("Failed to check team for updates", []string{}, err))
+			returnError = err // carry on, so we can fetch the team's keys
+		} else {
+			myTeam = updatedTeam // move myTeam pointer to updatedTeam
+		}
+	}
+
+	if err := fetchTeamKeys(*myTeam); err != nil {
+		out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
+		returnError = err
+		return
+	}
+
+	out.Print(ui.FormatSuccess(
+		successfullyFetchedKeysHeadline,
+		[]string{
+			"You have successfully fetched everyone's key in " + myTeam.Name + ".",
+			"This means that you can now start sending and receiving secrets and",
+			"using other GnuPG powered tools together.",
+		},
+	))
+	return returnError
 }
 
 func formatYouRequestedToJoin(request team.RequestToJoinTeam) string {
