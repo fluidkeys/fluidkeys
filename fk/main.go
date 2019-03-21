@@ -319,6 +319,7 @@ func keyList() exitCode {
 	}
 
 	out.Print(table.FormatKeyTable(keysWithWarnings))
+	out.Print(table.FormatKeyTablePrimaryInstruction(keysWithWarnings))
 	return 0
 }
 
