@@ -28,6 +28,7 @@ import (
 	"time"
 
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/team"
 	"github.com/gofrs/uuid"
 )
@@ -41,6 +42,7 @@ type Database struct {
 type Message struct {
 	KeysImportedIntoGnuPG []KeyImportedIntoGnuPGMessage
 	RequestsToJoinTeams   []RequestToJoinTeamMessage
+	LastUpdated           map[string]time.Time
 }
 
 // KeyImportedIntoGnuPGMessage represents a key the user has imported into GnuPG from Fluidkeys
@@ -103,6 +105,48 @@ func (db *Database) RecordRequestToJoinTeam(
 	)
 
 	return db.saveToFile(*message)
+}
+
+// RecordUpdated takes an item and records in the database that it's been updated.
+func (db *Database) RecordUpdated(item interface{}, now time.Time) error {
+	message, err := db.loadFromFile()
+	if err != nil {
+		return err
+	}
+
+	switch i := item.(type) {
+	case *pgpkey.PgpKey:
+		message.LastUpdated["Key:"+i.Fingerprint().Uri()] = now
+	case pgpkey.PgpKey:
+		message.LastUpdated["Key:"+i.Fingerprint().Uri()] = now
+	case *fpr.Fingerprint:
+		message.LastUpdated["Key:"+i.Uri()] = now
+	case fpr.Fingerprint:
+		message.LastUpdated["Key:"+i.Uri()] = now
+	}
+
+	return db.saveToFile(*message)
+}
+
+// GetLastUpdated takes an item and returns the last time it was recorded as being updated.
+func (db *Database) GetLastUpdated(item interface{}) (lastUpdated time.Time, err error) {
+	message, err := db.loadFromFile()
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	switch i := item.(type) {
+	case *pgpkey.PgpKey:
+		return message.LastUpdated["Key:"+i.Fingerprint().Uri()], nil
+	case pgpkey.PgpKey:
+		return message.LastUpdated["Key:"+i.Fingerprint().Uri()], nil
+	case *fpr.Fingerprint:
+		return message.LastUpdated["Key:"+i.Uri()], nil
+	case fpr.Fingerprint:
+		return message.LastUpdated["Key:"+i.Uri()], nil
+	}
+
+	return time.Time{}, fmt.Errorf("no record of when %v was last updated", item)
 }
 
 // GetFingerprintsImportedIntoGnuPG returns a slice of fingerprints that have
@@ -196,7 +240,9 @@ func (db *Database) loadFromFile() (message *Message, err error) {
 	file, err := os.Open(db.jsonFilename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return &Message{}, nil
+			return &Message{
+				LastUpdated: map[string]time.Time{},
+			}, nil
 		}
 		return nil, fmt.Errorf("couldn't open '%s': %v", db.jsonFilename, err)
 	}
@@ -215,6 +261,7 @@ func (db *Database) loadFromFile() (message *Message, err error) {
 			message.KeysImportedIntoGnuPG,
 		),
 		RequestsToJoinTeams: message.RequestsToJoinTeams,
+		LastUpdated:         message.LastUpdated,
 	}, nil
 }
 

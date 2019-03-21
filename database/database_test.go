@@ -1,12 +1,16 @@
 package database
 
 import (
+	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/team"
 	"github.com/fluidkeys/fluidkeys/testhelpers"
 	"github.com/gofrs/uuid"
@@ -342,6 +346,81 @@ func TestGetExistingRequestToJoinTeam(t *testing.T) {
 			t.Fatalf("expected gotRequest to be nil, but it isn't")
 		}
 	})
+}
+
+func TestUpdated(t *testing.T) {
+	now := time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
+	later := now.Add(time.Duration(6) * time.Hour)
+
+	t.Run("fingerprints", func(t *testing.T) {
+		database := New(testhelpers.Maketemp(t))
+
+		fingerprint := exampledata.ExampleFingerprint2
+
+		t.Run("record to an empty database", func(t *testing.T) {
+			err := database.RecordUpdated(fingerprint, now)
+			assert.NoError(t, err)
+		})
+
+		t.Run("can get last updated time", func(t *testing.T) {
+			got, err := database.GetLastUpdated(fingerprint)
+			assert.NoError(t, err)
+			assert.Equal(t, now, got)
+		})
+
+		t.Run("pointers and values are handled the same", func(t *testing.T) {
+			got, err := database.GetLastUpdated(&fingerprint)
+			assert.NoError(t, err)
+			assert.Equal(t, now, got)
+		})
+
+		t.Run("record updates the previously time", func(t *testing.T) {
+			err := database.RecordUpdated(fingerprint, later)
+			assert.NoError(t, err)
+
+			got, err := database.GetLastUpdated(fingerprint)
+			assert.NoError(t, err)
+			assert.Equal(t, later, got)
+		})
+
+		t.Run("a second value records it's own time", func(t *testing.T) {
+			fingerprint2 := exampledata.ExampleFingerprint3
+			now := time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
+
+			err := database.RecordUpdated(fingerprint2, now)
+			assert.NoError(t, err)
+
+			got, err := database.GetLastUpdated(fingerprint)
+			assert.NoError(t, err)
+			assert.Equal(t, later, got)
+
+			got, err = database.GetLastUpdated(fingerprint2)
+			assert.NoError(t, err)
+			assert.Equal(t, now, got)
+		})
+
+		t.Run("keys are handled the same", func(t *testing.T) {
+			err := database.RecordUpdated(fingerprint, now)
+
+			key, err := pgpkey.LoadFromArmoredPublicKey(exampledata.ExamplePublicKey2)
+			assert.NoError(t, err)
+			err = database.RecordUpdated(key, later)
+			assert.NoError(t, err)
+
+			got, err := database.GetLastUpdated(fingerprint)
+			assert.NoError(t, err)
+			assert.Equal(t, later, got)
+		})
+
+	})
+
+	t.Run("unrecognised objects return error", func(t *testing.T) {
+		database := New(testhelpers.Maketemp(t))
+
+		_, err := database.GetLastUpdated("foo")
+		assert.Equal(t, fmt.Errorf("no record of when foo was last updated"), err)
+	})
+
 }
 
 func TestDeduplicateKeyImportedIntoGnuPGMessages(t *testing.T) {
