@@ -42,7 +42,8 @@ func teamFetch() exitCode {
 
 	myMemberships, err := user.Memberships()
 	if err != nil {
-		log.Panic(err)
+		out.Print(ui.FormatFailure("Failed to list teams", nil, err))
+		return 1
 	}
 
 	for i := range myMemberships {
