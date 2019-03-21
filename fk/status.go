@@ -18,10 +18,60 @@
 package fk
 
 import (
+	"log"
+	"time"
+
 	docopt "github.com/docopt/docopt-go"
+	"github.com/fluidkeys/fluidkeys/out"
+	"github.com/fluidkeys/fluidkeys/status"
+	"github.com/fluidkeys/fluidkeys/table"
 )
 
 func statusSubcommand(args docopt.Opts) exitCode {
+	out.Print("\n")
+
+	groupedMemberships, err := user.GroupedMemberships()
+	if err != nil {
+		log.Panic(err)
+	}
+
+	for _, groupedMembership := range groupedMemberships {
+		printHeader(groupedMembership.Team.Name)
+		teamKeysWithWarnings := []table.KeyWithWarnings{}
+
+		for _, membership := range groupedMembership.Memberships {
+			key, err := loadPgpKey(membership.Me.Fingerprint)
+			if err != nil {
+				return 1
+			}
+
+			keyWithWarnings := table.KeyWithWarnings{
+				Key:      key,
+				Warnings: status.GetKeyWarnings(*key, &Config),
+			}
+
+			teamKeysWithWarnings = append(teamKeysWithWarnings, keyWithWarnings)
+
+		}
+		out.Print(table.FormatKeyTable(teamKeysWithWarnings))
+
+		peopleRows := []table.PersonRow{}
+		for _, person := range groupedMembership.Team.People {
+			lastFetched, err := db.GetLast("fetch", person.Fingerprint)
+			if err != nil {
+				continue
+			}
+			peopleRows = append(
+				peopleRows, table.PersonRow{
+					Email:              person.Email,
+					IsAdmin:            person.IsAdmin,
+					TimeSinceLastFetch: time.Since(lastFetched),
+				},
+			)
+		}
+
+		out.Print(table.FormatPeopleTable(peopleRows))
+	}
 
 	return 0
 }
