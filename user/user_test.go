@@ -79,6 +79,20 @@ func TestMembershipFunctions(t *testing.T) {
 		assert.Equal(t, me2, got[1].Me)
 	})
 
+	t.Run("GroupedMemberships", func(t *testing.T) {
+		got, err := user.GroupedMemberships()
+
+		assert.NoError(t, err)
+
+		if len(got) != 1 {
+			t.Fatalf("expected 1 grouped memberships, got %d: %v", len(got), got)
+		}
+
+		assert.Equal(t, team1.UUID, got[0].Team.UUID)
+		assert.Equal(t, me1, got[0].Memberships[0].Me)
+		assert.Equal(t, me2, got[0].Memberships[1].Me)
+	})
+
 	t.Run("InTeam", func(t *testing.T) {
 		t.Run("user is in team", func(t *testing.T) {
 			gotIsInTeam, gotTeam, err := user.IsInTeam(team1.UUID)
