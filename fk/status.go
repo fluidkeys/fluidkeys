@@ -37,6 +37,8 @@ func statusSubcommand(args docopt.Opts) exitCode {
 		log.Panic(err)
 	}
 
+	allKeysWithWarnings := []table.KeyWithWarnings{}
+
 	for _, groupedMembership := range groupedMemberships {
 		printHeader(groupedMembership.Team.Name)
 
@@ -56,6 +58,7 @@ func statusSubcommand(args docopt.Opts) exitCode {
 			}
 
 			teamKeysWithWarnings = append(teamKeysWithWarnings, keyWithWarnings)
+			allKeysWithWarnings = append(allKeysWithWarnings, keyWithWarnings)
 			if membership.Me.IsAdmin {
 				adminOfTeam = true
 			}
@@ -87,6 +90,8 @@ func statusSubcommand(args docopt.Opts) exitCode {
 		}
 
 		out.Print("To fetch and store team members keys run " + colour.Cmd("fk team fetch") + "\n\n")
+
+		out.Print(table.FormatKeyTablePrimaryInstruction(allKeysWithWarnings))
 	}
 
 	return 0
