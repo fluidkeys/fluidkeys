@@ -124,6 +124,10 @@ func (db *Database) RecordLast(verb string, item interface{}, now time.Time) err
 		message.EventTimes[verb+":"+keyItem+":"+i.Uri()] = now
 	case fpr.Fingerprint:
 		message.EventTimes[verb+":"+keyItem+":"+i.Uri()] = now
+	case *team.Team:
+		message.EventTimes[verb+":"+teamItem+":"+i.UUID.String()] = now
+	case team.Team:
+		message.EventTimes[verb+":"+teamItem+":"+i.UUID.String()] = now
 	}
 
 	return db.saveToFile(*message)
@@ -145,6 +149,10 @@ func (db *Database) GetLast(verb string, item interface{}) (EventTimes time.Time
 		return message.EventTimes[verb+":"+keyItem+":"+i.Uri()], nil
 	case fpr.Fingerprint:
 		return message.EventTimes[verb+":"+keyItem+":"+i.Uri()], nil
+	case *team.Team:
+		return message.EventTimes[verb+":"+teamItem+":"+i.UUID.String()], nil
+	case team.Team:
+		return message.EventTimes[verb+":"+teamItem+":"+i.UUID.String()], nil
 	}
 
 	return time.Time{}, nil
@@ -332,5 +340,6 @@ var (
 )
 
 const (
-	keyItem = "key"
+	keyItem  = "key"
+	teamItem = "team"
 )
