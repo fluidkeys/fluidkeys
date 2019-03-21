@@ -257,6 +257,10 @@ func (db *Database) loadFromFile() (message *Message, err error) {
 		return nil, fmt.Errorf("error loading json: %v", err)
 	}
 
+	if len(message.LastUpdated) == 0 {
+		message.LastUpdated = make(map[string]time.Time)
+	}
+
 	return &Message{
 		KeysImportedIntoGnuPG: deduplicateKeyImportedIntoGnuPGMessages(
 			message.KeysImportedIntoGnuPG,
