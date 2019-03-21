@@ -11,45 +11,58 @@ import (
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 )
 
-type mockExportPrivateKey struct {
-	returnString string
-	returnError  error
+type mockKey struct {
+	armorString string
+	armorError  error
+
+	armorPrivateString string
+	armorPrivateError  error
+
+	fingerprint fpr.Fingerprint
 }
 
-func (m *mockExportPrivateKey) ExportPrivateKey(fingerprint fpr.Fingerprint, password string) (string, error) {
-	return m.returnString, m.returnError
+func (m *mockKey) Armor() (string, error) {
+	return m.armorString, m.armorError
 }
 
-type mockImportArmoredKey struct {
-	returnError error
+func (m *mockKey) ArmorPrivate(password string) (string, error) {
+	return m.armorPrivateString, m.armorPrivateError
 }
 
-func (m *mockImportArmoredKey) ImportArmoredKey(armoredKey string) error {
-	return m.returnError
+func (m *mockKey) Fingerprint() fpr.Fingerprint {
+	return m.fingerprint
 }
 
-type mockLoadFromArmoredEncryptedPrivateKey struct {
+type mockGpg struct {
+	exportPrivateKeyString string
+	exportPrivateKeyError  error
+
+	importArmoredKeyError error
+
+	trustUltimatelyCapturedFingerprint fpr.Fingerprint
+	trustUltimatelyError               error
+}
+
+func (m *mockGpg) ExportPrivateKey(fingerprint fpr.Fingerprint, password string) (string, error) {
+	return m.exportPrivateKeyString, m.exportPrivateKeyError
+}
+
+func (m *mockGpg) ImportArmoredKey(armoredKey string) error {
+	return m.importArmoredKeyError
+}
+
+func (m *mockGpg) TrustUltimately(fingerprint fpr.Fingerprint) error {
+	m.trustUltimatelyCapturedFingerprint = fingerprint
+	return m.trustUltimatelyError
+}
+
+type mockLoadPrivateKey struct {
 	returnKey   *pgpkey.PgpKey
 	returnError error
 }
 
-func (m mockLoadFromArmoredEncryptedPrivateKey) LoadFromArmoredEncryptedPrivateKey(string, string) (*pgpkey.PgpKey, error) {
+func (m *mockLoadPrivateKey) LoadFromArmoredEncryptedPrivateKey(string, string) (*pgpkey.PgpKey, error) {
 	return m.returnKey, m.returnError
-}
-
-type mockArmor struct {
-	armorReturnString        string
-	armorReturnError         error
-	armorPrivateReturnString string
-	armorPrivateReturnError  error
-}
-
-func (m *mockArmor) Armor() (string, error) {
-	return m.armorReturnString, m.armorReturnError
-}
-
-func (m *mockArmor) ArmorPrivate(password string) (string, error) {
-	return m.armorPrivateReturnString, m.armorPrivateReturnError
 }
 
 func TestLoadPrivateKey(t *testing.T) {
@@ -59,17 +72,17 @@ func TestLoadPrivateKey(t *testing.T) {
 	}
 
 	t.Run("with ExportPrivateKey returning a key and the password is correct", func(t *testing.T) {
-		mockGpg := mockExportPrivateKey{
-			returnString: exampledata.ExamplePrivateKey2,
-			returnError:  nil,
+		gpg := mockGpg{
+			exportPrivateKeyString: exampledata.ExamplePrivateKey2,
+			exportPrivateKeyError:  nil,
 		}
 
-		mockLoader := mockLoadFromArmoredEncryptedPrivateKey{
+		mockLoader := mockLoadPrivateKey{
 			returnKey:   key,
 			returnError: nil,
 		}
 
-		key, err := loadPrivateKey(exampledata.ExampleFingerprint2, "test2", &mockGpg, &mockLoader)
+		key, err := loadPrivateKey(exampledata.ExampleFingerprint2, "test2", &gpg, &mockLoader)
 
 		t.Run("doesn't get an error", func(t *testing.T) {
 			assert.NoError(t, err)
@@ -109,16 +122,16 @@ func TestLoadPrivateKey(t *testing.T) {
 	})
 
 	t.Run("returns IncorrectPassword if ExportPrivateKey returns a bad password error", func(t *testing.T) {
-		mockGpg := mockExportPrivateKey{
-			returnString: exampledata.ExamplePrivateKey2,
-			returnError:  &gpgwrapper.BadPasswordError{},
+		gpg := mockGpg{
+			exportPrivateKeyString: exampledata.ExamplePrivateKey2,
+			exportPrivateKeyError:  &gpgwrapper.BadPasswordError{},
 		}
-		mockLoader := mockLoadFromArmoredEncryptedPrivateKey{
+		mockLoader := mockLoadPrivateKey{
 			returnKey:   nil,
 			returnError: &pgpkey.IncorrectPassword{},
 		}
 
-		_, err := loadPrivateKey(exampledata.ExampleFingerprint2, "[irrelevant for tests]", &mockGpg, &mockLoader)
+		_, err := loadPrivateKey(exampledata.ExampleFingerprint2, "[irrelevant for tests]", &gpg, &mockLoader)
 
 		incorrectPasswordError, ok := err.(*IncorrectPassword)
 		if !ok {
@@ -133,16 +146,16 @@ func TestLoadPrivateKey(t *testing.T) {
 	})
 
 	t.Run("returns IncorrectPassword if LoadFromArmoredEncryptedPrivateKey returns a bad password error", func(t *testing.T) {
-		mockGpg := mockExportPrivateKey{
-			returnString: exampledata.ExamplePrivateKey2,
-			returnError:  nil,
+		gpg := mockGpg{
+			exportPrivateKeyString: exampledata.ExamplePrivateKey2,
+			exportPrivateKeyError:  nil,
 		}
-		mockLoader := mockLoadFromArmoredEncryptedPrivateKey{
+		mockLoader := mockLoadPrivateKey{
 			returnKey:   nil,
 			returnError: &pgpkey.IncorrectPassword{},
 		}
 
-		_, err := loadPrivateKey(exampledata.ExampleFingerprint2, "[irrelevant for tests]", &mockGpg, &mockLoader)
+		_, err := loadPrivateKey(exampledata.ExampleFingerprint2, "[irrelevant for tests]", &gpg, &mockLoader)
 
 		incorrectPasswordError, ok := err.(*IncorrectPassword)
 		if !ok {
@@ -157,16 +170,16 @@ func TestLoadPrivateKey(t *testing.T) {
 	})
 
 	t.Run("returns an error if ExportPrivateKey returns some other GnuPG error", func(t *testing.T) {
-		mockGpg := mockExportPrivateKey{
-			returnString: "",
-			returnError:  fmt.Errorf("some error"),
+		gpg := mockGpg{
+			exportPrivateKeyString: "",
+			exportPrivateKeyError:  fmt.Errorf("some error"),
 		}
-		mockLoader := mockLoadFromArmoredEncryptedPrivateKey{
+		mockLoader := mockLoadPrivateKey{
 			returnKey:   key,
 			returnError: nil,
 		}
 
-		_, err := loadPrivateKey(exampledata.ExampleFingerprint2, "irrelevant for this test", &mockGpg, &mockLoader)
+		_, err := loadPrivateKey(exampledata.ExampleFingerprint2, "irrelevant for this test", &gpg, &mockLoader)
 
 		t.Run("returns an error", func(t *testing.T) {
 			assert.GotError(t, err)
@@ -174,86 +187,77 @@ func TestLoadPrivateKey(t *testing.T) {
 	})
 
 	t.Run("returns an error if pgpkey.LoadFromArmoredEncryptedPrivateKey returns an error", func(t *testing.T) {
-		mockGpg := mockExportPrivateKey{
-			returnString: exampledata.ExamplePrivateKey2,
-			returnError:  nil,
+		gpg := mockGpg{
+			exportPrivateKeyString: exampledata.ExamplePrivateKey2,
+			exportPrivateKeyError:  nil,
 		}
 
-		mockLoader := mockLoadFromArmoredEncryptedPrivateKey{
+		mockLoader := mockLoadPrivateKey{
 			returnKey:   nil,
 			returnError: fmt.Errorf("some error"),
 		}
 
-		_, err := loadPrivateKey(exampledata.ExampleFingerprint2, "irrelevant", &mockGpg, &mockLoader)
+		_, err := loadPrivateKey(exampledata.ExampleFingerprint2, "irrelevant", &gpg, &mockLoader)
 		assert.GotError(t, err)
 	})
 }
 
 func TestPushPrivateKeyBackToGpg(t *testing.T) {
-	// key, err := pgpkey.LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey2, "test2")
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-	// fingerprint := exampledata.ExampleFingerprint2
+	key, err := pgpkey.LoadFromArmoredEncryptedPrivateKey(exampledata.ExamplePrivateKey2, "test2")
+	assert.NoError(t, err)
 
 	t.Run("returns error=nil if everything works", func(t *testing.T) {
-		mockKey := mockArmor{
-			armorReturnString:        "",
-			armorReturnError:         nil,
-			armorPrivateReturnString: "",
-			armorPrivateReturnError:  nil,
+		gpg := mockGpg{
+			importArmoredKeyError: nil,
 		}
 
-		mockImporter := mockImportArmoredKey{
-			returnError: nil,
-		}
-
-		err := pushPrivateKeyBackToGpg(&mockKey, "[irrelevant]", &mockImporter)
+		err := pushPrivateKeyBackToGpg(key, "test2", &gpg)
 		assert.NoError(t, err)
+
+		// check we made it through to the end
+		assert.Equal(t, key.Fingerprint(), gpg.trustUltimatelyCapturedFingerprint)
 	})
 
 	t.Run("returns an error if key.Armor() returns an error", func(t *testing.T) {
-		mockKey := mockArmor{
-			armorReturnString:        "",
-			armorReturnError:         fmt.Errorf("some error in Armor()"),
-			armorPrivateReturnString: "",
-			armorPrivateReturnError:  nil,
+		key := mockKey{
+			armorString:        "",
+			armorError:         fmt.Errorf("some error in Armor()"),
+			armorPrivateString: "",
+			armorPrivateError:  nil,
 		}
 
-		mockImporter := mockImportArmoredKey{
-			returnError: nil,
+		gpg := mockGpg{
+			importArmoredKeyError: nil,
 		}
-		err := pushPrivateKeyBackToGpg(&mockKey, "[irrelevant]", &mockImporter)
+		err := pushPrivateKeyBackToGpg(&key, "[irrelevant]", &gpg)
 		assert.GotError(t, err)
 	})
 
 	t.Run("returns an error if key.ArmorPrivate() returns an error", func(t *testing.T) {
-		mockKey := mockArmor{
-			armorReturnString:        "",
-			armorReturnError:         nil,
-			armorPrivateReturnString: "",
-			armorPrivateReturnError:  fmt.Errorf("some error in ArmorPrivate()"),
+		gpg := mockGpg{
+			importArmoredKeyError: nil,
 		}
 
-		mockImporter := mockImportArmoredKey{
-			returnError: nil,
+		key := mockKey{
+			armorPrivateError: fmt.Errorf("some error in ArmorPrivate()"),
 		}
-		err := pushPrivateKeyBackToGpg(&mockKey, "[irrelevant]", &mockImporter)
+		err := pushPrivateKeyBackToGpg(&key, "wrong-password", &gpg)
 		assert.GotError(t, err)
 	})
 
 	t.Run("returns an error if ImportedArmoredKey() returns an error", func(t *testing.T) {
-		mockKey := mockArmor{
-			armorReturnString:        "",
-			armorReturnError:         nil,
-			armorPrivateReturnString: "",
-			armorPrivateReturnError:  nil,
+		gpg := mockGpg{
+			importArmoredKeyError: fmt.Errorf("some error in ImportedArmoredKey"),
 		}
+		err := pushPrivateKeyBackToGpg(key, "test2", &gpg)
+		assert.GotError(t, err)
+	})
 
-		mockImporter := mockImportArmoredKey{
-			returnError: fmt.Errorf("some error in ImportedArmoredKey"),
+	t.Run("returns an error if TrustUltimately returns an error", func(t *testing.T) {
+		gpg := mockGpg{
+			trustUltimatelyError: fmt.Errorf("some error in TrustUltimately"),
 		}
-		err := pushPrivateKeyBackToGpg(&mockKey, "[irrelevant]", &mockImporter)
+		err := pushPrivateKeyBackToGpg(key, "test2", &gpg)
 		assert.GotError(t, err)
 	})
 }

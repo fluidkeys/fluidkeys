@@ -32,10 +32,10 @@ import (
 func loadPrivateKey(
 	fingerprint fingerprint.Fingerprint,
 	password string,
-	exporter gpgwrapper.ExportPrivateKeyInterface,
-	loader pgpkey.LoadFromArmoredEncryptedPrivateKeyInterface) (*pgpkey.PgpKey, error) {
+	gpg gpgwrapper.GnuPGInterface,
+	loader pgpkey.LoaderInterface) (*pgpkey.PgpKey, error) {
 
-	encryptedArmored, err := exporter.ExportPrivateKey(fingerprint, password)
+	encryptedArmored, err := gpg.ExportPrivateKey(fingerprint, password)
 	if err != nil {
 		if _, ok := err.(*gpgwrapper.BadPasswordError); ok {
 			return nil, &IncorrectPassword{
@@ -64,24 +64,22 @@ func loadPrivateKey(
 // pushPrivateKeyBackToGpg takes a PgpKey with a decrypted PrivateKey and
 // loads it back into GnuPG
 func pushPrivateKeyBackToGpg(
-	key pgpkey.ArmorInterface,
-	password string,
-	importer gpgwrapper.ImportArmoredKeyInterface) error {
+	key pgpkey.PgpKeyInterface, password string, gpg gpgwrapper.GnuPGInterface) error {
+
 	armoredPublicKey, err := key.Armor()
 	if err != nil {
-		return fmt.Errorf("failed to dump public key: %v\n", err)
+		return fmt.Errorf("failed to dump public key: %v", err)
 	}
 
 	armoredPrivateKey, err := key.ArmorPrivate(password)
 	if err != nil {
-		return fmt.Errorf("failed to dump private key: %v\n", err)
+		return fmt.Errorf("failed to dump private key: %v", err)
 	}
 
-	err = importer.ImportArmoredKey(armoredPublicKey)
+	err = gpg.ImportArmoredKey(armoredPublicKey)
 	if err != nil {
 		return err
 	}
 
-	err = importer.ImportArmoredKey(armoredPrivateKey)
-	return err
+	return gpg.ImportArmoredKey(armoredPrivateKey)
 }
