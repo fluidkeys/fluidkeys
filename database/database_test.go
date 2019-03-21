@@ -1,12 +1,15 @@
 package database
 
 import (
+	"io/ioutil"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/exampledata"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
+	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/team"
 	"github.com/fluidkeys/fluidkeys/testhelpers"
 	"github.com/gofrs/uuid"
@@ -342,6 +345,113 @@ func TestGetExistingRequestToJoinTeam(t *testing.T) {
 			t.Fatalf("expected gotRequest to be nil, but it isn't")
 		}
 	})
+}
+
+func TestUpdated(t *testing.T) {
+	now := time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
+	later := now.Add(time.Duration(6) * time.Hour)
+
+	t.Run("fingerprints", func(t *testing.T) {
+		database := New(testhelpers.Maketemp(t))
+
+		fingerprint := exampledata.ExampleFingerprint2
+
+		t.Run("record to an empty database", func(t *testing.T) {
+			err := database.RecordLast("fetch", fingerprint, now)
+			assert.NoError(t, err)
+		})
+
+		t.Run("can get last updated time", func(t *testing.T) {
+			got, err := database.GetLast("fetch", fingerprint)
+			assert.NoError(t, err)
+			assert.Equal(t, now, got)
+		})
+
+		t.Run("pointers and values are handled the same", func(t *testing.T) {
+			got, err := database.GetLast("fetch", &fingerprint)
+			assert.NoError(t, err)
+			assert.Equal(t, now, got)
+		})
+
+		t.Run("record updates the previously time", func(t *testing.T) {
+			err := database.RecordLast("fetch", fingerprint, later)
+			assert.NoError(t, err)
+
+			got, err := database.GetLast("fetch", fingerprint)
+			assert.NoError(t, err)
+			assert.Equal(t, later, got)
+		})
+
+		t.Run("a second value records it's own time", func(t *testing.T) {
+			fingerprint2 := exampledata.ExampleFingerprint3
+			now := time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
+
+			err := database.RecordLast("fetch", fingerprint2, now)
+			assert.NoError(t, err)
+
+			got, err := database.GetLast("fetch", fingerprint)
+			assert.NoError(t, err)
+			assert.Equal(t, later, got)
+
+			got, err = database.GetLast("fetch", fingerprint2)
+			assert.NoError(t, err)
+			assert.Equal(t, now, got)
+		})
+
+		t.Run("keys are handled the same", func(t *testing.T) {
+			err := database.RecordLast("fetch", fingerprint, now)
+
+			key, err := pgpkey.LoadFromArmoredPublicKey(exampledata.ExamplePublicKey2)
+			assert.NoError(t, err)
+			err = database.RecordLast("fetch", key, later)
+			assert.NoError(t, err)
+
+			got, err := database.GetLast("fetch", fingerprint)
+			assert.NoError(t, err)
+			assert.Equal(t, later, got)
+		})
+
+	})
+
+	t.Run("with a missing key in JSON", func(t *testing.T) {
+		tempDir := testhelpers.Maketemp(t)
+
+		message := []byte(`{
+			"KeysImportedIntoGnuPG": [
+				{
+					"Fingerprint": "DC7D1C9556D96AA9294910E7F6D53D6649083EA9"
+				}
+			],
+			"RequestsToJoinTeams": []
+		}
+`)
+		err := ioutil.WriteFile(filepath.Join(tempDir, "db.json"), message, 0644)
+		assert.NoError(t, err)
+
+		database := New(tempDir)
+
+		fingerprint := exampledata.ExampleFingerprint2
+		err = database.RecordLast("fetch", fingerprint, now)
+		assert.NoError(t, err)
+	})
+
+	t.Run("can write to an existing database with no updated times", func(t *testing.T) {
+		database := New(testhelpers.Maketemp(t))
+		fingerprint := exampledata.ExampleFingerprint2
+
+		request := team.RequestToJoinTeam{
+			TeamUUID:    uuid.Must(uuid.NewV4()),
+			Fingerprint: fingerprint,
+			RequestedAt: later,
+		}
+		addRequestToJoinToDatabase(t, request, database)
+
+		t.Run("record to an existing database", func(t *testing.T) {
+			err := database.RecordLast("fetch", fingerprint, now)
+			assert.NoError(t, err)
+		})
+	})
+
 }
 
 func TestDeduplicateKeyImportedIntoGnuPGMessages(t *testing.T) {
