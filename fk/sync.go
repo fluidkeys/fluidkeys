@@ -21,6 +21,7 @@ import (
 	"github.com/docopt/docopt-go"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/out"
+	"github.com/fluidkeys/fluidkeys/ui"
 )
 
 func syncSubcommand(args docopt.Opts) exitCode {
@@ -37,7 +38,7 @@ func sync() (code exitCode) {
 
 	out.Print("\n")
 	out.Print("-> " + colour.Cmd("fk team fetch") + "\n\n")
-	if exitCode := teamFetch(); exitCode != 0 {
+	if exitCode := teamFetch(true); exitCode != 0 {
 		code = exitCode
 	}
 

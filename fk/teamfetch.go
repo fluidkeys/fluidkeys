@@ -32,22 +32,22 @@ import (
 	"github.com/fluidkeys/fluidkeys/ui"
 )
 
-func teamFetch() exitCode {
+func teamFetch(unattended bool) exitCode {
 	sawError := false
 
-	if err := processRequestsToJoinTeam(); err != nil {
+	if err := processRequestsToJoinTeam(unattended); err != nil {
 		// don't output anything: the function does that itself
 		sawError = true
 	}
 
-	myMemberships, err := user.Memberships()
+	memberships, err := user.Memberships()
 	if err != nil {
 		out.Print(ui.FormatFailure("Failed to list teams", nil, err))
 		return 1
 	}
 
-	for i := range myMemberships {
-		if err := doUpdateTeam(&myMemberships[i].Team, &myMemberships[i].Me); err != nil {
+	for i := range memberships {
+		if err := doUpdateTeam(&memberships[i].Team, &memberships[i].Me, unattended); err != nil {
 			sawError = true
 		}
 	}
@@ -60,10 +60,10 @@ func teamFetch() exitCode {
 	return 0
 }
 
-func doUpdateTeam(myTeam *team.Team, me *team.Person) (err error) {
+func doUpdateTeam(myTeam *team.Team, me *team.Person, unattended bool) (err error) {
 	printHeader(myTeam.Name)
 
-	unlockedKey, err := getUnlockedKey(me.Fingerprint)
+	unlockedKey, err := getUnlockedKey(me.Fingerprint, unattended)
 	if err != nil {
 		out.Print(ui.FormatFailure(
 			"Failed to unlock key to check for team updates", []string{
@@ -186,7 +186,7 @@ func fetchAndSignTeamKeys(t team.Team, me team.Person, unlockedKey *pgpkey.PgpKe
 	return err
 }
 
-func processRequestsToJoinTeam() (returnError error) {
+func processRequestsToJoinTeam(unattended bool) (returnError error) {
 	requestsToJoinTeams, err := user.RequestsToJoinTeams()
 	if err != nil {
 		out.Print(ui.FormatFailure("Failed to get requests to join teams", nil, err))
@@ -215,7 +215,7 @@ func processRequestsToJoinTeam() (returnError error) {
 			continue
 		}
 
-		unlockedKey, err := getUnlockedKey(request.Fingerprint)
+		unlockedKey, err := getUnlockedKey(request.Fingerprint, unattended)
 		if err != nil {
 			out.Print(ui.FormatFailure("Failed to load requesting key", nil, err))
 			returnError = err
@@ -286,14 +286,21 @@ func processRequestsToJoinTeam() (returnError error) {
 	return returnError
 }
 
-func getUnlockedKey(fingerprint fp.Fingerprint) (*pgpkey.PgpKey, error) {
+func getUnlockedKey(fingerprint fp.Fingerprint, unattended bool) (*pgpkey.PgpKey, error) {
 
 	key, err := loadPgpKey(fingerprint)
 	if err != nil {
 		return nil, err
 	}
 
-	prompter := &interactivePasswordPrompter{}
+	var prompter promptForPasswordInterface
+	if unattended {
+		// if we're in unattended mode and we don't have a password, we can't prompt for it, so
+		// we fail instead.
+		prompter = &alwaysFailPasswordPrompter{}
+	} else {
+		prompter = &interactivePasswordPrompter{}
+	}
 
 	unlockedKey, _, err := getDecryptedPrivateKeyAndPassword(key, prompter)
 	if err != nil {

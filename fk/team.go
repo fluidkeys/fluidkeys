@@ -46,7 +46,7 @@ func teamSubcommand(args docopt.Opts) exitCode {
 		return teamJoin(teamUUID)
 
 	case "fetch":
-		return teamFetch()
+		return teamFetch(false)
 
 	case "create":
 		return teamCreate()
