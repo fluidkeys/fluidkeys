@@ -124,6 +124,10 @@ func (db *Database) RecordLast(verb string, item interface{}, now time.Time) err
 		message.LastUpdated[verb+":"+keyItem+":"+i.Uri()] = now
 	case fpr.Fingerprint:
 		message.LastUpdated[verb+":"+keyItem+":"+i.Uri()] = now
+	case *team.Team:
+		message.LastUpdated[verb+":"+teamItem+":"+i.UUID.String()] = now
+	case team.Team:
+		message.LastUpdated[verb+":"+teamItem+":"+i.UUID.String()] = now
 	}
 
 	return db.saveToFile(*message)
@@ -145,6 +149,10 @@ func (db *Database) GetLast(verb string, item interface{}) (lastUpdated time.Tim
 		return message.LastUpdated[verb+":"+keyItem+":"+i.Uri()], nil
 	case fpr.Fingerprint:
 		return message.LastUpdated[verb+":"+keyItem+":"+i.Uri()], nil
+	case *team.Team:
+		return message.LastUpdated[verb+":"+teamItem+":"+i.UUID.String()], nil
+	case team.Team:
+		return message.LastUpdated[verb+":"+teamItem+":"+i.UUID.String()], nil
 	}
 
 	return time.Time{}, fmt.Errorf("no record of when %v was last '%s'", item, verb)
@@ -333,4 +341,5 @@ var (
 
 const (
 	keyItem  = "key"
+	teamItem = "team"
 )
