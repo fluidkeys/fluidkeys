@@ -35,6 +35,11 @@ import (
 func teamFetch() exitCode {
 	sawError := false
 
+	if err := processRequestsToJoinTeam(); err != nil {
+		// don't output anything: the function does that itself
+		sawError = true
+	}
+
 	myMemberships, err := user.Memberships()
 	if err != nil {
 		log.Panic(err)
@@ -73,29 +78,8 @@ func teamFetch() exitCode {
 
 		out.Print(ui.FormatSuccess(
 			successfullyFetchedKeysHeadline,
-			[]string{"You have successfully fetched everyone's key in " + myTeam.Name + "."},
-		))
-
-	}
-
-	newTeams, err := processRequestsToJoinTeam()
-	if err != nil {
-		// don't output anything: the function does that itself
-		sawError = true
-	}
-
-	for _, newTeam := range newTeams {
-		if err := fetchTeamKeys(newTeam); err != nil {
-			out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
-			sawError = true
-			continue
-		}
-
-		out.Print(ui.FormatSuccess(
-			successfullyFetchedKeysHeadline,
 			[]string{
-				"You have successfully fetched everyone's key in " +
-					newTeam.Name + ".",
+				"You have successfully fetched everyone's key in " + myTeam.Name + ".",
 				"This means that you can now start sending and receiving secrets and",
 				"using other GnuPG powered tools together.",
 			},
@@ -172,17 +156,16 @@ func fetchTeamKeys(t team.Team) (err error) {
 	return err
 }
 
-func processRequestsToJoinTeam() (newTeams []team.Team, returnError error) {
+func processRequestsToJoinTeam() (returnError error) {
 	requestsToJoinTeams, err := user.RequestsToJoinTeams()
 	if err != nil {
 		out.Print(ui.FormatFailure("Failed to get requests to join teams", nil, err))
-		return nil, err
+		return err
 	}
 
 	// TODO: decide whether to process requests in cron mode
 
 	for _, request := range requestsToJoinTeams {
-		printHeader(request.TeamName)
 		// TODO: check if I'm already in the team
 
 		if time.Now().Sub(request.RequestedAt) > time.Duration(7*24)*time.Hour {
@@ -263,7 +246,7 @@ func processRequestsToJoinTeam() (newTeams []team.Team, returnError error) {
 				formatYouRequestedToJoin(request) + " The admin has approved this",
 				"request.",
 			}))
-		newTeams = append(newTeams, *t)
+
 		err = db.DeleteRequestToJoinTeam(request.TeamUUID, request.Fingerprint)
 		if err != nil {
 			out.Print(ui.FormatFailure("Error deleting request to join team", nil, err))
@@ -271,7 +254,7 @@ func processRequestsToJoinTeam() (newTeams []team.Team, returnError error) {
 			continue
 		}
 	}
-	return newTeams, returnError
+	return returnError
 }
 
 func loadPrivateKeyFromFingerprint(
