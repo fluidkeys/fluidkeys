@@ -125,7 +125,10 @@ func reviewRequests(requests []team.RequestToJoinTeam, myTeam team.Team) (
 	for index, request := range requests {
 		out.Print(strconv.Itoa(index+1) + ". " + request.Email + "\n")
 	}
-	out.Print("\n")
+
+	out.Print(ui.FormatInfo(
+		"Denying a request to join a team means that person will have to ask again", nil,
+	))
 
 	prompter := interactiveYesNoPrompter{}
 	for _, request := range requests {
