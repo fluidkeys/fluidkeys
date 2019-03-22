@@ -62,7 +62,7 @@ var peopleHeader = row{
 
 func printAdminIfTrue(status bool) string {
 	if status {
-		return "Admin"
+		return "admin"
 	}
 	return ""
 }
