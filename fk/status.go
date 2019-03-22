@@ -81,7 +81,7 @@ func statusSubcommand(args docopt.Opts) exitCode {
 			}
 			var roughDurationSinceLastFetched string
 			if lastFetched.IsZero() {
-				roughDurationSinceLastFetched = "Never"
+				roughDurationSinceLastFetched = "-"
 			} else {
 				roughDurationSinceLastFetched = humanize.RoughDuration(
 					time.Since(lastFetched),
