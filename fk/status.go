@@ -39,6 +39,10 @@ func statusSubcommand(args docopt.Opts) exitCode {
 	if code := printRequests(); code != 0 {
 		return code
 	}
+
+	if code := printOrphanedKeys(); code != 0 {
+		return code
+	}
 	return 0
 }
 
@@ -158,6 +162,48 @@ func printRequests() exitCode {
 		out.Print(table.FormatKeyTable([]table.KeyWithWarnings{keyWithWarnings}))
 
 		printRequestHasntBeenApproved(request)
+	}
+
+	out.Print(table.FormatKeyTablePrimaryInstruction(allKeysWithWarnings))
+
+	return 0
+}
+
+func printOrphanedKeys() exitCode {
+	orphanedFingerprints, err := user.OrphanedFingerprints()
+	if err != nil {
+		out.Print(ui.FormatFailure("Failed to load keys", nil, err))
+		return 1
+	}
+
+	allKeysWithWarnings := []table.KeyWithWarnings{}
+	for _, fingerprint := range orphanedFingerprints {
+		key, err := loadPgpKey(fingerprint)
+		if err != nil {
+			out.Print(ui.FormatFailure(
+				"Failed to load key",
+				[]string{
+					"Tried to load key " + fingerprint.Hex(),
+				},
+				err,
+			))
+			return 1
+		}
+
+		keyWithWarnings := table.KeyWithWarnings{
+			Key:      key,
+			Warnings: status.GetKeyWarnings(*key, &Config),
+		}
+
+		allKeysWithWarnings = append(allKeysWithWarnings, keyWithWarnings)
+
+		out.Print(table.FormatKeyTable([]table.KeyWithWarnings{keyWithWarnings}))
+
+		out.Print(ui.FormatWarning("You're not in a team", []string{
+			"You've created a key, but you're not a member of any teams.",
+			"If your team is using Fluidkeys, ask your admin for an invite.",
+			"You can create a new team by running " + colour.Cmd("fk team create"),
+		}, nil))
 	}
 
 	out.Print(table.FormatKeyTablePrimaryInstruction(allKeysWithWarnings))
