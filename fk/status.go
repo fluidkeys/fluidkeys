@@ -18,7 +18,6 @@
 package fk
 
 import (
-	"log"
 	"time"
 
 	docopt "github.com/docopt/docopt-go"
@@ -35,7 +34,8 @@ func statusSubcommand(args docopt.Opts) exitCode {
 
 	groupedMemberships, err := user.GroupedMemberships()
 	if err != nil {
-		log.Panic(err)
+		out.Print(ui.FormatFailure("Failed to load team memberships", nil, err))
+		return 1
 	}
 
 	allKeysWithWarnings := []table.KeyWithWarnings{}
