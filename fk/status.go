@@ -50,6 +50,13 @@ func statusSubcommand(args docopt.Opts) exitCode {
 		for _, membership := range groupedMembership.Memberships {
 			key, err := loadPgpKey(membership.Me.Fingerprint)
 			if err != nil {
+				out.Print(ui.FormatFailure(
+					"Failed to load key associated with team "+membership.Team.Name,
+					[]string{
+						"Tried to load key " + membership.Me.Fingerprint.Hex(),
+					},
+					err,
+				))
 				return 1
 			}
 
