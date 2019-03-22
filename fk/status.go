@@ -23,6 +23,7 @@ import (
 
 	docopt "github.com/docopt/docopt-go"
 	"github.com/fluidkeys/fluidkeys/colour"
+	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/status"
 	"github.com/fluidkeys/fluidkeys/table"
@@ -71,11 +72,19 @@ func statusSubcommand(args docopt.Opts) exitCode {
 			if err != nil {
 				continue
 			}
+			var roughDurationSinceLastFetched string
+			if lastFetched.IsZero() {
+				roughDurationSinceLastFetched = "Never"
+			} else {
+				roughDurationSinceLastFetched = humanize.RoughDuration(
+					time.Since(lastFetched),
+				) + " ago"
+			}
 			peopleRows = append(
 				peopleRows, table.PersonRow{
 					Email:              person.Email,
 					IsAdmin:            person.IsAdmin,
-					TimeSinceLastFetch: time.Since(lastFetched),
+					TimeSinceLastFetch: roughDurationSinceLastFetched,
 				},
 			)
 		}

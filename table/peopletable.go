@@ -18,17 +18,13 @@
 package table
 
 import (
-	"time"
-
-	"github.com/fluidkeys/fluidkeys/humanize"
-
 	"github.com/fluidkeys/fluidkeys/colour"
 )
 
 // A PersonRow is used to format a row in the table
 type PersonRow struct {
 	Email              string
-	TimeSinceLastFetch time.Duration
+	TimeSinceLastFetch string
 	IsAdmin            bool
 }
 
@@ -50,7 +46,7 @@ func makePeopleTableRows(peopleRows []PersonRow) (rows []row) {
 	for _, peopleRow := range peopleRows {
 		rows = append(rows, []string{
 			peopleRow.Email,
-			humanize.RoughDuration(peopleRow.TimeSinceLastFetch) + " ago",
+			peopleRow.TimeSinceLastFetch,
 			printAdminIfTrue(peopleRow.IsAdmin),
 		})
 		rows = append(rows, placeholderDividerRow)
