@@ -32,22 +32,22 @@ import (
 	"github.com/fluidkeys/fluidkeys/ui"
 )
 
-func teamFetch() exitCode {
+func teamFetch(unattended bool) exitCode {
 	sawError := false
 
-	if err := processRequestsToJoinTeam(); err != nil {
+	if err := processRequestsToJoinTeam(unattended); err != nil {
 		// don't output anything: the function does that itself
 		sawError = true
 	}
 
-	myMemberships, err := user.Memberships()
+	memberships, err := user.Memberships()
 	if err != nil {
 		out.Print(ui.FormatFailure("Failed to list teams", nil, err))
 		return 1
 	}
 
-	for i := range myMemberships {
-		if err := doUpdateTeam(&myMemberships[i].Team, &myMemberships[i].Me); err != nil {
+	for i := range memberships {
+		if err := doUpdateTeam(&memberships[i].Team, &memberships[i].Me, unattended); err != nil {
 			sawError = true
 		}
 	}
@@ -60,32 +60,29 @@ func teamFetch() exitCode {
 	return 0
 }
 
-func doUpdateTeam(myTeam *team.Team, me *team.Person) (returnError error) {
+func doUpdateTeam(myTeam *team.Team, me *team.Person, unattended bool) (err error) {
 	printHeader(myTeam.Name)
 
-	prompt := interactivePasswordPrompter{}
-
-	if unlockedKey, err := loadPrivateKeyFromFingerprint(me.Fingerprint, &prompt); err != nil {
+	unlockedKey, err := getUnlockedKey(me.Fingerprint, unattended)
+	if err != nil {
 		out.Print(ui.FormatFailure(
 			"Failed to unlock key to check for team updates", []string{
 				"Checking for updates to the team requires an unlocked key",
 				"as the team roster is encrypted.",
 			}, err))
-		returnError = err // carry on, so we can fetch the team's keys
-	} else {
-
-		if updatedTeam, err := fetchAndUpdateRoster(*myTeam, unlockedKey); err != nil {
-			out.Print(ui.FormatWarning("Failed to check team for updates", []string{}, err))
-			returnError = err // carry on, so we can fetch the team's keys
-		} else {
-			myTeam = updatedTeam // move myTeam pointer to updatedTeam
-		}
+		return err
 	}
 
-	if err := fetchTeamKeys(*myTeam); err != nil {
+	var updatedTeam *team.Team
+	if updatedTeam, err = fetchAndUpdateRoster(*myTeam, unlockedKey); err != nil {
+		out.Print(ui.FormatWarning("Failed to check team for updates", []string{}, err))
+		return err
+	}
+	myTeam = updatedTeam // move myTeam pointer to updatedTeam
+
+	if err := fetchAndSignTeamKeys(*myTeam, *me, unlockedKey); err != nil {
 		out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
-		returnError = err
-		return
+		return err
 	}
 
 	out.Print(ui.FormatSuccess(
@@ -96,7 +93,7 @@ func doUpdateTeam(myTeam *team.Team, me *team.Person) (returnError error) {
 			"using other GnuPG powered tools together.",
 		},
 	))
-	return returnError
+	return nil
 }
 
 func formatYouRequestedToJoin(request team.RequestToJoinTeam) string {
@@ -147,12 +144,41 @@ func fetchAndUpdateRoster(t team.Team, unlockedKey *pgpkey.PgpKey) (
 	return updatedTeam, nil
 }
 
-func fetchTeamKeys(t team.Team) (err error) {
-	out.Print("Fetching keys for other members of " + t.Name + ":\n\n")
+func fetchAndSignTeamKeys(t team.Team, me team.Person, unlockedKey *pgpkey.PgpKey) (err error) {
+	out.Print("Fetching and signing keys for other members of " + t.Name + ":\n\n")
 
 	for _, person := range t.People {
+		if person == me {
+			continue
+		}
 		err = ui.RunWithCheckboxes(person.Email, func() error {
-			return getAndImportKeyToGpg(person.Fingerprint)
+			key, err := client.GetPublicKeyByFingerprint(person.Fingerprint)
+
+			if err != nil && err == api.ErrPublicKeyNotFound {
+				log.Print(err)
+				return fmt.Errorf("Couldn't find key")
+			} else if err != nil {
+				log.Print(err)
+				return fmt.Errorf("Got error from Fluidkeys server")
+			}
+
+			if err != key.CertifyEmail(person.Email, unlockedKey, time.Now()) {
+				log.Print(err)
+				return fmt.Errorf("Failed to sign key")
+			}
+
+			armoredKey, err := key.Armor()
+			if err != nil {
+				log.Print(err)
+				return fmt.Errorf("failed to ASCII armor key")
+			}
+
+			err = gpg.ImportArmoredKey(armoredKey)
+			if err != nil {
+				log.Print(err)
+				return fmt.Errorf("Failed to import key into gpg")
+			}
+			return nil
 		})
 		// keep trying subsequent keys even if we hit an error.
 	}
@@ -160,7 +186,7 @@ func fetchTeamKeys(t team.Team) (err error) {
 	return err
 }
 
-func processRequestsToJoinTeam() (returnError error) {
+func processRequestsToJoinTeam(unattended bool) (returnError error) {
 	requestsToJoinTeams, err := user.RequestsToJoinTeams()
 	if err != nil {
 		out.Print(ui.FormatFailure("Failed to get requests to join teams", nil, err))
@@ -189,8 +215,7 @@ func processRequestsToJoinTeam() (returnError error) {
 			continue
 		}
 
-		unlockedKey, err := loadPrivateKeyFromFingerprint(
-			request.Fingerprint, &interactivePasswordPrompter{})
+		unlockedKey, err := getUnlockedKey(request.Fingerprint, unattended)
 		if err != nil {
 			out.Print(ui.FormatFailure("Failed to load requesting key", nil, err))
 			returnError = err
@@ -261,12 +286,20 @@ func processRequestsToJoinTeam() (returnError error) {
 	return returnError
 }
 
-func loadPrivateKeyFromFingerprint(
-	fingerprint fp.Fingerprint, prompter promptForPasswordInterface) (*pgpkey.PgpKey, error) {
+func getUnlockedKey(fingerprint fp.Fingerprint, unattended bool) (*pgpkey.PgpKey, error) {
 
 	key, err := loadPgpKey(fingerprint)
 	if err != nil {
 		return nil, err
+	}
+
+	var prompter promptForPasswordInterface
+	if unattended {
+		// if we're in unattended mode and we don't have a password, we can't prompt for it, so
+		// we fail instead.
+		prompter = &alwaysFailPasswordPrompter{}
+	} else {
+		prompter = &interactivePasswordPrompter{}
 	}
 
 	unlockedKey, _, err := getDecryptedPrivateKeyAndPassword(key, prompter)
@@ -274,31 +307,6 @@ func loadPrivateKeyFromFingerprint(
 		return nil, err
 	}
 	return unlockedKey, nil
-}
-
-func getAndImportKeyToGpg(fingerprint fp.Fingerprint) error {
-	key, err := client.GetPublicKeyByFingerprint(fingerprint)
-
-	if err != nil && err == api.ErrPublicKeyNotFound {
-		log.Print(err)
-		return fmt.Errorf("Couldn't find key")
-	} else if err != nil {
-		log.Print(err)
-		return fmt.Errorf("Got error from Fluidkeys server")
-	}
-
-	armoredKey, err := key.Armor()
-	if err != nil {
-		log.Print(err)
-		return fmt.Errorf("failed to ASCII armor key")
-	}
-
-	err = gpg.ImportArmoredKey(armoredKey)
-	if err != nil {
-		log.Print(err)
-		return fmt.Errorf("Failed to import key into gpg")
-	}
-	return nil
 }
 
 func fetchAdminPublicKeys(t team.Team) (adminKeys []*pgpkey.PgpKey, err error) {
