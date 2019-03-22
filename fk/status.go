@@ -37,6 +37,9 @@ func statusSubcommand(args docopt.Opts) exitCode {
 		return code
 	}
 
+	if code := printRequests(); code != 0 {
+		return code
+	}
 	return 0
 }
 
@@ -110,6 +113,38 @@ func printMemberships() exitCode {
 
 		out.Print(table.FormatKeyTablePrimaryInstruction(allKeysWithWarnings))
 	}
+
+	return 0
+}
+
+func printRequests() exitCode {
+	requestsToJoinTeams, err := user.RequestsToJoinTeams()
+	if err != nil {
+		log.Panic(err)
+	}
+
+	allKeysWithWarnings := []table.KeyWithWarnings{}
+	for _, request := range requestsToJoinTeams {
+		printHeader(request.TeamName)
+
+		key, err := loadPgpKey(request.Fingerprint)
+		if err != nil {
+			return 1
+		}
+
+		keyWithWarnings := table.KeyWithWarnings{
+			Key:      key,
+			Warnings: status.GetKeyWarnings(*key, &Config),
+		}
+
+		allKeysWithWarnings = append(allKeysWithWarnings, keyWithWarnings)
+
+		out.Print(table.FormatKeyTable([]table.KeyWithWarnings{keyWithWarnings}))
+
+		printRequestHasntBeenApproved(request)
+	}
+
+	out.Print(table.FormatKeyTablePrimaryInstruction(allKeysWithWarnings))
 
 	return 0
 }
