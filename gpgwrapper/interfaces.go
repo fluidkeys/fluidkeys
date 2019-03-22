@@ -21,20 +21,9 @@ import (
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 )
 
-// ExportPrivateKeyInterface is the interface that wraps the ExportPrivateKey
-// method.
-//
-// ExportPrivateKey returns 1 ascii armored private key for the given
-// fingerprint, assuming it is encrypted with the given password.
-// The outputted private key is encrypted with the password.
-type ExportPrivateKeyInterface interface {
-	ExportPrivateKey(fingerprint fpr.Fingerprint, password string) (string, error)
-}
-
-// ImportArmoredKeyInterface is the interface that wraps the ExportPrivateKey
-// ImportArmoredKey.
-//
-// ImportArmoredKey imports the given armored key into the GPG key ring
-type ImportArmoredKeyInterface interface {
+// GnuPGInterface allows mocking out GnuPG for testing
+type GnuPGInterface interface {
 	ImportArmoredKey(string) error
+	ExportPrivateKey(fingerprint fpr.Fingerprint, password string) (string, error)
+	TrustUltimately(fpr.Fingerprint) error
 }
