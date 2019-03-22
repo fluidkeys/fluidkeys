@@ -32,6 +32,14 @@ import (
 func statusSubcommand(args docopt.Opts) exitCode {
 	out.Print("\n")
 
+	if code := printMemberships(); code != 0 {
+		return code
+	}
+
+	return 0
+}
+
+func printMemberships() exitCode {
 	groupedMemberships, err := user.GroupedMemberships()
 	if err != nil {
 		out.Print(ui.FormatFailure("Failed to load team memberships", nil, err))
