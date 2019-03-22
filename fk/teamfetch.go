@@ -227,13 +227,7 @@ func processRequestsToJoinTeam(unattended bool) (returnError error) {
 		roster, signature, err := client.GetTeamRoster(unlockedKey, request.TeamUUID)
 
 		if err == api.ErrForbidden {
-			out.Print(ui.FormatInfo(
-				"Your request to join "+request.TeamName+" hasn't been approved",
-				[]string{
-					formatYouRequestedToJoin(request) + " The admin hasn't approved this",
-					"request yet.",
-				}),
-			)
+			printRequestHasntBeenApproved(request)
 			continue // don't set returnError: this is an OK outcome
 		} else if err != nil {
 			out.Print(ui.FormatFailure("Failed to get team roster", nil, err))
@@ -286,6 +280,16 @@ func processRequestsToJoinTeam(unattended bool) (returnError error) {
 		}
 	}
 	return returnError
+}
+
+func printRequestHasntBeenApproved(request team.RequestToJoinTeam) {
+	out.Print(ui.FormatInfo(
+		"Your request to join "+request.TeamName+" hasn't been approved",
+		[]string{
+			formatYouRequestedToJoin(request) + " The admin hasn't approved this",
+			"request yet.",
+		}),
+	)
 }
 
 func getUnlockedKey(fingerprint fp.Fingerprint, unattended bool) (*pgpkey.PgpKey, error) {
