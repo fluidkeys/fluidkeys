@@ -61,6 +61,8 @@ func teamFetch(unattended bool) exitCode {
 }
 
 func doUpdateTeam(myTeam *team.Team, me *team.Person, unattended bool) (err error) {
+	alwaysDownload := !unattended
+
 	printHeader(myTeam.Name)
 
 	unlockedKey, err := getUnlockedKey(me.Fingerprint, unattended)
@@ -74,13 +76,13 @@ func doUpdateTeam(myTeam *team.Team, me *team.Person, unattended bool) (err erro
 	}
 
 	var updatedTeam *team.Team
-	if updatedTeam, err = fetchAndUpdateRoster(*myTeam, unlockedKey); err != nil {
+	if updatedTeam, err = fetchAndUpdateRoster(*myTeam, unlockedKey, alwaysDownload); err != nil {
 		out.Print(ui.FormatWarning("Failed to check team for updates", []string{}, err))
 		return err
 	}
 	myTeam = updatedTeam // move myTeam pointer to updatedTeam
 
-	if err := fetchAndSignTeamKeys(*myTeam, *me, unlockedKey); err != nil {
+	if err := fetchAndSignTeamKeys(*myTeam, *me, unlockedKey, alwaysDownload); err != nil {
 		out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
 		return err
 	}
@@ -101,11 +103,25 @@ func formatYouRequestedToJoin(request team.RequestToJoinTeam) string {
 		humanize.RoughDuration(time.Now().Sub(request.RequestedAt)) + " ago."
 }
 
-func fetchAndUpdateRoster(t team.Team, unlockedKey *pgpkey.PgpKey) (
+// fetchAndUpdateRoster fetches any update to the team roster and saves it back to disk.
+// if alwaysDownload is false, only check the roster if we last checked it more than 24 hours ago
+func fetchAndUpdateRoster(t team.Team, unlockedKey *pgpkey.PgpKey, alwaysDownload bool) (
 	updatedTeam *team.Team, err error) {
 
 	// TODO: download the updated roster and handle the case where we're forbidden, as it
 	// means we're no longer in the team.
+
+	if !alwaysDownload {
+		if stale, err := db.IsOlderThan(
+			"fetch", t, time.Duration(24)*time.Hour, time.Now()); err != nil {
+
+			return nil, fmt.Errorf("failed to check when team was last updated: %v", err)
+
+		} else if !stale {
+			log.Printf("skipping check for updates to roster for %s (fetched recently)", t.Name)
+			return &t, nil // we checked for updates recently. nothing to do.
+		}
+	}
 
 	roster, signature, err := client.GetTeamRoster(unlockedKey, t.UUID)
 	if err != nil {
@@ -114,6 +130,7 @@ func fetchAndUpdateRoster(t team.Team, unlockedKey *pgpkey.PgpKey) (
 
 	if originalRoster, _ := t.Roster(); originalRoster == roster {
 		log.Printf("no change to roster, nothing to do.")
+		db.RecordLast("fetch", t, time.Now())
 		return &t, nil // no change to roster. nothing to do.
 	}
 
@@ -137,6 +154,8 @@ func fetchAndUpdateRoster(t team.Team, unlockedKey *pgpkey.PgpKey) (
 		return nil, err
 	}
 
+	db.RecordLast("fetch", t, time.Now())
+
 	updatedTeam, err = team.Load(roster, signature)
 	if err != nil {
 		return nil, err
@@ -144,13 +163,29 @@ func fetchAndUpdateRoster(t team.Team, unlockedKey *pgpkey.PgpKey) (
 	return updatedTeam, nil
 }
 
-func fetchAndSignTeamKeys(t team.Team, me team.Person, unlockedKey *pgpkey.PgpKey) (err error) {
+// fetchAndSignTeamKeys fetches each key listed in the team and locally signs them in GnuPG
+// if `alwaysDownload` is false, it will only try to fetch keys every 24 hours, otherwise it'll
+// check every time.
+func fetchAndSignTeamKeys(
+	t team.Team, me team.Person, unlockedKey *pgpkey.PgpKey, alwaysDownload bool) (err error) {
+
 	out.Print("Fetching and signing keys for other members of " + t.Name + ":\n\n")
 
 	for _, person := range t.People {
 		if person == me {
 			continue
 		}
+
+		if !alwaysDownload {
+			if stale, err := db.IsOlderThan("fetch", person.Fingerprint,
+				time.Duration(24)*time.Hour, time.Now()); err != nil {
+				return err
+			} else if !stale {
+				ui.PrintCheckboxSkipped(person.Email + " skipped: fetched recently")
+				continue
+			}
+		}
+
 		err = ui.RunWithCheckboxes(person.Email, func() error {
 			key, err := client.GetPublicKeyByFingerprint(person.Fingerprint)
 
