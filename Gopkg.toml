@@ -29,8 +29,8 @@
   name = "github.com/sethvargo/go-diceware"
 
 [[constraint]]
-  revision = "2018-09-13"
   name = "github.com/fluidkeys/crypto"
+  revision = "d1eb919c5d7a79d47db3bed84c8637648a60ab27"
 
 [[constraint]]
   branch = "master"

@@ -76,6 +76,8 @@ type Signature struct {
 	// subkey as their own.
 	EmbeddedSignature *Signature
 
+	ExportableCertification *bool
+
 	outSubpackets []outputSubpacket
 }
 
@@ -193,18 +195,19 @@ func parseSignatureSubpackets(sig *Signature, subpackets []byte, isHashed bool) 
 type signatureSubpacketType uint8
 
 const (
-	creationTimeSubpacket        signatureSubpacketType = 2
-	signatureExpirationSubpacket signatureSubpacketType = 3
-	keyExpirationSubpacket       signatureSubpacketType = 9
-	prefSymmetricAlgosSubpacket  signatureSubpacketType = 11
-	issuerSubpacket              signatureSubpacketType = 16
-	prefHashAlgosSubpacket       signatureSubpacketType = 21
-	prefCompressionSubpacket     signatureSubpacketType = 22
-	primaryUserIdSubpacket       signatureSubpacketType = 25
-	keyFlagsSubpacket            signatureSubpacketType = 27
-	reasonForRevocationSubpacket signatureSubpacketType = 29
-	featuresSubpacket            signatureSubpacketType = 30
-	embeddedSignatureSubpacket   signatureSubpacketType = 32
+	creationTimeSubpacket            signatureSubpacketType = 2
+	signatureExpirationSubpacket     signatureSubpacketType = 3
+	exportableCertificationSubpacket signatureSubpacketType = 4
+	keyExpirationSubpacket           signatureSubpacketType = 9
+	prefSymmetricAlgosSubpacket      signatureSubpacketType = 11
+	issuerSubpacket                  signatureSubpacketType = 16
+	prefHashAlgosSubpacket           signatureSubpacketType = 21
+	prefCompressionSubpacket         signatureSubpacketType = 22
+	primaryUserIdSubpacket           signatureSubpacketType = 25
+	keyFlagsSubpacket                signatureSubpacketType = 27
+	reasonForRevocationSubpacket     signatureSubpacketType = 29
+	featuresSubpacket                signatureSubpacketType = 30
+	embeddedSignatureSubpacket       signatureSubpacketType = 32
 )
 
 // parseSignatureSubpacket parses a single subpacket. len(subpacket) is >= 1.
@@ -271,6 +274,17 @@ func parseSignatureSubpacket(sig *Signature, subpacket []byte, isHashed bool) (r
 		}
 		sig.SigLifetimeSecs = new(uint32)
 		*sig.SigLifetimeSecs = binary.BigEndian.Uint32(subpacket)
+	case exportableCertificationSubpacket:
+		// Exportable certification, section 5.2.3.11
+		if !isHashed {
+			return
+		}
+		if len(subpacket) != 1 {
+			err = errors.StructuralError("exportable certification subpacket with bad length")
+			return
+		}
+		exportable := subpacket[0] == 1
+		sig.ExportableCertification = &exportable
 	case keyExpirationSubpacket:
 		// Key expiration time, section 5.2.3.6
 		if !isHashed {
@@ -727,7 +741,7 @@ func (sig *Signature) buildSubpackets() (subpackets []outputSubpacket) {
 		subpackets = append(subpackets, outputSubpacket{true, prefCompressionSubpacket, false, sig.PreferredCompression})
 	}
 
-	if sig.SigType == SigTypeKeyRevocation {
+	if sig.SigType == SigTypeKeyRevocation || sig.SigType == SigTypeSubkeyRevocation && sig.RevocationReason != nil {
 		reasonForRevData := bytes.NewBuffer(nil)
 		reasonForRevData.Write([]byte{*sig.RevocationReason})
 		reasonForRevData.Write([]byte(sig.RevocationReasonText))
@@ -743,5 +757,39 @@ func (sig *Signature) buildSubpackets() (subpackets []outputSubpacket) {
 		)
 	}
 
+	if sig.ExportableCertification != nil && isCertification(sig.SigType) {
+		var exportable byte
+		if *sig.ExportableCertification {
+			exportable = 1
+		} else {
+			exportable = 0
+		}
+
+		subpackets = append(
+			subpackets,
+			outputSubpacket{
+				hashed:        true,
+				subpacketType: exportableCertificationSubpacket,
+				isCritical:    false,
+				contents:      []byte{exportable},
+			},
+		)
+	}
+
 	return
+}
+
+func isCertification(sigType SignatureType) bool {
+	switch sigType {
+	case SigTypeGenericCert:
+		return true
+	case SigTypePersonaCert:
+		return true
+	case SigTypeCasualCert:
+		return true
+	case SigTypePositiveCert:
+		return true
+	}
+
+	return false
 }
