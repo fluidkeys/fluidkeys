@@ -439,5 +439,5 @@ const (
 	loopbackUnsupported       = `setting pinentry mode 'loopback' failed: Not supported`
 	badPassphrase             = "Bad passphrase"
 	noPassphrase              = "No passphrase given"
-	noPublicKey               = "error reading key: No public key"
+	noPublicKey               = "No public key"
 )
