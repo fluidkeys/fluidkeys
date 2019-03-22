@@ -47,7 +47,7 @@ func makePeopleTableRows(peopleRows []PersonRow) (rows []row) {
 		rows = append(rows, []string{
 			peopleRow.Email,
 			peopleRow.TimeSinceLastFetch,
-			printAdminIfTrue(peopleRow.IsAdmin),
+			returnAdminIfTrue(peopleRow.IsAdmin),
 		})
 		rows = append(rows, placeholderDividerRow)
 	}
@@ -60,7 +60,7 @@ var peopleHeader = row{
 	colour.TableHeader(""),
 }
 
-func printAdminIfTrue(status bool) string {
+func returnAdminIfTrue(status bool) string {
 	if status {
 		return "admin"
 	}
