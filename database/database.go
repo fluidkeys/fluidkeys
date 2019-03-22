@@ -164,6 +164,21 @@ func (db *Database) GetLast(verb string, item interface{}) (EventTimes time.Time
 	return time.Time{}, nil
 }
 
+// IsOlderThan takes a verb and item and returns true if it was last recorded more than `age` ago.
+func (db *Database) IsOlderThan(verb string, item interface{}, age time.Duration, now time.Time) (
+	isOlder bool, err error) {
+
+	t, err := db.GetLast(verb, item)
+	if err != nil {
+		return false, err
+	} else if t.IsZero() {
+		// never recorded, so the answer is always yes (it's older than age)
+		return true, nil
+	}
+
+	return now.Sub(t) > age, nil
+}
+
 // GetFingerprintsImportedIntoGnuPG returns a slice of fingerprints that have
 // been imported into GnuPG
 func (db *Database) GetFingerprintsImportedIntoGnuPG() (fingerprints []fpr.Fingerprint, err error) {
