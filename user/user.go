@@ -146,6 +146,54 @@ func (u User) RequestsToJoinTeams() (teamRequests []team.RequestToJoinTeam, err 
 	return teamRequests, nil
 }
 
+// OrphanedFingerprints loads all fingerprints and returns any that aren't associated with a team
+// nor a request to join a team
+func (u User) OrphanedFingerprints() (orphanedFingerprints []fpr.Fingerprint, err error) {
+	myFingerprints, err := u.db.GetFingerprintsImportedIntoGnuPG()
+	if err != nil {
+		return nil, err
+	}
+
+	requests, err := u.RequestsToJoinTeams()
+	if err != nil {
+		return nil, err
+	}
+	memberships, err := u.Memberships()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, fingerprint := range myFingerprints {
+		if fingerprintHasRequest(fingerprint, requests) {
+			continue
+		}
+		if fingerprintHasMembership(fingerprint, memberships) {
+			continue
+		}
+		orphanedFingerprints = append(orphanedFingerprints, fingerprint)
+	}
+
+	return orphanedFingerprints, nil
+}
+
+func fingerprintHasRequest(fingerprint fpr.Fingerprint, requests []team.RequestToJoinTeam) bool {
+	for _, r := range requests {
+		if r.Fingerprint == fingerprint {
+			return true
+		}
+	}
+	return false
+}
+
+func fingerprintHasMembership(fingerprint fpr.Fingerprint, memberships []TeamMembership) bool {
+	for _, m := range memberships {
+		if m.Me.Fingerprint == fingerprint {
+			return true
+		}
+	}
+	return false
+}
+
 // TeamMembership records a connection between a Person and a Team. It's possible for several of
 // a user's keys to all be in the same team.
 type TeamMembership struct {
