@@ -178,6 +178,8 @@ func fetchAndSignTeamKeys(t team.Team, me team.Person, unlockedKey *pgpkey.PgpKe
 				log.Print(err)
 				return fmt.Errorf("Failed to import key into gpg")
 			}
+			db.RecordLast("fetch", key.Fingerprint(), time.Now())
+
 			return nil
 		})
 		// keep trying subsequent keys even if we hit an error.
@@ -306,6 +308,7 @@ func getUnlockedKey(fingerprint fp.Fingerprint, unattended bool) (*pgpkey.PgpKey
 	if err != nil {
 		return nil, err
 	}
+
 	return unlockedKey, nil
 }
 

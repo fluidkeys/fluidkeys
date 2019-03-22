@@ -26,8 +26,8 @@ import (
 	"strings"
 
 	"github.com/fluidkeys/fluidkeys/emailutils"
-	"github.com/fluidkeys/fluidkeys/keytable"
 	"github.com/fluidkeys/fluidkeys/status"
+	"github.com/fluidkeys/fluidkeys/table"
 
 	"github.com/fluidkeys/fluidkeys/api"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
@@ -73,6 +73,7 @@ Usage:
 	fk team join <uuid>
 	fk team authorize
 	fk team fetch [--cron-output]
+	fk status
 	fk secret send <recipient-email>
 	fk secret send [<filename>] --to=<email>
 	fk secret receive
@@ -108,7 +109,7 @@ Options:
 	}
 	var code exitCode
 
-	switch getSubcommand(args, []string{"key", "secret", "team", "setup", "sync"}) {
+	switch getSubcommand(args, []string{"key", "secret", "team", "setup", "sync", "status"}) {
 	case "key":
 		code = keySubcommand(args)
 
@@ -123,6 +124,10 @@ Options:
 
 	case "team":
 		code = teamSubcommand(args)
+
+	case "status":
+		code = statusSubcommand(args)
+
 	default:
 		out.Print("unhandled subcommand")
 		code = 1
@@ -301,19 +306,20 @@ func keyList() exitCode {
 
 	out.Print("\n")
 
-	keysWithWarnings := []keytable.KeyWithWarnings{}
+	keysWithWarnings := []table.KeyWithWarnings{}
 
 	for i := range keys {
 		key := &keys[i]
 
-		keyWithWarnings := keytable.KeyWithWarnings{
+		keyWithWarnings := table.KeyWithWarnings{
 			Key:      key,
 			Warnings: status.GetKeyWarnings(*key, &Config),
 		}
 		keysWithWarnings = append(keysWithWarnings, keyWithWarnings)
 	}
 
-	out.Print(keytable.Format(keysWithWarnings))
+	out.Print(table.FormatKeyTable(keysWithWarnings))
+	out.Print(table.FormatKeyTablePrimaryInstruction(keysWithWarnings))
 	return 0
 }
 

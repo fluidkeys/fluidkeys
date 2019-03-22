@@ -115,6 +115,10 @@ func (db *Database) RecordLast(verb string, item interface{}, now time.Time) err
 		return err
 	}
 
+	if verb == "" {
+		return fmt.Errorf("verb can't be empty")
+	}
+
 	switch i := item.(type) {
 	case *pgpkey.PgpKey:
 		message.EventTimes[verb+":"+keyItem+":"+i.Fingerprint().Uri()] = now
@@ -128,6 +132,8 @@ func (db *Database) RecordLast(verb string, item interface{}, now time.Time) err
 		message.EventTimes[verb+":"+teamItem+":"+i.UUID.String()] = now
 	case team.Team:
 		message.EventTimes[verb+":"+teamItem+":"+i.UUID.String()] = now
+	default:
+		return fmt.Errorf("don't know how to handle %v", item)
 	}
 
 	return db.saveToFile(*message)
