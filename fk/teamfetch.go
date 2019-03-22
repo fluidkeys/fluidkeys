@@ -162,9 +162,9 @@ func fetchAndSignTeamKeys(t team.Team, me team.Person, unlockedKey *pgpkey.PgpKe
 				return fmt.Errorf("Got error from Fluidkeys server")
 			}
 
-			if err != key.CertifyEmail(person.Email, unlockedKey, time.Now()) {
+			if err := key.CertifyEmail(person.Email, unlockedKey, time.Now()); err != nil {
 				log.Print(err)
-				return fmt.Errorf("Failed to sign key")
+				return fmt.Errorf("Failed to sign key: %v", err)
 			}
 
 			armoredKey, err := key.Armor()

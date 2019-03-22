@@ -68,8 +68,8 @@ func (p *PgpKey) CertifyEmail(email string, certifier *PgpKey, now time.Time) er
 }
 
 func identitiesMatchingEmail(key *PgpKey, email string) (uids []string) {
-	for _, identity := range key.Identities {
-		if matches(identity.UserId.Email, email) {
+	for raw, identity := range key.Identities {
+		if matches(raw, email) {
 			uids = append(uids, identity.Name)
 		}
 	}
@@ -80,6 +80,6 @@ func identitiesMatchingEmail(key *PgpKey, email string) (uids []string) {
 // is on an existing key. We allow JOHNDOE@example.com to match equal to johndoe@example.com where
 // in other contexts we probably wouldn't (e.g. doing a global key discovery, where those two
 // mail names could actually be different :\
-func matches(email1 string, email2 string) bool {
-	return strings.ToLower(email1) == strings.ToLower(email2)
+func matches(userID string, email2 string) bool {
+	return strings.Contains(strings.ToLower(userID), strings.ToLower(email2))
 }
