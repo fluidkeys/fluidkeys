@@ -105,7 +105,8 @@ func statusSubcommand(args docopt.Opts) exitCode {
 			}))
 		}
 
-		out.Print("To fetch and store team members keys run " + colour.Cmd("fk team fetch") + "\n\n")
+		out.Print("Team keys are updated automatically. To check for updates now, run " +
+			colour.Cmd("fk team fetch") + "\n\n")
 
 		out.Print(table.FormatKeyTablePrimaryInstruction(allKeysWithWarnings))
 	}
