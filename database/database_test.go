@@ -352,8 +352,8 @@ func TestEventTimes(t *testing.T) {
 	now := time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
 	later := now.Add(time.Duration(6) * time.Hour)
 
-	database := New(testhelpers.Maketemp(t))
 	t.Run("record last", func(t *testing.T) {
+		database := New(testhelpers.Maketemp(t))
 		t.Run("doesn't error given a verb and handled item", func(t *testing.T) {
 			fingerprint := exampledata.ExampleFingerprint2
 
@@ -399,6 +399,7 @@ func TestEventTimes(t *testing.T) {
 	})
 
 	t.Run("get last", func(t *testing.T) {
+		database := New(testhelpers.Maketemp(t))
 		fingerprint := exampledata.ExampleFingerprint2
 
 		err := database.RecordLast("fetch", fingerprint, now)
@@ -417,7 +418,43 @@ func TestEventTimes(t *testing.T) {
 		})
 	})
 
+	t.Run("IsOlderThan", func(t *testing.T) {
+		database := New(testhelpers.Maketemp(t))
+		fingerprint := exampledata.ExampleFingerprint2
+
+		oneHourAgo := now.Add(-time.Duration(1) * time.Hour)
+
+		t.Run("returns true if there's no matching record", func(t *testing.T) {
+			got, err := database.IsOlderThan(
+				"fetch", fingerprint, time.Duration(50)*time.Minute, now,
+			)
+			assert.NoError(t, err)
+			assert.Equal(t, true, got)
+		})
+
+		err := database.RecordLast("fetch", fingerprint, oneHourAgo)
+		assert.NoError(t, err)
+
+		t.Run("when record is older than age", func(t *testing.T) {
+			got, err := database.IsOlderThan(
+				"fetch", fingerprint, time.Duration(55)*time.Minute, now,
+			)
+			assert.NoError(t, err)
+			assert.Equal(t, true, got)
+		})
+
+		t.Run("when record is less old than age", func(t *testing.T) {
+			got, err := database.IsOlderThan(
+				"fetch", fingerprint, time.Duration(65)*time.Minute, now,
+			)
+			assert.NoError(t, err)
+			assert.Equal(t, false, got)
+		})
+
+	})
+
 	t.Run("items are unique", func(t *testing.T) {
+		database := New(testhelpers.Maketemp(t))
 		fingerprint := exampledata.ExampleFingerprint2
 		fingerprint2 := exampledata.ExampleFingerprint3
 
@@ -437,6 +474,7 @@ func TestEventTimes(t *testing.T) {
 	})
 
 	t.Run("verbs are unique", func(t *testing.T) {
+		database := New(testhelpers.Maketemp(t))
 		fingerprint := exampledata.ExampleFingerprint2
 
 		err := database.RecordLast("fetch", fingerprint, now)
@@ -455,6 +493,7 @@ func TestEventTimes(t *testing.T) {
 	})
 
 	t.Run("keys and fingerprints can be interchanged", func(t *testing.T) {
+		database := New(testhelpers.Maketemp(t))
 		fingerprint := exampledata.ExampleFingerprint2
 		key, err := pgpkey.LoadFromArmoredPublicKey(exampledata.ExamplePublicKey2)
 		assert.NoError(t, err)
