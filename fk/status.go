@@ -97,13 +97,9 @@ func printMemberships(groupedMemberships []userpackage.GroupedMembership) (
 		for _, membership := range groupedMembership.Memberships {
 			key, err := loadPgpKey(membership.Me.Fingerprint)
 			if err != nil {
-				out.Print(ui.FormatFailure(
-					"Failed to load key associated with team "+membership.Team.Name,
-					[]string{
-						"Tried to load key " + membership.Me.Fingerprint.Hex(),
-					},
-					err,
-				))
+				out.Print(
+					formatFailedToLoadKey(membership.Me.Fingerprint, membership.Team.Name, err),
+				)
 				return nil, 1
 			}
 
@@ -167,13 +163,9 @@ func printRequests(requestsToJoinTeams []team.RequestToJoinTeam) (
 
 		key, err := loadPgpKey(request.Fingerprint)
 		if err != nil {
-			out.Print(ui.FormatFailure(
-				"Failed to load key associated with team "+request.TeamName,
-				[]string{
-					"Tried to load key " + request.Fingerprint.Hex(),
-				},
-				err,
-			))
+			out.Print(
+				formatFailedToLoadKey(request.Fingerprint, request.TeamName, err),
+			)
 			return nil, 1
 		}
 
@@ -204,13 +196,9 @@ func printOrphanedKeys(orphanedFingerprints []fpr.Fingerprint) (
 	for _, fingerprint := range orphanedFingerprints {
 		key, err := loadPgpKey(fingerprint)
 		if err != nil {
-			out.Print(ui.FormatFailure(
-				"Failed to load key",
-				[]string{
-					"Tried to load key " + fingerprint.Hex(),
-				},
-				err,
-			))
+			out.Print(
+				formatFailedToLoadKey(fingerprint, "", err),
+			)
 			return nil, 1
 		}
 		keyWithWarnings := table.KeyWithWarnings{
@@ -222,4 +210,24 @@ func printOrphanedKeys(orphanedFingerprints []fpr.Fingerprint) (
 
 	out.Print(table.FormatKeyTable(orphanedKeysWithWarnings))
 	return orphanedKeysWithWarnings, 0
+}
+
+func formatFailedToLoadKey(fingerprint fpr.Fingerprint, teamName string, err error) string {
+	headline := ""
+	if teamName == "" {
+		headline = "Failed to load key"
+	} else {
+		headline = "Failed to load key associated with team " + teamName
+	}
+
+	return ui.FormatFailure(
+		headline,
+		[]string{
+			"Tried to load key from GnuPG: " + fingerprint.Hex(),
+			"",
+			"If this key no longer exists, you can remove it from the `db.json` file",
+			"in your Fluidkeys directory " + fluidkeysDirectory,
+		},
+		err,
+	)
 }
