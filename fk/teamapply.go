@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/atotto/clipboard"
 	"github.com/fluidkeys/fluidkeys/colour"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/out"
@@ -85,6 +86,13 @@ Please can you authorize me by running
 
 	out.Print(formatFileDivider("", 80) + "\n\n")
 
+	prompter := interactiveYesNoPrompter{}
+	if prompter.promptYesNo("Copy this message to your clipboard now?", "y", nil) == true {
+		if err := clipboard.WriteAll(requestMessage); err != nil {
+			out.Print(ui.FormatFailure("Failed to copy message to clipboard", nil, err))
+			return 1
+		}
+	}
 
 	return 0
 
