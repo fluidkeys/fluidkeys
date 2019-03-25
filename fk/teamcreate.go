@@ -134,9 +134,11 @@ Join now:
 
 1. download Fluidkeys from https://download.fluidkeys.com
 
-2. join the team by running:
+2. apply to join the team by running:
 
 > fk team join ` + t.UUID.String() + `
+
+3. reply to me with your verification details so I can authorize you
 
 `)
 	out.Print(formatFileDivider("", 80) + "\n\n")
