@@ -32,6 +32,17 @@ import (
 func statusSubcommand(args docopt.Opts) exitCode {
 	out.Print("\n")
 
+	if code := printMemberships(); code != 0 {
+		return code
+	}
+
+	if code := printRequests(); code != 0 {
+		return code
+	}
+	return 0
+}
+
+func printMemberships() exitCode {
 	groupedMemberships, err := user.GroupedMemberships()
 	if err != nil {
 		out.Print(ui.FormatFailure("Failed to load team memberships", nil, err))
@@ -110,6 +121,46 @@ func statusSubcommand(args docopt.Opts) exitCode {
 
 		out.Print(table.FormatKeyTablePrimaryInstruction(allKeysWithWarnings))
 	}
+
+	return 0
+}
+
+func printRequests() exitCode {
+	requestsToJoinTeams, err := user.RequestsToJoinTeams()
+	if err != nil {
+		out.Print(ui.FormatFailure("Failed to load requests to join teams", nil, err))
+		return 1
+	}
+
+	allKeysWithWarnings := []table.KeyWithWarnings{}
+	for _, request := range requestsToJoinTeams {
+		printHeader(request.TeamName)
+
+		key, err := loadPgpKey(request.Fingerprint)
+		if err != nil {
+			out.Print(ui.FormatFailure(
+				"Failed to load key associated with team "+request.TeamName,
+				[]string{
+					"Tried to load key " + request.Fingerprint.Hex(),
+				},
+				err,
+			))
+			return 1
+		}
+
+		keyWithWarnings := table.KeyWithWarnings{
+			Key:      key,
+			Warnings: status.GetKeyWarnings(*key, &Config),
+		}
+
+		allKeysWithWarnings = append(allKeysWithWarnings, keyWithWarnings)
+
+		out.Print(table.FormatKeyTable([]table.KeyWithWarnings{keyWithWarnings}))
+
+		printRequestHasntBeenApproved(request)
+	}
+
+	out.Print(table.FormatKeyTablePrimaryInstruction(allKeysWithWarnings))
 
 	return 0
 }
