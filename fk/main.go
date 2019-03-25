@@ -70,7 +70,7 @@ Usage:
 	fk setup
 	fk setup <email>
 	fk team create
-	fk team join <uuid>
+	fk team apply <uuid>
 	fk team authorize
 	fk team fetch [--cron-output]
 	fk status

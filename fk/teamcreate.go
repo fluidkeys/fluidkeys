@@ -136,7 +136,7 @@ Join now:
 
 2. apply to join the team by running:
 
-> fk team join ` + t.UUID.String() + `
+> fk team apply ` + t.UUID.String() + `
 
 3. reply to me with your verification details so I can authorize you
 

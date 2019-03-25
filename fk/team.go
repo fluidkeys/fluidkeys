@@ -28,10 +28,10 @@ import (
 
 func teamSubcommand(args docopt.Opts) exitCode {
 	switch getSubcommand(args, []string{
-		"authorize", "create", "join", "fetch",
+		"authorize", "create", "apply", "fetch",
 	}) {
 
-	case "join":
+	case "apply":
 		id, err := args.String("<uuid>")
 		if err != nil {
 			log.Panic(err)
@@ -43,7 +43,7 @@ func teamSubcommand(args docopt.Opts) exitCode {
 			return 1
 		}
 
-		return teamJoin(teamUUID)
+		return teamApply(teamUUID)
 
 	case "fetch":
 		return teamFetch(false)

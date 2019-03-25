@@ -112,7 +112,7 @@ func printMemberships() exitCode {
 		if adminOfTeam {
 			out.Print(ui.FormatInfo("Invite others to join the team", []string{
 				"Your team members can request to join the team by running",
-				colour.Cmd("fk team join " + groupedMembership.Team.UUID.String()),
+				colour.Cmd("fk team apply " + groupedMembership.Team.UUID.String()),
 			}))
 		}
 
