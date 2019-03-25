@@ -88,6 +88,8 @@ func teamAuthorize() exitCode {
 					})
 			}
 
+			printHeader("Sign and upload team roster")
+
 			out.Print("The team roster is a signed file that defines who is in the team.\n\n")
 			if err := promptAndSignAndUploadRoster(myTeam, &adminKey); err != nil {
 				out.Print(ui.FormatFailure("Failed to sign and upload roster", nil, err))
