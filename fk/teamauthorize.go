@@ -72,7 +72,8 @@ func teamAuthorize() exitCode {
 			[]string{
 				"By authorizing a key, everyone in your team will fetch and trust that key.",
 				"",
-				"It's important to carefully check the key and email for each request.",
+				"Your team should have sent you verification details.",
+				"Check the key and email below match the verification details you've received.",
 			},
 		))
 
