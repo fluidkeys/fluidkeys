@@ -29,13 +29,6 @@ import (
 )
 
 func teamAuthorize() exitCode {
-	out.Print(ui.FormatInfo(
-		"Authorizing a key adds it to the team roster",
-		[]string{
-			"By authorizing a key, everyone in your team will fetch and trust that key.",
-		},
-	))
-
 	keys, err := loadPgpKeys()
 	if err != nil {
 		out.Print(ui.FormatFailure("Error loading keys", nil, err))
@@ -74,6 +67,15 @@ func teamAuthorize() exitCode {
 			return 0
 		}
 
+		out.Print(ui.FormatInfo(
+			"Authorizing a key adds it to the team roster",
+			[]string{
+				"By authorizing a key, everyone in your team will fetch and trust that key.",
+				"",
+				"It's important to carefully check the key and email for each request.",
+			},
+		))
+
 		approvedRequests := reviewRequests(requests, myTeam)
 
 		if len(approvedRequests) > 0 {
@@ -86,6 +88,9 @@ func teamAuthorize() exitCode {
 					})
 			}
 
+			printHeader("Sign and upload team roster")
+
+			out.Print("The team roster is a signed file that defines who is in the team.\n\n")
 			if err := promptAndSignAndUploadRoster(myTeam, &adminKey); err != nil {
 				out.Print(ui.FormatFailure("Failed to sign and upload roster", nil, err))
 				return 1
@@ -129,8 +134,8 @@ func reviewRequests(requests []team.RequestToJoinTeam, myTeam team.Team) (
 
 	prompter := interactiveYesNoPrompter{}
 	for _, request := range requests {
-		out.Print("» Request from " + colour.Info(request.Email) + "\n")
-		out.Print("  with key " + request.Fingerprint.String() + "\n")
+		out.Print("» key:   " + colour.Info(request.Fingerprint.String()) + "\n")
+		out.Print("  email: " + colour.Info(request.Email) + "\n")
 
 		err, existingPerson := myTeam.GetUpsertPersonWarnings(team.Person{
 			Email:       request.Email,
