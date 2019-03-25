@@ -195,6 +195,10 @@ func printRequests(requestsToJoinTeams []team.RequestToJoinTeam) (
 func printOrphanedKeys(orphanedFingerprints []fpr.Fingerprint) (
 	orphanedKeysWithWarnings []table.KeyWithWarnings, code exitCode) {
 
+	if len(orphanedFingerprints) > 0 {
+		printHeader("Keys that are not in a team")
+	}
+
 	for _, fingerprint := range orphanedFingerprints {
 		key, err := loadPgpKey(fingerprint)
 		if err != nil {
