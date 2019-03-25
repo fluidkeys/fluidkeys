@@ -218,7 +218,7 @@ func promptAndSignAndUploadRoster(t team.Team, key *pgpkey.PgpKey) (err error) {
 }
 
 func formatRosterPreview(roster string) string {
-	return formatFileDivider("roster.toml", 80) + "\n" +
+	return formatFileDivider("Preview of roster.toml", 80) + "\n" +
 		roster +
 		formatFileDivider("", 80) + "\n\n"
 }
