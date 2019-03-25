@@ -54,7 +54,11 @@ func teamCreate() exitCode {
 	out.Print("A Team is a group of people using Fluidkeys together.\n\n")
 	out.Print("Fluidkeys automates configuration and key exchange for the team.\n\n")
 	out.Print("This makes it easy to send secrets to one another and use other popular\n")
-	out.Print("PGP tools.\n\n")
+	out.Print("PGP tools.\n")
+
+	out.Print(ui.FormatInfo("Teams are free for two people.", []string{
+		"For larger teams see www.fluidkeys.com/pricing",
+	}))
 
 	key, code := getKeyForTeam()
 	if code != 0 {
