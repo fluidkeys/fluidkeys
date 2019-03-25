@@ -142,11 +142,7 @@ Join now:
 	promptForInput("Press enter to continue. ")
 
 	out.Print(ui.FormatInfo("You'll need to authorize requests to join the team with "+
-		colour.Cmd("fk team authorize"), []string{
-		"If you're already using gpg with your team, you can pre-authorise them now",
-		"by running " + colour.Cmd("fk team from-gpg"),
-	},
-	))
+		colour.Cmd("fk team authorize"), nil))
 
 	return 0
 }
