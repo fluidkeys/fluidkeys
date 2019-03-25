@@ -22,34 +22,70 @@ import (
 
 	docopt "github.com/docopt/docopt-go"
 	"github.com/fluidkeys/fluidkeys/colour"
+	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/status"
 	"github.com/fluidkeys/fluidkeys/table"
+	"github.com/fluidkeys/fluidkeys/team"
 	"github.com/fluidkeys/fluidkeys/ui"
+	userpackage "github.com/fluidkeys/fluidkeys/user"
 )
 
 func statusSubcommand(args docopt.Opts) exitCode {
 	out.Print("\n")
 
-	if code := printMemberships(); code != 0 {
-		return code
-	}
+	allKeysWithWarnings := []table.KeyWithWarnings{}
 
-	if code := printRequests(); code != 0 {
-		return code
-	}
-	return 0
-}
-
-func printMemberships() exitCode {
 	groupedMemberships, err := user.GroupedMemberships()
 	if err != nil {
 		out.Print(ui.FormatFailure("Failed to load team memberships", nil, err))
 		return 1
 	}
+	membershipKeysWithWarnings, code := printMemberships(groupedMemberships)
+	if code != 0 {
+		return code
+	}
+	allKeysWithWarnings = append(allKeysWithWarnings, membershipKeysWithWarnings...)
 
-	allKeysWithWarnings := []table.KeyWithWarnings{}
+	requestsToJoinTeams, err := user.RequestsToJoinTeams()
+	if err != nil {
+		out.Print(ui.FormatFailure("Failed to load requests to join teams", nil, err))
+		return 1
+	}
+	requestKeysWithWarnings, code := printRequests(requestsToJoinTeams)
+	if code != 0 {
+		return code
+	}
+	allKeysWithWarnings = append(allKeysWithWarnings, requestKeysWithWarnings...)
+
+	orphanedFingerprints, err := user.OrphanedFingerprints()
+	if err != nil {
+		out.Print(ui.FormatFailure("Failed to load keys", nil, err))
+		return 1
+	}
+	orphanedKeysWithWarnings, code := printOrphanedKeys(orphanedFingerprints)
+	if code != 0 {
+		return code
+	}
+	allKeysWithWarnings = append(allKeysWithWarnings, orphanedKeysWithWarnings...)
+
+	if len(groupedMemberships) == 0 {
+		out.Print(ui.FormatWarning("You're not in a team", []string{
+			"You've got " + humanize.Pluralize(len(orphanedFingerprints), "key", "keys") +
+				" but you're not a member of any teams.",
+			"If your team is using Fluidkeys, ask your admin for an invite.",
+			"You can create a new team by running " + colour.Cmd("fk team create"),
+		}, nil))
+	}
+
+	out.Print(table.FormatKeyTablePrimaryInstruction(allKeysWithWarnings))
+
+	return 0
+}
+
+func printMemberships(groupedMemberships []userpackage.GroupedMembership) (
+	membershipKeysWithWarnings []table.KeyWithWarnings, code exitCode) {
 
 	for _, groupedMembership := range groupedMemberships {
 		printHeader(groupedMembership.Team.Name)
@@ -68,7 +104,7 @@ func printMemberships() exitCode {
 					},
 					err,
 				))
-				return 1
+				return nil, 1
 			}
 
 			keyWithWarnings := table.KeyWithWarnings{
@@ -77,7 +113,7 @@ func printMemberships() exitCode {
 			}
 
 			teamKeysWithWarnings = append(teamKeysWithWarnings, keyWithWarnings)
-			allKeysWithWarnings = append(allKeysWithWarnings, keyWithWarnings)
+			membershipKeysWithWarnings = append(membershipKeysWithWarnings, keyWithWarnings)
 			if membership.Me.IsAdmin {
 				adminOfTeam = true
 			}
@@ -118,21 +154,14 @@ func printMemberships() exitCode {
 
 		out.Print("Team keys are updated automatically. To check for updates now, run " +
 			colour.Cmd("fk team fetch") + "\n\n")
-
-		out.Print(table.FormatKeyTablePrimaryInstruction(allKeysWithWarnings))
 	}
 
-	return 0
+	return membershipKeysWithWarnings, 0
 }
 
-func printRequests() exitCode {
-	requestsToJoinTeams, err := user.RequestsToJoinTeams()
-	if err != nil {
-		out.Print(ui.FormatFailure("Failed to load requests to join teams", nil, err))
-		return 1
-	}
+func printRequests(requestsToJoinTeams []team.RequestToJoinTeam) (
+	requestKeysWithWarnings []table.KeyWithWarnings, code exitCode) {
 
-	allKeysWithWarnings := []table.KeyWithWarnings{}
 	for _, request := range requestsToJoinTeams {
 		printHeader(request.TeamName)
 
@@ -145,7 +174,7 @@ func printRequests() exitCode {
 				},
 				err,
 			))
-			return 1
+			return nil, 1
 		}
 
 		keyWithWarnings := table.KeyWithWarnings{
@@ -153,14 +182,44 @@ func printRequests() exitCode {
 			Warnings: status.GetKeyWarnings(*key, &Config),
 		}
 
-		allKeysWithWarnings = append(allKeysWithWarnings, keyWithWarnings)
+		requestKeysWithWarnings = append(requestKeysWithWarnings, keyWithWarnings)
 
 		out.Print(table.FormatKeyTable([]table.KeyWithWarnings{keyWithWarnings}))
 
 		printRequestHasntBeenApproved(request)
 	}
 
-	out.Print(table.FormatKeyTablePrimaryInstruction(allKeysWithWarnings))
+	return requestKeysWithWarnings, 0
+}
 
-	return 0
+func printOrphanedKeys(orphanedFingerprints []fpr.Fingerprint) (
+	orphanedKeysWithWarnings []table.KeyWithWarnings, code exitCode) {
+
+	if len(orphanedFingerprints) == 0 {
+		return orphanedKeysWithWarnings, 0
+	}
+
+	printHeader("Keys that are not in a team")
+
+	for _, fingerprint := range orphanedFingerprints {
+		key, err := loadPgpKey(fingerprint)
+		if err != nil {
+			out.Print(ui.FormatFailure(
+				"Failed to load key",
+				[]string{
+					"Tried to load key " + fingerprint.Hex(),
+				},
+				err,
+			))
+			return nil, 1
+		}
+		keyWithWarnings := table.KeyWithWarnings{
+			Key:      key,
+			Warnings: status.GetKeyWarnings(*key, &Config),
+		}
+		orphanedKeysWithWarnings = append(orphanedKeysWithWarnings, keyWithWarnings)
+	}
+
+	out.Print(table.FormatKeyTable(orphanedKeysWithWarnings))
+	return orphanedKeysWithWarnings, 0
 }

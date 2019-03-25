@@ -7,6 +7,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/assert"
 	"github.com/fluidkeys/fluidkeys/database"
 	"github.com/fluidkeys/fluidkeys/exampledata"
+	"github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/team"
 	"github.com/fluidkeys/fluidkeys/testhelpers"
 	"github.com/gofrs/uuid"
@@ -161,6 +162,69 @@ func TestRequestFunctions(t *testing.T) {
 
 		assert.Equal(t, team1.UUID, got[0].TeamUUID)
 		assert.Equal(t, myFingerprint, got[0].Fingerprint)
+	})
+}
+
+func TestOrphanedFingerprints(t *testing.T) {
+	fluidkeysDir := testhelpers.Maketemp(t) // fake fluidkeysDirectory
+	db := database.New(fluidkeysDir)
+
+	now := time.Date(2018, 9, 24, 18, 0, 0, 0, time.UTC)
+
+	user := New(fluidkeysDir, &db)
+
+	myFingerprintInATeam := exampledata.ExampleFingerprint2
+	myFingerprintRequestingToJoinATeam := exampledata.ExampleFingerprint3
+	myOrphanedFingerprint1 := exampledata.ExampleFingerprint4
+	myOrphanedFingerprint2 := fingerprint.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA")
+
+	assert.NoError(t, db.RecordFingerprintImportedIntoGnuPG(myFingerprintInATeam))
+	assert.NoError(t, db.RecordFingerprintImportedIntoGnuPG(myFingerprintRequestingToJoinATeam))
+	assert.NoError(t, db.RecordFingerprintImportedIntoGnuPG(myOrphanedFingerprint1))
+	assert.NoError(t, db.RecordFingerprintImportedIntoGnuPG(myOrphanedFingerprint2))
+
+	team1 := team.Team{
+		Name: "Team 1",
+		UUID: uuid.Must(uuid.NewV4()),
+		People: []team.Person{
+			{
+				Email:       "test2@example.com",
+				Fingerprint: myFingerprintInATeam,
+				IsAdmin:     true,
+			},
+		},
+	}
+
+	saveTeam(t, &team1, fluidkeysDir)
+
+	team2 := team.Team{
+		Name: "Team 2",
+		UUID: uuid.Must(uuid.NewV4()),
+		People: []team.Person{
+			{
+				Email:       "admin@example.com",
+				Fingerprint: fingerprint.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
+				IsAdmin:     true,
+			},
+		},
+	}
+
+	saveTeam(t, &team2, fluidkeysDir)
+
+	assert.NoError(t, db.RecordRequestToJoinTeam(
+		team2.UUID, team2.Name, myFingerprintRequestingToJoinATeam, now,
+	))
+
+	t.Run("returns fingerprints with no membership nor requests", func(t *testing.T) {
+		got, err := user.OrphanedFingerprints()
+		assert.NoError(t, err)
+
+		if len(got) != 2 {
+			t.Fatalf("expected 2 orphaned fingerprints but got %d: %v", len(got), got)
+		}
+
+		assert.Equal(t, myOrphanedFingerprint1, got[0])
+		assert.Equal(t, myOrphanedFingerprint2, got[1])
 	})
 }
 
