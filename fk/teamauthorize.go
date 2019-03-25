@@ -132,8 +132,8 @@ func reviewRequests(requests []team.RequestToJoinTeam, myTeam team.Team) (
 
 	prompter := interactiveYesNoPrompter{}
 	for _, request := range requests {
-		out.Print("» Request from " + colour.Info(request.Email) + "\n")
-		out.Print("  with key " + request.Fingerprint.String() + "\n")
+		out.Print("» key:   " + colour.Info(request.Fingerprint.String()) + "\n")
+		out.Print("  email: " + colour.Info(request.Email) + "\n")
 
 		err, existingPerson := myTeam.GetUpsertPersonWarnings(team.Person{
 			Email:       request.Email,
