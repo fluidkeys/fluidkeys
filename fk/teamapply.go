@@ -20,6 +20,7 @@ package fk
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/atotto/clipboard"
@@ -49,14 +50,15 @@ func teamApply(teamUUID uuid.UUID) exitCode {
 		return code
 	}
 
-	if exitCode := ensureNoExistingRequests(teamUUID, pgpKey.Fingerprint()); exitCode != 0 {
-		return exitCode
-	}
-
 	email, err := pgpKey.Email()
 	if err != nil {
 		out.Print(ui.FormatFailure("Error getting email for key", nil, err))
 		return 1
+	}
+
+	if exitCode := ensureNoExistingRequests(
+		teamUUID, pgpKey.Fingerprint(), email); exitCode != 0 {
+		return exitCode
 	}
 
 	printHeader("Apply to join team")
@@ -73,8 +75,8 @@ func teamApply(teamUUID uuid.UUID) exitCode {
 	out.Print(formatFileDivider("Please authorize me to join Kiffix", 80) + "\n")
 	requestMessage := "I've requested to join " + teamName + " on Fluidkeys.\n\n" +
 		"Here are my verification details:\n\n" +
-		"» key:   " + pgpKey.Fingerprint().String() + "\n" +
-		"  email: " + email + "\n\n" +
+		strings.Join(formatVerificationLines(pgpKey.Fingerprint(), email), "\n") +
+		"\n\n" +
 		"Please can you authorize me by running\n\n" +
 		"> fk team authorize\n"
 	out.Print("\n" + requestMessage + "\n")
@@ -91,6 +93,13 @@ func teamApply(teamUUID uuid.UUID) exitCode {
 
 	return 0
 
+}
+
+func formatVerificationLines(fingerprint fpr.Fingerprint, email string) []string {
+	return []string{
+		"» key:   " + fingerprint.String(),
+		"  email: " + email,
+	}
 }
 
 func ensureUserCanJoinTeam(teamUUID uuid.UUID) exitCode {
@@ -122,21 +131,30 @@ func ensureUserCanJoinTeam(teamUUID uuid.UUID) exitCode {
 	return 0
 }
 
-func ensureNoExistingRequests(teamUUID uuid.UUID, fingerprint fpr.Fingerprint) exitCode {
+func ensureNoExistingRequests(
+	teamUUID uuid.UUID, fingerprint fpr.Fingerprint, email string) exitCode {
+
 	existingRequest, err := db.GetExistingRequestToJoinTeam(teamUUID, fingerprint)
 	if err != nil {
 		out.Print(ui.FormatFailure("Failed to check for existing requests", nil, err))
 		return 1
 	}
 	if existingRequest != nil {
-		out.Print(ui.FormatWarning(
-			"You've already requested to join "+existingRequest.TeamName,
+		lines :=
 			[]string{
 				formatYouRequestedToJoin(*existingRequest),
 				"The admin hasn't authorized this yet.",
-			},
-			nil,
-		))
+				"",
+				"Here are the verification details for your team admin:",
+				"",
+			}
+			// NOTE: strictly, we make the verification details using the email from the request in
+			// the db rather than reading it again from key. But we don't store the email in the
+			// db, so that option isn't available. I don't believe this affects the verification
+			// but it could lead to a confusing state.
+		lines = append(lines, formatVerificationLines(existingRequest.Fingerprint, email)...)
+		out.Print(ui.FormatWarning(
+			"You've already requested to join "+existingRequest.TeamName, lines, nil))
 		return 1
 	}
 	return 0
