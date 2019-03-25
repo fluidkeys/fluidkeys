@@ -186,7 +186,14 @@ func printRequests(requestsToJoinTeams []team.RequestToJoinTeam) (
 
 		out.Print(table.FormatKeyTable([]table.KeyWithWarnings{keyWithWarnings}))
 
-		printRequestHasntBeenApproved(request)
+		out.Print(ui.FormatInfo(
+			"Your request to join "+request.TeamName+" is waiting to be authorized",
+			[]string{
+				formatYouRequestedToJoin(request),
+				"Check if the team admin has authorized your request by running " +
+					colour.Cmd("fk team fetch"),
+			}),
+		)
 	}
 
 	return requestKeysWithWarnings, 0
