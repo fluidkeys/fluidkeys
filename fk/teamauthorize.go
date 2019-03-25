@@ -55,7 +55,7 @@ func teamAuthorize() exitCode {
 		myTeam := teamAndKeys[0].team
 		adminKey := teamAndKeys[0].adminKey
 
-		printHeader("Authorize keys")
+		printHeader("Authorize requests to join " + myTeam.Name)
 
 		requests, err := client.ListRequestsToJoinTeam(myTeam.UUID, adminKey.Fingerprint())
 		if err != nil {
