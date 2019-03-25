@@ -83,11 +83,11 @@ func secretSquirrelMessage() (message string) {
 const (
 	paulAndIanGreeting = `👋  Hello and welcome to Fluidkeys!
 
-    We're on a mission to help teams protect themselves
-    with strong encryption.
+    We're trying to make the world more safe and secure
+    by simplifying powerful PGP encryption tools.
     
-    We'd love to hear what you make of this pre-release.
-    You can reach us at hello@fluidkeys.com
+    We'd love to hear what you make of this version.
+    You can always reach us at hello@fluidkeys.com
     
     Paul & Ian, Fluidkeys`
 )
