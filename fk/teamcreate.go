@@ -236,5 +236,5 @@ func validateTeamName(teamName string) (string, error) {
 }
 
 var (
-	errUserDeclinedToSign = errors.New("you deliced to sign the roster")
+	errUserDeclinedToSign = errors.New("you declined to sign the roster")
 )
