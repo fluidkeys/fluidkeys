@@ -65,7 +65,9 @@ func teamApply(teamUUID uuid.UUID) exitCode {
 		return 1
 	}
 
-	out.Print("\n")
+	out.Print(ui.FormatInfo("Reply to your team admin so they can add you to the team", []string{
+		"This information allows them to verify your request.",
+	}))
 
 	out.Print("Your team admin will need to authorize your request for Fluidkeys to\n" +
 		"start working.\n\n")
