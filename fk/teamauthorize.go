@@ -55,7 +55,7 @@ func teamAuthorize() exitCode {
 		myTeam := teamAndKeys[0].team
 		adminKey := teamAndKeys[0].adminKey
 
-		printHeader("Authorize keys")
+		printHeader("Authorize requests to join " + myTeam.Name)
 
 		requests, err := client.ListRequestsToJoinTeam(myTeam.UUID, adminKey.Fingerprint())
 		if err != nil {
@@ -72,11 +72,12 @@ func teamAuthorize() exitCode {
 			[]string{
 				"By authorizing a key, everyone in your team will fetch and trust that key.",
 				"",
-				"It's important to carefully check the key and email for each request.",
+				"Your team should have sent you verification details.",
+				"Check the key and email below match the verification details you've received.",
 			},
 		))
 
-		approvedRequests := reviewRequests(requests, myTeam)
+		approvedRequests, deleteRequests := reviewRequests(requests, myTeam)
 
 		if len(approvedRequests) > 0 {
 			for _, request := range approvedRequests {
@@ -100,7 +101,7 @@ func teamAuthorize() exitCode {
 
 		seenError := false
 
-		for _, request := range requests {
+		for _, request := range deleteRequests {
 			if err = client.DeleteRequestToJoinTeam(myTeam.UUID, request.UUID); err != nil {
 				out.Print(ui.FormatWarning(
 					"Failed to delete a request to join the team", nil, err,
@@ -122,7 +123,7 @@ func teamAuthorize() exitCode {
 }
 
 func reviewRequests(requests []team.RequestToJoinTeam, myTeam team.Team) (
-	approvedRequests []team.RequestToJoinTeam) {
+	approvedRequests []team.RequestToJoinTeam, deleteRequests []team.RequestToJoinTeam) {
 
 	out.Print(humanize.Pluralize(len(requests), "request", "requests") + " to join " +
 		myTeam.Name + ":\n\n")
@@ -151,6 +152,7 @@ func reviewRequests(requests []team.RequestToJoinTeam, myTeam team.Team) (
 					},
 					nil,
 				))
+				deleteRequests = append(deleteRequests, request)
 				continue
 			case team.ErrEmailWouldBeUpdated:
 				out.Print(ui.FormatWarning(
@@ -187,15 +189,31 @@ func reviewRequests(requests []team.RequestToJoinTeam, myTeam team.Team) (
 			out.Print("\n")
 		}
 
-		addToTeam := prompter.promptYesNo("Authorize this key for "+request.Email+
-			" and add to team roster?", "", nil)
+		addToTeam := prompter.promptYesNo(
+			"Authorize "+request.Email+" now? (type n to decide later)", "", nil,
+		)
 
 		if addToTeam {
 			approvedRequests = append(approvedRequests, request)
+			deleteRequests = append(deleteRequests)
+		} else {
+			out.Print(ui.FormatWarning("Reject this request?",
+				[]string{
+					"If the verification details you've received from " + request.Email,
+					"don't match, answer " + colour.Info("y") + " to reject the request.",
+					"",
+					"If you haven't received the verification details, answer " +
+						colour.Info("n") + " and",
+					"ask them to apply to join the team again.",
+				}, nil))
+
+			if prompter.promptYesNo("Reject the request?", "n", nil) {
+				deleteRequests = append(deleteRequests, request)
+			}
 		}
 	}
 
-	return approvedRequests
+	return approvedRequests, deleteRequests
 }
 
 type teamAndKey struct {
