@@ -69,8 +69,23 @@ func teamApply(teamUUID uuid.UUID) exitCode {
 		"This information allows them to verify your request.",
 	}))
 
-	out.Print("Your team admin will need to authorize your request for Fluidkeys to\n" +
-		"start working.\n\n")
+	out.Print(formatFileDivider("Please authorize me to join Kiffix", 80) + "\n")
+	requestMessage := `I've requested to join ` + teamName + ` on Fluidkeys.
+
+Here are my verification details:
+
+» key:   ` + pgpKey.Fingerprint().Hex() + `
+  email: ` + email + `
+
+Please can you authorize me by running
+
+> fk team authorize
+`
+	out.Print("\n" + requestMessage + "\n")
+
+	out.Print(formatFileDivider("", 80) + "\n\n")
+
+
 	return 0
 
 }
