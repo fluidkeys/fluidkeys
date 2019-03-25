@@ -30,7 +30,7 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-func teamJoin(teamUUID uuid.UUID) exitCode {
+func teamApply(teamUUID uuid.UUID) exitCode {
 	if code := ensureUserCanJoinTeam(teamUUID); code != 0 {
 		return code
 	}
@@ -41,7 +41,7 @@ func teamJoin(teamUUID uuid.UUID) exitCode {
 		return 1
 	}
 	out.Print("\n")
-	out.Print("You're joining the team " + teamName + "\n\n")
+	out.Print("You're applying to join the team " + teamName + "\n\n")
 
 	pgpKey, code := getKeyForTeam()
 	if code != 0 {

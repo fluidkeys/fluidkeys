@@ -242,8 +242,8 @@ func processRequestsToJoinTeam(unattended bool) (returnError error) {
 					formatYouRequestedToJoin(request) + " The admin hasn't approved the ",
 					"request, so it has expired.",
 					"",
-					"You can request to join the team again by runnning ",
-					colour.Cmd("fk team join " + request.TeamUUID.String()),
+					"You can apply to join the team again by runnning ",
+					colour.Cmd("fk team apply " + request.TeamUUID.String()),
 				},
 				nil,
 			))
