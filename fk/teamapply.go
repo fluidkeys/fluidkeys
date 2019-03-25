@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/atotto/clipboard"
 	"github.com/fluidkeys/fluidkeys/colour"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/out"
@@ -58,21 +59,36 @@ func teamApply(teamUUID uuid.UUID) exitCode {
 		return 1
 	}
 
-	printHeader("Requesting to join team")
-
-	action := "Request to join " + teamName
-	ui.PrintCheckboxPending("action")
+	printHeader("Apply to join team")
 
 	if err := requestToJoinTeam(teamUUID, teamName, pgpKey.Fingerprint(), email); err != nil {
-		ui.PrintCheckboxFailure(action, err)
+		out.Print(ui.FormatFailure("Failed to apply to join "+teamName, nil, err))
 		return 1
 	}
 
-	ui.PrintCheckboxSuccess(action)
-	out.Print("\n")
+	out.Print(ui.FormatInfo("Reply to your team admin so they can add you to the team", []string{
+		"This information allows them to verify your request.",
+	}))
 
-	out.Print("Your team admin will need to authorize your request for Fluidkeys to\n" +
-		"start working.\n\n")
+	out.Print(formatFileDivider("Please authorize me to join Kiffix", 80) + "\n")
+	requestMessage := "I've requested to join " + teamName + " on Fluidkeys.\n\n" +
+		"Here are my verification details:\n\n" +
+		"» key:   " + pgpKey.Fingerprint().String() + "\n" +
+		"  email: " + email + "\n\n" +
+		"Please can you authorize me by running\n\n" +
+		"> fk team authorize\n"
+	out.Print("\n" + requestMessage + "\n")
+
+	out.Print(formatFileDivider("", 80) + "\n\n")
+
+	prompter := interactiveYesNoPrompter{}
+	if prompter.promptYesNo("Copy this message to your clipboard now?", "y", nil) == true {
+		if err := clipboard.WriteAll(requestMessage); err != nil {
+			out.Print(ui.FormatFailure("Failed to copy message to clipboard", nil, err))
+			return 1
+		}
+	}
+
 	return 0
 
 }
