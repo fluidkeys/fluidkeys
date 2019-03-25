@@ -56,6 +56,16 @@ func getDecryptedPrivateKeyAndPassword(publicKey *pgpkey.PgpKey, prompter prompt
 
 func tryPassword(password string, publicKey *pgpkey.PgpKey, prompter promptForPasswordInterface, shouldStore bool, attempt int) (*pgpkey.PgpKey, string, error) {
 	if privateKey, err := loadPrivateKey(publicKey.Fingerprint(), password, &gpg, &pgpkey.Loader{}); err == nil {
+		if !shouldStore {
+			// TODO: don't assume we can use an interactivePasswordPrompter (we might be in
+			// unattended mode.) By the current logic we can't get here in unattended mode,
+			// but this whole lot needs refatoring.
+			prompter := interactiveYesNoPrompter{}
+			if prompter.promptYesNo("Save password to "+Keyring.Name()+"?", "y", nil) {
+				shouldStore = true
+				Config.SetStorePassword(publicKey.Fingerprint(), true)
+			}
+		}
 		if shouldStore {
 			// save back the password since we've confirmed that it
 			// was correct.
