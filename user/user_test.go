@@ -156,7 +156,7 @@ func TestRequestFunctions(t *testing.T) {
 		assert.NoError(t, err)
 
 		if len(got) != 1 {
-			t.Fatalf("expected 2 requests, got %d: %v", len(got), got)
+			t.Fatalf("expected 1 requests, got %d: %v", len(got), got)
 		}
 
 		assert.Equal(t, team1.UUID, got[0].TeamUUID)
