@@ -143,7 +143,8 @@ func ensureNoExistingRequests(
 		lines :=
 			[]string{
 				formatYouRequestedToJoin(*existingRequest),
-				"The admin hasn't authorized this yet.",
+				"Check if the team admin has authorized your request by running " +
+					colour.Cmd("fk team fetch"),
 				"",
 				"Here are the verification details for your team admin:",
 				"",
