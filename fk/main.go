@@ -199,11 +199,21 @@ func ensureCrontabStateMatchesConfig() {
 	}
 }
 
-// shouldEnableScheduler returns true if both the config allows 'run from cron' *and* at least
-// one key is set to maintain automatically
+// shouldEnableScheduler returns true if the config allows 'run from cron' *and* 1 or more of:
+// * 1 or more keys is set to maintain automatically
+// * we're a member of at 1 or more teams
 func shouldEnableScheduler() (bool, error) {
 	if !Config.RunFromCron() {
 		return false, nil
+	}
+
+	memberships, err := user.Memberships()
+	if err != nil {
+		return false, err
+	}
+
+	if len(memberships) > 0 {
+		return true, nil
 	}
 
 	keys, err := loadPgpKeys()
