@@ -29,13 +29,6 @@ import (
 )
 
 func teamAuthorize() exitCode {
-	out.Print(ui.FormatInfo(
-		"Authorizing a key adds it to the team roster",
-		[]string{
-			"By authorizing a key, everyone in your team will fetch and trust that key.",
-		},
-	))
-
 	keys, err := loadPgpKeys()
 	if err != nil {
 		out.Print(ui.FormatFailure("Error loading keys", nil, err))
@@ -63,6 +56,15 @@ func teamAuthorize() exitCode {
 		adminKey := teamAndKeys[0].adminKey
 
 		printHeader("Authorize keys")
+
+		out.Print(ui.FormatInfo(
+			"Authorizing a key adds it to the team roster",
+			[]string{
+				"By authorizing a key, everyone in your team will fetch and trust that key.",
+				"",
+				"It's important to carefully check the key and email for each request.",
+			},
+		))
 
 		requests, err := client.ListRequestsToJoinTeam(myTeam.UUID, adminKey.Fingerprint())
 		if err != nil {
