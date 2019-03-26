@@ -31,7 +31,10 @@ func TestSerialize(t *testing.T) {
 		got, err := testTeam.serialize()
 		assert.NoError(t, err)
 
-		expected := `# Fluidkeys team roster
+		expected := `# Kiffix team roster. Everyone in the team has a copy of this file.
+#
+# It is used to look up which key to use for an email address and fetch keys
+# automatically.
 uuid = "6caa3730-2ca3-47b9-b671-5dc326100431"
 name = "Kiffix"
 
@@ -69,7 +72,10 @@ name = "Kiffix"
 		got, err := testTeam.serialize()
 		assert.NoError(t, err)
 
-		expected := `# Fluidkeys team roster
+		expected := `# Kiffix team roster. Everyone in the team has a copy of this file.
+#
+# It is used to look up which key to use for an email address and fetch keys
+# automatically.
 uuid = "6caa3730-2ca3-47b9-b671-5dc326100431"
 name = "Kiffix"
 

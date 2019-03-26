@@ -17,7 +17,7 @@ func (t Team) serialize() (roster string, err error) {
 	}
 
 	buffer := bytes.NewBuffer(nil)
-	if _, err := io.WriteString(buffer, defaultRosterFile); err != nil {
+	if _, err := io.WriteString(buffer, defaultRosterFile(t.Name)); err != nil {
 		return "", fmt.Errorf("failed to write default header: %v", err)
 	}
 	encoder := toml.NewEncoder(buffer)
@@ -27,5 +27,10 @@ func (t Team) serialize() (roster string, err error) {
 	return buffer.String(), nil
 }
 
-const defaultRosterFile = `# Fluidkeys team roster
+func defaultRosterFile(teamName string) string {
+	return `# ` + teamName + ` team roster. Everyone in the team has a copy of this file.
+#
+# It is used to look up which key to use for an email address and fetch keys
+# automatically.
 `
+}
