@@ -82,9 +82,9 @@ func statusSubcommand(args docopt.Opts) exitCode {
 		return 0
 	}
 
-	if len(groupedMemberships) == 0 {
+	if len(groupedMemberships)+len(requestsToJoinTeams) == 0 {
 		out.Print(ui.FormatWarning("You're not in a team", []string{
-			"You've got " + humanize.Pluralize(len(orphanedFingerprints), "key", "keys") +
+			"You've got " + humanize.Pluralize(len(allKeysWithWarnings), "key", "keys") +
 				" but you're not a member of any teams.",
 			"If your team is using Fluidkeys, ask your admin for an invite.",
 			"You can create a new team by running " + colour.Cmd("fk team create"),
