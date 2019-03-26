@@ -163,7 +163,7 @@ func TestGetSecretFromStdin(t *testing.T) {
 		}
 
 		_, err := getSecretFromStdin(stdinScanner)
-		expectedErr := fmt.Errorf("empty message")
+		expectedErr := fmt.Errorf("empty secret")
 		assert.Equal(t, expectedErr, err)
 	})
 
@@ -173,7 +173,7 @@ func TestGetSecretFromStdin(t *testing.T) {
 		}
 
 		_, err := getSecretFromStdin(stdinScanner)
-		expectedErr := fmt.Errorf("empty message")
+		expectedErr := fmt.Errorf("empty secret")
 		assert.Equal(t, expectedErr, err)
 
 	})
