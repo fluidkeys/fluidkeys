@@ -70,6 +70,18 @@ func statusSubcommand(args docopt.Opts) exitCode {
 	}
 	allKeysWithWarnings = append(allKeysWithWarnings, orphanedKeysWithWarnings...)
 
+	if len(allKeysWithWarnings) == 0 {
+		out.Print(ui.FormatInfo("Get started with Fluidkeys", []string{
+			"If your team is already using Fluidkeys, ask your admin for the",
+			"team ID. Join the team by running " + colour.Cmd("fk team apply <team id>"),
+			"",
+			"Create a team with a brand new PGP key by running " + colour.Cmd("fk team create"),
+			"",
+			"To use Fluidkeys on your own, create a PGP key by running " + colour.Cmd("fk setup"),
+		}))
+		return 0
+	}
+
 	if len(groupedMemberships) == 0 {
 		out.Print(ui.FormatWarning("You're not in a team", []string{
 			"You've got " + humanize.Pluralize(len(orphanedFingerprints), "key", "keys") +
