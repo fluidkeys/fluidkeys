@@ -93,8 +93,10 @@ func TestLoadTeams(t *testing.T) {
 }
 
 func TestLoad(t *testing.T) {
-	roster := `# Fluidkeys team roster
-
+	roster := `# Fluidkeys CIC team roster. Everyone in the team has a copy of this file.
+#
+# It is used to look up which key to use for an email address and fetch keys
+# automatically.
 uuid = "38be2a70-23d8-11e9-bafd-7f97f2e239a3"
 name = "Fluidkeys CIC"
 
@@ -241,7 +243,10 @@ func TestUpdateRoster(t *testing.T) {
 	}
 
 	t.Run("for a valid team", func(t *testing.T) {
-		expectedRoster := `# Fluidkeys team roster
+		expectedRoster := `# Kiffix team roster. Everyone in the team has a copy of this file.
+#
+# It is used to look up which key to use for an email address and fetch keys
+# automatically.
 uuid = "74bb40b4-3510-11e9-968e-53c38df634be"
 name = "Kiffix"
 
