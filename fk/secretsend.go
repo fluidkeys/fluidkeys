@@ -104,7 +104,7 @@ https://download.fluidkeys.com#` + recipientEmail + `
 			return 1
 		}
 	} else {
-		out.Print(colour.Info("Type or paste your message, ending by typing Ctrl-D\n"))
+		out.Print(colour.Info("Type or paste your secret, ending by typing Ctrl-D\n"))
 		out.Print(colour.Info("It will be end-to-end encrypted to " + recipientEmail + "\n"))
 		out.Print(colour.Info("so no-one else can read it 🕵️\n\n"))
 
@@ -168,7 +168,7 @@ func getSecretFromStdin(scanner scanUntilEOFInterface) (string, error) {
 	}
 
 	if strings.TrimSpace(secret) == "" {
-		return "", fmt.Errorf("empty message")
+		return "", fmt.Errorf("empty secret")
 	}
 
 	if !isValidTextSecret(secret) {
