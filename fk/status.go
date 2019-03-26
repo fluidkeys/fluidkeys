@@ -154,7 +154,7 @@ func printMemberships(groupedMemberships []userpackage.GroupedMembership) (
 		out.Print(table.FormatPeopleTable(peopleRows))
 
 		if adminOfTeam {
-			out.Print(ui.FormatInfo("Invite others to join the team", []string{
+			out.Print(ui.FormatInfo("Invite others to join "+groupedMembership.Team.Name, []string{
 				"Your team members can request to join the team by running",
 				colour.Cmd("fk team apply " + groupedMembership.Team.UUID.String()),
 			}))
