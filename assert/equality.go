@@ -48,6 +48,12 @@ func isEqual(a interface{}, b interface{}) bool {
 		}
 	}
 
+	if aAsTime, ok := a.(time.Time); ok {
+		if bAsTime, ok := b.(time.Time); ok {
+			return aAsTime.Equal(bAsTime)
+		}
+	}
+
 	return reflect.DeepEqual(a, b)
 }
 
