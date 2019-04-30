@@ -34,13 +34,13 @@ const (
 	PrimaryKeyOverdueForRotation = 2
 	PrimaryKeyExpired            = 3
 	PrimaryKeyNoExpiry           = 4
-	PrimaryKeyLongExpiry         = 5
+	// deleted: PrimaryKeyLongExpiry         = 5
 
 	NoValidEncryptionSubkey  = 6
 	SubkeyDueForRotation     = 7
 	SubkeyOverdueForRotation = 8
 	SubkeyNoExpiry           = 9
-	SubkeyLongExpiry         = 10
+	// deleted: SubkeyLongExpiry         = 10
 
 	MissingPreferredSymmetricAlgorithms    = 11
 	WeakPreferredSymmetricAlgorithms       = 12
@@ -89,9 +89,6 @@ func (w KeyWarning) String() string {
 	case PrimaryKeyNoExpiry:
 		return "Primary key never expires"
 
-	case PrimaryKeyLongExpiry:
-		return "Primary key expires too far in the future"
-
 	case NoValidEncryptionSubkey:
 		return colour.Danger("Missing encryption subkey")
 
@@ -103,9 +100,6 @@ func (w KeyWarning) String() string {
 
 	case SubkeyNoExpiry:
 		return "Encryption subkey never expires"
-
-	case SubkeyLongExpiry:
-		return "Encryption subkey expires too far in the future"
 
 	case MissingPreferredSymmetricAlgorithms:
 		return "Missing cipher preferences"

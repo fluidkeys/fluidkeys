@@ -169,17 +169,6 @@ func NextRotation(expiry time.Time) time.Time {
 	return expiry.Add(-sixtyDays)
 }
 
-// IsExpiryTooLong returns true if the expiry is too far in the future.
-//
-// It's important not to raise this warning for expiries that we've set
-// ourselves.
-// We use `NextExpiryTime` such that when we set an expiry date it's *exactly*
-// on the cusp of being too long, and can only get shorter after that point.
-func IsExpiryTooLong(expiry time.Time, now time.Time) bool {
-	latestAcceptableExpiry := NextExpiryTime(now)
-	return expiry.After(latestAcceptableExpiry)
-}
-
 // IsOverdueForRotation returns true if `now` is more than 10 days after
 // nextRotation
 func IsOverdueForRotation(nextRotation time.Time, now time.Time) bool {

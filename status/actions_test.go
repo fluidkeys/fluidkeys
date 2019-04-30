@@ -53,13 +53,6 @@ func TestMakeActionsFromSingleWarning(t *testing.T) {
 			},
 		},
 		{
-			PrimaryKeyLongExpiry,
-			0,
-			[]KeyAction{
-				ModifyPrimaryKeyExpiry{ValidUntil: nextExpiry},
-			},
-		},
-		{
 			NoValidEncryptionSubkey,
 			0,
 			[]KeyAction{
@@ -84,14 +77,6 @@ func TestMakeActionsFromSingleWarning(t *testing.T) {
 		},
 		{
 			SubkeyNoExpiry,
-			9999,
-			[]KeyAction{
-				CreateNewEncryptionSubkey{ValidUntil: nextExpiry},
-				ExpireSubkey{SubkeyId: 9999},
-			},
-		},
-		{
-			SubkeyLongExpiry,
 			9999,
 			[]KeyAction{
 				CreateNewEncryptionSubkey{ValidUntil: nextExpiry},
@@ -268,14 +253,12 @@ func TestMakeActionsFromWarnings(t *testing.T) {
 		KeyWarning{Type: PrimaryKeyOverdueForRotation},
 		KeyWarning{Type: PrimaryKeyExpired},
 		KeyWarning{Type: PrimaryKeyNoExpiry},
-		KeyWarning{Type: PrimaryKeyLongExpiry},
 		KeyWarning{Type: NoValidEncryptionSubkey},
 		KeyWarning{Type: SubkeyDueForRotation, SubkeyId: 0x1111},
 		KeyWarning{Type: SubkeyDueForRotation, SubkeyId: 0x2222},
 		KeyWarning{Type: SubkeyOverdueForRotation, SubkeyId: 0x1111},
 		KeyWarning{Type: SubkeyOverdueForRotation, SubkeyId: 0x2222},
 		KeyWarning{Type: SubkeyNoExpiry, SubkeyId: 0x1111},
-		KeyWarning{Type: SubkeyLongExpiry, SubkeyId: 0x2222},
 		KeyWarning{Type: MissingPreferredSymmetricAlgorithms},
 		KeyWarning{Type: WeakPreferredSymmetricAlgorithms},
 		KeyWarning{Type: UnsupportedPreferredSymmetricAlgorithm},
