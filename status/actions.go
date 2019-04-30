@@ -71,8 +71,10 @@ func makeActionsFromSingleWarning(warning KeyWarning, now time.Time) []KeyAction
 
 	case SubkeyDueForRotation, SubkeyOverdueForRotation, SubkeyNoExpiry:
 		return []KeyAction{
-			CreateNewEncryptionSubkey{ValidUntil: nextExpiry},
-			ExpireSubkey{SubkeyId: warning.SubkeyId},
+			ModifySubkeyExpiry{
+				subkeyId:   warning.SubkeyId,
+				validUntil: nextExpiry,
+			},
 		}
 
 	case NoValidEncryptionSubkey:

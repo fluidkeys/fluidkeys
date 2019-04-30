@@ -63,24 +63,30 @@ func TestMakeActionsFromSingleWarning(t *testing.T) {
 			SubkeyDueForRotation,
 			9999,
 			[]KeyAction{
-				CreateNewEncryptionSubkey{ValidUntil: nextExpiry},
-				ExpireSubkey{SubkeyId: 9999},
+				ModifySubkeyExpiry{
+					validUntil: nextExpiry,
+					subkeyId:   9999,
+				},
 			},
 		},
 		{
 			SubkeyOverdueForRotation,
 			9999,
 			[]KeyAction{
-				CreateNewEncryptionSubkey{ValidUntil: nextExpiry},
-				ExpireSubkey{SubkeyId: 9999},
+				ModifySubkeyExpiry{
+					validUntil: nextExpiry,
+					subkeyId:   9999,
+				},
 			},
 		},
 		{
 			SubkeyNoExpiry,
 			9999,
 			[]KeyAction{
-				CreateNewEncryptionSubkey{ValidUntil: nextExpiry},
-				ExpireSubkey{SubkeyId: 9999},
+				ModifySubkeyExpiry{
+					validUntil: nextExpiry,
+					subkeyId:   9999,
+				},
 			},
 		},
 		{
@@ -214,7 +220,7 @@ func TestDeduplicateAndOrder(t *testing.T) {
 
 	t.Run("order should be primary key actions > preferences > subkey actions", func(t *testing.T) {
 		inputActions := []KeyAction{
-			ExpireSubkey{SubkeyId: 9999},
+			ModifySubkeyExpiry{subkeyId: 9999},
 			SetPreferredCompressionAlgorithms{},
 			ModifyPrimaryKeyExpiry{},
 		}
@@ -222,7 +228,7 @@ func TestDeduplicateAndOrder(t *testing.T) {
 		expectedActions := []KeyAction{
 			ModifyPrimaryKeyExpiry{},
 			SetPreferredCompressionAlgorithms{},
-			ExpireSubkey{SubkeyId: 9999},
+			ModifySubkeyExpiry{subkeyId: 9999},
 		}
 		gotActions := deduplicateAndOrder(inputActions)
 		assertActionsEqual(t, expectedActions, gotActions)
@@ -230,13 +236,13 @@ func TestDeduplicateAndOrder(t *testing.T) {
 
 	t.Run("doesn't de-duplicate actions for different subkeys", func(t *testing.T) {
 		inputActions := []KeyAction{
-			ExpireSubkey{SubkeyId: 1234},
-			ExpireSubkey{SubkeyId: 4567},
+			ModifySubkeyExpiry{subkeyId: 1234},
+			ModifySubkeyExpiry{subkeyId: 4567},
 		}
 
 		expectedActions := []KeyAction{
-			ExpireSubkey{SubkeyId: 1234},
-			ExpireSubkey{SubkeyId: 4567},
+			ModifySubkeyExpiry{subkeyId: 1234},
+			ModifySubkeyExpiry{subkeyId: 4567},
 		}
 
 		gotActions := deduplicateAndOrder(inputActions)
@@ -253,7 +259,6 @@ func TestMakeActionsFromWarnings(t *testing.T) {
 		KeyWarning{Type: PrimaryKeyOverdueForRotation},
 		KeyWarning{Type: PrimaryKeyExpired},
 		KeyWarning{Type: PrimaryKeyNoExpiry},
-		KeyWarning{Type: NoValidEncryptionSubkey},
 		KeyWarning{Type: SubkeyDueForRotation, SubkeyId: 0x1111},
 		KeyWarning{Type: SubkeyDueForRotation, SubkeyId: 0x2222},
 		KeyWarning{Type: SubkeyOverdueForRotation, SubkeyId: 0x1111},
@@ -278,9 +283,14 @@ func TestMakeActionsFromWarnings(t *testing.T) {
 		SetPreferredSymmetricAlgorithms{NewPreferences: policy.AdvertiseCipherPreferences},
 		SetPreferredHashAlgorithms{NewPreferences: policy.AdvertiseHashPreferences},
 		SetPreferredCompressionAlgorithms{NewPreferences: policy.AdvertiseCompressionPreferences},
-		CreateNewEncryptionSubkey{ValidUntil: time.Date(2019, 8, 1, 0, 0, 0, 0, time.UTC)},
-		ExpireSubkey{SubkeyId: 0x1111},
-		ExpireSubkey{SubkeyId: 0x2222},
+		ModifySubkeyExpiry{
+			validUntil: time.Date(2019, 8, 1, 0, 0, 0, 0, time.UTC),
+			subkeyId:   0x1111,
+		},
+		ModifySubkeyExpiry{
+			validUntil: time.Date(2019, 8, 1, 0, 0, 0, 0, time.UTC),
+			subkeyId:   0x2222,
+		},
 		RefreshUserIdSelfSignatures{},
 		RefreshSubkeyBindingSignature{SubkeyId: 0x1111},
 	}

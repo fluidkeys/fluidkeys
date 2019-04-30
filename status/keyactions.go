@@ -92,6 +92,27 @@ func (a ExpireSubkey) SortOrder() int {
 	return sortOrderModifySubkey
 }
 
+// ModifySubkeyExpiry iterates over all user IDs. For each UID, it updates
+// the expiry date on the *self signature*.
+// It re-signs the self signature.
+type ModifySubkeyExpiry struct {
+	KeyAction
+
+	validUntil time.Time
+	subkeyId   uint64
+}
+
+func (a ModifySubkeyExpiry) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
+	return key.UpdateSubkeyValidUntil(a.subkeyId, a.validUntil, now)
+}
+
+func (a ModifySubkeyExpiry) String() string {
+	return fmt.Sprintf("Extend encryption subkey expiry to %s", a.validUntil.Format("2 Jan 06"))
+}
+func (a ModifySubkeyExpiry) SortOrder() int {
+	return sortOrderModifySubkey
+}
+
 // SetPreferredSymmetricAlgorithms iterates over all user IDs, setting the preferred
 // symmetric algorithm preferences from NewPreferences
 // It re-signs the self signature on each user ID.
