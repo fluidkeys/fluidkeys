@@ -155,11 +155,12 @@ const (
 )
 
 // NextExpiryTime returns the expiry time in UTC, according to the policy:
-//     "30 days after the 1st of the next month"
-// for example, if today is 15th September, nextExpiryTime would return
-// 1st October + 30 days
+//     "1 year from now, rounded forward to the 1st of the next Feb, May, Aug or Nov
+// for example, if today is 15th September 2018, nextExpiryTime would return
+// 1st November 2019
 func NextExpiryTime(now time.Time) time.Time {
-	return firstOfNextMonth(now).Add(thirtyDays).In(time.UTC)
+	oneYearFromNow := now.In(time.UTC).Add(oneYear)
+	return followingQuarter(oneYearFromNow)
 }
 
 // NextRotation returns 30 days before the earliest expiry time on
@@ -193,9 +194,29 @@ func IsDueForRotation(nextRotation time.Time, now time.Time) bool {
 	return nextRotation.Before(now)
 }
 
-func firstOfNextMonth(today time.Time) time.Time {
-	firstOfThisMonth := beginningOfMonth(today)
-	return beginningOfMonth(firstOfThisMonth.Add(fortyFiveDays))
+func followingQuarter(from time.Time) time.Time {
+	lookup := map[time.Month]int{
+		time.January:   1,
+		time.February:  3,
+		time.March:     2,
+		time.April:     1,
+		time.May:       3,
+		time.June:      2,
+		time.July:      1,
+		time.August:    3,
+		time.September: 2,
+		time.October:   1,
+		time.November:  3,
+		time.December:  2,
+	}
+
+	firstOfThisMonth := beginningOfMonth(from.In(time.UTC))
+	monthsToAdvance, _ := lookup[firstOfThisMonth.Month()]
+	daysToAdvance := (30 * monthsToAdvance) + 15
+
+	return beginningOfMonth(
+		firstOfThisMonth.Add(time.Duration(24*daysToAdvance) * time.Hour),
+	)
 }
 
 func beginningOfMonth(now time.Time) time.Time {
@@ -207,4 +228,5 @@ const (
 	tenDays       time.Duration = time.Duration(time.Hour * 24 * 10)
 	thirtyDays    time.Duration = time.Duration(time.Hour * 24 * 30)
 	fortyFiveDays time.Duration = time.Duration(time.Hour * 24 * 45)
+	oneYear       time.Duration = time.Duration(time.Hour * 24 * 365)
 )

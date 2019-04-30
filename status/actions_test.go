@@ -291,11 +291,11 @@ func TestMakeActionsFromWarnings(t *testing.T) {
 
 	now := time.Date(2018, 6, 15, 0, 0, 0, 0, time.UTC)
 	expectedActions := []KeyAction{
-		ModifyPrimaryKeyExpiry{ValidUntil: time.Date(2018, 7, 31, 0, 0, 0, 0, time.UTC)},
+		ModifyPrimaryKeyExpiry{ValidUntil: time.Date(2019, 8, 1, 0, 0, 0, 0, time.UTC)},
 		SetPreferredSymmetricAlgorithms{NewPreferences: policy.AdvertiseCipherPreferences},
 		SetPreferredHashAlgorithms{NewPreferences: policy.AdvertiseHashPreferences},
 		SetPreferredCompressionAlgorithms{NewPreferences: policy.AdvertiseCompressionPreferences},
-		CreateNewEncryptionSubkey{ValidUntil: time.Date(2018, 7, 31, 0, 0, 0, 0, time.UTC)},
+		CreateNewEncryptionSubkey{ValidUntil: time.Date(2019, 8, 1, 0, 0, 0, 0, time.UTC)},
 		ExpireSubkey{SubkeyId: 0x1111},
 		ExpireSubkey{SubkeyId: 0x2222},
 		RefreshUserIdSelfSignatures{},
