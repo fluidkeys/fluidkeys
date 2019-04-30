@@ -72,26 +72,6 @@ func (a CreateNewEncryptionSubkey) SortOrder() int {
 	return sortOrderCreateSubkey
 }
 
-// ExpireSubkey updates and re-signs the self signature on the given subkey to
-// now, in order that the subkey becomes effectively unusable (although it
-// could be updated again to bring the subkey back to life, unlike it it were
-// revoked)
-type ExpireSubkey struct {
-	KeyAction
-
-	SubkeyId uint64
-}
-
-func (a ExpireSubkey) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
-	return key.ExpireSubkey(a.SubkeyId, now)
-}
-func (a ExpireSubkey) String() string {
-	return fmt.Sprintf("Expire the encryption subkey now (0x%X)", a.SubkeyId)
-}
-func (a ExpireSubkey) SortOrder() int {
-	return sortOrderModifySubkey
-}
-
 // ModifySubkeyExpiry iterates over all user IDs. For each UID, it updates
 // the expiry date on the *self signature*.
 // It re-signs the self signature.
