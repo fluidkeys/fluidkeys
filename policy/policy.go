@@ -163,11 +163,10 @@ func NextExpiryTime(now time.Time) time.Time {
 	return followingQuarter(oneYearFromNow)
 }
 
-// NextRotation returns 30 days before the earliest expiry time on
-// the key.
+// NextRotation returns 60 days before the earliest expiry time on the key.
 // If the key doesn't expire, it returns nil.
 func NextRotation(expiry time.Time) time.Time {
-	return expiry.Add(-thirtyDays)
+	return expiry.Add(-sixtyDays)
 }
 
 // IsExpiryTooLong returns true if the expiry is too far in the future.
@@ -228,5 +227,6 @@ const (
 	tenDays       time.Duration = time.Duration(time.Hour * 24 * 10)
 	thirtyDays    time.Duration = time.Duration(time.Hour * 24 * 30)
 	fortyFiveDays time.Duration = time.Duration(time.Hour * 24 * 45)
+	sixtyDays     time.Duration = time.Duration(time.Hour * 24 * 60)
 	oneYear       time.Duration = time.Duration(time.Hour * 24 * 365)
 )
