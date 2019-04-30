@@ -132,6 +132,8 @@ func (db *Database) RecordLast(verb string, item interface{}, now time.Time) err
 		message.EventTimes[verb+":"+teamItem+":"+i.UUID.String()] = now
 	case team.Team:
 		message.EventTimes[verb+":"+teamItem+":"+i.UUID.String()] = now
+	case string:
+		message.EventTimes[verb+":string:"+i] = now
 	default:
 		return fmt.Errorf("don't know how to handle %v", item)
 	}
@@ -159,6 +161,8 @@ func (db *Database) GetLast(verb string, item interface{}) (EventTimes time.Time
 		return message.EventTimes[verb+":"+teamItem+":"+i.UUID.String()], nil
 	case team.Team:
 		return message.EventTimes[verb+":"+teamItem+":"+i.UUID.String()], nil
+	case string:
+		return message.EventTimes[verb+":string:"+i], nil
 	default:
 		return time.Time{}, fmt.Errorf("don't know how to handle %v", item)
 	}

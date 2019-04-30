@@ -18,6 +18,10 @@
 package fk
 
 import (
+	"fmt"
+	"log"
+	"time"
+
 	"github.com/docopt/docopt-go"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/out"
@@ -39,15 +43,44 @@ func sync() (code exitCode) {
 	out.Print("\n")
 	out.Print("-> " + colour.Cmd("fk key maintain automatic") + "\n")
 
-	if exitCode := keyMaintain(false, true); exitCode != 0 {
-		code = exitCode
+	h := heartbeatData{}
+
+	if h.keyMaintainExitCode = keyMaintain(false, true); h.keyMaintainExitCode != 0 {
+		code = h.keyMaintainExitCode
 	}
 
 	out.Print("\n")
 	out.Print("-> " + colour.Cmd("fk team fetch") + "\n\n")
-	if exitCode := teamFetch(true); exitCode != 0 {
-		code = exitCode
+	if h.teamFetchExitCode = teamFetch(true); h.teamFetchExitCode != 0 {
+		code = h.teamFetchExitCode
 	}
 
+	sendHeartbeatNoMoreThanDaily(&h)
 	return code
+}
+
+func sendHeartbeatNoMoreThanDaily(h *heartbeatData) {
+	twentyFourHours := time.Duration(24) * time.Hour
+	now := time.Now()
+
+	if stale, err := db.IsOlderThan("send", "heartbeat", twentyFourHours, now); err != nil {
+		log.Printf("failed to check time of last heartbeat: %v", err)
+		return // don't risk sending it every time.
+	} else if !stale {
+		return
+	}
+
+	fmt.Printf("sending heartbeat packet:\n%#v\n", h)
+
+	// TODO: actually send it
+
+	err := db.RecordLast("send", "heartbeat", now)
+	if err != nil {
+		panic(fmt.Errorf("failed to record sending heartbeat: %v", err))
+	}
+}
+
+type heartbeatData struct {
+	keyMaintainExitCode exitCode
+	teamFetchExitCode   exitCode
 }
