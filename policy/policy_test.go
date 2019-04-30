@@ -64,7 +64,7 @@ func TestFollowingQuarter(t *testing.T) {
 			gotOutput := followingQuarter(test.today)
 
 			if test.expectedOutput != gotOutput {
-				t.Fatalf("expected '%s', got '%s'", test.expectedOutput, gotOutput)
+				t.Errorf("expected '%s', got '%s'", test.expectedOutput, gotOutput)
 			}
 		})
 	}
@@ -115,7 +115,7 @@ func TestNextExpiryTime(t *testing.T) {
 			gotOutput := NextExpiryTime(test.today)
 
 			if test.expectedOutput != gotOutput {
-				t.Fatalf("expected '%s', got '%s'", test.expectedOutput, gotOutput)
+				t.Errorf("expected '%s', got '%s'", test.expectedOutput, gotOutput)
 			}
 		})
 	}
