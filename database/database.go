@@ -119,22 +119,12 @@ func (db *Database) RecordLast(verb string, item interface{}, now time.Time) err
 		return fmt.Errorf("verb can't be empty")
 	}
 
-	switch i := item.(type) {
-	case *pgpkey.PgpKey:
-		message.EventTimes[verb+":"+keyItem+":"+i.Fingerprint().Uri()] = now
-	case pgpkey.PgpKey:
-		message.EventTimes[verb+":"+keyItem+":"+i.Fingerprint().Uri()] = now
-	case *fpr.Fingerprint:
-		message.EventTimes[verb+":"+keyItem+":"+i.Uri()] = now
-	case fpr.Fingerprint:
-		message.EventTimes[verb+":"+keyItem+":"+i.Uri()] = now
-	case *team.Team:
-		message.EventTimes[verb+":"+teamItem+":"+i.UUID.String()] = now
-	case team.Team:
-		message.EventTimes[verb+":"+teamItem+":"+i.UUID.String()] = now
-	default:
+	mapKey, err := makeMapKey(verb, item)
+	if err != nil {
 		return fmt.Errorf("don't know how to handle %v", item)
 	}
+
+	message.EventTimes[mapKey] = now
 
 	return db.saveToFile(*message)
 }
@@ -146,24 +136,41 @@ func (db *Database) GetLast(verb string, item interface{}) (EventTimes time.Time
 		return time.Time{}, err
 	}
 
-	switch i := item.(type) {
-	case *pgpkey.PgpKey:
-		return message.EventTimes[verb+":"+keyItem+":"+i.Fingerprint().Uri()], nil
-	case pgpkey.PgpKey:
-		return message.EventTimes[verb+":"+keyItem+":"+i.Fingerprint().Uri()], nil
-	case *fpr.Fingerprint:
-		return message.EventTimes[verb+":"+keyItem+":"+i.Uri()], nil
-	case fpr.Fingerprint:
-		return message.EventTimes[verb+":"+keyItem+":"+i.Uri()], nil
-	case *team.Team:
-		return message.EventTimes[verb+":"+teamItem+":"+i.UUID.String()], nil
-	case team.Team:
-		return message.EventTimes[verb+":"+teamItem+":"+i.UUID.String()], nil
-	default:
-		return time.Time{}, fmt.Errorf("don't know how to handle %v", item)
+	mapKey, err := makeMapKey(verb, item)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("don't know how to handle %#v", item)
 	}
 
-	return time.Time{}, nil
+	return message.EventTimes[mapKey], nil
+}
+
+func makeMapKey(verb string, item interface{}) (string, error) {
+	var itemKey string
+
+	switch i := item.(type) {
+	case *pgpkey.PgpKey:
+		itemKey = keyItem + ":" + i.Fingerprint().Uri()
+
+	case pgpkey.PgpKey:
+		itemKey = keyItem + ":" + i.Fingerprint().Uri()
+
+	case *fpr.Fingerprint:
+		itemKey = keyItem + ":" + i.Uri()
+
+	case fpr.Fingerprint:
+		itemKey = keyItem + ":" + i.Uri()
+
+	case *team.Team:
+		itemKey = teamItem + ":" + i.UUID.String()
+
+	case team.Team:
+		itemKey = teamItem + ":" + i.UUID.String()
+
+	default:
+		return "", fmt.Errorf("don't know how to handle %#v", item)
+	}
+
+	return verb + ":" + itemKey, nil
 }
 
 // IsOlderThan takes a verb and item and returns true if it was last recorded more than `age` ago.

@@ -352,6 +352,22 @@ func TestEventTimes(t *testing.T) {
 	now := time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
 	later := now.Add(time.Duration(6) * time.Hour)
 
+	t.Run("makeMapKey", func(t *testing.T) {
+		t.Run("with Fingerprint", func(t *testing.T) {
+			key, err := makeMapKey("example-verb", exampleFingerprintA)
+			assert.NoError(t, err)
+
+			assert.Equal(t, "example-verb:key:OPENPGP4FPR:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", key)
+		})
+
+		t.Run("with *Fingerprint", func(t *testing.T) {
+			key, err := makeMapKey("example-verb", &exampleFingerprintA)
+			assert.NoError(t, err)
+
+			assert.Equal(t, "example-verb:key:OPENPGP4FPR:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", key)
+		})
+	})
+
 	t.Run("record last", func(t *testing.T) {
 		database := New(testhelpers.Maketemp(t))
 		t.Run("doesn't error given a verb and handled item", func(t *testing.T) {
