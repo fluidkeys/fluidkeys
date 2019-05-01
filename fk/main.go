@@ -29,7 +29,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/status"
 	"github.com/fluidkeys/fluidkeys/table"
 
-	"github.com/fluidkeys/fluidkeys/api"
+	"github.com/fluidkeys/fluidkeys/apiclient"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 
 	"github.com/docopt/docopt-go"
@@ -53,7 +53,7 @@ var (
 	db                 database.Database
 	Config             config.Config
 	Keyring            keyring.Keyring
-	client             *api.Client
+	client             *apiclient.Client
 	user               *userpackage.User
 )
 

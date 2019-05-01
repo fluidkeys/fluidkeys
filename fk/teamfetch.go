@@ -22,7 +22,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/fluidkeys/fluidkeys/api"
+	"github.com/fluidkeys/fluidkeys/apiclient"
 	"github.com/fluidkeys/fluidkeys/colour"
 	fp "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/humanize"
@@ -189,7 +189,7 @@ func fetchAndSignTeamKeys(
 		err = ui.RunWithCheckboxes(person.Email, func() error {
 			key, err := client.GetPublicKeyByFingerprint(person.Fingerprint)
 
-			if err != nil && err == api.ErrPublicKeyNotFound {
+			if err != nil && err == apiclient.ErrPublicKeyNotFound {
 				log.Print(err)
 				return fmt.Errorf("Couldn't find key")
 			} else if err != nil {
@@ -261,7 +261,7 @@ func processRequestsToJoinTeam(unattended bool) (returnError error) {
 
 		roster, signature, err := client.GetTeamRoster(unlockedKey, request.TeamUUID)
 
-		if err == api.ErrForbidden {
+		if err == apiclient.ErrForbidden {
 			printRequestHasntBeenApproved(request)
 			continue // don't set returnError: this is an OK outcome
 		} else if err != nil {
