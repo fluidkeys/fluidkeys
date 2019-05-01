@@ -256,7 +256,7 @@ func (c *Client) GetTeamName(teamUUID uuid.UUID) (string, error) {
 
 // GetTeamRoster attempts to get the team roster and signature for the given UUID. The API
 // responds with encrypted JSON, so it tries to decrypt this using the requestingKey.
-func (c *Client) GetTeamRoster(requestingKey *pgpkey.PgpKey, teamUUID uuid.UUID) (
+func (c *Client) GetTeamRoster(teamUUID uuid.UUID, me fpr.Fingerprint) (
 	roster string, signature string, err error) {
 
 	path := fmt.Sprintf("team/%s/roster", teamUUID)
@@ -264,7 +264,7 @@ func (c *Client) GetTeamRoster(requestingKey *pgpkey.PgpKey, teamUUID uuid.UUID)
 	if err != nil {
 		return "", "", err
 	}
-	request.Header.Add("authorization", authorization(requestingKey.Fingerprint()))
+	request.Header.Add("authorization", authorization(me))
 	decodedJSON := new(v1structs.GetTeamRosterResponse)
 	response, err := c.do(request, &decodedJSON)
 	if err != nil {
@@ -283,17 +283,7 @@ func (c *Client) GetTeamRoster(requestingKey *pgpkey.PgpKey, teamUUID uuid.UUID)
 		}
 	}
 
-	decryptedJSON, _, err := requestingKey.DecryptArmored(decodedJSON.EncryptedJSON)
-	if err != nil {
-		return "", "", fmt.Errorf("couldn't decrypt json: %v", err)
-	}
-	teamRosterAndSignature := v1structs.TeamRosterAndSignature{}
-	if err = json.NewDecoder(decryptedJSON).Decode(&teamRosterAndSignature); err != nil {
-		log.Printf("Failed to decode roster and signature: %s", err)
-		return "", "", fmt.Errorf("error decoding roster and signature: %v", err)
-	}
-
-	return teamRosterAndSignature.TeamRoster, teamRosterAndSignature.ArmoredDetachedSignature, nil
+	return decodedJSON.TeamRoster, decodedJSON.ArmoredDetachedSignature, nil
 }
 
 // RequestToJoinTeam posts a request to join the team identified by the UUID with the
