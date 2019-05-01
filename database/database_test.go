@@ -348,6 +348,10 @@ func TestGetExistingRequestToJoinTeam(t *testing.T) {
 	})
 }
 
+type arbitraryStruct struct{}
+
+func (a arbitraryStruct) String() string { return "result of arbitraryStruct.String()" }
+
 func TestEventTimes(t *testing.T) {
 	now := time.Date(2019, 6, 20, 16, 35, 0, 0, time.UTC)
 	later := now.Add(time.Duration(6) * time.Hour)
@@ -366,6 +370,21 @@ func TestEventTimes(t *testing.T) {
 
 			assert.Equal(t, "example-verb:key:OPENPGP4FPR:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", key)
 		})
+
+		t.Run("with arbitraryStruct (that has String())", func(t *testing.T) {
+			key, err := makeMapKey("example-verb", arbitraryStruct{})
+			assert.NoError(t, err)
+
+			assert.Equal(t, "example-verb:arbitraryStruct:result of arbitraryStruct.String()", key)
+		})
+
+		t.Run("with *arbitraryStruct (that has String())", func(t *testing.T) {
+			key, err := makeMapKey("example-verb", &arbitraryStruct{})
+			assert.NoError(t, err)
+
+			assert.Equal(t, "example-verb:arbitraryStruct:result of arbitraryStruct.String()", key)
+		})
+
 	})
 
 	t.Run("record last", func(t *testing.T) {
