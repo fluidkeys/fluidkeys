@@ -410,26 +410,17 @@ func TestGetTeamRoster(t *testing.T) {
 	expectedRoster := "fake roster"
 	expectedSignature := "fake signature"
 
-	decryptedRosterAndSig := v1structs.TeamRosterAndSignature{
-		TeamRoster:               expectedRoster,
-		ArmoredDetachedSignature: expectedSignature,
-	}
-
-	jsonRosterAndSig, err := json.MarshalIndent(decryptedRosterAndSig, "", "    ")
-	assert.NoError(t, err)
-
-	encryptedJSON, err := encryptToArmor(t, string(jsonRosterAndSig), requesterKey)
-	assert.NoError(t, err)
-
 	client, mux, _, teardown := setup()
 	defer teardown()
 
 	teamRosterResponse, err := json.Marshal(v1structs.GetTeamRosterResponse{
-		EncryptedJSON: encryptedJSON,
+		EncryptedJSON:            "ignore-me",
+		TeamRoster:               expectedRoster,
+		ArmoredDetachedSignature: expectedSignature,
 	})
 	assert.NoError(t, err)
 
-	t.Run("decrypts the roster with a valid requester key", func(t *testing.T) {
+	t.Run("returns the roster and signature", func(t *testing.T) {
 		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
 			assertClientSentValidAuthHeader(t, requesterKey.Fingerprint(), r.Header)
 			assertClientSentVerb(t, "GET", r.Method)
@@ -442,38 +433,11 @@ func TestGetTeamRoster(t *testing.T) {
 			mockResponseHandler,
 		)
 
-		gotRoster, gotSignature, err := client.GetTeamRoster(requesterKey, teamUUID)
+		gotRoster, gotSignature, err := client.GetTeamRoster(teamUUID, requesterKey.Fingerprint())
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedRoster, gotRoster)
 		assert.Equal(t, expectedSignature, gotSignature)
-	})
-
-	t.Run("returns an error given an invalid requester key", func(t *testing.T) {
-		invalidKeyTeamUUID := uuid.Must(uuid.NewV4())
-		invalidRequesterKey, err := pgpkey.LoadFromArmoredEncryptedPrivateKey(
-			exampledata.ExamplePrivateKey2, "test2",
-		)
-		assert.NoError(t, err)
-
-		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
-			assertClientSentValidAuthHeader(t, invalidRequesterKey.Fingerprint(), r.Header)
-			assertClientSentVerb(t, "GET", r.Method)
-			w.Header().Add("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, string(teamRosterResponse))
-		}
-		mux.HandleFunc(
-			fmt.Sprintf("/team/%s/roster", invalidKeyTeamUUID),
-			mockResponseHandler,
-		)
-
-		_, _, err = client.GetTeamRoster(invalidRequesterKey, invalidKeyTeamUUID)
-
-		assert.GotError(t, err)
-		assert.Equal(t,
-			fmt.Errorf("couldn't decrypt json: error reading message: openpgp: incorrect key"), err,
-		)
 	})
 
 	t.Run("404 returns ErrTeamNotFound", func(t *testing.T) {
@@ -488,7 +452,7 @@ func TestGetTeamRoster(t *testing.T) {
 			mockNotFoundResponseHandler,
 		)
 
-		_, _, err := client.GetTeamRoster(requesterKey, unknownUUID)
+		_, _, err := client.GetTeamRoster(unknownUUID, requesterKey.Fingerprint())
 
 		assert.Equal(t, ErrTeamNotFound, err)
 	})
@@ -505,7 +469,7 @@ func TestGetTeamRoster(t *testing.T) {
 			mockResponseHandler,
 		)
 
-		_, _, err := client.GetTeamRoster(requesterKey, teamUUID)
+		_, _, err := client.GetTeamRoster(teamUUID, requesterKey.Fingerprint())
 
 		assert.Equal(t, ErrForbidden, err)
 	})
@@ -522,7 +486,7 @@ func TestGetTeamRoster(t *testing.T) {
 			mockErrorResponseHandler,
 		)
 
-		_, _, err := client.GetTeamRoster(requesterKey, errorUUID)
+		_, _, err := client.GetTeamRoster(errorUUID, requesterKey.Fingerprint())
 
 		assert.GotError(t, err)
 		assert.Equal(t, fmt.Errorf("API error: 500"), err)

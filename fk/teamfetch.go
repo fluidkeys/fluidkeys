@@ -123,7 +123,7 @@ func fetchAndUpdateRoster(t team.Team, unlockedKey *pgpkey.PgpKey, alwaysDownloa
 		}
 	}
 
-	roster, signature, err := api.GetTeamRoster(unlockedKey, t.UUID)
+	roster, signature, err := api.GetTeamRoster(t.UUID, unlockedKey.Fingerprint())
 	if err != nil {
 		return nil, fmt.Errorf("error downloading team roster: %v", err)
 	}
@@ -308,7 +308,7 @@ func processRequestsToJoinTeam(unattended bool) (returnError error) {
 			continue
 		}
 
-		roster, signature, err := api.GetTeamRoster(unlockedKey, request.TeamUUID)
+		roster, signature, err := api.GetTeamRoster(request.TeamUUID, unlockedKey.Fingerprint())
 
 		if err == apiclient.ErrForbidden {
 			printRequestHasntBeenApproved(request)
