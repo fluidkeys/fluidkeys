@@ -197,9 +197,16 @@ func fetchAndCertifyTeamKeys(
 				return fmt.Errorf("Got error from Fluidkeys server")
 			}
 
-			if err := key.CertifyEmail(person.Email, unlockedKey, time.Now()); err != nil {
-				log.Print(err)
-				return fmt.Errorf("Failed to sign key: %v", err)
+			if !alreadyCertified(person.Fingerprint, unlockedKey.Fingerprint()) {
+				if err := key.CertifyEmail(person.Email, unlockedKey, time.Now()); err != nil {
+					log.Print(err)
+					return fmt.Errorf("Failed to sign key: %v", err)
+				}
+				recordCertified(person.Fingerprint, unlockedKey.Fingerprint())
+
+			} else {
+				log.Printf("key %s already certified by %s, not certifying again",
+					person.Fingerprint.Hex(), unlockedKey.Fingerprint().Hex())
 			}
 
 			armoredKey, err := key.Armor()
@@ -221,6 +228,45 @@ func fetchAndCertifyTeamKeys(
 	}
 	out.Print("\n")
 	return err
+}
+
+// recordThatKeyWasCertified represents that a `key` was certified (signed) by `certifiedBy`
+// this is used to record in the database that a key was certified.
+// Caution: renaming this struct will invalidate any log entries.
+type recordThatKeyWasCertified struct {
+	key         fp.Fingerprint
+	certifiedBy fp.Fingerprint
+}
+
+func (k recordThatKeyWasCertified) String() string {
+	return fmt.Sprintf("%s-by-%s", k.key.Uri(), k.certifiedBy.Uri())
+}
+
+func alreadyCertified(contact fp.Fingerprint, byWhom fp.Fingerprint) bool {
+	record := recordThatKeyWasCertified{
+		key:         contact,
+		certifiedBy: byWhom,
+	}
+
+	timeCertified, err := db.GetLast("certify", record)
+	if err != nil {
+		log.Printf("error calling db.GetLast(\"certify\", %v): %v", record, err)
+		return false
+	}
+
+	return !timeCertified.IsZero()
+}
+
+func recordCertified(contact fp.Fingerprint, byWhom fp.Fingerprint) {
+	record := recordThatKeyWasCertified{
+		key:         contact,
+		certifiedBy: byWhom,
+	}
+
+	err := db.RecordLast("certify", record, time.Now())
+	if err != nil {
+		log.Printf("error calling db.RecordLast(\"certify\", %v, now): %v", record, err)
+	}
 }
 
 func processRequestsToJoinTeam(unattended bool) (returnError error) {
