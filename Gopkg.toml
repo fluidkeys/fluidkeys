@@ -30,7 +30,7 @@
 
 [[constraint]]
   name = "github.com/fluidkeys/api"
-  revision = "04f58d76b5b52d547abc362c43cd911b54981e5d"
+  revision = "5af3c59cac91ab46e2490e9fb8c7c6c7ef09fbd0"
 
 [[constraint]]
   name = "github.com/fluidkeys/crypto"
