@@ -9,7 +9,9 @@ import (
 	"github.com/fluidkeys/fluidkeys/assert"
 )
 
-func TestEnable(t *testing.T) {
+var c = cron{}
+
+func TestCronEnable(t *testing.T) {
 	t.Run("add to existing crontab", func(t *testing.T) {
 		crontabBefore := "# existing crontab"
 
@@ -17,7 +19,7 @@ func TestEnable(t *testing.T) {
 			getResult: crontabBefore,
 		}
 
-		gotWasChanged, gotError := Enable(mock)
+		gotWasChanged, gotError := c.enable(mock)
 		assert.NoError(t, gotError)
 		assert.Equal(t, true, gotWasChanged)
 		assert.Equal(t, "# existing crontab\n\n"+CronLines, mock.setCapturedCrontab)
@@ -30,7 +32,7 @@ func TestEnable(t *testing.T) {
 			getResult: crontabBefore,
 		}
 
-		gotWasChanged, gotError := Enable(mock)
+		gotWasChanged, gotError := c.enable(mock)
 		assert.NoError(t, gotError)
 		assert.Equal(t, false, gotWasChanged)
 		assert.Equal(t, false, mock.setWasCalled())
@@ -41,7 +43,7 @@ func TestEnable(t *testing.T) {
 			getError: fmt.Errorf("fake error from get"),
 		}
 
-		gotWasChanged, gotError := Enable(mock)
+		gotWasChanged, gotError := c.enable(mock)
 		assert.Equal(t, fmt.Errorf("error getting crontab: fake error from get"), gotError)
 		assert.Equal(t, false, gotWasChanged)
 		assert.Equal(t, false, mock.setWasCalled())
@@ -52,13 +54,13 @@ func TestEnable(t *testing.T) {
 			setError: fmt.Errorf("fake error from set"),
 		}
 
-		gotWasChanged, gotError := Enable(mock)
-		assert.Equal(t, fmt.Errorf("fake error from set"), gotError)
+		gotWasChanged, gotError := c.enable(mock)
+		assert.Equal(t, ErrModifyingCrontab{origError: fmt.Errorf("fake error from set")}, gotError)
 		assert.Equal(t, false, gotWasChanged)
 	})
 }
 
-func TestDisable(t *testing.T) {
+func TestCronDisable(t *testing.T) {
 	t.Run("remove if present in crontab", func(t *testing.T) {
 		crontabBefore := "# existing crontab\n" + CronLines + "\n# more lines"
 
@@ -66,7 +68,7 @@ func TestDisable(t *testing.T) {
 			getResult: crontabBefore,
 		}
 
-		gotWasChanged, gotError := Disable(mock)
+		gotWasChanged, gotError := c.disable(mock)
 		assert.NoError(t, gotError)
 		assert.Equal(t, true, gotWasChanged)
 		// we end up with an extra newline than we started with, but it's very difficult to
@@ -81,7 +83,7 @@ func TestDisable(t *testing.T) {
 			getResult: crontabBefore,
 		}
 
-		gotWasChanged, gotError := Disable(mock)
+		gotWasChanged, gotError := c.disable(mock)
 		assert.NoError(t, gotError)
 		assert.Equal(t, false, gotWasChanged)
 		assert.Equal(t, false, mock.setWasCalled())
@@ -92,7 +94,7 @@ func TestDisable(t *testing.T) {
 			getError: fmt.Errorf("fake error from get"),
 		}
 
-		gotWasChanged, gotError := Disable(mock)
+		gotWasChanged, gotError := c.disable(mock)
 		assert.Equal(t, fmt.Errorf("error getting crontab: fake error from get"), gotError)
 		assert.Equal(t, false, gotWasChanged)
 		assert.Equal(t, false, mock.setWasCalled())
@@ -104,8 +106,8 @@ func TestDisable(t *testing.T) {
 			setError:  fmt.Errorf("fake error from set"),
 		}
 
-		gotWasChanged, gotError := Disable(mock)
-		assert.Equal(t, fmt.Errorf("fake error from set"), gotError)
+		gotWasChanged, gotError := c.disable(mock)
+		assert.Equal(t, ErrModifyingCrontab{origError: fmt.Errorf("fake error from set")}, gotError)
 		assert.Equal(t, false, gotWasChanged)
 	})
 }
