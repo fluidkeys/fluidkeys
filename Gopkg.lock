@@ -26,12 +26,11 @@
   revision = "ee0de3bc6815ee19d4a46c7eb90f829db0e014b1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:02a56c89212cb4ce1be5ca0c5b917d1c169955f06bc762e984c4552e957dd1fc"
+  digest = "1:edc37f97d15797c1516b8da9cdc3b06d4487b2a4e24e7e992aef8958fb42f65f"
   name = "github.com/fluidkeys/api"
   packages = ["v1structs"]
   pruneopts = "UT"
-  revision = "c8a726146d32ad8367208303b76774147d749ffe"
+  revision = "02d9062c8f381c64633bf2a59a5002ebb440a763"
 
 [[projects]]
   digest = "1:1b08965cbe0b8ebd251bd448a08df2b70a0a5bbfb35e59985d6c7f5a04cbc4ec"

@@ -29,6 +29,10 @@
   name = "github.com/sethvargo/go-diceware"
 
 [[constraint]]
+  name = "github.com/fluidkeys/api"
+  revision = "02d9062c8f381c64633bf2a59a5002ebb440a763"
+
+[[constraint]]
   name = "github.com/fluidkeys/crypto"
   revision = "d1eb919c5d7a79d47db3bed84c8637648a60ab27"
 
