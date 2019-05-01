@@ -29,7 +29,7 @@ import (
 
 	"github.com/fluidkeys/crypto/openpgp"
 	"github.com/fluidkeys/crypto/openpgp/armor"
-	"github.com/fluidkeys/fluidkeys/api"
+	"github.com/fluidkeys/fluidkeys/apiclient"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
@@ -38,9 +38,9 @@ import (
 )
 
 func secretSend(recipientEmail string, filename string) exitCode {
-	armoredPublicKey, err := client.GetPublicKey(recipientEmail)
+	armoredPublicKey, err := api.GetPublicKey(recipientEmail)
 	if err != nil {
-		if err == api.ErrPublicKeyNotFound {
+		if err == apiclient.ErrPublicKeyNotFound {
 			out.Print("\n")
 			out.Print("Couldn't find " + recipientEmail + " on Fluidkeys.\n\n")
 			out.Print("You can invite them to install Fluidkeys:\n")
@@ -123,7 +123,7 @@ https://download.fluidkeys.com#` + recipientEmail + `
 		return 1
 	}
 
-	err = client.CreateSecret(pgpKey.Fingerprint(), encryptedSecret)
+	err = api.CreateSecret(pgpKey.Fingerprint(), encryptedSecret)
 	if err != nil {
 		printFailed("Couldn't send the secret to " + recipientEmail)
 		out.Print("Error: " + err.Error() + "\n")

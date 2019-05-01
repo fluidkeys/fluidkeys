@@ -138,7 +138,7 @@ func keyCreate(email string) (exitCode, *pgpkey.PgpKey) {
 		time.Sleep(spinnerTimeDelay)
 		if time.Since(timeLastPolled).Seconds() > 5 {
 			verifiedEmailResult, err = verifyEmailMatchesKeyInAPI(
-				email, generateJob.pgpKey.Fingerprint(), client)
+				email, generateJob.pgpKey.Fingerprint(), api)
 			if err != nil {
 				out.Print("\n\n")
 				printFailed(fmt.Sprintf("Failed to verify email: %s", err))

@@ -54,7 +54,7 @@ func setup(email string) exitCode {
 		return 1
 	}
 
-	err = client.CreateSecret(pgpKey.Fingerprint(), encryptedSecret)
+	err = api.CreateSecret(pgpKey.Fingerprint(), encryptedSecret)
 	if err != nil {
 		printFailed("Couldn't send a test secret to " + email)
 		out.Print("Error: " + err.Error() + "\n")

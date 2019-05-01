@@ -203,7 +203,7 @@ func promptAndSignAndUploadRoster(t team.Team, key *pgpkey.PgpKey) (err error) {
 
 	ui.PrintCheckboxPending(checkboxSign)
 
-	if err := client.UpsertTeam(signedRoster, signature, privateKey.Fingerprint()); err != nil {
+	if err := api.UpsertTeam(signedRoster, signature, privateKey.Fingerprint()); err != nil {
 		rosterSaver.DiscardDraft()
 		return failUpload(err)
 	}

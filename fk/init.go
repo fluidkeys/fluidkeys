@@ -24,7 +24,7 @@ import (
 
 	"path/filepath"
 
-	"github.com/fluidkeys/fluidkeys/api"
+	"github.com/fluidkeys/fluidkeys/apiclient"
 	"github.com/fluidkeys/fluidkeys/config"
 	"github.com/fluidkeys/fluidkeys/database"
 	"github.com/fluidkeys/fluidkeys/gpgwrapper"
@@ -95,7 +95,7 @@ func initOutput() {
 }
 
 func initAPIClient() {
-	client = api.NewClient(Version)
+	api = apiclient.New(Version)
 }
 
 func initUser() {

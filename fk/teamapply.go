@@ -37,7 +37,7 @@ func teamApply(teamUUID uuid.UUID) exitCode {
 		return code
 	}
 
-	teamName, err := client.GetTeamName(teamUUID)
+	teamName, err := api.GetTeamName(teamUUID)
 	if err != nil {
 		out.Print(ui.FormatFailure("Couldn't request to join team", nil, err))
 		return 1
@@ -167,7 +167,7 @@ func requestToJoinTeam(
 	if err := db.RecordRequestToJoinTeam(teamUUID, teamName, fingerprint, time.Now()); err != nil {
 		return err
 	}
-	if err := client.RequestToJoinTeam(teamUUID, fingerprint, email); err != nil {
+	if err := api.RequestToJoinTeam(teamUUID, fingerprint, email); err != nil {
 		return err
 	}
 	return nil
