@@ -159,6 +159,8 @@ func (db *Database) GetLast(verb string, item interface{}) (EventTimes time.Time
 		return message.EventTimes[verb+":"+teamItem+":"+i.UUID.String()], nil
 	case team.Team:
 		return message.EventTimes[verb+":"+teamItem+":"+i.UUID.String()], nil
+	default:
+		return time.Time{}, fmt.Errorf("don't know how to handle %v", item)
 	}
 
 	return time.Time{}, nil
