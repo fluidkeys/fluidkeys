@@ -82,7 +82,7 @@ func doUpdateTeam(myTeam *team.Team, me *team.Person, unattended bool) (err erro
 	}
 	myTeam = updatedTeam // move myTeam pointer to updatedTeam
 
-	if err := fetchAndSignTeamKeys(*myTeam, *me, unlockedKey, alwaysDownload); err != nil {
+	if err := fetchAndCertifyTeamKeys(*myTeam, *me, unlockedKey, alwaysDownload); err != nil {
 		out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
 		return err
 	}
@@ -163,10 +163,10 @@ func fetchAndUpdateRoster(t team.Team, unlockedKey *pgpkey.PgpKey, alwaysDownloa
 	return updatedTeam, nil
 }
 
-// fetchAndSignTeamKeys fetches each key listed in the team and locally signs them in GnuPG
+// fetchAndCertifyTeamKeys fetches each key listed in the team and locally signs them in GnuPG
 // if `alwaysDownload` is false, it will only try to fetch keys every 24 hours, otherwise it'll
 // check every time.
-func fetchAndSignTeamKeys(
+func fetchAndCertifyTeamKeys(
 	t team.Team, me team.Person, unlockedKey *pgpkey.PgpKey, alwaysDownload bool) (err error) {
 
 	out.Print("Fetching and signing keys for other members of " + t.Name + ":\n\n")
