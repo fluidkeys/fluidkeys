@@ -197,9 +197,16 @@ func fetchAndCertifyTeamKeys(
 				return fmt.Errorf("Got error from Fluidkeys server")
 			}
 
-			if err := key.CertifyEmail(person.Email, unlockedKey, time.Now()); err != nil {
-				log.Print(err)
-				return fmt.Errorf("Failed to sign key: %v", err)
+			if !alreadyCertified(person.Email, person.Fingerprint, unlockedKey.Fingerprint()) {
+				if err := key.CertifyEmail(person.Email, unlockedKey, time.Now()); err != nil {
+					log.Print(err)
+					return fmt.Errorf("Failed to sign key: %v", err)
+				}
+				recordCertified(person.Email, person.Fingerprint, unlockedKey.Fingerprint())
+
+			} else {
+				log.Printf("key %s already certified by %s, not certifying again",
+					person.Fingerprint.Hex(), unlockedKey.Fingerprint().Hex())
 			}
 
 			armoredKey, err := key.Armor()
@@ -221,6 +228,48 @@ func fetchAndCertifyTeamKeys(
 	}
 	out.Print("\n")
 	return err
+}
+
+// emailKeyAndCertifier represents a combination of email (from UID), key, and certifier key.
+// This is used to record in the database that we've already certified a UID.
+// Caution: renaming this struct will invalidate any log entries.
+type emailKeyAndCertifier struct {
+	key       fp.Fingerprint
+	email     string
+	certifier fp.Fingerprint
+}
+
+func (k emailKeyAndCertifier) String() string {
+	return fmt.Sprintf("%s-%s-by-%s", k.email, k.key.Uri(), k.certifier.Uri())
+}
+
+func alreadyCertified(email string, key, certifiedBy fp.Fingerprint) bool {
+	record := emailKeyAndCertifier{
+		email:     email,
+		key:       key,
+		certifier: certifiedBy,
+	}
+
+	timeCertified, err := db.GetLast("certify", record)
+	if err != nil {
+		log.Printf("error calling db.GetLast(\"certify\", %v): %v", record, err)
+		return false
+	}
+
+	return !timeCertified.IsZero()
+}
+
+func recordCertified(email string, key fp.Fingerprint, certifiedBy fp.Fingerprint) {
+	record := emailKeyAndCertifier{
+		email:     email,
+		key:       key,
+		certifier: certifiedBy,
+	}
+
+	err := db.RecordLast("certify", record, time.Now())
+	if err != nil {
+		log.Printf("error calling db.RecordLast(\"certify\", %v, now): %v", record, err)
+	}
 }
 
 func processRequestsToJoinTeam(unattended bool) (returnError error) {
