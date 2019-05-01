@@ -149,13 +149,24 @@ func moveCursorUpLines(numLines int) {
 // ```
 func RunWithCheckboxes(checkboxMessage string, f func() error) error {
 	PrintCheckboxPending(checkboxMessage)
-	if err := f(); err != nil {
+	err := f()
+	if err == SkipThisAction {
+		PrintCheckboxSkipped(checkboxMessage)
+		return nil
+
+	} else if err != nil {
 		PrintCheckboxFailure(checkboxMessage, err)
 		return err
+
+	} else {
+		PrintCheckboxSuccess(checkboxMessage)
+		return nil
+
 	}
-	PrintCheckboxSuccess(checkboxMessage)
-	return nil
 }
+
+// SkipThisAction can be called inside `RunWithCheckboxes` mark the given action as skipped.
+var SkipThisAction = fmt.Errorf("skip this action")
 
 // capitalize returns text with the first rune capitalized
 func capitalize(text string) string {
