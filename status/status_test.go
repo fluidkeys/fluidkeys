@@ -138,17 +138,6 @@ func TestGetEncryptionSubkeyWarnings(t *testing.T) {
 
 			assertEqualSliceOfKeyWarningTypes(t, expected, got)
 		})
-
-		t.Run("test we get primary key long expiry warning", func(t *testing.T) {
-			expected := []KeyWarning{
-				KeyWarning{Type: PrimaryKeyLongExpiry},
-			}
-
-			now := time.Date(2018, 9, 24, 18, 0, 0, 0, time.UTC)
-			got := getPrimaryKeyWarnings(*pgpKey, now)
-
-			assertEqualSliceOfKeyWarningTypes(t, expected, got)
-		})
 	})
 }
 

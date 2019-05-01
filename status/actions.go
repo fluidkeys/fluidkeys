@@ -63,16 +63,18 @@ func makeActionsFromSingleWarning(warning KeyWarning, now time.Time) []KeyAction
 	nextExpiry := policy.NextExpiryTime(now)
 
 	switch warning.Type {
-	case PrimaryKeyDueForRotation, PrimaryKeyOverdueForRotation, PrimaryKeyNoExpiry, PrimaryKeyLongExpiry, PrimaryKeyExpired:
+	case PrimaryKeyDueForRotation, PrimaryKeyOverdueForRotation, PrimaryKeyNoExpiry, PrimaryKeyExpired:
 
 		return []KeyAction{
 			ModifyPrimaryKeyExpiry{ValidUntil: nextExpiry, PreviouslyValidUntil: warning.CurrentValidUntil},
 		}
 
-	case SubkeyDueForRotation, SubkeyOverdueForRotation, SubkeyLongExpiry, SubkeyNoExpiry:
+	case SubkeyDueForRotation, SubkeyOverdueForRotation, SubkeyNoExpiry:
 		return []KeyAction{
-			CreateNewEncryptionSubkey{ValidUntil: nextExpiry},
-			ExpireSubkey{SubkeyId: warning.SubkeyId},
+			ModifySubkeyExpiry{
+				subkeyId:   warning.SubkeyId,
+				validUntil: nextExpiry,
+			},
 		}
 
 	case NoValidEncryptionSubkey:

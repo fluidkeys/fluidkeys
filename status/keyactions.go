@@ -43,9 +43,9 @@ func (a ModifyPrimaryKeyExpiry) Enact(key *pgpkey.PgpKey, now time.Time, passwor
 
 func (a ModifyPrimaryKeyExpiry) String() string {
 	if a.PreviouslyValidUntil == nil || a.PreviouslyValidUntil.After(a.ValidUntil) {
-		return fmt.Sprintf("Shorten the primary key expiry to %s", a.ValidUntil.Format("2 Jan 06"))
+		return fmt.Sprintf("Shorten the primary key expiry to %s", a.ValidUntil.Format("2 Jan 2006"))
 	} else {
-		return fmt.Sprintf("Extend the primary key expiry to %s", a.ValidUntil.Format("2 Jan 06"))
+		return fmt.Sprintf("Extend the primary key expiry to %s", a.ValidUntil.Format("2 Jan 2006"))
 	}
 }
 func (a ModifyPrimaryKeyExpiry) SortOrder() int {
@@ -65,30 +65,31 @@ func (a CreateNewEncryptionSubkey) Enact(key *pgpkey.PgpKey, now time.Time, pass
 }
 
 func (a CreateNewEncryptionSubkey) String() string {
-	return fmt.Sprintf("Create a new encryption subkey valid until %s", a.ValidUntil.Format("2 Jan 06"))
+	return fmt.Sprintf("Create a new encryption subkey valid until %s", a.ValidUntil.Format("2 Jan 2006"))
 }
 
 func (a CreateNewEncryptionSubkey) SortOrder() int {
 	return sortOrderCreateSubkey
 }
 
-// ExpireSubkey updates and re-signs the self signature on the given subkey to
-// now, in order that the subkey becomes effectively unusable (although it
-// could be updated again to bring the subkey back to life, unlike it it were
-// revoked)
-type ExpireSubkey struct {
+// ModifySubkeyExpiry iterates over all user IDs. For each UID, it updates
+// the expiry date on the *self signature*.
+// It re-signs the self signature.
+type ModifySubkeyExpiry struct {
 	KeyAction
 
-	SubkeyId uint64
+	validUntil time.Time
+	subkeyId   uint64
 }
 
-func (a ExpireSubkey) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
-	return key.ExpireSubkey(a.SubkeyId, now)
+func (a ModifySubkeyExpiry) Enact(key *pgpkey.PgpKey, now time.Time, password *string) error {
+	return key.UpdateSubkeyValidUntil(a.subkeyId, a.validUntil, now)
 }
-func (a ExpireSubkey) String() string {
-	return fmt.Sprintf("Expire the encryption subkey now (0x%X)", a.SubkeyId)
+
+func (a ModifySubkeyExpiry) String() string {
+	return fmt.Sprintf("Extend encryption subkey expiry to %s", a.validUntil.Format("2 Jan 06"))
 }
-func (a ExpireSubkey) SortOrder() int {
+func (a ModifySubkeyExpiry) SortOrder() int {
 	return sortOrderModifySubkey
 }
 

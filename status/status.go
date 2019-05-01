@@ -99,14 +99,6 @@ func getEncryptionSubkeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning 
 			warnings = append(warnings, warning)
 		}
 
-		if policy.IsExpiryTooLong(*expiry, now) {
-			warning := KeyWarning{
-				Type:              SubkeyLongExpiry,
-				SubkeyId:          subkeyId,
-				CurrentValidUntil: expiry,
-			}
-			warnings = append(warnings, warning)
-		}
 	} else { // no expiry
 		warning := KeyWarning{
 			Type:     SubkeyNoExpiry,
@@ -151,13 +143,6 @@ func getPrimaryKeyWarnings(key pgpkey.PgpKey, now time.Time) []KeyWarning {
 			warnings = append(warnings, warning)
 		}
 
-		if policy.IsExpiryTooLong(*expiry, now) {
-			warning := KeyWarning{
-				Type:              PrimaryKeyLongExpiry,
-				CurrentValidUntil: expiry,
-			}
-			warnings = append(warnings, warning)
-		}
 	} else { // no expiry
 		warning := KeyWarning{Type: PrimaryKeyNoExpiry}
 		warnings = append(warnings, warning)

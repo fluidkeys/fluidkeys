@@ -28,7 +28,7 @@ func TestString(t *testing.T) {
 		},
 		{
 			KeyWarning{Type: SubkeyOverdueForRotation, DaysUntilExpiry: 5},
-			colour.Danger("Encryption subkey needs rotating now (expires in 5 days)"),
+			colour.Danger("Encryption subkey needs extending now (expires in 5 days)"),
 		},
 		{
 			KeyWarning{Type: PrimaryKeyExpired, DaysSinceExpiry: 0},
