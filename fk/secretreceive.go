@@ -59,7 +59,7 @@ func secretReceive() exitCode {
 	sawError := false
 	numSecretsDeleted := 0
 
-	secretLister := client
+	secretLister := api
 
 	for _, key := range keys {
 		if !Config.ShouldPublishToAPI(key.Fingerprint()) {
@@ -113,7 +113,7 @@ func secretReceive() exitCode {
 				}
 			}
 
-			err := client.DeleteSecret(key.Fingerprint(), secret.UUID.String())
+			err := api.DeleteSecret(key.Fingerprint(), secret.UUID.String())
 			if err != nil {
 				log.Printf("failed to delete secret '%s': %v", secret.UUID, err)
 				printFailed("Error when secret tried to self-destruct:")

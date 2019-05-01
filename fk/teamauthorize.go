@@ -57,7 +57,7 @@ func teamAuthorize() exitCode {
 
 		printHeader("Authorize requests to join " + myTeam.Name)
 
-		requests, err := client.ListRequestsToJoinTeam(myTeam.UUID, adminKey.Fingerprint())
+		requests, err := api.ListRequestsToJoinTeam(myTeam.UUID, adminKey.Fingerprint())
 		if err != nil {
 			out.Print(ui.FormatFailure("Error getting requests", nil, err))
 			return 1
@@ -102,7 +102,7 @@ func teamAuthorize() exitCode {
 		seenError := false
 
 		for _, request := range deleteRequests {
-			if err = client.DeleteRequestToJoinTeam(myTeam.UUID, request.UUID); err != nil {
+			if err = api.DeleteRequestToJoinTeam(myTeam.UUID, request.UUID); err != nil {
 				out.Print(ui.FormatWarning(
 					"Failed to delete a request to join the team", nil, err,
 				))

@@ -123,7 +123,7 @@ func fetchAndUpdateRoster(t team.Team, unlockedKey *pgpkey.PgpKey, alwaysDownloa
 		}
 	}
 
-	roster, signature, err := client.GetTeamRoster(unlockedKey, t.UUID)
+	roster, signature, err := api.GetTeamRoster(unlockedKey, t.UUID)
 	if err != nil {
 		return nil, fmt.Errorf("error downloading team roster: %v", err)
 	}
@@ -187,7 +187,7 @@ func fetchAndSignTeamKeys(
 		}
 
 		err = ui.RunWithCheckboxes(person.Email, func() error {
-			key, err := client.GetPublicKeyByFingerprint(person.Fingerprint)
+			key, err := api.GetPublicKeyByFingerprint(person.Fingerprint)
 
 			if err != nil && err == apiclient.ErrPublicKeyNotFound {
 				log.Print(err)
@@ -259,7 +259,7 @@ func processRequestsToJoinTeam(unattended bool) (returnError error) {
 			continue
 		}
 
-		roster, signature, err := client.GetTeamRoster(unlockedKey, request.TeamUUID)
+		roster, signature, err := api.GetTeamRoster(unlockedKey, request.TeamUUID)
 
 		if err == apiclient.ErrForbidden {
 			printRequestHasntBeenApproved(request)
@@ -369,7 +369,7 @@ func discoverPublicKey(fingerprint fp.Fingerprint) (key *pgpkey.PgpKey, err erro
 		return key, nil
 	}
 
-	if key, err = client.GetPublicKeyByFingerprint(fingerprint); err != nil {
+	if key, err = api.GetPublicKeyByFingerprint(fingerprint); err != nil {
 		log.Printf("failed to find key %s in API: %v", fingerprint, err)
 	} else {
 		return key, nil

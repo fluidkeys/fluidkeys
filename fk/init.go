@@ -95,7 +95,7 @@ func initOutput() {
 }
 
 func initAPIClient() {
-	client = apiclient.New(Version)
+	api = apiclient.New(Version)
 }
 
 func initUser() {

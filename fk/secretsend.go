@@ -38,7 +38,7 @@ import (
 )
 
 func secretSend(recipientEmail string, filename string) exitCode {
-	armoredPublicKey, err := client.GetPublicKey(recipientEmail)
+	armoredPublicKey, err := api.GetPublicKey(recipientEmail)
 	if err != nil {
 		if err == apiclient.ErrPublicKeyNotFound {
 			out.Print("\n")
@@ -123,7 +123,7 @@ https://download.fluidkeys.com#` + recipientEmail + `
 		return 1
 	}
 
-	err = client.CreateSecret(pgpKey.Fingerprint(), encryptedSecret)
+	err = api.CreateSecret(pgpKey.Fingerprint(), encryptedSecret)
 	if err != nil {
 		printFailed("Couldn't send the secret to " + recipientEmail)
 		out.Print("Error: " + err.Error() + "\n")

@@ -93,7 +93,7 @@ func publishKeyToAPI(privateKey *pgpkey.PgpKey) error {
 	if err != nil {
 		return fmt.Errorf("Couldn't load armored key: %s", err)
 	}
-	if err = client.UpsertPublicKey(armoredPublicKey, privateKey); err != nil {
+	if err = api.UpsertPublicKey(armoredPublicKey, privateKey); err != nil {
 		return fmt.Errorf("Failed to upload public key: %s", err)
 
 	}

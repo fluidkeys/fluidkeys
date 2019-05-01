@@ -53,7 +53,7 @@ var (
 	db                 database.Database
 	Config             config.Config
 	Keyring            keyring.Keyring
-	client             *apiclient.Client
+	api                *apiclient.Client
 	user               *userpackage.User
 )
 
