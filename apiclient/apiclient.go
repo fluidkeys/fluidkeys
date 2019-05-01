@@ -63,8 +63,8 @@ var (
 	ErrForbidden = fmt.Errorf("Forbidden")
 )
 
-// NewClient returns a new Fluidkeys Server API client.
-func NewClient(fluidkeysVersion string) *Client {
+// New returns a new Fluidkeys Server API client.
+func New(fluidkeysVersion string) *Client {
 	apiURL, got := os.LookupEnv("FLUIDKEYS_API_URL") // e.g. http://localhost:4747/v1/
 	if !got {
 		apiURL = defaultBaseURL
