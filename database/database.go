@@ -24,6 +24,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"time"
 
@@ -166,11 +167,22 @@ func makeMapKey(verb string, item interface{}) (string, error) {
 	case team.Team:
 		itemKey = teamItem + ":" + i.UUID.String()
 
+	case fmt.Stringer: // does it have .String() ?
+		itemKey = getType(i) + ":" + i.String()
+
 	default:
 		return "", fmt.Errorf("don't know how to handle %#v", item)
 	}
 
 	return verb + ":" + itemKey, nil
+}
+
+func getType(myvar interface{}) string {
+	t := reflect.TypeOf(myvar)
+	if t.Kind() == reflect.Ptr {
+		return t.Elem().Name()
+	}
+	return t.Name()
 }
 
 // IsOlderThan takes a verb and item and returns true if it was last recorded more than `age` ago.
