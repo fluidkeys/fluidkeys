@@ -327,7 +327,15 @@ func printRequestHasntBeenApproved(request team.RequestToJoinTeam) {
 	)
 }
 
+// unlockedKeyCache is used to store unlocked keys: don't unlock them more than once
+// TODO: there's a good case for a new package or file with all these (similar) kind of helpers,
+// they shouldn't all be living in these command files.
+var unlockedKeyCache = map[fp.Fingerprint]*pgpkey.PgpKey{}
+
 func getUnlockedKey(fingerprint fp.Fingerprint, unattended bool) (*pgpkey.PgpKey, error) {
+	if key, ok := unlockedKeyCache[fingerprint]; ok {
+		return key, nil
+	}
 
 	key, err := loadPgpKey(fingerprint)
 	if err != nil {
@@ -348,6 +356,7 @@ func getUnlockedKey(fingerprint fp.Fingerprint, unattended bool) (*pgpkey.PgpKey
 		return nil, err
 	}
 
+	unlockedKeyCache[fingerprint] = unlockedKey
 	return unlockedKey, nil
 }
 
