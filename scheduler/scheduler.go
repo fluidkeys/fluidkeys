@@ -17,10 +17,17 @@
 
 package scheduler
 
+import "os/exec"
+
 var scheduler schedulerInterface
 
 func init() {
-	scheduler = &cron{}
+	_, err := exec.LookPath(launchctl)
+	if err != nil {
+		scheduler = &cron{}
+	} else {
+		scheduler = &launchd{}
+	}
 }
 
 // Enable schedules Fluidkeys sync task to run regularly
