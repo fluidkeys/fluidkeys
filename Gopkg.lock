@@ -30,7 +30,7 @@
   name = "github.com/fluidkeys/api"
   packages = ["v1structs"]
   pruneopts = "UT"
-  revision = "02d9062c8f381c64633bf2a59a5002ebb440a763"
+  revision = "04f58d76b5b52d547abc362c43cd911b54981e5d"
 
 [[projects]]
   digest = "1:1b08965cbe0b8ebd251bd448a08df2b70a0a5bbfb35e59985d6c7f5a04cbc4ec"
