@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -10,36 +11,50 @@ import (
 var ld = launchd{}
 
 func TestLaunchdEnable(t *testing.T) {
-	t.Run("runs `launchctl load` if agent file is present", func(t *testing.T) {
+	t.Run("no existing plist file, file is created and launchtl load is called", func(t *testing.T) {
 		mockFileHelper := mockFileFunctions{
-			OsStatReturnError:          nil,
+			OsStatReturnError:          os.ErrNotExist, // simulate that file is missing
 			IoutilWriteFileReturnError: nil,
 		}
 		mockLaunchctl := &mockLaunchctl{}
 
-		launchdEnabled, err := ld.enable(mockLaunchctl, &mockFileHelper, "fake.plist")
+		launchdWasEnabled, err := ld.enable(mockLaunchctl, &mockFileHelper, "fake.plist")
 		assert.NoError(t, err)
 
-		assert.Equal(t, true, launchdEnabled)
-		assert.Equal(t, true, mockLaunchctl.loadCalled)
+		t.Run("file should have been written out", func(t *testing.T) {
+			assert.Equal(t, LaunchdFileContents, string(mockFileHelper.IoutilWriteFileGotData))
+			assert.Equal(t, os.FileMode(0600), mockFileHelper.IoutilWriteFileGotMode)
+		})
+
+		t.Run("launchtl load should have been called", func(t *testing.T) {
+			assert.Equal(t, true, mockLaunchctl.loadCalled)
+		})
+
+		t.Run("return value launchdWasEnabled should be true", func(t *testing.T) {
+			assert.Equal(t, true, launchdWasEnabled)
+		})
 	})
 
-	t.Run("creates agent file if it's missing", func(t *testing.T) {
+	t.Run("existing plist file, file is untouched and launchtl load is called", func(t *testing.T) {
 		mockFileHelper := mockFileFunctions{
-			OsStatReturnError:          os.ErrNotExist,
+			OsStatReturnError:          nil, // simulate that file exists (no ErrNotExist)
 			IoutilWriteFileReturnError: nil,
 		}
 		mockLaunchctl := &mockLaunchctl{}
 
-		launchdEnabled, err := ld.enable(mockLaunchctl, &mockFileHelper, "fake.plist")
+		launchdWasEnabled, err := ld.enable(mockLaunchctl, &mockFileHelper, "fake.plist")
 		assert.NoError(t, err)
 
-		assert.Equal(t, LaunchdFileContents, string(mockFileHelper.IoutilWriteFileGotData))
-		assert.Equal(t, os.FileMode(0600), mockFileHelper.IoutilWriteFileGotMode)
+		t.Run("file should not been written out", func(t *testing.T) {
+			assert.Equal(t, "", string(mockFileHelper.IoutilWriteFileGotData))
+		})
 
-		t.Run("then runs `launchctl load`", func(t *testing.T) {
-			assert.Equal(t, true, launchdEnabled)
+		t.Run("launchtl load should have been called", func(t *testing.T) {
 			assert.Equal(t, true, mockLaunchctl.loadCalled)
+		})
+
+		t.Run("return value launchdWasEnabled should be false", func(t *testing.T) {
+			assert.Equal(t, false, launchdWasEnabled)
 		})
 	})
 
@@ -64,17 +79,87 @@ func TestLaunchdEnable(t *testing.T) {
 }
 
 func TestLaunchdDisable(t *testing.T) {
-	t.Run("unload and deletes successfully if file is removed", func(t *testing.T) {
+
+	t.Run("plist file exists, file should be deleted and launchctl remove called", func(t *testing.T) {
 		mockFileHelper := mockFileFunctions{
+			OsStatReturnError:   nil, // simulate that file exists (no ErrNotExist)
 			OsRemoveReturnError: nil,
 		}
 		mockLaunchctl := &mockLaunchctl{}
 
-		launchdDisabled, err := ld.disable(mockLaunchctl, &mockFileHelper, "fake.plist", "fake")
+		launchdWasDisabled, err := ld.disable(mockLaunchctl, &mockFileHelper, "fake.plist", "fake")
 		assert.NoError(t, err)
 
-		assert.Equal(t, true, launchdDisabled)
-		assert.Equal(t, "fake", mockLaunchctl.removeCalledFor)
+		t.Run("file was deleted", func(t *testing.T) {
+			assert.Equal(t, "fake.plist", mockFileHelper.OsRemoveCalledWithFilename)
+		})
+
+		t.Run("launchctl remove was called", func(t *testing.T) {
+			assert.Equal(t, true, mockLaunchctl.removeCalled)
+			assert.Equal(t, "fake", mockLaunchctl.removeCalledForLabel)
+		})
+
+		t.Run("return value launchdWasDisabled is true", func(t *testing.T) {
+			assert.Equal(t, true, launchdWasDisabled)
+		})
+	})
+
+	t.Run("plist file doesn't exist, file should be untouched and launchctl remove called", func(t *testing.T) {
+		mockFileHelper := mockFileFunctions{
+			OsStatReturnError:   os.ErrNotExist, // simulate that file is missing
+			OsRemoveReturnError: nil,
+		}
+		mockLaunchctl := &mockLaunchctl{}
+
+		launchdWasDisabled, err := ld.disable(mockLaunchctl, &mockFileHelper, "fake.plist", "fake")
+		assert.NoError(t, err)
+
+		t.Run("file was untouched", func(t *testing.T) {
+			assert.Equal(t, "", mockFileHelper.OsRemoveCalledWithFilename)
+		})
+
+		t.Run("launchctl remove was called", func(t *testing.T) {
+			assert.Equal(t, true, mockLaunchctl.removeCalled)
+			assert.Equal(t, "fake", mockLaunchctl.removeCalledForLabel)
+		})
+
+		t.Run("return value launchdWasDisabled is false", func(t *testing.T) {
+			assert.Equal(t, false, launchdWasDisabled)
+		})
+	})
+
+	t.Run("plist file was removed, but launchctl remove failed, doesn't error", func(t *testing.T) {
+		mockFileHelper := mockFileFunctions{
+			OsStatReturnError:   nil, // simulate that file exists (no ErrNotExist)
+			OsRemoveReturnError: nil,
+		}
+		mockLaunchctl := &mockLaunchctl{
+			removeError: fmt.Errorf("launchctl failed"),
+		}
+
+		launchdWasDisabled, err := ld.disable(mockLaunchctl, &mockFileHelper, "fake.plist", "fake")
+		assert.NoError(t, err)
+
+		t.Run("return value launchdWasDisabled is true", func(t *testing.T) {
+			assert.Equal(t, true, launchdWasDisabled)
+		})
+	})
+
+	t.Run("plist file was missing, but launchctl remove failed, doesn't error", func(t *testing.T) {
+		mockFileHelper := mockFileFunctions{
+			OsStatReturnError:   os.ErrNotExist, // simulate that file is missing
+			OsRemoveReturnError: nil,
+		}
+		mockLaunchctl := &mockLaunchctl{
+			removeError: fmt.Errorf("launchctl failed"),
+		}
+
+		launchdWasDisabled, err := ld.disable(mockLaunchctl, &mockFileHelper, "fake.plist", "fake")
+		assert.NoError(t, err)
+
+		t.Run("return value launchdWasDisabled is false", func(t *testing.T) {
+			assert.Equal(t, false, launchdWasDisabled)
+		})
 	})
 
 	t.Run("error if file couldn't be removed", func(t *testing.T) {
@@ -83,14 +168,14 @@ func TestLaunchdDisable(t *testing.T) {
 		}
 		mockLaunchctl := &mockLaunchctl{}
 
-		launchdDisabled, err := ld.disable(mockLaunchctl, &mockFileHelper, "fake.plist", "fake")
+		launchdWasDisabled, err := ld.disable(mockLaunchctl, &mockFileHelper, "fake.plist", "fake")
 		assert.GotError(t, err)
 		assert.Equal(t,
 			"failed to remove fake.plist: permission denied",
 			err.Error(),
 		)
 
-		assert.Equal(t, false, launchdDisabled)
+		assert.Equal(t, false, launchdWasDisabled)
 		assert.Equal(t, false, mockLaunchctl.removeCalled)
 	})
 }
@@ -130,9 +215,9 @@ type mockLaunchctl struct {
 	removeResult string
 	removeError  error
 
-	loadCalled      bool
-	removeCalled    bool
-	removeCalledFor string
+	loadCalled           bool
+	removeCalled         bool
+	removeCalledForLabel string
 }
 
 func (m *mockLaunchctl) load(filename string) (string, error) {
@@ -142,6 +227,6 @@ func (m *mockLaunchctl) load(filename string) (string, error) {
 
 func (m *mockLaunchctl) remove(label string) (string, error) {
 	m.removeCalled = true
-	m.removeCalledFor = label
+	m.removeCalledForLabel = label
 	return m.removeResult, m.removeError
 }

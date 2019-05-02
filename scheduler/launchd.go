@@ -46,21 +46,25 @@ func (ld *launchd) enable(
 	launchdAgentFilename string) (
 	launchdFileWasCreated bool, err error) {
 
-	if exists, err := fileExists(fileFunctions, launchdAgentFilename); !exists || err != nil {
+	if exists, err := fileExists(fileFunctions, launchdAgentFilename); err != nil || !exists {
+		log.Printf("creating launchd plist file %s", launchdAgentFilename)
 		// file does not exist (or couldn't tell), try writing out default launchd agent file
 		if err = fileFunctions.IoutilWriteFile(
 			launchdAgentFilename, []byte(LaunchdFileContents), 0600); err != nil {
+			log.Printf("failed to create file %s: %v", launchdAgentFilename, err)
 			return false,
 				fmt.Errorf("%s didn't exist and failed to create it: %v", launchdAgentFilename, err)
 		}
+		launchdFileWasCreated = true
 	}
 
 	_, err = launchctl.load(launchdAgentFilename)
 	if err != nil {
+		log.Printf("failed to call launchctl load: %v", err)
 		return false, err
 	}
 
-	return true, nil
+	return launchdFileWasCreated, nil
 }
 
 func fileExists(fileFunctions fileFunctionsInterface, filename string) (exists bool, err error) {
@@ -81,18 +85,23 @@ func (ld *launchd) disable(
 ) (
 	launchdFileWasRemoved bool, err error) {
 
-	if err := fileFunctions.OsRemove(launchdAgentFilename); err != nil {
-		return false, fmt.Errorf("failed to remove %s: %v", launchdAgentFilename, err)
+	if exists, err := fileExists(fileFunctions, launchdAgentFilename); err != nil || exists {
+		if err := fileFunctions.OsRemove(launchdAgentFilename); err != nil {
+			return false, fmt.Errorf("failed to remove %s: %v", launchdAgentFilename, err)
+		}
+		launchdFileWasRemoved = true
 	}
 
 	// Note: if we call this function from launchd the following line will execture, but
 	// then terminate immediately (as it's been unloaded). This means that no further code will run.
 	_, err = launchctl.remove(launchdLabel)
 	if err != nil {
-		return false, err
+		log.Printf("failed to call launchctl remove (but plist file is gone): %v\n", err)
+		// we didn't manage to remove the job from launchd, but since the file is deleted it will
+		// stop after the next reboot, so consider this a success.
 	}
 
-	return true, nil
+	return launchdFileWasRemoved, nil
 }
 
 func (ld *launchd) getFilename() (string, error) {
