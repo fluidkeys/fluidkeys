@@ -178,8 +178,10 @@ func fetchAndCertifyTeamKeys(
 			}
 		}
 
-		err = ui.RunWithCheckboxes(person.Email, func() error {
-			key, err := api.GetPublicKeyByFingerprint(person.Fingerprint)
+		var theirKey *pgpkey.PgpKey
+
+		err = ui.RunWithCheckboxes(person.Email+": fetch key", func() error {
+			theirKey, err = api.GetPublicKeyByFingerprint(person.Fingerprint)
 
 			if err != nil && err == apiclient.ErrPublicKeyNotFound {
 				log.Print(err)
@@ -188,6 +190,10 @@ func fetchAndCertifyTeamKeys(
 				log.Print(err)
 				return fmt.Errorf("Got error from Fluidkeys server")
 			}
+			return nil
+		})
+
+		err = ui.RunWithCheckboxes(person.Email+": sign key", func() error {
 
 			if !alreadyCertified(person.Email, person.Fingerprint, me.Fingerprint) {
 				unlockedKey, err := getUnlockedKey(me.Fingerprint, unattended)
@@ -199,7 +205,7 @@ func fetchAndCertifyTeamKeys(
 					return err
 				}
 
-				if err := key.CertifyEmail(person.Email, unlockedKey, time.Now()); err != nil {
+				if err := theirKey.CertifyEmail(person.Email, unlockedKey, time.Now()); err != nil {
 					log.Print(err)
 					return fmt.Errorf("Failed to sign key: %v", err)
 				}
@@ -208,9 +214,13 @@ func fetchAndCertifyTeamKeys(
 			} else {
 				log.Printf("key %s already certified by %s, not certifying again",
 					person.Fingerprint.Hex(), me.Fingerprint.Hex())
+				return ui.SkipThisAction
 			}
+			return nil
+		})
 
-			armoredKey, err := key.Armor()
+		err = ui.RunWithCheckboxes(person.Email+": import into gpg", func() error {
+			armoredKey, err := theirKey.Armor()
 			if err != nil {
 				log.Print(err)
 				return fmt.Errorf("failed to ASCII armor key")
@@ -221,7 +231,7 @@ func fetchAndCertifyTeamKeys(
 				log.Print(err)
 				return fmt.Errorf("Failed to import key into gpg")
 			}
-			db.RecordLast("fetch", key.Fingerprint(), time.Now())
+			db.RecordLast("fetch", theirKey.Fingerprint(), time.Now())
 
 			return nil
 		})
