@@ -24,8 +24,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/fluidkeys/fluidkeys/colour"
+	fp "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/out"
-	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/stringutils"
 	"github.com/fluidkeys/fluidkeys/team"
 	"github.com/fluidkeys/fluidkeys/ui"
@@ -109,7 +109,7 @@ func teamCreate() exitCode {
 
 	out.Print("Create team roster with you in it:\n\n")
 
-	if err := promptAndSignAndUploadRoster(t, key); err != nil {
+	if err := promptAndSignAndUploadRoster(t, key.Fingerprint()); err != nil {
 		if err != errUserDeclinedToSign {
 			out.Print(ui.FormatFailure("Failed to sign and upload roster", nil, err))
 		}
@@ -153,7 +153,7 @@ Join now:
 	return 0
 }
 
-func promptAndSignAndUploadRoster(t team.Team, key *pgpkey.PgpKey) (err error) {
+func promptAndSignAndUploadRoster(t team.Team, adminFingerprint fp.Fingerprint) (err error) {
 	unsignedRoster, err := t.PreviewRoster()
 	if err != nil {
 		return err
@@ -166,7 +166,7 @@ func promptAndSignAndUploadRoster(t team.Team, key *pgpkey.PgpKey) (err error) {
 		return errUserDeclinedToSign
 	}
 
-	privateKey, _, err := getDecryptedPrivateKeyAndPassword(key, &interactivePasswordPrompter{})
+	privateKey, err := getUnlockedKey(adminFingerprint, false)
 	if err != nil {
 		return fmt.Errorf("Failed to unlock private key to sign roster: %v", err)
 	}
