@@ -359,6 +359,48 @@ func (c *Client) DeleteRequestToJoinTeam(teamUUID uuid.UUID, requestUUID uuid.UU
 	return err
 }
 
+// Log sends an event to the API. The event is sent in a goroutine so it doesn't block the
+// main thread.
+func (c *Client) Log(event Event) error {
+	if event.Name == "" {
+		return fmt.Errorf("invalid event: name can't be empty")
+	}
+
+	path := "events"
+
+	var (
+		errorText       string
+		fingerprintText string
+		teamUUIDText    string
+	)
+
+	if event.Error != nil {
+		errorText = event.Error.Error()
+	}
+
+	if event.TeamUUID != nil {
+		teamUUIDText = event.TeamUUID.String()
+	}
+
+	if event.Fingerprint != nil {
+		fingerprintText = event.Fingerprint.Uri()
+	}
+
+	requestData := v1structs.CreateEventRequest{
+		Name: event.Name,
+		RelatedKeyFingerprint: fingerprintText,
+		RelatedTeamUUID:       teamUUIDText,
+		Error:                 errorText,
+	}
+
+	request, err := c.newRequest("POST", path, requestData)
+	if err != nil {
+		return err
+	}
+	_, err = c.do(request, nil)
+	return err
+}
+
 func makeUpsertPublicKeySignedData(armoredPublicKey string, privateKey *pgpkey.PgpKey) (armoredSignedJSON string, err error) {
 	publicKeyHash := fmt.Sprintf("%X", sha256.Sum256([]byte(armoredPublicKey)))
 
