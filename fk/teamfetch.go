@@ -47,8 +47,26 @@ func teamFetch(unattended bool) exitCode {
 	}
 
 	for i := range memberships {
-		if err := doUpdateTeam(&memberships[i].Team, &memberships[i].Me, unattended); err != nil {
+		me := &memberships[i].Me
+		t := &memberships[i].Team
+
+		if err := doUpdateTeam(t, me, unattended); err != nil {
 			sawError = true
+
+			if unattended {
+				api.Log(apiclient.Event{
+					Name:        eventErrorUpdatingTeamUnattended,
+					Fingerprint: &me.Fingerprint,
+					TeamUUID:    &t.UUID,
+					Error:       err,
+				})
+			}
+		} else if unattended {
+			api.Log(apiclient.Event{
+				Name:        eventSuccessUpdatingTeamUnattended,
+				Fingerprint: &me.Fingerprint,
+				TeamUUID:    &t.UUID,
+			})
 		}
 	}
 
@@ -453,4 +471,9 @@ func verifyBrandNewRoster(t team.Team, roster string, signature string) error {
 
 const (
 	successfullyFetchedKeysHeadline = "Successfully fetched keys and imported them into GnuPG"
+)
+
+const (
+	eventErrorUpdatingTeamUnattended   = "error_updating_team_unattended"
+	eventSuccessUpdatingTeamUnattended = "success_updating_team_unattended"
 )
