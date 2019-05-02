@@ -785,6 +785,134 @@ func TestDeleteRequestToJoinTeam(t *testing.T) {
 	})
 }
 
+func TestLog(t *testing.T) {
+
+	teamUUID := uuid.Must(uuid.NewV4())
+	fingerprint := exampledata.ExampleFingerprint2
+	fakeError := fmt.Errorf("fake error")
+
+	t.Run("sends a JSON POST from the given Event", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "POST", r.Method)
+
+			gotRequest := new(v1structs.CreateEventRequest)
+			json.NewDecoder(r.Body).Decode(gotRequest)
+
+			assert.Equal(t, "test_event_1", gotRequest.Name)
+			assert.Equal(t, teamUUID.String(), gotRequest.RelatedTeamUUID)
+			assert.Equal(t, fingerprint.Uri(), gotRequest.RelatedKeyFingerprint)
+			assert.Equal(t, "fake error", gotRequest.Error)
+
+			w.WriteHeader(http.StatusOK)
+		}
+		mux.HandleFunc(fmt.Sprintf("/events"), mockResponseHandler)
+
+		err := client.Log(
+			Event{
+				Name:        "test_event_1",
+				TeamUUID:    &teamUUID,
+				Fingerprint: &fingerprint,
+				Error:       fakeError,
+			},
+		)
+		assert.NoError(t, err)
+	})
+
+	t.Run("handles missing error", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "POST", r.Method)
+
+			gotRequest := new(v1structs.CreateEventRequest)
+			json.NewDecoder(r.Body).Decode(gotRequest)
+
+			assert.Equal(t, "test_event_1", gotRequest.Name)
+			assert.Equal(t, teamUUID.String(), gotRequest.RelatedTeamUUID)
+			assert.Equal(t, fingerprint.Uri(), gotRequest.RelatedKeyFingerprint)
+			assert.Equal(t, "", gotRequest.Error)
+
+			w.WriteHeader(http.StatusOK)
+		}
+		mux.HandleFunc(fmt.Sprintf("/events"), mockResponseHandler)
+
+		err := client.Log(
+			Event{
+				Name:        "test_event_1",
+				TeamUUID:    &teamUUID,
+				Fingerprint: &fingerprint,
+			},
+		)
+		assert.NoError(t, err)
+	})
+
+	t.Run("handles missing fingerprint", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "POST", r.Method)
+
+			gotRequest := new(v1structs.CreateEventRequest)
+			json.NewDecoder(r.Body).Decode(gotRequest)
+
+			assert.Equal(t, "", gotRequest.RelatedKeyFingerprint)
+
+			w.WriteHeader(http.StatusOK)
+		}
+		mux.HandleFunc(fmt.Sprintf("/events"), mockResponseHandler)
+
+		err := client.Log(
+			Event{
+				Name:     "test_event_1",
+				TeamUUID: &teamUUID,
+				Error:    fakeError,
+			},
+		)
+		assert.NoError(t, err)
+	})
+
+	t.Run("handles missing team UUID", func(t *testing.T) {
+		client, mux, _, teardown := setup()
+		defer teardown()
+
+		mockResponseHandler := func(w http.ResponseWriter, r *http.Request) {
+			assertClientSentVerb(t, "POST", r.Method)
+
+			gotRequest := new(v1structs.CreateEventRequest)
+			json.NewDecoder(r.Body).Decode(gotRequest)
+
+			assert.Equal(t, "", gotRequest.RelatedTeamUUID)
+
+			w.WriteHeader(http.StatusOK)
+		}
+		mux.HandleFunc(fmt.Sprintf("/events"), mockResponseHandler)
+
+		err := client.Log(
+			Event{
+				Name:        "test_event_1",
+				Fingerprint: &fingerprint,
+				Error:       fakeError,
+			},
+		)
+		assert.NoError(t, err)
+	})
+
+	t.Run("rejects empty event name", func(t *testing.T) {
+		client, _, _, teardown := setup()
+		defer teardown()
+
+		err := client.Log(
+			Event{},
+		)
+		assert.Equal(t, fmt.Errorf("invalid event: name can't be empty"), err)
+	})
+}
+
 // setup sets up a test HTTP server along with a fluidkeysServer.Client that is
 // configured to talk to that test server. Tests should register handlers on
 // mux which provide mock responses for the API method being tested.

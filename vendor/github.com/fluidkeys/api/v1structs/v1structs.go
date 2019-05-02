@@ -143,6 +143,15 @@ type GetTeamRosterResponse struct {
 	ArmoredDetachedSignature string `json:"armoredDetachedSignature"`
 }
 
+// CreateEventRequest is the JSON structure containing an event to be logged from Fluidkeys client.
+type CreateEventRequest struct {
+	// Name is the name of the event, e.g. `error_updating_team`
+	Name                  string `json:"name"`
+	RelatedKeyFingerprint string `json:"relatedKeyFingerprint"`
+	RelatedTeamUUID       string `json:"relatedTeamUUID"`
+	Error                 string `json:"error"`
+}
+
 // ErrorResponse is the JSON structure returned when the API encounters an
 // error.
 type ErrorResponse struct {
