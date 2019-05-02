@@ -61,28 +61,16 @@ func teamFetch(unattended bool) exitCode {
 }
 
 func doUpdateTeam(myTeam *team.Team, me *team.Person, unattended bool) (err error) {
-	alwaysDownload := !unattended
-
 	printHeader(myTeam.Name)
 
-	unlockedKey, err := getUnlockedKey(me.Fingerprint, unattended)
-	if err != nil {
-		out.Print(ui.FormatFailure(
-			"Failed to unlock key to check for team updates", []string{
-				"Checking for updates to the team requires an unlocked key",
-				"as the team roster is encrypted.",
-			}, err))
-		return err
-	}
-
 	var updatedTeam *team.Team
-	if updatedTeam, err = fetchAndUpdateRoster(*myTeam, unlockedKey, alwaysDownload); err != nil {
+	if updatedTeam, err = fetchAndUpdateRoster(*myTeam, *me, unattended); err != nil {
 		out.Print(ui.FormatWarning("Failed to check team for updates", []string{}, err))
 		return err
 	}
 	myTeam = updatedTeam // move myTeam pointer to updatedTeam
 
-	if err := fetchAndCertifyTeamKeys(*myTeam, *me, unlockedKey, alwaysDownload); err != nil {
+	if err := fetchAndCertifyTeamKeys(*myTeam, *me, unattended); err != nil {
 		out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
 		return err
 	}
@@ -105,8 +93,10 @@ func formatYouRequestedToJoin(request team.RequestToJoinTeam) string {
 
 // fetchAndUpdateRoster fetches any update to the team roster and saves it back to disk.
 // if alwaysDownload is false, only check the roster if we last checked it more than 24 hours ago
-func fetchAndUpdateRoster(t team.Team, unlockedKey *pgpkey.PgpKey, alwaysDownload bool) (
+func fetchAndUpdateRoster(t team.Team, me team.Person, unattended bool) (
 	updatedTeam *team.Team, err error) {
+
+	alwaysDownload := !unattended
 
 	// TODO: download the updated roster and handle the case where we're forbidden, as it
 	// means we're no longer in the team.
@@ -123,7 +113,7 @@ func fetchAndUpdateRoster(t team.Team, unlockedKey *pgpkey.PgpKey, alwaysDownloa
 		}
 	}
 
-	roster, signature, err := api.GetTeamRoster(t.UUID, unlockedKey.Fingerprint())
+	roster, signature, err := api.GetTeamRoster(t.UUID, me.Fingerprint)
 	if err != nil {
 		return nil, fmt.Errorf("error downloading team roster: %v", err)
 	}
@@ -167,7 +157,9 @@ func fetchAndUpdateRoster(t team.Team, unlockedKey *pgpkey.PgpKey, alwaysDownloa
 // if `alwaysDownload` is false, it will only try to fetch keys every 24 hours, otherwise it'll
 // check every time.
 func fetchAndCertifyTeamKeys(
-	t team.Team, me team.Person, unlockedKey *pgpkey.PgpKey, alwaysDownload bool) (err error) {
+	t team.Team, me team.Person, unattended bool) (err error) {
+
+	alwaysDownload := !unattended
 
 	out.Print("Fetching and signing keys for other members of " + t.Name + ":\n\n")
 
@@ -197,7 +189,16 @@ func fetchAndCertifyTeamKeys(
 				return fmt.Errorf("Got error from Fluidkeys server")
 			}
 
-			if !alreadyCertified(person.Email, person.Fingerprint, unlockedKey.Fingerprint()) {
+			if !alreadyCertified(person.Email, person.Fingerprint, me.Fingerprint) {
+				unlockedKey, err := getUnlockedKey(me.Fingerprint, unattended)
+				if err != nil {
+					out.Print(ui.FormatFailure(
+						"Failed to unlock key to sign key", []string{
+							"Signing (or certifying) a key requires an unlocked key.",
+						}, err))
+					return err
+				}
+
 				if err := key.CertifyEmail(person.Email, unlockedKey, time.Now()); err != nil {
 					log.Print(err)
 					return fmt.Errorf("Failed to sign key: %v", err)
@@ -206,7 +207,7 @@ func fetchAndCertifyTeamKeys(
 
 			} else {
 				log.Printf("key %s already certified by %s, not certifying again",
-					person.Fingerprint.Hex(), unlockedKey.Fingerprint().Hex())
+					person.Fingerprint.Hex(), me.Fingerprint.Hex())
 			}
 
 			armoredKey, err := key.Armor()
@@ -301,14 +302,7 @@ func processRequestsToJoinTeam(unattended bool) (returnError error) {
 			continue
 		}
 
-		unlockedKey, err := getUnlockedKey(request.Fingerprint, unattended)
-		if err != nil {
-			out.Print(ui.FormatFailure("Failed to load requesting key", nil, err))
-			returnError = err
-			continue
-		}
-
-		roster, signature, err := api.GetTeamRoster(request.TeamUUID, unlockedKey.Fingerprint())
+		roster, signature, err := api.GetTeamRoster(request.TeamUUID, request.Fingerprint)
 
 		if err == apiclient.ErrForbidden {
 			printRequestHasntBeenApproved(request)
