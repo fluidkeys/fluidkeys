@@ -17,7 +17,10 @@
 
 package scheduler
 
-import "os/exec"
+import (
+	"log"
+	"os/exec"
+)
 
 var scheduler schedulerInterface
 
@@ -32,7 +35,15 @@ func init() {
 
 // Enable schedules Fluidkeys sync task to run regularly
 func Enable() (bool, error) {
-	return scheduler.Enable()
+	schedulerWasEnabled, err := scheduler.Enable()
+
+	if err == nil && schedulerWasEnabled {
+		if _, isLaunchd := scheduler.(*launchd); isLaunchd {
+			tryDisableCrontab()
+		}
+	}
+
+	return schedulerWasEnabled, err
 }
 
 // Disable stops Fluidkeys sync task from running regularly
@@ -43,6 +54,19 @@ func Disable() (bool, error) {
 // Name returns a friendly name for the scheduler
 func Name() string {
 	return scheduler.Name()
+}
+
+// tryDisableCrontab is used to try and remove the fluidkeys lines from crontab, immediately
+// after successfully enabling launchd.
+func tryDisableCrontab() {
+	c := cron{}
+
+	wasDisabled, err := c.Disable()
+	if err != nil {
+		log.Printf("failed to disable crontab (migrating to launchd): %v", err)
+	} else if wasDisabled {
+		log.Printf("disabled Fluidkeys in crontab")
+	}
 }
 
 // schedulerInterface provides the uniform interface for scheduling a task on the
