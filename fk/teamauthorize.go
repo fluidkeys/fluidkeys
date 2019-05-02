@@ -23,41 +23,32 @@ import (
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
-	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/team"
 	"github.com/fluidkeys/fluidkeys/ui"
+	userpackage "github.com/fluidkeys/fluidkeys/user"
 )
 
 func teamAuthorize() exitCode {
-	keys, err := loadPgpKeys()
+	allMemberships, err := user.Memberships()
 	if err != nil {
-		out.Print(ui.FormatFailure("Error loading keys", nil, err))
+		out.Print(ui.FormatFailure("Failed to list teams", nil, err))
 		return 1
 	}
 
-	allTeams, err := team.LoadTeams(fluidkeysDirectory)
-	if err != nil {
-		out.Print(ui.FormatFailure("Error loading teams", nil, err))
-		return 1
-	}
+	adminMemberships := filterByAdmin(allMemberships)
 
-	teamAndKeys, code := getTeamsOfWhichImAdmin(allTeams, keys)
-	if code != 0 {
-		return code
-	}
-
-	switch len(teamAndKeys) {
+	switch len(adminMemberships) {
 	case 0:
 		out.Print(ui.FormatFailure("You aren't an admin of any teams", nil, nil))
 		return 1
 
 	case 1:
-		myTeam := teamAndKeys[0].team
-		adminKey := teamAndKeys[0].adminKey
+		myTeam := adminMemberships[0].Team
+		me := adminMemberships[0].Me
 
 		printHeader("Authorize requests to join " + myTeam.Name)
 
-		requests, err := api.ListRequestsToJoinTeam(myTeam.UUID, adminKey.Fingerprint())
+		requests, err := api.ListRequestsToJoinTeam(myTeam.UUID, me.Fingerprint)
 		if err != nil {
 			out.Print(ui.FormatFailure("Error getting requests", nil, err))
 			return 1
@@ -92,7 +83,8 @@ func teamAuthorize() exitCode {
 			printHeader("Sign and upload team roster")
 
 			out.Print("The team roster is a signed file that defines who is in the team.\n\n")
-			if err := promptAndSignAndUploadRoster(myTeam, adminKey.Fingerprint()); err != nil {
+
+			if err := promptAndSignAndUploadRoster(myTeam, me.Fingerprint); err != nil {
 				out.Print(ui.FormatFailure("Failed to sign and upload roster", nil, err))
 				return 1
 			}
@@ -216,22 +208,14 @@ func reviewRequests(requests []team.RequestToJoinTeam, myTeam team.Team) (
 	return approvedRequests, deleteRequests
 }
 
-type teamAndKey struct {
-	team     team.Team
-	adminKey pgpkey.PgpKey
-}
+func filterByAdmin(memberships []userpackage.TeamMembership) (
+	adminMemberships []userpackage.TeamMembership) {
 
-func getTeamsOfWhichImAdmin(allTeams []team.Team, myKeys []pgpkey.PgpKey) (
-	teams []teamAndKey, code exitCode) {
-
-	for _, team := range allTeams {
-		for _, key := range myKeys {
-			if team.IsAdmin(key.Fingerprint()) {
-				teams = append(teams, teamAndKey{team: team, adminKey: key})
-				break
-			}
+	for _, membership := range memberships {
+		if membership.Me.IsAdmin {
+			adminMemberships = append(adminMemberships, membership)
 		}
 	}
 
-	return teams, 0
+	return adminMemberships
 }
