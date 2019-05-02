@@ -97,7 +97,7 @@ Options:
 	log.Print("$ " + strings.Join(os.Args, " "))
 	args, _ := docopt.ParseDoc(usage)
 
-	ensureCrontabStateMatchesConfig()
+	ensureSchedulerStateMatchesConfig()
 
 	cronOutput, err := args.Bool("--cron-output")
 	if err != nil {
@@ -144,57 +144,81 @@ Options:
 	return code
 }
 
-func ensureCrontabStateMatchesConfig() {
+func ensureSchedulerStateMatchesConfig() {
 	shouldEnable, err := shouldEnableScheduler()
 	if err != nil {
 		log.Panic(err)
 	}
 
 	if shouldEnable {
-		crontabWasAdded, err := scheduler.Enable(nil)
+		schedulerWasEnabled, err := scheduler.Enable()
 		if err != nil {
-			out.Print(ui.FormatFailure(
-				"Failed to schedule automatic key maintenance and rotation", []string{
-					"Fluidkeys manages your key by running itself periodically with cron.",
-					"Something prevented Fluidkeys from adding itself to your crontab."},
-				err,
-			))
+			switch err.(type) {
+			case *scheduler.ErrModifyingCrontab:
+				out.Print(ui.FormatFailure(
+					"Failed to schedule automatic key maintenance and rotation", []string{
+						"Fluidkeys manages your key by running itself periodically with cron.",
+						"Something prevented Fluidkeys from adding itself to your crontab."},
+					err,
+				))
 
-			out.Print("To fix this, run " + colour.Cmd("crontab -e") + " and add these lines:\n\n")
-			out.Print(formatFileDivider("crontab", 80))
-			out.Print("\n" + scheduler.CronLines)
-			out.Print(formatFileDivider("", 80))
-			out.Print("\n\n")
+				out.Print("To fix this, run " + colour.Cmd("crontab -e") + " and add these lines:\n\n")
+				out.Print(formatFileDivider("crontab", 80))
+				out.Print("\n" + scheduler.CronLines)
+				out.Print(formatFileDivider("", 80))
+				out.Print("\n\n")
+
+			default:
+				out.Print(ui.FormatFailure(
+					"Failed to schedule automatic key maintenance and rotation", []string{
+						"Fluidkeys manages your key by running itself periodically with " +
+							scheduler.Name(),
+						"Something prevented this happening."},
+					err,
+				))
+			}
 
 			// don't carry on: they need to fix this problem first.
 			// if automatic key maintenance isn't working, Fluidkeys can't work
 			os.Exit(1)
 		}
 
-		if crontabWasAdded {
-			printInfo(fmt.Sprintf("Added Fluidkeys to crontab.  Edit %s to remove.",
-				Config.GetFilename()))
+		if schedulerWasEnabled {
+			printInfo(fmt.Sprintf("Added Fluidkeys to %s.  Edit %s to remove.",
+				scheduler.Name(), Config.GetFilename()))
 		}
 	} else {
-		crontabWasRemoved, err := scheduler.Disable(nil)
+		schedulerWasDisabled, err := scheduler.Disable()
 		if err != nil {
-			out.Print(ui.FormatWarning(
-				"Failed to remove Fluidkeys from crontab", []string{
-					"Fluidkeys tried to remove itself from crontab but something prevented it.",
-				},
-				err,
-			))
+			switch err.(type) {
+			case *scheduler.ErrModifyingCrontab:
+				out.Print(ui.FormatWarning(
+					"Failed to remove Fluidkeys from crontab", []string{
+						"Fluidkeys tried to remove itself from crontab but something prevented it.",
+					},
+					err,
+				))
 
-			out.Print("To fix this, run " + colour.Cmd("crontab -e") + " and remove these lines:\n\n")
-			out.Print(formatFileDivider("crontab", 80))
-			out.Print("\n" + scheduler.CronLines)
-			out.Print(formatFileDivider("", 80))
-			out.Print("\n\n")
+				out.Print("To fix this, run " + colour.Cmd("crontab -e") + " and remove these lines:\n\n")
+				out.Print(formatFileDivider("crontab", 80))
+				out.Print("\n" + scheduler.CronLines)
+				out.Print(formatFileDivider("", 80))
+				out.Print("\n\n")
+
+			default:
+				out.Print(ui.FormatFailure(
+					"Failed to disable automatic key maintenance and rotation", []string{
+						"Fluidkeys manages your key by running itself periodically with " +
+							scheduler.Name(),
+						"Something prevented this from being disabled."},
+					err,
+				))
+			}
 		}
 
-		if crontabWasRemoved {
-			printInfo(fmt.Sprintf("Removed Fluidkeys from crontab.  Edit %s to add again.",
-				Config.GetFilename()))
+		if schedulerWasDisabled {
+			printInfo(fmt.Sprintf("Removed Fluidkeys from %s.  Edit %s to add again.",
+				scheduler.Name(), Config.GetFilename()))
 		}
 	}
 }

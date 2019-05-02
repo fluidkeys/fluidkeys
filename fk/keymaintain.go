@@ -449,7 +449,7 @@ func tryMaintainAutomatically(fpr fpr.Fingerprint) error {
 	if err := Config.SetMaintainAutomatically(fpr, true); err != nil {
 		return err
 	}
-	if _, err := scheduler.Enable(nil); err != nil {
+	if _, err := scheduler.Enable(); err != nil {
 		return err
 	}
 	return nil
