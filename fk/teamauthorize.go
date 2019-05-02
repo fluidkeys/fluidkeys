@@ -89,6 +89,10 @@ func teamAuthorize() exitCode {
 				return 1
 			}
 
+			if err := fetchAndCertifyTeamKeys(myTeam, me, false); err != nil {
+				out.Print(ui.FormatWarning("Error fetching team keys", nil, err))
+				return 1
+			}
 		}
 
 		seenError := false
