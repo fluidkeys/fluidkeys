@@ -215,6 +215,7 @@ func promptAndSignAndUploadRoster(t team.Team, adminFingerprint fp.Fingerprint) 
 	ui.PrintCheckboxSuccess(checkboxSign)
 	out.Print("         " + filepath.Join(fluidkeysDirectory, "teams") + "\n")
 	ui.PrintCheckboxSuccess(checkboxUpload)
+	out.Print("\n")
 
 	return nil
 }
