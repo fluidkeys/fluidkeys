@@ -345,6 +345,21 @@ func promptAndTurnOnMaintainAutomatically(prompter promptYesNoInterface, keyTask
 	out.Print("This requires storing the password in the system keyring.\n\n")
 
 	if prompter.promptYesNo(promptMaintainAutomatically, "", keyTask.key) == true {
+
+		out.Print("Fluidkeys must be able to read back the password from " +
+			Keyring.Name() + "\n")
+		if Keyring.PermissionsInstructions() != "" {
+			out.Print(Keyring.PermissionsInstructions() + "\n\n")
+		}
+
+		_, gotPassword := Keyring.LoadPassword(keyTask.key.Fingerprint())
+		if gotPassword == true {
+			printSuccess("Read back password from " + Keyring.Name())
+		} else {
+			printFailed("Failed to read back password from " + Keyring.Name())
+			return
+		}
+
 		if err := tryStorePassword(keyTask.key.Fingerprint(), keyTask.password); err == nil {
 			printSuccess("Stored password in " + Keyring.Name())
 		} else {
