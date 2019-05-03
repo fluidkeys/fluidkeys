@@ -67,7 +67,24 @@ func teamApply(teamUUID uuid.UUID) exitCode {
 
 	printHeader("Apply to join team")
 
-	if err := requestToJoinTeam(teamUUID, teamName, pgpKey.Fingerprint(), email); err != nil {
+	// always record a request so `team fetch` can refer to it later
+	if err := db.RecordRequestToJoinTeam(
+		teamUUID, teamName, pgpKey.Fingerprint(), time.Now()); err != nil {
+
+		out.Print(ui.FormatFailure("Failed to apply to join "+teamName, nil, err))
+		return 1
+	}
+
+	alreadyInTeam, err := alreadyInTeam(teamUUID, pgpKey.Fingerprint())
+	if err != nil {
+		log.Printf("error calling alreadyInTeam(%s, %s): %v", teamUUID, pgpKey.Fingerprint(), err)
+
+	} else if alreadyInTeam {
+		fmt.Printf("You're already in the team. Running " + colour.Cmd("fk team fetch") + "\n")
+		return teamFetch(false)
+	}
+
+	if err := api.RequestToJoinTeam(teamUUID, pgpKey.Fingerprint(), email); err != nil {
 		out.Print(ui.FormatFailure("Failed to apply to join "+teamName, nil, err))
 		return 1
 	}
@@ -217,18 +234,6 @@ func ensureNoExistingRequests(
 		return 1
 	}
 	return 0
-}
-
-func requestToJoinTeam(
-	teamUUID uuid.UUID, teamName string, fingerprint fpr.Fingerprint, email string) error {
-
-	if err := db.RecordRequestToJoinTeam(teamUUID, teamName, fingerprint, time.Now()); err != nil {
-		return err
-	}
-	if err := api.RequestToJoinTeam(teamUUID, fingerprint, email); err != nil {
-		return err
-	}
-	return nil
 }
 
 func getKeyForTeam() (*pgpkey.PgpKey, exitCode) {
