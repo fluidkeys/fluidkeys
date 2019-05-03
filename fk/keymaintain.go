@@ -340,7 +340,8 @@ func backupGpg() error {
 
 func promptAndTurnOnMaintainAutomatically(prompter promptYesNoInterface, keyTask keyTask) {
 
-	out.Print("Fluidkeys can maintain this key automatically using " + colour.Cmd("cron") + ".\n")
+	out.Print("Fluidkeys can maintain this key automatically using " +
+		colour.Cmd(scheduler.Name()) + ".\n")
 	out.Print("This requires storing the password in the system keyring.\n\n")
 
 	if prompter.promptYesNo(promptMaintainAutomatically, "", keyTask.key) == true {
