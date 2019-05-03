@@ -19,17 +19,21 @@ package fk
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/atotto/clipboard"
+	"github.com/fluidkeys/fluidkeys/apiclient"
 	"github.com/fluidkeys/fluidkeys/colour"
+	fp "github.com/fluidkeys/fluidkeys/fingerprint"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
 	"github.com/fluidkeys/fluidkeys/ui"
 	"github.com/gofrs/uuid"
+	spin "github.com/tj/go-spin"
 )
 
 func teamApply(teamUUID uuid.UUID) exitCode {
@@ -91,8 +95,48 @@ func teamApply(teamUUID uuid.UUID) exitCode {
 		}
 	}
 
-	return 0
+	return pollThenRunTeamFetch(teamUUID, pgpKey.Fingerprint())
+}
 
+func pollThenRunTeamFetch(teamUUID uuid.UUID, fingerprint fp.Fingerprint) exitCode {
+	s := spin.New()
+	spinnerTimeDelay := 100 * time.Millisecond
+
+	timeStartedPolling := time.Now()
+	timeLastPolled := timeStartedPolling
+
+	out.Print("Waiting for a team admin to add you to the team.\n")
+	out.Print("\n")
+	out.Print("You can exit with Ctrl-C and Fluidkeys will keep checking in the background.")
+	out.Print("\n\n")
+
+	for {
+		out.PrintDontLog("\r  " + colour.Waiting("Waiting to be approved") + " " + s.Next())
+		time.Sleep(spinnerTimeDelay)
+
+		if time.Since(timeLastPolled).Seconds() > 30 {
+			log.Printf("checking if we can access the team roster.\n")
+			_, _, err := api.GetTeamRoster(teamUUID, fingerprint)
+			if err == apiclient.ErrForbidden {
+
+			} else if err != nil {
+				log.Printf("error getting team roster: %v", err)
+
+			} else {
+				out.Print("\n\nDone! ")
+				break
+			}
+
+			timeLastPolled = time.Now()
+		}
+
+		if time.Since(timeStartedPolling).Hours() > 8 {
+			out.Print("\n\nNot approved. ")
+			break
+		}
+	}
+	out.Print("Running " + colour.Cmd("fk team fetch") + "\n\n")
+	return teamFetch(false)
 }
 
 func formatVerificationLines(fingerprint fpr.Fingerprint, email string) []string {
