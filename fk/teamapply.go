@@ -187,8 +187,6 @@ func ensureNoExistingRequests(
 		lines :=
 			[]string{
 				formatYouRequestedToJoin(*existingRequest),
-				"Check if the team admin has authorized your request by running " +
-					colour.Cmd("fk team fetch"),
 				"",
 				"Here are the verification details for your team admin:",
 				"",
@@ -198,6 +196,8 @@ func ensureNoExistingRequests(
 			// db, so that option isn't available. I don't believe this affects the verification
 			// but it could lead to a confusing state.
 		lines = append(lines, formatVerificationLines(existingRequest.Fingerprint, email)...)
+		lines = append(lines, "", "Check if the team admin has authorized your request by running "+
+			colour.Cmd("fk team fetch"))
 		out.Print(ui.FormatWarning(
 			"You've already requested to join "+existingRequest.TeamName, lines, nil))
 		return 1
