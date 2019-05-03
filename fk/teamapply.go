@@ -98,6 +98,22 @@ func teamApply(teamUUID uuid.UUID) exitCode {
 	return pollThenRunTeamFetch(teamUUID, pgpKey.Fingerprint())
 }
 
+// alreadyInTeam asks the API whether this fingerprint is listed in this team's roster and
+// returns the result, or error if something goes wrong.
+func alreadyInTeam(teamUUID uuid.UUID, fingerprint fp.Fingerprint) (bool, error) {
+	_, _, err := api.GetTeamRoster(teamUUID, fingerprint)
+	switch err {
+	case apiclient.ErrForbidden:
+		return false, nil
+
+	case nil: // no error, we're in the team
+		return true, nil
+
+	default: // some other error
+		return false, err
+	}
+}
+
 func pollThenRunTeamFetch(teamUUID uuid.UUID, fingerprint fp.Fingerprint) exitCode {
 	s := spin.New()
 	spinnerTimeDelay := 100 * time.Millisecond
@@ -116,13 +132,11 @@ func pollThenRunTeamFetch(teamUUID uuid.UUID, fingerprint fp.Fingerprint) exitCo
 
 		if time.Since(timeLastPolled).Seconds() > 30 {
 			log.Printf("checking if we can access the team roster.\n")
-			_, _, err := api.GetTeamRoster(teamUUID, fingerprint)
-			if err == apiclient.ErrForbidden {
-
-			} else if err != nil {
+			inTeam, err := alreadyInTeam(teamUUID, fingerprint)
+			if err != nil {
 				log.Printf("error getting team roster: %v", err)
 
-			} else {
+			} else if inTeam {
 				out.Print("\n\nDone! ")
 				break
 			}
