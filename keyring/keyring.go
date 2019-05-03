@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/fluidkeys/fluidkeys/colour"
 	fpr "github.com/fluidkeys/fluidkeys/fingerprint"
 	externalkeyring "github.com/fluidkeys/keyring"
 )
@@ -141,6 +142,15 @@ func (k *Keyring) Name() string {
 	default:
 		return "system keyring"
 	}
+}
+
+// PermissionsInstructions returns the instructions a user should follow to grant Fluidkeys to
+// access the system's keyring
+func (k Keyring) PermissionsInstructions() string {
+	if externalkeyring.KeychainBackend == k.backendType {
+		return "(Select '" + colour.Info("Always Allow") + "')"
+	}
+	return ""
 }
 
 func (k *Keyring) noBackend() bool {

@@ -183,6 +183,16 @@ func keyCreate(email string) (exitCode, *pgpkey.PgpKey) {
 		ui.PrintCheckboxFailure("Store password in "+Keyring.Name(), err)
 	}
 
+	ui.PrintCheckboxPending("Read back password from " + Keyring.Name() +
+		" " + Keyring.PermissionsInstructions())
+	_, gotPassword := Keyring.LoadPassword(generateJob.pgpKey.Fingerprint())
+	if gotPassword == true {
+		ui.PrintCheckboxSuccess("Read back password from " + Keyring.Name())
+	} else {
+		ui.PrintCheckboxFailure("Read back password from "+Keyring.Name(),
+			fmt.Errorf("automatic maintenance won't work"))
+	}
+
 	ui.PrintCheckboxPending("Automatically rotate key each month using cron")
 
 	if err := tryMaintainAutomatically(generateJob.pgpKey.Fingerprint()); err == nil {
