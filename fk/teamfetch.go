@@ -343,7 +343,9 @@ func processRequestsToJoinTeam(unattended bool) (returnError error) {
 
 		t, err := team.Load(roster, signature)
 		if err != nil {
-			out.Print(ui.FormatFailure("Failed to load team", nil, err))
+			out.Print(ui.FormatFailure("Failed to load downloaded team roster", nil, err))
+			log.Printf("team %s roster & sig downloaded from API:\n`%s`\n`%s`",
+				request.TeamUUID, roster, signature)
 			returnError = err
 			continue
 		}
