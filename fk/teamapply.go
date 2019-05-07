@@ -67,7 +67,24 @@ func teamApply(teamUUID uuid.UUID) exitCode {
 
 	printHeader("Apply to join team")
 
-	if err := requestToJoinTeam(teamUUID, teamName, pgpKey.Fingerprint(), email); err != nil {
+	// always record a request so `team fetch` can refer to it later
+	if err := db.RecordRequestToJoinTeam(
+		teamUUID, teamName, pgpKey.Fingerprint(), time.Now()); err != nil {
+
+		out.Print(ui.FormatFailure("Failed to apply to join "+teamName, nil, err))
+		return 1
+	}
+
+	alreadyInTeam, err := alreadyInTeam(teamUUID, pgpKey.Fingerprint())
+	if err != nil {
+		log.Printf("error calling alreadyInTeam(%s, %s): %v", teamUUID, pgpKey.Fingerprint(), err)
+
+	} else if alreadyInTeam {
+		fmt.Printf("You're already in the team. Running " + colour.Cmd("fk team fetch") + "\n")
+		return teamFetch(false)
+	}
+
+	if err := api.RequestToJoinTeam(teamUUID, pgpKey.Fingerprint(), email); err != nil {
 		out.Print(ui.FormatFailure("Failed to apply to join "+teamName, nil, err))
 		return 1
 	}
@@ -98,6 +115,22 @@ func teamApply(teamUUID uuid.UUID) exitCode {
 	return pollThenRunTeamFetch(teamUUID, pgpKey.Fingerprint())
 }
 
+// alreadyInTeam asks the API whether this fingerprint is listed in this team's roster and
+// returns the result, or error if something goes wrong.
+func alreadyInTeam(teamUUID uuid.UUID, fingerprint fp.Fingerprint) (bool, error) {
+	_, _, err := api.GetTeamRoster(teamUUID, fingerprint)
+	switch err {
+	case apiclient.ErrForbidden:
+		return false, nil
+
+	case nil: // no error, we're in the team
+		return true, nil
+
+	default: // some other error
+		return false, err
+	}
+}
+
 func pollThenRunTeamFetch(teamUUID uuid.UUID, fingerprint fp.Fingerprint) exitCode {
 	s := spin.New()
 	spinnerTimeDelay := 100 * time.Millisecond
@@ -116,13 +149,11 @@ func pollThenRunTeamFetch(teamUUID uuid.UUID, fingerprint fp.Fingerprint) exitCo
 
 		if time.Since(timeLastPolled).Seconds() > 30 {
 			log.Printf("checking if we can access the team roster.\n")
-			_, _, err := api.GetTeamRoster(teamUUID, fingerprint)
-			if err == apiclient.ErrForbidden {
-
-			} else if err != nil {
+			inTeam, err := alreadyInTeam(teamUUID, fingerprint)
+			if err != nil {
 				log.Printf("error getting team roster: %v", err)
 
-			} else {
+			} else if inTeam {
 				out.Print("\n\nDone! ")
 				break
 			}
@@ -187,8 +218,6 @@ func ensureNoExistingRequests(
 		lines :=
 			[]string{
 				formatYouRequestedToJoin(*existingRequest),
-				"Check if the team admin has authorized your request by running " +
-					colour.Cmd("fk team fetch"),
 				"",
 				"Here are the verification details for your team admin:",
 				"",
@@ -198,23 +227,13 @@ func ensureNoExistingRequests(
 			// db, so that option isn't available. I don't believe this affects the verification
 			// but it could lead to a confusing state.
 		lines = append(lines, formatVerificationLines(existingRequest.Fingerprint, email)...)
+		lines = append(lines, "", "Check if the team admin has authorized your request by running "+
+			colour.Cmd("fk team fetch"))
 		out.Print(ui.FormatWarning(
 			"You've already requested to join "+existingRequest.TeamName, lines, nil))
 		return 1
 	}
 	return 0
-}
-
-func requestToJoinTeam(
-	teamUUID uuid.UUID, teamName string, fingerprint fpr.Fingerprint, email string) error {
-
-	if err := db.RecordRequestToJoinTeam(teamUUID, teamName, fingerprint, time.Now()); err != nil {
-		return err
-	}
-	if err := api.RequestToJoinTeam(teamUUID, fingerprint, email); err != nil {
-		return err
-	}
-	return nil
 }
 
 func getKeyForTeam() (*pgpkey.PgpKey, exitCode) {
