@@ -43,9 +43,9 @@ func (a ModifyPrimaryKeyExpiry) Enact(key *pgpkey.PgpKey, now time.Time, passwor
 
 func (a ModifyPrimaryKeyExpiry) String() string {
 	if a.PreviouslyValidUntil == nil || a.PreviouslyValidUntil.After(a.ValidUntil) {
-		return fmt.Sprintf("Shorten the primary key expiry to %s", a.ValidUntil.Format("2 Jan 2006"))
+		return fmt.Sprintf("Shorten the primary key expiry to %s", a.ValidUntil.Format(dateFormat))
 	} else {
-		return fmt.Sprintf("Extend the primary key expiry to %s", a.ValidUntil.Format("2 Jan 2006"))
+		return fmt.Sprintf("Extend the primary key expiry to %s", a.ValidUntil.Format(dateFormat))
 	}
 }
 func (a ModifyPrimaryKeyExpiry) SortOrder() int {
@@ -65,7 +65,7 @@ func (a CreateNewEncryptionSubkey) Enact(key *pgpkey.PgpKey, now time.Time, pass
 }
 
 func (a CreateNewEncryptionSubkey) String() string {
-	return fmt.Sprintf("Create a new encryption subkey valid until %s", a.ValidUntil.Format("2 Jan 2006"))
+	return fmt.Sprintf("Create a new encryption subkey valid until %s", a.ValidUntil.Format(dateFormat))
 }
 
 func (a CreateNewEncryptionSubkey) SortOrder() int {
@@ -87,7 +87,7 @@ func (a ModifySubkeyExpiry) Enact(key *pgpkey.PgpKey, now time.Time, password *s
 }
 
 func (a ModifySubkeyExpiry) String() string {
-	return fmt.Sprintf("Extend encryption subkey expiry to %s", a.validUntil.Format("2 Jan 06"))
+	return fmt.Sprintf("Extend encryption subkey expiry to %s", a.validUntil.Format(dateFormat))
 }
 func (a ModifySubkeyExpiry) SortOrder() int {
 	return sortOrderModifySubkey
@@ -206,3 +206,5 @@ type KeyAction interface {
 	Enact(*pgpkey.PgpKey, time.Time, *string) error
 	SortOrder() int
 }
+
+const dateFormat = "2 Jan 2006"
