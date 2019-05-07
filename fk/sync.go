@@ -21,6 +21,7 @@ import (
 	"github.com/docopt/docopt-go"
 	"github.com/fluidkeys/fluidkeys/colour"
 	"github.com/fluidkeys/fluidkeys/out"
+	"github.com/fluidkeys/fluidkeys/scheduler"
 	"github.com/fluidkeys/fluidkeys/ui"
 )
 
@@ -32,7 +33,8 @@ func sync() (code exitCode) {
 	out.Print(ui.FormatInfo(
 		"fk sync always runs in automatic (unattended) mode",
 		[]string{
-			"Because it's designed to run from cron. That means it won't ask for passwords, ",
+			"Because it's designed to run from " + scheduler.Name() +
+				". That means it won't ask for passwords, ",
 			"and will fail if these can't be fetched from your " + Keyring.Name(),
 		}))
 
