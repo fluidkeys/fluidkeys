@@ -32,6 +32,7 @@ import (
 	"github.com/fluidkeys/fluidkeys/humanize"
 	"github.com/fluidkeys/fluidkeys/out"
 	"github.com/fluidkeys/fluidkeys/pgpkey"
+	"github.com/fluidkeys/fluidkeys/scheduler"
 	"github.com/fluidkeys/fluidkeys/ui"
 	spin "github.com/tj/go-spin"
 
@@ -193,12 +194,12 @@ func keyCreate(email string) (exitCode, *pgpkey.PgpKey) {
 			fmt.Errorf("automatic maintenance won't work"))
 	}
 
-	ui.PrintCheckboxPending("Automatically rotate key each month using cron")
+	ui.PrintCheckboxPending("Automatically extend key annually using " + scheduler.Name())
 
 	if err := tryMaintainAutomatically(generateJob.pgpKey.Fingerprint()); err == nil {
-		ui.PrintCheckboxSuccess("Automatically rotate key each month using cron")
+		ui.PrintCheckboxSuccess("Automatically extend key annually using " + scheduler.Name())
 	} else {
-		ui.PrintCheckboxFailure("Automatically rotate key each month using cron", err)
+		ui.PrintCheckboxFailure("Automatically extend key annually using "+scheduler.Name(), err)
 	}
 
 	filename, err := backupzip.OutputZipBackupFile(fluidkeysDirectory, generateJob.pgpKey, password.AsString())
