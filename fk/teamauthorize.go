@@ -191,7 +191,7 @@ func reviewRequests(requests []team.RequestToJoinTeam, myTeam team.Team) (
 
 		if addToTeam {
 			approvedRequests = append(approvedRequests, request)
-			deleteRequests = append(deleteRequests)
+			deleteRequests = append(deleteRequests, request)
 		} else {
 			out.Print(ui.FormatWarning("Reject this request?",
 				[]string{
