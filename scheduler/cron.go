@@ -26,7 +26,7 @@ func (c *cron) Disable() (cronLinesWereRemoved bool, err error) {
 }
 
 func (c *cron) Name() string {
-	return "crontab"
+	return "cron"
 }
 
 func (c *cron) enable(crontab runCrontabInterface) (crontabWasAdded bool, err error) {
