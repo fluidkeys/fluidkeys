@@ -65,6 +65,18 @@ func (c *cron) disable(crontab runCrontabInterface) (cronLinesWereRemoved bool, 
 	return false, nil
 }
 
+func (c *cron) IsEnabled() (enabled bool, err error) {
+	return c.isEnabled(&systemCrontab{})
+}
+
+func (c *cron) isEnabled(crontab runCrontabInterface) (enabled bool, err error) {
+	currentCrontab, err := crontab.get()
+	if err != nil {
+		return false, fmt.Errorf("error getting crontab: %v", err)
+	}
+	return hasFluidkeysCronLines(currentCrontab), nil
+}
+
 func hasFluidkeysCronLines(crontab string) bool {
 	return strings.Contains(crontab, strings.TrimSuffix(CronLines, "\n"))
 }

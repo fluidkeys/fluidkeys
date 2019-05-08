@@ -20,6 +20,9 @@ package scheduler
 import (
 	"log"
 	"os/exec"
+
+	"github.com/fluidkeys/fluidkeys/out"
+	"github.com/fluidkeys/fluidkeys/ui"
 )
 
 var scheduler schedulerInterface
@@ -61,11 +64,33 @@ func Name() string {
 func tryDisableCrontab() {
 	c := cron{}
 
-	wasDisabled, err := c.Disable()
+	enabled, err := c.IsEnabled()
 	if err != nil {
-		log.Printf("failed to disable crontab (migrating to launchd): %v", err)
-	} else if wasDisabled {
-		log.Printf("disabled Fluidkeys in crontab")
+		log.Printf("failed to check crontab (migrating to launchd): %v", err)
+		return
+	} else if !enabled {
+		return
+	}
+
+	out.Print("Fluidkeys no longer uses cron to run in the background.\n")
+	out.Print("Removing leftover lines from crontab.\n\n")
+
+	err = ui.RunWithCheckboxes("edit crontab to remove Fluidkeys lines", func() error {
+		wasDisabled, err := c.Disable()
+
+		if err != nil {
+			log.Printf("failed to disable crontab (migrating to launchd): %v", err)
+		} else if wasDisabled {
+			log.Printf("disabled Fluidkeys in crontab")
+		}
+		return err
+	})
+	out.Print("\n")
+
+	if err != nil {
+		out.Print("To remove Fluidkeys from crontab manually, see:\n")
+		out.Print("https://www.fluidkeys.com/docs/remove-crontab-lines-macos-mojave/\n")
+		out.Print("\n")
 	}
 }
 
