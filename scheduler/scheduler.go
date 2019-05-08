@@ -90,6 +90,7 @@ func tryDisableCrontab() {
 	if err != nil {
 		out.Print("To remove Fluidkeys from crontab manually, see:\n")
 		out.Print("https://www.fluidkeys.com/docs/remove-crontab-lines-macos-mojave/\n")
+		out.Print("\n")
 	}
 }
 
