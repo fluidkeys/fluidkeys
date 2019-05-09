@@ -89,7 +89,7 @@ print_aur_flag_url() {
   echo
   echo "Notify the Arch User Repository package of this new release:"
   echo
-  echo "https://aur.archlinux.org/pkgbase/fluidkeys/flag-comment/"
+  echo "https://aur.archlinux.org/pkgbase/fluidkeys/flag/"
 }
 
 check_git_has_no_unstaged_changes
