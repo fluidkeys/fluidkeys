@@ -68,6 +68,14 @@ func teamApply(teamUUID uuid.UUID) exitCode {
 
 	} else if alreadyInTeam {
 		fmt.Printf("You're already in the team. Running " + colour.Cmd("fk team fetch") + "\n")
+
+		// create a "fake" request to join the team, so that `team fetch` can process it
+		if err := db.RecordRequestToJoinTeam(
+			teamUUID, teamName, pgpKey.Fingerprint(), time.Now()); err != nil {
+			out.Print(ui.FormatFailure("Failed to apply to join "+teamName, nil, err))
+			return 1
+		}
+
 		return teamFetch(false)
 	}
 
