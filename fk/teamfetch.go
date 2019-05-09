@@ -210,6 +210,9 @@ func fetchAndCertifyTeamKeys(
 			}
 			return nil
 		})
+		if err != nil {
+			continue
+		}
 
 		err = ui.RunWithCheckboxes(person.Email+": sign key", func() error {
 
