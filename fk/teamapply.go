@@ -60,11 +60,6 @@ func teamApply(teamUUID uuid.UUID) exitCode {
 		return 1
 	}
 
-	if exitCode := ensureNoExistingRequests(
-		teamUUID, pgpKey.Fingerprint(), email); exitCode != 0 {
-		return exitCode
-	}
-
 	printHeader("Apply to join team")
 
 	// always record a request so `team fetch` can refer to it later
@@ -201,36 +196,6 @@ func ensureUserCanJoinTeam(teamUUID uuid.UUID) exitCode {
 			"Can't join another team", []string{
 				"Currently Fluidkeys only supports being in one team.",
 			}, nil))
-		return 1
-	}
-	return 0
-}
-
-func ensureNoExistingRequests(
-	teamUUID uuid.UUID, fingerprint fpr.Fingerprint, email string) exitCode {
-
-	existingRequest, err := db.GetExistingRequestToJoinTeam(teamUUID, fingerprint)
-	if err != nil {
-		out.Print(ui.FormatFailure("Failed to check for existing requests", nil, err))
-		return 1
-	}
-	if existingRequest != nil {
-		lines :=
-			[]string{
-				formatYouRequestedToJoin(*existingRequest),
-				"",
-				"Here are the verification details for your team admin:",
-				"",
-			}
-			// NOTE: strictly, we make the verification details using the email from the request in
-			// the db rather than reading it again from key. But we don't store the email in the
-			// db, so that option isn't available. I don't believe this affects the verification
-			// but it could lead to a confusing state.
-		lines = append(lines, formatVerificationLines(existingRequest.Fingerprint, email)...)
-		lines = append(lines, "", "Check if the team admin has authorized your request by running "+
-			colour.Cmd("fk team fetch"))
-		out.Print(ui.FormatWarning(
-			"You've already requested to join "+existingRequest.TeamName, lines, nil))
 		return 1
 	}
 	return 0
