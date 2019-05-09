@@ -45,7 +45,7 @@ import (
 	userpackage "github.com/fluidkeys/fluidkeys/user"
 )
 
-const Version = "1.1.0"
+const Version = "1.1.1"
 
 var (
 	gpg                gpgwrapper.GnuPG
