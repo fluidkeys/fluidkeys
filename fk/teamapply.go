@@ -62,14 +62,6 @@ func teamApply(teamUUID uuid.UUID) exitCode {
 
 	printHeader("Apply to join team")
 
-	// always record a request so `team fetch` can refer to it later
-	if err := db.RecordRequestToJoinTeam(
-		teamUUID, teamName, pgpKey.Fingerprint(), time.Now()); err != nil {
-
-		out.Print(ui.FormatFailure("Failed to apply to join "+teamName, nil, err))
-		return 1
-	}
-
 	alreadyInTeam, err := alreadyInTeam(teamUUID, pgpKey.Fingerprint())
 	if err != nil {
 		log.Printf("error calling alreadyInTeam(%s, %s): %v", teamUUID, pgpKey.Fingerprint(), err)
@@ -80,6 +72,14 @@ func teamApply(teamUUID uuid.UUID) exitCode {
 	}
 
 	if err := api.RequestToJoinTeam(teamUUID, pgpKey.Fingerprint(), email); err != nil {
+		out.Print(ui.FormatFailure("Failed to apply to join "+teamName, nil, err))
+		return 1
+	}
+
+	// recording a request allows `team fetch` to periodically check if it's been authorized
+	if err := db.RecordRequestToJoinTeam(
+		teamUUID, teamName, pgpKey.Fingerprint(), time.Now()); err != nil {
+
 		out.Print(ui.FormatFailure("Failed to apply to join "+teamName, nil, err))
 		return 1
 	}
