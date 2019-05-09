@@ -1,9 +1,9 @@
 package database
 
-// earliestFirst implements sort.Interface for []RequestToJoinTeamMessage based on
+// newestFirst implements sort.Interface for []RequestToJoinTeamMessage based on
 // the RequestedAt field.
-type earliestFirst []RequestToJoinTeamMessage
+type newestFirst []RequestToJoinTeamMessage
 
-func (a earliestFirst) Len() int           { return len(a) }
-func (a earliestFirst) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a earliestFirst) Less(i, j int) bool { return a[i].RequestedAt.Before(a[j].RequestedAt) }
+func (a newestFirst) Len() int           { return len(a) }
+func (a newestFirst) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a newestFirst) Less(i, j int) bool { return a[i].RequestedAt.After(a[j].RequestedAt) }

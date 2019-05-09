@@ -334,7 +334,7 @@ func (db Database) saveToFile(message Message) error {
 
 // deduplicateRequests returns a de-duplicated version of requests, where a duplicate is defined
 // as having the same (TeamUUID + Fingerprint) pair.
-// The *oldest* RequestedAt defines the single request that's returned.
+// The *newest* RequestedAt defines the single request that's returned.
 func deduplicateRequests(requests []RequestToJoinTeamMessage) (deduped []RequestToJoinTeamMessage) {
 	mapHash := func(r RequestToJoinTeamMessage) string {
 		return fmt.Sprintf("%s%s", r.TeamUUID, r.Fingerprint)
@@ -353,11 +353,11 @@ func deduplicateRequests(requests []RequestToJoinTeamMessage) (deduped []Request
 	}
 
 	for _, dupeRequests := range reqsMap {
-		sort.Sort(earliestFirst(dupeRequests))
+		sort.Sort(newestFirst(dupeRequests))
 		deduped = append(deduped, dupeRequests[0] /* 0th is the earliest */)
 	}
 
-	sort.Sort(earliestFirst(deduped))
+	sort.Sort(newestFirst(deduped))
 	return deduped
 }
 
