@@ -376,6 +376,17 @@ func TestValidate(t *testing.T) {
 			"AAAA BBBB AAAA BBBB AAAA  AAAA BBBB AAAA BBBB AAAA"), err)
 	})
 
+	t.Run("with no members", func(t *testing.T) {
+		team := Team{
+			Name:   "Kiffix",
+			UUID:   uuid.Must(uuid.NewV4()),
+			People: []Person{},
+		}
+
+		err := team.Validate()
+		assert.Equal(t, fmt.Errorf("team has no members"), err)
+	})
+
 	t.Run("with no admins", func(t *testing.T) {
 		team := Team{
 			Name: "Kiffix",
@@ -455,6 +466,35 @@ func TestIsAdmin(t *testing.T) {
 
 	t.Run("IsAdmin returns false for normal person", func(t *testing.T) {
 		got := team.IsAdmin(normalPerson.Fingerprint)
+
+		assert.Equal(t, false, got)
+	})
+}
+
+func TestTeamContains(t *testing.T) {
+	pesonInTeam := Person{
+		Email:       "admin@example.com",
+		Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+	}
+	personNotInTeam := Person{
+		Email:       "normal@example.com",
+		Fingerprint: fpr.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
+	}
+
+	team := Team{
+		Name:   "Kiffix",
+		UUID:   uuid.Must(uuid.NewV4()),
+		People: []Person{pesonInTeam},
+	}
+
+	t.Run("team.Contains returns true for person in the team", func(t *testing.T) {
+		got := team.Contains(pesonInTeam.Fingerprint)
+
+		assert.Equal(t, true, got)
+	})
+
+	t.Run("team.Contains returns false for person not in the team", func(t *testing.T) {
+		got := team.Contains(personNotInTeam.Fingerprint)
 
 		assert.Equal(t, false, got)
 	})

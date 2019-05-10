@@ -182,6 +182,10 @@ func (t *Team) Validate() error {
 		fingerprintsSeen[person.Fingerprint] = true
 	}
 
+	if len(t.People) == 0 {
+		return fmt.Errorf("team has no members")
+	}
+
 	if len(t.Admins()) == 0 {
 		return fmt.Errorf("team has no administrators")
 	}
@@ -192,6 +196,16 @@ func (t *Team) Validate() error {
 func (t Team) IsAdmin(fingerprint fpr.Fingerprint) bool {
 	for _, person := range t.People {
 		if person.IsAdmin && person.Fingerprint == fingerprint {
+			return true
+		}
+	}
+	return false
+}
+
+// Contains returns whether the given fingerprint is a member of the team
+func (t Team) Contains(fingerprint fpr.Fingerprint) bool {
+	for _, person := range t.People {
+		if person.Fingerprint == fingerprint {
 			return true
 		}
 	}
