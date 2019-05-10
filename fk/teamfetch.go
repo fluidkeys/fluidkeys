@@ -182,7 +182,7 @@ func fetchAndCertifyTeamKeys(
 	out.Print("Fetching and signing keys for other members of " + t.Name + ":\n\n")
 
 	for _, person := range t.People {
-		if person == me {
+		if person.Fingerprint == me.Fingerprint {
 			continue
 		}
 
