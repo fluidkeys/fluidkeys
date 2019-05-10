@@ -376,6 +376,17 @@ func TestValidate(t *testing.T) {
 			"AAAA BBBB AAAA BBBB AAAA  AAAA BBBB AAAA BBBB AAAA"), err)
 	})
 
+	t.Run("with no members", func(t *testing.T) {
+		team := Team{
+			Name:   "Kiffix",
+			UUID:   uuid.Must(uuid.NewV4()),
+			People: []Person{},
+		}
+
+		err := team.Validate()
+		assert.Equal(t, fmt.Errorf("team has no members"), err)
+	})
+
 	t.Run("with no admins", func(t *testing.T) {
 		team := Team{
 			Name: "Kiffix",

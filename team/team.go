@@ -182,6 +182,10 @@ func (t *Team) Validate() error {
 		fingerprintsSeen[person.Fingerprint] = true
 	}
 
+	if len(t.People) == 0 {
+		return fmt.Errorf("team has no members")
+	}
+
 	if len(t.Admins()) == 0 {
 		return fmt.Errorf("team has no administrators")
 	}
