@@ -39,8 +39,21 @@ func teamEdit() exitCode {
 func doEditTeam(myTeam team.Team, me team.Person) exitCode {
 	printHeader("Edit team " + myTeam.Name)
 
-	existingRoster, _ := myTeam.Roster()
-	// TODO: validate signature
+	existingRoster, signature := myTeam.Roster()
+
+	if err := fetchAdminKeysVerifyRoster(myTeam, existingRoster, signature); err != nil {
+		out.Print(ui.FormatWarning(
+			"Failed to verify team roster", []string{
+				"Before editing the team roster, Fluidkeys checked the signature of the team ",
+				"roster, but encountered a problem.",
+			},
+			err))
+
+		prompter := interactiveYesNoPrompter{}
+		if !prompter.promptYesNo("Edit team roster anyway?", "n", nil) {
+			return 1
+		}
+	}
 
 	tmpfile, err := writeRosterToTempfile(existingRoster)
 	if err != nil {
