@@ -202,6 +202,16 @@ func (t Team) IsAdmin(fingerprint fpr.Fingerprint) bool {
 	return false
 }
 
+// Contains returns whether the given fingerprint is a member of the team
+func (t Team) Contains(fingerprint fpr.Fingerprint) bool {
+	for _, person := range t.People {
+		if person.Fingerprint == fingerprint {
+			return true
+		}
+	}
+	return false
+}
+
 // GetPersonForFingerprint takes a fingerprint and returns the person in the team with the
 // matching fingperint.
 func (t *Team) GetPersonForFingerprint(fingerprint fpr.Fingerprint) (*Person, error) {

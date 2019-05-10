@@ -471,6 +471,35 @@ func TestIsAdmin(t *testing.T) {
 	})
 }
 
+func TestTeamContains(t *testing.T) {
+	pesonInTeam := Person{
+		Email:       "admin@example.com",
+		Fingerprint: fpr.MustParse("AAAABBBBAAAABBBBAAAAAAAABBBBAAAABBBBAAAA"),
+	}
+	personNotInTeam := Person{
+		Email:       "normal@example.com",
+		Fingerprint: fpr.MustParse("CCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDDCCCCDDDD"),
+	}
+
+	team := Team{
+		Name:   "Kiffix",
+		UUID:   uuid.Must(uuid.NewV4()),
+		People: []Person{pesonInTeam},
+	}
+
+	t.Run("team.Contains returns true for person in the team", func(t *testing.T) {
+		got := team.Contains(pesonInTeam.Fingerprint)
+
+		assert.Equal(t, true, got)
+	})
+
+	t.Run("team.Contains returns false for person not in the team", func(t *testing.T) {
+		got := team.Contains(personNotInTeam.Fingerprint)
+
+		assert.Equal(t, false, got)
+	})
+}
+
 func TestGetPersonForFingerprint(t *testing.T) {
 	personOne := Person{
 		Email:       "test@example.com",
