@@ -182,7 +182,7 @@ func fetchAndCertifyTeamKeys(
 	out.Print("Fetching and signing keys for other members of " + t.Name + ":\n\n")
 
 	for _, person := range t.People {
-		if person == me {
+		if person.Fingerprint == me.Fingerprint {
 			continue
 		}
 
@@ -353,7 +353,7 @@ func processRequestsToJoinTeam(unattended bool) (returnError error) {
 			continue
 		}
 
-		if err = verifyBrandNewRoster(*t, roster, signature); err != nil {
+		if err = fetchAdminKeysVerifyRoster(*t, roster, signature); err != nil {
 			out.Print(ui.FormatFailure(
 				"Failed to verify team roster's cryptographic signature", nil, err,
 			))
@@ -463,9 +463,9 @@ func discoverPublicKey(fingerprint fp.Fingerprint) (key *pgpkey.PgpKey, err erro
 	return nil, fmt.Errorf("failed multiple attempts to find get public key for %s", fingerprint)
 }
 
-// verifyBrandNewRoster fetches the public keys of the admins in the team and verifies the roster
+// fetchAdminKeysVerifyRoster fetches the public keys of the admins in the team and verifies the roster
 // against them.
-func verifyBrandNewRoster(t team.Team, roster string, signature string) error {
+func fetchAdminKeysVerifyRoster(t team.Team, roster string, signature string) error {
 	adminKeys, err := fetchAdminPublicKeys(t)
 	if err != nil {
 		return err

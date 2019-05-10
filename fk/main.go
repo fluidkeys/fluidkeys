@@ -73,6 +73,7 @@ Usage:
 	fk team apply <uuid>
 	fk team authorize
 	fk team fetch [--cron-output]
+	fk team edit
 	fk status
 	fk secret send <recipient-email>
 	fk secret send [<filename>] --to=<email>
