@@ -71,6 +71,8 @@ func teamAuthorize() exitCode {
 		approvedRequests, deleteRequests := reviewRequests(requests, myTeam)
 
 		if len(approvedRequests) > 0 {
+			myTeam.Version++
+
 			for _, request := range approvedRequests {
 				myTeam.UpsertPerson(
 					team.Person{
