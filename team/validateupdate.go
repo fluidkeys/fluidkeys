@@ -32,6 +32,10 @@ func ValidateUpdate(before *Team, after *Team, me *Person) error {
 		return err
 	}
 
+	if err := validateVersionMustIncrementByOne(before, after); err != nil {
+		return err
+	}
+
 	if err := validateIAmAdmin(before, after, me); err != nil {
 		return err
 	}
@@ -57,6 +61,14 @@ func validateTeamUUID(before, after *Team) error {
 func validateTeamNameCantChange(before, after *Team) error {
 	if before.Name != after.Name {
 		return fmt.Errorf("team name cannot currently be changed")
+	}
+	return nil
+}
+
+func validateVersionMustIncrementByOne(before, after *Team) error {
+	if after.Version != before.Version+1 {
+		return fmt.Errorf("invalid version number v%d (expected v%d)",
+			after.Version, before.Version+1)
 	}
 	return nil
 }
