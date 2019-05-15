@@ -248,6 +248,7 @@ func TestUpdateRoster(t *testing.T) {
 # It is used to look up which key to use for an email address and fetch keys
 # automatically.
 uuid = "74bb40b4-3510-11e9-968e-53c38df634be"
+version = 0
 name = "Kiffix"
 
 [[person]]

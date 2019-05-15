@@ -80,6 +80,8 @@ func doEditTeam(myTeam team.Team, me team.Person) exitCode {
 		return 1
 	}
 
+	updatedTeam.Version = myTeam.Version + 1
+
 	if err := team.ValidateUpdate(&myTeam, updatedTeam, &me); err != nil {
 		out.Print(ui.FormatFailure("Problem with new team roster", nil, err))
 		return 1

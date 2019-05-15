@@ -12,8 +12,9 @@ import (
 func TestSerialize(t *testing.T) {
 	t.Run("for a valid team", func(t *testing.T) {
 		testTeam := Team{
-			Name: "Kiffix",
-			UUID: uuid.Must(uuid.FromString("6caa3730-2ca3-47b9-b671-5dc326100431")),
+			Name:    "Kiffix",
+			UUID:    uuid.Must(uuid.FromString("6caa3730-2ca3-47b9-b671-5dc326100431")),
+			Version: 3,
 			People: []Person{
 				Person{
 					Email:       "test2@example.com",
@@ -36,6 +37,7 @@ func TestSerialize(t *testing.T) {
 # It is used to look up which key to use for an email address and fetch keys
 # automatically.
 uuid = "6caa3730-2ca3-47b9-b671-5dc326100431"
+version = 3
 name = "Kiffix"
 
 [[person]]
@@ -77,6 +79,7 @@ name = "Kiffix"
 # It is used to look up which key to use for an email address and fetch keys
 # automatically.
 uuid = "6caa3730-2ca3-47b9-b671-5dc326100431"
+version = 0
 name = "Kiffix"
 
 [[person]]
