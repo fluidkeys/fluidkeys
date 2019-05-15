@@ -134,7 +134,7 @@ func reviewRequests(requests []team.RequestToJoinTeam, myTeam team.Team) (
 		out.Print("» key:   " + colour.Info(request.Fingerprint.String()) + "\n")
 		out.Print("  email: " + colour.Info(request.Email) + "\n")
 
-		err, existingPerson := myTeam.GetUpsertPersonWarnings(team.Person{
+		existingPerson, err := myTeam.GetUpsertPersonWarnings(team.Person{
 			Email:       request.Email,
 			Fingerprint: request.Fingerprint,
 		})
