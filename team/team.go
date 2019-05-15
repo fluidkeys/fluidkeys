@@ -371,9 +371,10 @@ func fileExists(filename string) bool {
 
 // Team represents a group of people in Fluidkeys
 type Team struct {
-	UUID   uuid.UUID `toml:"uuid"`
-	Name   string    `toml:"name"`
-	People []Person  `toml:"person"`
+	UUID    uuid.UUID `toml:"uuid"`
+	Version uint      `toml:"version"`
+	Name    string    `toml:"name"`
+	People  []Person  `toml:"person"`
 
 	roster    string
 	signature string
