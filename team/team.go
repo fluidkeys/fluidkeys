@@ -226,10 +226,10 @@ func (t *Team) GetPersonForFingerprint(fingerprint fpr.Fingerprint) (*Person, er
 
 // GetUpsertPersonWarnings checks if the given request to join a team causes any other team member to
 // be overwritten, returning an error if so.
-func (t *Team) GetUpsertPersonWarnings(newPerson Person) (err error, existingPerson *Person) {
+func (t *Team) GetUpsertPersonWarnings(newPerson Person) (existingPerson *Person, err error) {
 	for _, existingPerson := range t.People {
 		if existingPerson == newPerson {
-			return ErrPersonWouldNotBeChanged, &existingPerson
+			return &existingPerson, ErrPersonWouldNotBeChanged
 		}
 
 		fingerprintsEqual := existingPerson.Fingerprint == newPerson.Fingerprint
@@ -242,20 +242,20 @@ func (t *Team) GetUpsertPersonWarnings(newPerson Person) (err error, existingPer
 		// 4. demoted from admin
 
 		if !fingerprintsEqual && emailsEqual && isAdminsEqual {
-			return ErrKeyWouldBeUpdated, &existingPerson
+			return &existingPerson, ErrKeyWouldBeUpdated
 		}
 
 		if !emailsEqual && fingerprintsEqual && isAdminsEqual {
-			return ErrEmailWouldBeUpdated, &existingPerson
+			return &existingPerson, ErrEmailWouldBeUpdated
 		}
 
 		if !isAdminsEqual && emailsEqual && fingerprintsEqual {
 			isPromotion := !existingPerson.IsAdmin && newPerson.IsAdmin
 
 			if isPromotion {
-				return ErrPersonWouldBePromotedToAdmin, &existingPerson
+				return &existingPerson, ErrPersonWouldBePromotedToAdmin
 			}
-			return ErrPersonWouldBeDemotedAsAdmin, &existingPerson
+			return &existingPerson, ErrPersonWouldBeDemotedAsAdmin
 		}
 
 	}

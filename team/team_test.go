@@ -725,7 +725,7 @@ func TestGetUpsertPersonWarnings(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run("GetUpsertPersonWarnings for "+test.name, func(t *testing.T) {
-			err, _ := test.team.GetUpsertPersonWarnings(test.person)
+			_, err := test.team.GetUpsertPersonWarnings(test.person)
 			assert.Equal(t, test.expectedError, err)
 		})
 	}
