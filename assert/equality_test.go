@@ -3,6 +3,7 @@ package assert
 import (
 	"fmt"
 	"testing"
+	"time"
 )
 
 func TestEqualSliceOfStrings(t *testing.T) {
@@ -42,6 +43,28 @@ func TestEqualSliceOfStrings(t *testing.T) {
 				t.Errorf("expected output '%v', got '%v'", test.expectedOutput, actualOutput)
 			}
 		})
+	}
+
+}
+
+func TestEqualForTimes(t *testing.T) {
+	time1 := time.Date(2019, 6, 20, 16, 35, 23, 0, time.UTC)
+	time2 := time.Date(2019, 6, 20, 16, 35, 23, 0, time.UTC)
+
+	if !isEqual(time1, time2) {
+		t.Errorf("expected isEqual(%v, %v) to be true, got false", time1, time2)
+	}
+
+	if !isEqual(&time1, &time2) {
+		t.Errorf("expected isEqual(*%v, *%v) to be true, got false", time1, time2)
+	}
+
+	if !isEqual(&time1, time2) {
+		t.Errorf("expected isEqual(*%v, %v) to be true, got false", time1, time2)
+	}
+
+	if !isEqual(time1, &time2) {
+		t.Errorf("expected isEqual(%v, *%v) to be true, got false", time1, time2)
 	}
 
 }
